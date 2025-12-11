@@ -91,15 +91,15 @@ export default function StarterProjectsPage() {
   const [hasSelectedOnce, setHasSelectedOnce] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showInitialMessage, setShowInitialMessage] = useState(true);
-  const [showPreviewImage, setShowPreviewImage] = useState(false);
-  const [previewImageY, setPreviewImageY] = useState(500);
-  const [previewOpacity, setPreviewOpacity] = useState(1);
+  const [initialMessageOpacity, setInitialMessageOpacity] = useState(1);
+  const [initialMessageScale, setInitialMessageScale] = useState(1);
   
   const pendingIndexRef = useRef<number | null>(null);
   const svgContainerRef = useRef<SVGSVGElement>(null);
   const rotationTweensRef = useRef<gsap.core.Tween[]>([]);
   const animationFrameRef = useRef<number | undefined>(undefined);
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const maxHeight = Math.max(...projectHeights, 0);
   const actualProjects = projects.length;
@@ -283,42 +283,40 @@ export default function StarterProjectsPage() {
       }
     });
 
+    measureRefs.current.forEach((el, i) => {
+      if (el) {
+        setProjectHeights(prev => {
+          const newHeights = [...prev];
+          newHeights[i] = el.clientHeight;
+          return newHeights;
+        });
+      }
+    });
+
     return () => {
       gsap.killTweensOf('*');
     };
   }, []);
 
   useEffect(() => {
-    measureRefs.current.forEach((ref, i) => {
-      if (ref) {
-        setProjectHeights(prev => {
-          const newHeights = [...prev];
-          newHeights[i] = ref.offsetHeight;
-          return newHeights;
-        });
-      }
-    });
-  }, []);
-
-  useEffect(() => {
     if (selectedProjectIndex === null) return;
 
-    setShowInitialMessage(false);
-    setShowPreviewImage(true);
-    setPreviewImageY(500);
-    setPreviewOpacity(1);
-
-    gsap.to({ y: 500 }, {
-      y: 0,
-      duration: 0.5,
-      ease: 'power2.out',
-      onUpdate: function() {
-        setPreviewImageY(this.targets()[0].y);
-      },
-      onStart: handleIntroStart,
-      onComplete: handleIntroEnd
-    });
-  }, [selectedProjectIndex, handleIntroStart, handleIntroEnd]);
+    if (showInitialMessage) {
+      gsap.to({ opacity: 1, scale: 1 }, {
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.3,
+        ease: 'power2.out',
+        onUpdate: function() {
+          setInitialMessageOpacity(this.targets()[0].opacity);
+          setInitialMessageScale(this.targets()[0].scale);
+        },
+        onComplete: () => {
+          setShowInitialMessage(false);
+        }
+      });
+    }
+  }, [selectedProjectIndex, showInitialMessage]);
 
   const lineConfigs = [
     { from: 80, to: 200, duration: 60, direction: 1 },
@@ -353,7 +351,7 @@ export default function StarterProjectsPage() {
 
       <div className="bg-[linear-gradient(#40352999,#40352999),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
         <div 
-          className="absolute inset-0 opacity-40 -z-[1000] pointer-events-none"
+          className="absolute inset-0 opacity-40 -z-1000 pointer-none"
           style={{
             backgroundImage: 'url(/grid-texture.png)',
             backgroundSize: '8rem 8rem',
@@ -372,7 +370,7 @@ export default function StarterProjectsPage() {
           </Link>
         </div>
 
-        <img src="/stasis-logo-white-center.svg" alt="" className="absolute -z-[1] w-full mx-auto scale-110 translate-x-3 -translate-y-[calc(100%-2vw)] md:-translate-y-[calc(100%-4vw)] opacity-10" />
+        <img src="/stasis-logo-white-center.svg" alt="" className="absolute -z-1 w-full mx-auto scale-110 translate-x-3 -translate-y-[calc(100%-2vw)] md:-translate-y-[calc(100%-4vw)] opacity-10" />
 
         <div className="flex flex-col max-w-6xl mx-auto font-mono mb-8">
           <div className="bg-brand-500 text-cream-100 text-xl w-max px-4 py-2 relative after:bg-brand-500 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
@@ -382,7 +380,7 @@ export default function StarterProjectsPage() {
             {/* top stuff */}
             <div className="flex flex-row">
               {/* preview */}
-              <div className="border-cream-500 border-r-2 flex-[3/5] relative overflow-clip min-h-[400px]">
+              <div ref={previewContainerRef} className="border-cream-500 border-r-2 flex-3/5 relative overflow-clip min-h-[400px]">
                 <p className="text-cream-500/20 absolute top-1 right-2 z-10">PREVIEW</p>
                 <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
                   {/* Concentric circles */}
@@ -424,30 +422,32 @@ export default function StarterProjectsPage() {
                   ))}
                 </svg>
                 
-                {selectedProjectIndex === null && showInitialMessage && (
-                  <div className="absolute inset-0 flex items-center justify-center z-[1]">
-                    <p className="text-cream-500/50 text-2xl font-mono">Select a project to see details</p>
+                {showInitialMessage && (
+                  <div 
+                    className="absolute inset-0 flex items-center justify-center z-1"
+                    style={{ opacity: initialMessageOpacity }}
+                  >
+                    <p 
+                      className="text-cream-500/50 text-2xl font-mono"
+                      style={{ transform: `scale(${initialMessageScale})` }}
+                    >
+                      Select a project to see details
+                    </p>
                   </div>
                 )}
                 
-                {showPreviewImage && selectedProjectIndex !== null && (
-                  <div 
-                    className="absolute inset-0 w-full h-full z-[1]"
-                    style={{
-                      transform: `translateY(${previewImageY}px)`,
-                      opacity: previewOpacity
-                    }}
-                  >
-                    <img 
-                      src={`/projects/${projects[selectedProjectIndex].id}.png`}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
+                <PreviewImage 
+                  projects={projects}
+                  selectedProjectIndex={selectedProjectIndex}
+                  hasSelectedOnce={hasSelectedOnce}
+                  onIntroStart={handleIntroStart}
+                  onIntroEnd={handleIntroEnd}
+                  onOutroStart={handleOutroStart}
+                  onOutroEnd={handleOutroEnd}
+                />
               </div>
               {/* details */}
-              <div className="flex-[2/5] flex flex-col relative">
+              <div className="flex-2/5 flex flex-col relative">
                 <p className="text-cream-500/20 absolute top-1 right-2">DETAILS</p>
                 
                 {/* Hidden measurement divs for all projects */}
@@ -473,19 +473,19 @@ export default function StarterProjectsPage() {
                   <p className="text-cream-50 text-lg mx-8">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
                 <div className="flex flex-row border-cream-500 border-y-2 relative z-10">
-                  <div className="flex-[1/3] min-h-24 border-cream-500 border-r-2 relative">
+                  <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
                     <p className="text-cream-500 absolute top-2 right-4">1</p>
                   </div>
-                  <div className="flex-[1/3] min-h-24 border-cream-500 border-r-2 relative">
+                  <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
                     <p className="text-cream-500 absolute top-2 right-4">2</p>
                   </div>
-                  <div className="flex-[1/3] min-h-24 border-cream-500 relative">
+                  <div className="flex-1/3 min-h-24 border-cream-500 relative">
                     <p className="text-cream-500 absolute top-2 right-4">3</p>
                   </div>
                 </div>
-                <button className="text-brand-900 text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-[1] hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-900/20 border-r-[3px]">
-                  <div className="-z-[1] absolute w-full h-full inset-0 bg-[length:3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, #ea745225 0%, #ea745225 12.5%, transparent 12.5%, transparent 37.5%, #ea745225 37.5%, #ea745225 62.5%, transparent 62.5%, transparent 87.5%, #ea745225 87.5%, #ea745225 100%)' }} />
-                  <div className="z-[1] absolute w-full h-full inset-0 bg-gradient-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <button className="text-brand-900 text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-900/20 border-r-3">
+                  <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, #ea745225 0%, #ea745225 12.5%, transparent 12.5%, transparent 37.5%, #ea745225 37.5%, #ea745225 62.5%, transparent 62.5%, transparent 87.5%, #ea745225 87.5%, #ea745225 100%)' }} />
+                  <div className="z-1 absolute w-full h-full inset-0 bg-linear-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="block overflow-hidden absolute w-full">
                     <span className="block group-hover:translate-y-full transition-all ease-out group-hover:opacity-70">
                       GUIDE
@@ -504,7 +504,7 @@ export default function StarterProjectsPage() {
               ref={setGridEl}
               className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-0.5 bg-cream-500 relative overflow-hidden cursor-pointer pt-0.5"
             >
-              <p className="text-cream-500/20 absolute top-1 right-2 z-[2]">PROJECTS</p>
+              <p className="text-cream-500/20 absolute top-1 right-2 z-2">PROJECTS</p>
               <ProjectGridHoverCorners gridEl={gridEl} selectedIndex={selectedProjectIndex} />
               {projects.map((project, i) => (
                 <ProjectPreview 
@@ -537,10 +537,143 @@ export default function StarterProjectsPage() {
         </footer>
 
         {/* footer darkening background */}
-        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(#42382C00,#392E22)] -z-[2]" />
+        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(#42382C00,#392E22)] -z-2" />
       </div>
 
       <NoiseOverlay />
+    </>
+  );
+}
+
+interface PreviewImageProps {
+  projects: typeof projects;
+  selectedProjectIndex: number | null;
+  hasSelectedOnce: boolean;
+  onIntroStart: () => void;
+  onIntroEnd: () => void;
+  onOutroStart: () => void;
+  onOutroEnd: () => void;
+}
+
+function PreviewImage({ 
+  projects, 
+  selectedProjectIndex, 
+  hasSelectedOnce,
+  onIntroStart,
+  onIntroEnd,
+  onOutroStart,
+  onOutroEnd
+}: Readonly<PreviewImageProps>) {
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  const [currentY, setCurrentY] = useState(500);
+  const [previousY, setPreviousY] = useState(0);
+  const [showPrevious, setShowPrevious] = useState(false);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (selectedProjectIndex === null) return;
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      setCurrentIndex(selectedProjectIndex);
+      
+      gsap.fromTo(
+        { y: 500 },
+        { y: 500 },
+        {
+          y: 0,
+          duration: 0.5,
+          ease: 'power2.out',
+          onStart: onIntroStart,
+          onUpdate: function() {
+            setCurrentY(this.targets()[0].y);
+          },
+          onComplete: onIntroEnd
+        }
+      );
+      return;
+    }
+
+    if (selectedProjectIndex === currentIndex) return;
+
+    if (!hasSelectedOnce) {
+      setCurrentIndex(selectedProjectIndex);
+      gsap.fromTo(
+        { y: 500 },
+        { y: 500 },
+        {
+          y: 0,
+          duration: 0.5,
+          ease: 'power2.out',
+          onStart: onIntroStart,
+          onUpdate: function() {
+            setCurrentY(this.targets()[0].y);
+          },
+          onComplete: onIntroEnd
+        }
+      );
+      return;
+    }
+
+    setPreviousIndex(currentIndex);
+    setShowPrevious(true);
+    setPreviousY(0);
+    setCurrentIndex(selectedProjectIndex);
+    setCurrentY(500);
+
+    onOutroStart();
+    gsap.to({ y: 0 }, {
+      y: -500,
+      duration: 0.5,
+      ease: 'power2.out',
+      onUpdate: function() {
+        setPreviousY(this.targets()[0].y);
+      },
+      onComplete: () => {
+        setShowPrevious(false);
+        onOutroEnd();
+      }
+    });
+
+    onIntroStart();
+    gsap.to({ y: 500 }, {
+      y: 0,
+      duration: 0.5,
+      ease: 'power2.out',
+      onUpdate: function() {
+        setCurrentY(this.targets()[0].y);
+      },
+      onComplete: onIntroEnd
+    });
+  }, [selectedProjectIndex, currentIndex, hasSelectedOnce, onIntroStart, onIntroEnd, onOutroStart, onOutroEnd]);
+
+  if (currentIndex === null) return null;
+
+  return (
+    <>
+      {showPrevious && previousIndex !== null && (
+        <div 
+          className="absolute inset-0 w-full h-full z-1"
+          style={{ transform: `translateY(${previousY}px)` }}
+        >
+          <img 
+            src={`/projects/${projects[previousIndex].id}.png`}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      <div 
+        className="absolute inset-0 w-full h-full z-1"
+        style={{ transform: `translateY(${currentY}px)` }}
+      >
+        <img 
+          src={`/projects/${projects[currentIndex].id}.png`}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      </div>
     </>
   );
 }
