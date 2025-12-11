@@ -279,9 +279,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         .text-8 span { display: inline-block; transform: translateX(-100%); }
         .text-8.mounted span { animation: slideInReveal 320ms cubic-bezier(0.16, 1, 0.2, 1) 1560ms forwards; }
 
-        .text-9 { visibility: hidden; display: flex; align-items: center; gap: 0.25rem; opacity: 0.8; }
-        .text-9.mounted { visibility: visible; }
-        .text-9 .arrow-wrapper { overflow: hidden; }
+        .text-9 { display: flex; align-items: center; gap: 0.25rem; }
         .text-9 .arrow-wrapper span { display: inline-block; transform: translateX(-100%); opacity: 0; }
         .text-9 .arrow-wrapper:hover .arrow-dark { opacity: 0; }
         .text-9 .arrow-wrapper:hover .arrow-light { opacity: 1; }
@@ -388,16 +386,16 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         </div>
 
         {/* Corner stars (desktop) */}
-        <div className={`absolute hidden md:block ${mounted ? 'star-tl' : ''}`} style={{ left: inset, top: inset }}>
+        <div className={`absolute hidden md:block ${mounted ? 'star-tl' : ''}`} style={{ left: inset, top: inset, transform: 'translate(calc(-50% + 1px), calc(-50% + 1px)) scale(0)' }}>
           <StarSVG />
         </div>
-        <div className={`absolute hidden md:block ${mounted ? 'star-tr' : ''}`} style={{ right: inset, top: inset }}>
+        <div className={`absolute hidden md:block ${mounted ? 'star-tr' : ''}`} style={{ right: inset, top: inset, transform: 'translate(50%, calc(-50% + 1px)) scale(0)' }}>
           <StarSVG />
         </div>
-        <div className={`absolute hidden md:block ${bottomVisible ? 'star-bl' : ''}`} style={{ left: inset, bottom: footerHeight }}>
+        <div className={`absolute hidden md:block ${bottomVisible ? 'star-bl' : ''}`} style={{ left: inset, bottom: footerHeight, transform: 'translate(calc(-50% + 1px), 50%) scale(0)' }}>
           <StarSVG />
         </div>
-        <div className={`absolute hidden md:block ${bottomVisible ? 'star-br' : ''}`} style={{ right: inset, bottom: footerHeight }}>
+        <div className={`absolute hidden md:block ${bottomVisible ? 'star-br' : ''}`} style={{ right: inset, bottom: footerHeight, transform: 'translate(50%, 50%) scale(0)' }}>
           <StarSVG />
         </div>
 
@@ -421,50 +419,50 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         </div>
 
         {/* Text labels */}
-        <div className={`absolute font-mono text-xs text-cream-600 text-0 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)` }}>
+        <div className={`absolute font-mono text-xs text-cream-600 text-0 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)`, visibility: mounted ? 'visible' : 'hidden' }}>
           <span>38.61.172.4 | 26:75:19:66:b7:e1</span>
         </div>
 
-        <div className={`absolute font-mono text-xs text-cream-600 text-1 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ right: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)` }}>
+        <div className={`absolute font-mono text-xs text-cream-600 text-1 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ right: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)`, visibility: mounted ? 'visible' : 'hidden' }}>
           <span>COMMAND LINE: /USR/BIN/STASIS 2530676 - ROOT</span>
         </div>
 
-        <div className={`absolute whitespace-pre-line font-mono text-xs leading-tight text-cream-600 text-2 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px + 0.75rem)` }}>
+        <div className={`absolute whitespace-pre-line font-mono text-xs leading-tight text-cream-600 text-2 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px + 0.75rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}>
           <span>IDENTIFICATION NUMBER REC2PMW0I1lA2GQ3X<br /><img src="/pixel-star.png" alt="" className="inline-block" style={{ height: '0.8rem', imageRendering: 'pixelated' }} /> STASIS V0.1 <span className="font-barcode">jksdfj</span> 2026-02 - HC 000000159</span>
         </div>
 
-        <div className={`absolute font-mono text-xs text-cream-600 text-3 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ right: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px + 0.75rem)` }}>
+        <div className={`absolute font-mono text-xs text-cream-600 text-3 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ right: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px + 0.75rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}>
           <span>MODE //////// WEB</span>
         </div>
 
         {/* Vertical rotated text (left side) */}
-        <div className={`absolute whitespace-nowrap text-xs text-cream-600 origin-bottom-right text-4 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)`, transform: 'translateX(calc(-100% - 1.25rem)) translateY(-0.75rem) rotate(-90deg)' }}>
+        <div className={`absolute whitespace-nowrap text-xs text-cream-600 origin-bottom-right text-4 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)`, transform: 'translateX(calc(-100% - 1.25rem)) translateY(-0.75rem) rotate(-90deg)', visibility: mounted ? 'visible' : 'hidden' }}>
           <span><span className="font-mono pointer-events-auto">0x003c0655f</span> <span className="font-barcode">iofrislubfkuhgsbiojdbfgozskjsdfhsbj</span></span>
         </div>
 
         {/* Vertical rotated text (right side) */}
-        <div className={`absolute whitespace-nowrap font-mono text-xs text-cream-600 origin-bottom-left text-5 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ right: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)`, transform: 'translateX(calc(100% + 1.25rem)) translateY(-0.75rem) rotate(90deg)' }}>
+        <div className={`absolute whitespace-nowrap font-mono text-xs text-cream-600 origin-bottom-left text-5 pointer-events-auto ${mounted ? 'mounted' : ''}`} style={{ right: `calc(${inset} + 0.75rem)`, top: `calc(${inset} + 0.75rem)`, transform: 'translateX(calc(100% + 1.25rem)) translateY(-0.75rem) rotate(90deg)', visibility: mounted ? 'visible' : 'hidden' }}>
           <span>STATUS: OPERATIONAL</span>
         </div>
 
         {/* Bottom left vertical text */}
-        <div className={`absolute origin-top-left -rotate-90 whitespace-nowrap font-mono text-xs text-cream-600 text-6 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ left: `calc(${inset} - 1.5rem)`, bottom: `calc(${footerHeight}px + 0.1rem)` }}>
+        <div className={`absolute origin-top-left -rotate-90 whitespace-nowrap font-mono text-xs text-cream-600 text-6 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ left: `calc(${inset} - 1.5rem)`, bottom: `calc(${footerHeight}px + 0.1rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}>
           <span>HELLO WORLD</span>
         </div>
 
         {/* Bottom right vertical text */}
-        <div className={`absolute origin-top-right rotate-90 whitespace-nowrap text-xs text-cream-600 text-7 ${bottomVisible ? 'mounted' : ''}`} style={{ right: `calc(${inset} - 1.5rem)`, bottom: `calc(${footerHeight}px + 0.1rem)` }}>
+        <div className={`absolute origin-top-right rotate-90 whitespace-nowrap text-xs text-cream-600 text-7 ${bottomVisible ? 'mounted' : ''}`} style={{ right: `calc(${inset} - 1.5rem)`, bottom: `calc(${footerHeight}px + 0.1rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}>
           <span>75834920tge809hu43w89sherbgt839</span>
         </div>
 
-        <div className={`absolute font-mono text-xs text-cream-600 text-8 pointer-events-auto z-10 ${bottomVisible ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px - 1.6rem)` }}>
+        <div className={`absolute font-mono text-xs text-cream-600 text-8 pointer-events-auto z-10 ${bottomVisible ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px - 1.6rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}>
           <span>BODY::FOOTER</span>
         </div>
 
         {/* Konami arrows (bottom) */}
         <div 
           className={`absolute font-mono text-xs text-cream-600 text-9 opacity-80 pointer-events-auto z-10 ${bottomVisible ? 'mounted' : ''}`}
-          style={{ right: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px - 1.6rem)` }}
+          style={{ right: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px - 1.6rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}
         >
           {arrowDirections.map((dir, i) => {
             const rotation = dir === 'up' ? 90 : dir === 'down' ? -90 : dir === 'right' ? 180 : 0;

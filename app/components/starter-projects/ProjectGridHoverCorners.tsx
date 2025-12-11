@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 
 interface Props {
@@ -143,10 +143,10 @@ export function ProjectGridHoverCorners({ gridEl, selectedIndex }: Readonly<Prop
       const startX = fromLeft ? -INITIAL_OFFSET : gridRect.width + INITIAL_OFFSET;
       const startY = fromTop ? -INITIAL_OFFSET : gridRect.height + INITIAL_OFFSET;
 
-      basePositions.tl = { x: startX, y: startY };
-      basePositions.tr = { x: startX, y: startY };
-      basePositions.br = { x: startX, y: startY };
-      basePositions.bl = { x: startX, y: startY };
+      gsap.set(basePositions.tl, { x: startX, y: startY });
+      gsap.set(basePositions.tr, { x: startX, y: startY });
+      gsap.set(basePositions.br, { x: startX, y: startY });
+      gsap.set(basePositions.bl, { x: startX, y: startY });
 
       gsap.to(basePositions.tl, {
         x: relativeLeft + INSET,
@@ -258,6 +258,15 @@ export function ProjectGridHoverCorners({ gridEl, selectedIndex }: Readonly<Prop
           const relativeTop = rect.top - gridRect.top + gridEl.scrollTop;
           const relativeLeft = rect.left - gridRect.left + gridEl.scrollLeft;
 
+          const tlTargetX = relativeLeft + INSET + offsetX;
+          const tlTargetY = relativeTop + INSET + offsetY;
+          const trTargetX = relativeLeft + rect.width - INSET - CORNER_SIZE + offsetX;
+          const trTargetY = relativeTop + INSET + offsetY;
+          const brTargetX = relativeLeft + rect.width - INSET - CORNER_SIZE + offsetX;
+          const brTargetY = relativeTop + rect.height - INSET - CORNER_SIZE + offsetY;
+          const blTargetX = relativeLeft + INSET + offsetX;
+          const blTargetY = relativeTop + rect.height - INSET - CORNER_SIZE + offsetY;
+
           const distTL = Math.hypot(e.clientX - (rect.left + INSET), e.clientY - (rect.top + INSET));
           const distTR = Math.hypot(e.clientX - (rect.right - INSET), e.clientY - (rect.top + INSET));
           const distBR = Math.hypot(e.clientX - (rect.right - INSET), e.clientY - (rect.bottom - INSET));
@@ -266,10 +275,10 @@ export function ProjectGridHoverCorners({ gridEl, selectedIndex }: Readonly<Prop
           const baseDuration = 0.15;
           const dragFactor = 0.002;
 
-          gsap.to(basePositions.tl, { x: relativeLeft + INSET + offsetX, y: relativeTop + INSET + offsetY, duration: baseDuration + distTL * dragFactor, ease: 'power2.out' });
-          gsap.to(basePositions.tr, { x: relativeLeft + rect.width - INSET - CORNER_SIZE + offsetX, y: relativeTop + INSET + offsetY, duration: baseDuration + distTR * dragFactor, ease: 'power2.out' });
-          gsap.to(basePositions.br, { x: relativeLeft + rect.width - INSET - CORNER_SIZE + offsetX, y: relativeTop + rect.height - INSET - CORNER_SIZE + offsetY, duration: baseDuration + distBR * dragFactor, ease: 'power2.out' });
-          gsap.to(basePositions.bl, { x: relativeLeft + INSET + offsetX, y: relativeTop + rect.height - INSET - CORNER_SIZE + offsetY, duration: baseDuration + distBL * dragFactor, ease: 'power2.out' });
+          gsap.to(basePositions.tl, { x: tlTargetX, y: tlTargetY, duration: baseDuration + distTL * dragFactor, ease: 'power2.out' });
+          gsap.to(basePositions.tr, { x: trTargetX, y: trTargetY, duration: baseDuration + distTR * dragFactor, ease: 'power2.out' });
+          gsap.to(basePositions.br, { x: brTargetX, y: brTargetY, duration: baseDuration + distBR * dragFactor, ease: 'power2.out' });
+          gsap.to(basePositions.bl, { x: blTargetX, y: blTargetY, duration: baseDuration + distBL * dragFactor, ease: 'power2.out' });
         }
       }
     };
