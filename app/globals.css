@@ -1,26 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Departure+Mono&display=swap');
+@import '@fontsource/libre-barcode-128';
+@import '@fontsource/libre-barcode-39';
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+	--color-cream-50: #E0DAD7;
+	--color-cream-100: #DAD2BF;
+	--color-cream-500: #9C8F88;
+	--color-cream-600: #625A53;
+	--color-cream-800: #443C38;
+	--color-cream-850: #403529;
+	--color-cream-900: #383734;
+	--color-cream-950: #3B3026;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+	--color-brand-300: #e89161;
+	--color-brand-400: #ea7452;
+	--color-brand-500: #D95D39;
+	--color-brand-900: #4A230F;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+	--font-mono: 'Departure Mono', monospace;
+	--font-barcode: 'Libre Barcode 128', monospace;
+	--font-qr: 'Libre Barcode 39', monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+	overflow-x: hidden;
+}
+
+/* scrollbar css */
+* {
+	scrollbar-color: var(--color-cream-600) transparent;
+}
+
+/* firefox has thinner scrollbars than chromium */
+@supports (not (-moz-appearance: none)) {
+	* {
+		scrollbar-width: thin;
+	}
+}
+
+*::-webkit-scrollbar {
+	width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: var(--color-cream-600);
+	border-radius: 0;
+}
+
+/* Focus styles */
+*:focus-visible {
+	outline: 2px solid var(--color-brand-500);
+	outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible {
+	outline: 2px solid var(--color-brand-500);
+	outline-offset: 2px;
 }

@@ -1,0 +1,546 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { gsap } from 'gsap';
+import { MagneticCorners } from '../components/MagneticCorners';
+import { NoiseOverlay } from '../components/NoiseOverlay';
+import { PlaceholderProjectPreview } from '../components/starter-projects/PlaceholderProjectPreview';
+import { ProjectPreview } from '../components/starter-projects/ProjectPreview';
+import { ProjectGridHoverCorners } from '../components/starter-projects/ProjectGridHoverCorners';
+import Link from 'next/link';
+
+const projects = [
+  {
+    id: 'hackpad',
+    name: 'Hackpad',
+    hours: 6,
+    short_description: 'A PCB and a case for a custom macropad.',
+    badges: []
+  },
+  {
+    id: 'spotify-thing',
+    name: 'LED Cube',
+    hours: 8,
+    short_description: 'A 3D LED display controlled by Arduino.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Synth Kit',
+    hours: 10,
+    short_description: 'Build a DIY analog synthesizer from scratch.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Smart Mirror',
+    hours: 12,
+    short_description: 'A Raspberry Pi powered two-way mirror.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Bot Arm',
+    hours: 15,
+    short_description: 'A 3D printed robotic arm with servo control.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Mini Drone',
+    hours: 20,
+    short_description: 'A custom quadcopter with FPV camera.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'GamePad',
+    hours: 7,
+    short_description: 'A wireless controller for retro gaming.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'VU Meter',
+    hours: 5,
+    short_description: 'An audio visualizer with RGB LEDs.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Weather Station',
+    hours: 9,
+    short_description: 'Track temperature, humidity, and pressure.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Badge PCB',
+    hours: 4,
+    short_description: 'A wearable LED badge with animations.',
+    badges: []
+  }
+];
+
+export default function StarterProjectsPage() {
+  const [gridOffset, setGridOffset] = useState(0);
+  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
+  const [placeholderCount, setPlaceholderCount] = useState(0);
+  const [selectedProjectIndex, setSelectedProjectIndex] = useState<number | null>(null);
+  const [projectHeights, setProjectHeights] = useState<number[]>(new Array(projects.length).fill(0));
+  const [hasSelectedOnce, setHasSelectedOnce] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showInitialMessage, setShowInitialMessage] = useState(true);
+  const [showPreviewImage, setShowPreviewImage] = useState(false);
+  const [previewImageY, setPreviewImageY] = useState(500);
+  const [previewOpacity, setPreviewOpacity] = useState(1);
+  
+  const pendingIndexRef = useRef<number | null>(null);
+  const svgContainerRef = useRef<SVGSVGElement>(null);
+  const rotationTweensRef = useRef<gsap.core.Tween[]>([]);
+  const animationFrameRef = useRef<number | undefined>(undefined);
+  const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const maxHeight = Math.max(...projectHeights, 0);
+  const actualProjects = projects.length;
+
+  const handleProjectClick = useCallback((index: number) => {
+    if (index === selectedProjectIndex) return;
+    
+    if (isTransitioning && hasSelectedOnce) {
+      pendingIndexRef.current = index;
+      return;
+    }
+    
+    setSelectedProjectIndex(index);
+    
+    if (!hasSelectedOnce) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setHasSelectedOnce(true);
+        setIsTransitioning(false);
+      }, 500);
+    }
+  }, [selectedProjectIndex, isTransitioning, hasSelectedOnce]);
+
+  const handleIntroStart = useCallback(() => {
+    if (hasSelectedOnce) {
+      setIsTransitioning(true);
+    }
+  }, [hasSelectedOnce]);
+
+  const handleIntroEnd = useCallback(() => {
+    if (hasSelectedOnce) {
+      setIsTransitioning(false);
+      if (pendingIndexRef.current !== null && pendingIndexRef.current !== selectedProjectIndex) {
+        const next = pendingIndexRef.current;
+        pendingIndexRef.current = null;
+        handleProjectClick(next);
+      }
+    }
+  }, [hasSelectedOnce, selectedProjectIndex, handleProjectClick]);
+
+  const handleOutroStart = useCallback(() => {
+    setIsTransitioning(true);
+  }, []);
+
+  const handleOutroEnd = useCallback(() => {
+    if (pendingIndexRef.current === null) {
+      setIsTransitioning(false);
+    }
+  }, []);
+
+  const updatePlaceholders = useCallback(() => {
+    if (!gridEl) return;
+    const gridWidth = gridEl.offsetWidth;
+    const cols = Math.floor(gridWidth / 176);
+    const itemsInLastRow = actualProjects % cols;
+    
+    if (itemsInLastRow === 0 || cols === 0) {
+      setPlaceholderCount(0);
+    } else {
+      setPlaceholderCount(cols - itemsInLastRow);
+    }
+  }, [gridEl, actualProjects]);
+
+  useEffect(() => {
+    if (selectedProjectIndex !== null && rotationTweensRef.current.length > 0) {
+      rotationTweensRef.current.forEach(tween => {
+        gsap.to(tween, {
+          timeScale: 8,
+          duration: 0.15,
+          ease: 'power2.out',
+          onComplete: () => {
+            gsap.to(tween, {
+              timeScale: 1,
+              duration: 0.8,
+              ease: 'power1.out'
+            });
+          }
+        });
+      });
+    }
+  }, [selectedProjectIndex]);
+
+  useEffect(() => {
+    const animate = () => {
+      setGridOffset(prev => prev + 0.2);
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    updatePlaceholders();
+    
+    if (!gridEl) return;
+    
+    const resizeObserver = new ResizeObserver(updatePlaceholders);
+    resizeObserver.observe(gridEl);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [gridEl, updatePlaceholders]);
+
+  useEffect(() => {
+    const svgContainer = svgContainerRef.current;
+    if (!svgContainer) return;
+
+    const lines = [
+      { from: 80, to: 200, duration: 60, direction: 1 },
+      { from: 200, to: 320, duration: 80, direction: -1 },
+      { from: 320, to: 600, duration: 105, direction: 1 },
+      { from: 600, to: 720, duration: 50, direction: -1 },
+      { from: 720, to: 1080, duration: 95, direction: 1 }
+    ];
+
+    lines.forEach((line, i) => {
+      const lineGroup1 = svgContainer.querySelector(`[data-line-group="${i}-1"]`);
+      const lineGroup2 = svgContainer.querySelector(`[data-line-group="${i}-2"]`);
+      const square1a = svgContainer.querySelector(`[data-square="${i}-1a"]`);
+      const square1b = svgContainer.querySelector(`[data-square="${i}-1b"]`);
+      const square2a = svgContainer.querySelector(`[data-square="${i}-2a"]`);
+      const square2b = svgContainer.querySelector(`[data-square="${i}-2b"]`);
+
+      if (lineGroup1 && lineGroup2 && square1a && square1b && square2a && square2b) {
+        const tween1 = gsap.to(lineGroup1, {
+          rotation: 360 * line.direction,
+          duration: line.duration,
+          repeat: -1,
+          ease: 'none',
+          svgOrigin: '1100 650'
+        });
+        
+        const tween2 = gsap.to(lineGroup2, {
+          rotation: 360 * line.direction,
+          duration: line.duration,
+          repeat: -1,
+          ease: 'none',
+          svgOrigin: '1100 650'
+        });
+
+        const tween3 = gsap.to(square1a, {
+          rotation: -360 * line.direction,
+          duration: line.duration,
+          repeat: -1,
+          ease: 'none',
+          svgOrigin: `1100 ${650 - line.from}`
+        });
+        
+        const tween4 = gsap.to(square1b, {
+          rotation: -360 * line.direction,
+          duration: line.duration,
+          repeat: -1,
+          ease: 'none',
+          svgOrigin: `1100 ${650 - line.to}`
+        });
+        
+        const tween5 = gsap.to(square2a, {
+          rotation: -360 * line.direction,
+          duration: line.duration,
+          repeat: -1,
+          ease: 'none',
+          svgOrigin: `1100 ${650 + line.from}`
+        });
+        
+        const tween6 = gsap.to(square2b, {
+          rotation: -360 * line.direction,
+          duration: line.duration,
+          repeat: -1,
+          ease: 'none',
+          svgOrigin: `1100 ${650 + line.to}`
+        });
+        
+        rotationTweensRef.current.push(tween1, tween2, tween3, tween4, tween5, tween6);
+      }
+    });
+
+    return () => {
+      gsap.killTweensOf('*');
+    };
+  }, []);
+
+  useEffect(() => {
+    measureRefs.current.forEach((ref, i) => {
+      if (ref) {
+        setProjectHeights(prev => {
+          const newHeights = [...prev];
+          newHeights[i] = ref.offsetHeight;
+          return newHeights;
+        });
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (selectedProjectIndex === null) return;
+
+    setShowInitialMessage(false);
+    setShowPreviewImage(true);
+    setPreviewImageY(500);
+    setPreviewOpacity(1);
+
+    gsap.to({ y: 500 }, {
+      y: 0,
+      duration: 0.5,
+      ease: 'power2.out',
+      onUpdate: function() {
+        setPreviewImageY(this.targets()[0].y);
+      },
+      onStart: handleIntroStart,
+      onComplete: handleIntroEnd
+    });
+  }, [selectedProjectIndex, handleIntroStart, handleIntroEnd]);
+
+  const lineConfigs = [
+    { from: 80, to: 200, duration: 60, direction: 1 },
+    { from: 200, to: 320, duration: 80, direction: -1 },
+    { from: 320, to: 600, duration: 105, direction: 1 },
+    { from: 600, to: 720, duration: 50, direction: -1 },
+    { from: 720, to: 1080, duration: 95, direction: 1 }
+  ];
+
+  const circles = [160, 400, 640, 1200, 1440, 2160];
+
+  return (
+    <>
+      <style jsx global>{`
+        body {
+          background-color: var(--color-cream-850);
+        }
+
+        @keyframes slide-right {
+          from {
+            background-position: 0 0;
+          }
+          to {
+            background-position: 3rem 0;
+          }
+        }
+
+        .animate-slide {
+          animation: slide-right 4s linear infinite;
+        }
+      `}</style>
+
+      <div className="bg-[linear-gradient(#40352999,#40352999),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
+        <div 
+          className="absolute inset-0 opacity-40 -z-[1000] pointer-events-none"
+          style={{
+            backgroundImage: 'url(/grid-texture.png)',
+            backgroundSize: '8rem 8rem',
+            backgroundPosition: `${gridOffset * Math.cos(30 * Math.PI / 180)}px ${gridOffset * Math.sin(30 * Math.PI / 180)}px`,
+            imageRendering: 'pixelated'
+          }}
+        />
+
+        <div className="mb-20 ml-16 mt-16">
+          <Link href="/">
+            <MagneticCorners activationDistance={35} deactivationDistance={45}>
+              <button className="block bg-brand-500 p-6 font-mono relative cursor-pointer hover:bg-brand-400">
+                <img src="/home-light.svg" alt="Home" className="w-8 h-8" />
+              </button>
+            </MagneticCorners>
+          </Link>
+        </div>
+
+        <img src="/stasis-logo-white-center.svg" alt="" className="absolute -z-[1] w-full mx-auto scale-110 translate-x-3 -translate-y-[calc(100%-2vw)] md:-translate-y-[calc(100%-4vw)] opacity-10" />
+
+        <div className="flex flex-col max-w-6xl mx-auto font-mono mb-8">
+          <div className="bg-brand-500 text-cream-100 text-xl w-max px-4 py-2 relative after:bg-brand-500 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
+            STARTER PROJECTS
+          </div>
+          <div className="bg-cream-950 w-full h-max border-2 border-brand-500 flex flex-col relative after:absolute after:left-full after:w-8 after:h-[calc(100%+4px-32px)] after:-top-0.5 after:bg-brand-500 before:absolute before:bg-brand-500 before:-bottom-0.5 before:left-full before:w-8 before:h-8 before:[clip-path:polygon(0_0,0_100%,100%_0)]">
+            {/* top stuff */}
+            <div className="flex flex-row">
+              {/* preview */}
+              <div className="border-cream-500 border-r-2 flex-[3/5] relative overflow-clip min-h-[400px]">
+                <p className="text-cream-500/20 absolute top-1 right-2 z-10">PREVIEW</p>
+                <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
+                  {/* Concentric circles */}
+                  {circles.map((diameter) => (
+                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="#44382C" strokeWidth="2" />
+                  ))}
+                  
+                  {/* Rotating lines with squares */}
+                  {lineConfigs.map((line, i) => (
+                    <g key={i}>
+                      {/* First line */}
+                      <g data-line-group={`${i}-1`}>
+                        {/* Line connecting circles */}
+                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="#44382C" strokeWidth="2" />
+                        
+                        {/* Squares at intersection points (counter-rotated) */}
+                        <g data-square={`${i}-1a`}>
+                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="#44382C" />
+                        </g>
+                        <g data-square={`${i}-1b`}>
+                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="#44382C" />
+                        </g>
+                      </g>
+                      
+                      {/* Second line (opposite side) */}
+                      <g data-line-group={`${i}-2`}>
+                        {/* Line connecting circles */}
+                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="#44382C" strokeWidth="2" />
+                        
+                        {/* Squares at intersection points (counter-rotated) */}
+                        <g data-square={`${i}-2a`}>
+                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="#44382C" />
+                        </g>
+                        <g data-square={`${i}-2b`}>
+                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="#44382C" />
+                        </g>
+                      </g>
+                    </g>
+                  ))}
+                </svg>
+                
+                {selectedProjectIndex === null && showInitialMessage && (
+                  <div className="absolute inset-0 flex items-center justify-center z-[1]">
+                    <p className="text-cream-500/50 text-2xl font-mono">Select a project to see details</p>
+                  </div>
+                )}
+                
+                {showPreviewImage && selectedProjectIndex !== null && (
+                  <div 
+                    className="absolute inset-0 w-full h-full z-[1]"
+                    style={{
+                      transform: `translateY(${previewImageY}px)`,
+                      opacity: previewOpacity
+                    }}
+                  >
+                    <img 
+                      src={`/projects/${projects[selectedProjectIndex].id}.png`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+              {/* details */}
+              <div className="flex-[2/5] flex flex-col relative">
+                <p className="text-cream-500/20 absolute top-1 right-2">DETAILS</p>
+                
+                {/* Hidden measurement divs for all projects */}
+                {projects.map((project, i) => (
+                  <div 
+                    key={i}
+                    ref={el => { measureRefs.current[i] = el; }}
+                    className="flex flex-col space-y-3 px-4 py-12 absolute opacity-0 pointer-events-none"
+                  >
+                    <h2 className="text-brand-500 text-5xl mx-8">{project.name.toUpperCase()}</h2>
+                    <p className="text-cream-50 text-2xl mx-8">{project.hours} hours</p>
+                    <p className="text-cream-50 text-lg mx-8">{project.short_description}</p>
+                  </div>
+                ))}
+                
+                {/* Visible project details */}
+                <div 
+                  className="flex flex-col space-y-3 px-4 py-12"
+                  style={{ minHeight: maxHeight }}
+                >
+                  <h2 className="text-brand-500 text-5xl mx-8">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
+                  <p className="text-cream-50 text-2xl mx-8">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
+                  <p className="text-cream-50 text-lg mx-8">{projects[selectedProjectIndex ?? 0].short_description}</p>
+                </div>
+                <div className="flex flex-row border-cream-500 border-y-2 relative z-10">
+                  <div className="flex-[1/3] min-h-24 border-cream-500 border-r-2 relative">
+                    <p className="text-cream-500 absolute top-2 right-4">1</p>
+                  </div>
+                  <div className="flex-[1/3] min-h-24 border-cream-500 border-r-2 relative">
+                    <p className="text-cream-500 absolute top-2 right-4">2</p>
+                  </div>
+                  <div className="flex-[1/3] min-h-24 border-cream-500 relative">
+                    <p className="text-cream-500 absolute top-2 right-4">3</p>
+                  </div>
+                </div>
+                <button className="text-brand-900 text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-[1] hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-900/20 border-r-[3px]">
+                  <div className="-z-[1] absolute w-full h-full inset-0 bg-[length:3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, #ea745225 0%, #ea745225 12.5%, transparent 12.5%, transparent 37.5%, #ea745225 37.5%, #ea745225 62.5%, transparent 62.5%, transparent 87.5%, #ea745225 87.5%, #ea745225 100%)' }} />
+                  <div className="z-[1] absolute w-full h-full inset-0 bg-gradient-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="block overflow-hidden absolute w-full">
+                    <span className="block group-hover:translate-y-full transition-all ease-out group-hover:opacity-70">
+                      GUIDE
+                    </span>
+                  </span>
+                  <span className="block overflow-hidden">
+                    <span className="block group-[:not(:hover)]:-translate-y-full transition-all ease-out group-[:not(:hover)]:opacity-70">
+                      GUIDE
+                    </span>
+                  </span>
+                </button>
+              </div>
+            </div>
+            {/* grid of projects */}
+            <div 
+              ref={setGridEl}
+              className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-0.5 bg-cream-500 relative overflow-hidden cursor-pointer pt-0.5"
+            >
+              <p className="text-cream-500/20 absolute top-1 right-2 z-[2]">PROJECTS</p>
+              <ProjectGridHoverCorners gridEl={gridEl} selectedIndex={selectedProjectIndex} />
+              {projects.map((project, i) => (
+                <ProjectPreview 
+                  key={i}
+                  project={project} 
+                  selected={selectedProjectIndex === i} 
+                  onClick={() => handleProjectClick(i)} 
+                />
+              ))}
+              {Array.from({ length: placeholderCount }).map((_, i) => (
+                <PlaceholderProjectPreview key={`placeholder-${i}`} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <footer className="pt-20 pb-24 relative px-4">
+          <div className="mx-auto max-w-md w-max font-mono">
+            <p className="text-xs md:text-sm text-cream-600 text-center">Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
+            <div className="mt-2 text-cream-600 text-center">
+              <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hack Club</a>
+              <span>・</span>
+              <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Slack</a>
+              <span>・</span>
+              <a href="https://hackclub.com/clubs" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Clubs</a>
+              <span>・</span>
+              <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hackathons</a>
+            </div>
+          </div>
+        </footer>
+
+        {/* footer darkening background */}
+        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(#42382C00,#392E22)] -z-[2]" />
+      </div>
+
+      <NoiseOverlay />
+    </>
+  );
+}

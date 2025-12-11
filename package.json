@@ -9,6 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fontsource/libre-barcode-128": "^5.2.8",
+    "@fontsource/libre-barcode-39": "^5.2.10",
+    "gsap": "^3.14.1",
+    "lots-o-nekos": "^3.0.0",
     "next": "16.0.9",
     "react": "19.2.1",
     "react-dom": "19.2.1"
