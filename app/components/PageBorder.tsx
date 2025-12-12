@@ -32,6 +32,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
   
   const footerRef = useRef<HTMLDivElement>(null);
   const konamiProgressRef = useRef(0);
+  const konamiCompletedRef = useRef(false);
 
   const triggerFlash = useCallback((arrowIndices: number[]) => {
     setFlashingArrows(new Set(arrowIndices));
@@ -47,7 +48,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
   }, []);
 
   const handleKonamiInput = useCallback((direction: string) => {
-    if (konamiCompleted) return;
+    if (konamiCompletedRef.current) return;
 
     if (direction === KONAMI_SEQUENCE[konamiProgressRef.current]) {
       setActivatedArrows(prev => new Set([...prev, konamiProgressRef.current]));
@@ -56,6 +57,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
       setKonamiProgress(konamiProgressRef.current);
 
       if (konamiProgressRef.current === KONAMI_SEQUENCE.length) {
+        konamiCompletedRef.current = true;
         setKonamiCompleted(true);
         resetKonami(true);
         const asteroidCat = (window as any).__stasisAsteroidCat;
@@ -70,7 +72,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         setKonamiProgress(1);
       }
     }
-  }, [konamiCompleted, resetKonami, triggerFlash]);
+  }, [resetKonami, triggerFlash]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -279,7 +281,9 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         .text-8 span { display: inline-block; transform: translateX(-100%); }
         .text-8.mounted span { animation: slideInReveal 320ms cubic-bezier(0.16, 1, 0.2, 1) 1560ms forwards; }
 
-        .text-9 { display: flex; align-items: center; gap: 0.25rem; }
+        .text-9 { visibility: hidden; display: flex; align-items: center; gap: 0.25rem; opacity: 0.8; }
+        .text-9.mounted { visibility: visible; }
+        .text-9 .arrow-wrapper { overflow: hidden; }
         .text-9 .arrow-wrapper span { display: inline-block; transform: translateX(-100%); opacity: 0; }
         .text-9 .arrow-wrapper:hover .arrow-dark { opacity: 0; }
         .text-9 .arrow-wrapper:hover .arrow-light { opacity: 1; }
@@ -288,7 +292,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         .text-9 .arrow-wrapper.activated .arrow-dark { opacity: 0; }
         .text-9 .arrow-wrapper.activated .arrow-light { opacity: 1; }
         .text-9 .arrow-wrapper .arrow-white { opacity: 0 !important; position: absolute; top: 0; left: 0; pointer-events: none; }
-        .text-9 .arrow-wrapper.flash .arrow-white { animation: flashWhite 300ms ease-out forwards !important; }
+        .text-9 .arrow-wrapper.flash .arrow-white { animation: flashWhite 300ms ease-out; }
         .text-9.mounted .arrow-wrapper:nth-child(1) span { animation: slideInReveal 320ms cubic-bezier(0.16, 1, 0.2, 1) 1200ms forwards; }
         .text-9.mounted .arrow-wrapper:nth-child(2) span { animation: slideInReveal 320ms cubic-bezier(0.16, 1, 0.2, 1) 1230ms forwards; }
         .text-9.mounted .arrow-wrapper:nth-child(3) span { animation: slideInReveal 320ms cubic-bezier(0.16, 1, 0.2, 1) 1260ms forwards; }
