@@ -74,6 +74,11 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
     }
   }, [resetKonami, triggerFlash]);
 
+  const handleKonamiInputRef = useRef(handleKonamiInput);
+  const resetKonamiRef = useRef(resetKonami);
+  handleKonamiInputRef.current = handleKonamiInput;
+  resetKonamiRef.current = resetKonami;
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setMounted(true);
@@ -88,10 +93,10 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         'ArrowRight': 'right', 'd': 'right', 'D': 'right'
       };
       const direction = keyMap[e.key];
-      if (direction) handleKonamiInput(direction);
+      if (direction) handleKonamiInputRef.current(direction);
     };
 
-    const handleClick = () => resetKonami();
+    const handleClick = () => resetKonamiRef.current();
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('click', handleClick);
@@ -118,7 +123,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('click', handleClick);
     };
-  }, [handleKonamiInput, resetKonami, onFooterHeightChange]);
+  }, [onFooterHeightChange]);
 
   const arrowDirections: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right'];
 
@@ -284,7 +289,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         .text-9 { visibility: hidden; display: flex; align-items: center; gap: 0.25rem; opacity: 0.8; }
         .text-9.mounted { visibility: visible; }
         .text-9 .arrow-wrapper { overflow: hidden; }
-        .text-9 .arrow-wrapper span { display: inline-block; transform: translateX(-100%); opacity: 0; }
+        .text-9 .arrow-wrapper span { display: inline-block; transform: translateX(-100%); }
         .text-9 .arrow-wrapper:hover .arrow-dark { opacity: 0; }
         .text-9 .arrow-wrapper:hover .arrow-light { opacity: 1; }
         .text-9 .arrow-wrapper.activated:hover .arrow-dark { opacity: 1; }
