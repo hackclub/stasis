@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:test": "tsx scripts/test-database.ts",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@fontsource/libre-barcode-128": "^5.2.8",
@@ -29,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.9",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
