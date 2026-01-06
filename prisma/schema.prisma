@@ -8,6 +8,7 @@ datasource db {
   provider = "postgresql"
 }
 
+// This is the primary user object
 model User {
   id                 String    @id @default(cuid())
   email              String    @unique
@@ -24,6 +25,7 @@ model User {
   @@map("user")
 }
 
+// begin better-auth stuff
 model Session {
   id        String   @id
   expiresAt DateTime
@@ -71,4 +73,7 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+// end better-auth things
+
+
  
