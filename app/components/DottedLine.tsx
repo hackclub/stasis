@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type Orientation = 'horizontal' | 'vertical';
 
@@ -9,7 +9,11 @@ type Props = Readonly<{
 }>;
 
 export function DottedLine({ orientation = 'horizontal' }: Props) {
-  const [offset] = useState(() => Math.random() * 1202);
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    setOffset(Math.random() * 1202);
+  }, []);
 
   return (
     <div

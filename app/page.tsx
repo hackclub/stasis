@@ -132,17 +132,17 @@ export default function Home() {
               <HoverScramble
                 segments={[
                   { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
-                  { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
+                  { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800 font-medium" },
                   { text: "EMD\n" },
-                  { text: "FEBRUARY 2026", class: "text-cream-800" },
+                  { text: "FEBRUARY 2026", class: "text-cream-800 font-medium" },
                   { text: "J R" },
-                  { text: "AUSTIN, TEXAS", class: "text-cream-800" },
+                  { text: "AUSTIN, TEXAS", class: "text-cream-800 font-medium" },
                   { text: "P\nFCX XW VQQET S" },
-                  { text: "COMPLETELY FREE", class: "text-cream-800" },
+                  { text: "COMPLETELY FREE", class: "text-cream-800 font-medium" },
                   { text: "M\nC LQW" },
-                  { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
+                  { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800 font-medium" },
                   { text: "\nC" },
-                  { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
+                  { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800 font-medium" },
                   { text: "MEXDLB LEZ\nYRE\tVJ URVSP LWOS JWPOX I SFF" }
                 ]}
                 initialScramble={true}

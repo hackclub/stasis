@@ -222,9 +222,13 @@ export function HoverScramble({
   }, []);
 
   return (
-    <div className={className}>
+    <div className={className} style={{ whiteSpace: 'nowrap' }}>
       {characters.map((char, i) =>
-        char.original === ' ' ? (
+        char.original === '\n' ? (
+          <br key={i} />
+        ) : char.original === '\t' ? (
+          <span key={i} className={char.segmentClass}>{'\u00A0\u00A0\u00A0\u00A0'}</span>
+        ) : char.original === ' ' ? (
           <span key={i} className={char.segmentClass}>
             {char.current}
           </span>
