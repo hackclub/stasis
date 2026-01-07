@@ -1,41 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { createRSVP } from '@/lib/airtable';
+import { markAccountCreationFinished } from '@/lib/airtable';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const rsvpDataCookie = cookieStore.get('rsvp_data');
-
-    if (!rsvpDataCookie) {
-      return NextResponse.redirect(new URL('/?error=missing_rsvp_data', request.url));
-    }
-
-    const rsvpData = JSON.parse(rsvpDataCookie.value);
+    const headersList = await headers();
 
     const session = await auth.api.getSession({
-      headers: await headers(),
+      headers: headersList,
     });
 
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.redirect(new URL('/?error=auth_failed', request.url));
     }
 
+    // Mark "Finished Account Creation" in Airtable
     try {
-      await createRSVP({
-        firstName: rsvpData.firstName,
-        lastName: rsvpData.lastName,
-        email: rsvpData.email,
-        slackId: session.user.slackId || undefined,
-        userId: session.user.id,
-      });
+      await markAccountCreationFinished(session.user.email);
     } catch (error) {
-      console.error('Airtable submission error:', error);
+      console.error('Airtable update error:', error);
     }
 
-    cookieStore.delete('rsvp_data');
+    // Clean up cookies
+    const cookieStore = await cookies();
+    cookieStore.delete('rsvp_login_hint');
 
     return NextResponse.redirect(new URL('/dashboard', request.url));
   } catch (error) {

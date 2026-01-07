@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { createRSVP } from '@/lib/airtable';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,16 +13,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cookieStore = await cookies();
-    
-    cookieStore.set('rsvp_data', JSON.stringify({ firstName, lastName, email }), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 10,
-      path: '/',
-    });
+    const headersList = await headers();
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               headersList.get('x-real-ip') ||
+               'unknown';
 
+    // Create RSVP in Airtable immediately
+    try {
+      await createRSVP({ firstName, lastName, email, ip });
+    } catch (error) {
+      console.error('Airtable submission error:', error);
+    }
+
+    // Set login hint for OAuth
+    const cookieStore = await cookies();
     cookieStore.set('rsvp_login_hint', email, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
