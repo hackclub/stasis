@@ -104,18 +104,7 @@ export function MagneticCorners({
         className={`magnetic-corners-wrapper relative inline-block ${isActive ? 'active' : ''}`}
       >
         {children}
-        {isActive && (
-          <div
-            className="magnetic-hitbox absolute cursor-pointer z-[1]"
-            style={{
-              top: `calc(-1 * ${activationDistance}px)`,
-              left: `calc(-1 * ${activationDistance}px)`,
-              right: `calc(-1 * ${activationDistance}px)`,
-              bottom: `calc(-1 * ${activationDistance}px)`
-            }}
-            onClick={handleHitboxClick}
-          />
-        )}
+        
         {mode === 'border' ? (
           <div
             className="absolute pointer-events-none z-[2] transition-all duration-150 ease-out"

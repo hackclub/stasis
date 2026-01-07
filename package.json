@@ -15,6 +15,7 @@
     "@fontsource/libre-barcode-39": "^5.2.10",
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
+    "airtable": "^0.12.2",
     "better-auth": "^1.4.6",
     "dotenv": "^17.2.3",
     "gsap": "^3.14.1",

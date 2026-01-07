@@ -8,6 +8,8 @@ import { NoiseOverlay } from './components/NoiseOverlay';
 import { MagneticCorners } from './components/MagneticCorners';
 import { HoverScramble } from './components/HoverScramble';
 import { ASCIIArt } from './components/ASCIIArt';
+import { RSVPModal } from './components/RSVPModal';
+import { LoginButton } from './components/LoginButton';
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
 
@@ -54,6 +56,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
 export default function Home() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
+  const [isRSVPOpen, setIsRSVPOpen] = useState(false);
 
   function toggle(index: number) {
     setOpenIndex(openIndex === index ? null : index);
@@ -164,14 +167,20 @@ export default function Home() {
             </div>
 
             {/* RSVP Button */}
-            <div className="flex justify-center pt-2 pb-1.5 mb-0 z-1 relative">
-              <MagneticCorners offset={12}>
+            <div className="flex flex-col items-center pt-2 pb-1.5 mb-0 z-1 relative gap-5">
+              <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
                 <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
-                  <button className="relative bg-brand-500 hover:bg-[#e0643e] px-8 md:px-10 py-2 text-xl md:text-2xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer">
+                  <button 
+                    onClick={() => setIsRSVPOpen(true)}
+                    className="relative bg-brand-500 hover:bg-[#e0643e] px-8 md:px-10 py-2 text-xl md:text-2xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
+                  >
                     RSVP
                   </button>
                 </MagneticCorners>
               </MagneticCorners>
+              <p className="text-xs text-cream-800/70">
+                Already RSVPed? <LoginButton />
+              </p>
             </div>
 
             <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -265,6 +274,7 @@ export default function Home() {
 
       <PageBorder onFooterHeightChange={(h) => setFooterHeight(h)} />
       <NoiseOverlay />
+      <RSVPModal isOpen={isRSVPOpen} onClose={() => setIsRSVPOpen(false)} />
     </div>
   );
 }

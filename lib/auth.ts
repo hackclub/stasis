@@ -48,6 +48,18 @@ export const auth = betterAuth({
           clientId: process.env.HCA_CLIENT_ID!,
           clientSecret: process.env.HCA_CLIENT_SECRET!,
           scopes: ["openid", "profile", "email", "slack_id", "verification_status"],
+          authorizationUrlParams: (ctx): Record<string, string> => {
+            if (!ctx.request) return {};
+            const cookieHeader = ctx.request.headers.get('cookie') || '';
+            const cookies = Object.fromEntries(
+              cookieHeader.split('; ').map(c => {
+                const [key, ...val] = c.split('=');
+                return [key, val.join('=')];
+              })
+            );
+            const loginHint = cookies['rsvp_login_hint'];
+            return loginHint ? { login_hint: decodeURIComponent(loginHint) } : {};
+          },
           mapProfileToUser: (profile) => {
             return {
               email: profile.email,
