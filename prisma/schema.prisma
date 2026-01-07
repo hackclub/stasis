@@ -19,11 +19,13 @@ model User {
   image              String?
   slackId            String?
   verificationStatus String?
+  hackatimeUserId    String?
   sessions           Session[]
   accounts           Account[]
 
   @@map("user")
 }
+
 
 // begin better-auth stuff
 model Session {

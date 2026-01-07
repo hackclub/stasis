@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signIn, signOut } from "@/lib/auth-client";
+import { useSession, signIn, signOut, linkOAuth2 } from "@/lib/auth-client";
 
 export default function Dashboard() {
   const { data: session, isPending } = useSession();
@@ -29,6 +29,17 @@ export default function Dashboard() {
                 <p className="text-cream-800 mt-1">{session.user.name}</p>
               )}
             </div>
+            <button
+              onClick={() =>
+                linkOAuth2({
+                  providerId: "hackatime",
+                  callbackURL: "/dashboard",
+                })
+              }
+              className="w-full bg-cream-800 hover:bg-cream-900 px-6 py-3 text-lg uppercase tracking-wider text-cream-100 transition-colors cursor-pointer"
+            >
+              Link Hackatime
+            </button>
             <button
               onClick={() => signOut()}
               className="w-full bg-brand-500 hover:bg-brand-600 px-6 py-3 text-lg uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
