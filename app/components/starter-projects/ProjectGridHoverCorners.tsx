@@ -61,7 +61,7 @@ export function ProjectGridHoverCorners({ gridEl, selectedIndex }: Readonly<Prop
     const basePositions = basePositionsRef.current;
 
     gsap.set([cornerTL, cornerTR, cornerBR, cornerBL], {
-      opacity: 1,
+      opacity: 0,
       x: -INITIAL_OFFSET,
       y: -INITIAL_OFFSET,
     });
@@ -143,6 +143,7 @@ export function ProjectGridHoverCorners({ gridEl, selectedIndex }: Readonly<Prop
       const startX = fromLeft ? -INITIAL_OFFSET : gridRect.width + INITIAL_OFFSET;
       const startY = fromTop ? -INITIAL_OFFSET : gridRect.height + INITIAL_OFFSET;
 
+      gsap.set([cornerTL, cornerTR, cornerBR, cornerBL], { opacity: 1 });
       gsap.set(basePositions.tl, { x: startX, y: startY });
       gsap.set(basePositions.tr, { x: startX, y: startY });
       gsap.set(basePositions.br, { x: startX, y: startY });

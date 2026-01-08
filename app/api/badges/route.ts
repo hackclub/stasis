@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { badge, projectId, evidence } = body
+  const { badge, projectId } = body
 
   if (!isValidBadge(badge)) {
     return NextResponse.json({ error: "Invalid badge type" }, { status: 400 })
@@ -95,7 +95,6 @@ export async function POST(request: NextRequest) {
     data: {
       badge,
       projectId,
-      evidence: typeof evidence === "string" ? evidence.trim().slice(0, 1000) : null,
     },
   })
 

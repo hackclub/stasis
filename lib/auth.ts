@@ -97,6 +97,30 @@ export const auth = betterAuth({
             };
           },
         },
+        {
+          providerId: "github",
+          authorizationUrl: "https://github.com/login/oauth/authorize",
+          tokenUrl: "https://github.com/login/oauth/access_token",
+          userInfoUrl: "https://api.github.com/user",
+          clientId: process.env.GITHUB_CLIENT_ID!,
+          clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+          scopes: ["repo", "user:email"],
+          getUserInfo: async ({ accessToken }) => {
+            const response = await fetch("https://api.github.com/user", {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.github+json",
+              },
+            });
+            const data = await response.json();
+            return {
+              id: String(data.id),
+              email: data.email,
+              name: data.name || data.login,
+              emailVerified: !!data.email,
+            };
+          },
+        },
       ],
     }),
   ],
