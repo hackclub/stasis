@@ -399,6 +399,7 @@ export function ProjectGridHoverCorners({ gridEl, selectedIndex }: Readonly<Prop
         .hovered-project {
           filter: brightness(120%);
           outline: 3px solid var(--color-brand-500) !important;
+          outline-offset: -3px;
           transition: outline 0.2s ease, filter 0.1s ease;
         }
 
@@ -409,11 +410,13 @@ export function ProjectGridHoverCorners({ gridEl, selectedIndex }: Readonly<Prop
 
         .selected-project {
           outline: 3px solid var(--color-brand-500) !important;
+          outline-offset: -3px;
           filter: brightness(120%);
         }
 
         [data-project-card] {
           outline: 3px solid transparent;
+          outline-offset: -3px;
           transition: outline 0.2s ease, filter 0.1s ease;
           z-index: 1;
         }

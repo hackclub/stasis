@@ -471,7 +471,7 @@ export default function Dashboard() {
               {/* Main content area */}
               <div className="flex flex-col lg:flex-row gap-0.5 bg-cream-500">
                 {/* Preview panel - larger */}
-                <div className="lg:w-[420px] bg-cream-900 p-6 relative min-h-[500px] flex flex-col">
+                <div className="lg:w-[520px] bg-cream-900 p-6 relative min-h-[500px] flex flex-col">
                   <p className="text-cream-500/20 absolute top-2 right-3 text-xs">DETAILS</p>
                   
                   {selectedProject ? (
@@ -696,7 +696,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Project grid */}
-                <div className="flex-1 bg-cream-900 relative">
+                <div className="flex-1 bg-cream-950 relative">
                   <p className="text-cream-500/20 absolute top-2 right-3 text-xs z-10">PROJECTS</p>
                   
                   {loading ? (
@@ -706,7 +706,7 @@ export default function Dashboard() {
                   ) : (
                     <div 
                       ref={setGridEl}
-                      className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-0.5 bg-cream-500 p-0.5 relative"
+                      className="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-0.5 bg-cream-500 p-0.5 relative w-fit"
                     >
                       <ProjectGridHoverCorners gridEl={gridEl} selectedIndex={selectedProjectIndex} />
                       
