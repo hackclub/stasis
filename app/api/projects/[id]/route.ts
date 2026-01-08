@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
 
-const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId"] as const
+const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
 
@@ -14,6 +14,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   tags: ProjectTag[]
   isStarter: boolean
   starterProjectId: string | null
+  githubRepo: string | null
 }> {
   const result: Record<string, unknown> = {}
   for (const field of ALLOWED_UPDATE_FIELDS) {
@@ -52,12 +53,16 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const totalHours = project.workSessions.reduce(
-    (acc, s) => acc + s.durationMinutes / 60,
+  const totalHoursClaimed = project.workSessions.reduce(
+    (acc, s) => acc + s.hoursClaimed,
+    0
+  )
+  const totalHoursApproved = project.workSessions.reduce(
+    (acc, s) => acc + (s.hoursApproved ?? 0),
     0
   )
 
-  return NextResponse.json({ ...project, totalHours })
+  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved })
 }
 
 export async function PATCH(

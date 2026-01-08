@@ -34,14 +34,18 @@ export async function GET(request: NextRequest) {
 
   const projects = await prisma.project.findMany({
     where: whereClause,
-    include: { workSessions: true },
+    include: { workSessions: true, badges: true },
     orderBy: { createdAt: "desc" },
   })
 
   const projectsWithHours = projects.map((project) => ({
     ...project,
-    totalHours: project.workSessions.reduce(
-      (acc, s) => acc + s.durationMinutes / 60,
+    totalHoursClaimed: project.workSessions.reduce(
+      (acc, s) => acc + s.hoursClaimed,
+      0
+    ),
+    totalHoursApproved: project.workSessions.reduce(
+      (acc, s) => acc + (s.hoursApproved ?? 0),
       0
     ),
   }))

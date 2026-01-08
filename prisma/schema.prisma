@@ -93,6 +93,26 @@ enum SessionType {
   SHORT_VIDEO_EXPLANATION
 }
 
+enum BadgeType {
+  I2C
+  SPI
+  WIFI
+  BLUETOOTH
+  OTHER_RF
+  ANALOG_SENSORS
+  DIGITAL_SENSORS
+  CAD
+  DISPLAYS
+  MOTORS
+  CAMERAS
+  METAL_MACHINING
+  WOOD_FASTENERS
+  MACHINE_LEARNING
+  MCU_INTEGRATION
+  FOUR_LAYER_PCB
+  SOLDERING
+}
+
 model Project {
   id          String       @id @default(cuid())
   title       String
@@ -100,26 +120,44 @@ model Project {
   tags        ProjectTag[]
   isStarter   Boolean      @default(false)
   starterProjectId String?
+  githubRepo  String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   userId      String
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   workSessions WorkSession[]
+  badges      ProjectBadge[]
 
   @@index([userId])
   @@map("project")
 }
 
 model WorkSession {
-  id          String      @id @default(cuid())
-  type        SessionType
-  durationMinutes Int
-  content     String?
-  mediaUrl    String?
-  createdAt   DateTime    @default(now())
-  projectId   String
-  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  type          SessionType
+  hoursClaimed  Float
+  hoursApproved Float?
+  content       String?
+  mediaUrl      String?
+  createdAt     DateTime    @default(now())
+  projectId     String
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@map("work_session")
+}
+
+model ProjectBadge {
+  id          String    @id @default(cuid())
+  badge       BadgeType
+  claimedAt   DateTime  @default(now())
+  grantedAt   DateTime?
+  grantedBy   String?
+  evidence    String?
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, badge])
+  @@index([projectId])
+  @@map("project_badge")
 }

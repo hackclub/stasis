@@ -7,7 +7,8 @@ interface Project {
   title: string
   description: string | null
   tags: ProjectTag[]
-  totalHours: number
+  totalHoursClaimed: number
+  totalHoursApproved: number
   isStarter: boolean
 }
 
@@ -54,7 +55,7 @@ export function ProjectCard({ project, onClick, selected = false }: Readonly<Pro
           {project.title}
         </h3>
         <p className="text-cream-500 text-sm mt-1">
-          ~{project.totalHours.toFixed(1)} hours
+          ~{project.totalHoursClaimed.toFixed(1)}h claimed
         </p>
         {project.description && (
           <p className="text-cream-600 text-xs mt-2 line-clamp-2">
