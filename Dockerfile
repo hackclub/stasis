@@ -18,6 +18,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Dummy env vars for build (not used at runtime)
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+ENV BETTER_AUTH_SECRET="build-secret"
+ENV BETTER_AUTH_URL="http://localhost:3000"
+ENV HCA_CLIENT_ID="dummy"
+ENV HCA_CLIENT_SECRET="dummy"
+ENV HACKATIME_CLIENT_ID="dummy"
+ENV HACKATIME_CLIENT_SECRET="dummy"
+ENV GITHUB_CLIENT_ID="dummy"
+ENV GITHUB_CLIENT_SECRET="dummy"
+
 RUN yarn build
 
 # Production image, copy all the files and run next
