@@ -39,7 +39,7 @@ interface Project {
   totalHoursClaimed: number
   totalHoursApproved: number
   isStarter: boolean
-  githubRepo: string | null
+  coverImage: string | null
   submittedAt: string | null
   createdAt: string
   workSessions: WorkSession[]
@@ -194,7 +194,7 @@ export default function Dashboard() {
                     callbackURL: "/dashboard",
                   })
                 }
-                className="w-full bg-brand-500 hover:bg-brand-400 px-6 py-3 text-lg uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
+                className="w-full bg-brand-500 hover:bg-brand-400 px-6 py-3 text-lg uppercase tracking-wider text-white font-medium transition-colors cursor-pointer"
               >
                 Sign In with Hack Club
               </button>
@@ -290,7 +290,7 @@ export default function Dashboard() {
             </span>
             <button
               onClick={() => signOut()}
-              className="text-cream-600 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
+              className="text-cream-500 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out
             </button>
@@ -355,7 +355,7 @@ export default function Dashboard() {
                         }`}
                       >
                         {isApproved && (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-brand-900">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                         )}
@@ -375,15 +375,15 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex gap-6">
                   <div>
-                    <p className="text-cream-600 text-xs uppercase">Projects</p>
+                    <p className="text-cream-500 text-xs uppercase">Projects</p>
                     <p className="text-cream-100 text-2xl">{projects.length}</p>
                   </div>
                   <div>
-                    <p className="text-cream-600 text-xs uppercase">Claimed</p>
+                    <p className="text-cream-500 text-xs uppercase">Claimed</p>
                     <p className="text-cream-100 text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
                   </div>
                   <div>
-                    <p className="text-cream-600 text-xs uppercase">Approved</p>
+                    <p className="text-cream-500 text-xs uppercase">Approved</p>
                     <p className="text-brand-500 text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
                   </div>
                 </div>
@@ -439,12 +439,12 @@ export default function Dashboard() {
                   <h2 className="text-brand-500 text-xl uppercase mb-4">Account</h2>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-cream-600 text-xs uppercase">Email</p>
+                      <p className="text-cream-500 text-xs uppercase">Email</p>
                       <p className="text-cream-100">{session.user.email}</p>
                     </div>
                     {session.user.name && (
                       <div>
-                        <p className="text-cream-600 text-xs uppercase">Name</p>
+                        <p className="text-cream-500 text-xs uppercase">Name</p>
                         <p className="text-cream-100">{session.user.name}</p>
                       </div>
                     )}
@@ -468,7 +468,7 @@ export default function Dashboard() {
                       </svg>
                       Link GitHub
                     </button>
-                    <p className="text-cream-600 text-xs">Required to save journal entries to your project repositories</p>
+                    <p className="text-cream-500 text-xs">Required to save journal entries to your project repositories</p>
                     
                     <button
                       onClick={() =>

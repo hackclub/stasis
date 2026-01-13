@@ -63,12 +63,12 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
       />
       <div className="relative bg-cream-900 border-2 border-cream-600 max-w-lg w-full mx-4 font-mono">
         <div className="bg-brand-500 px-4 py-2 flex items-center justify-between">
-          <h2 className="text-brand-900 text-lg uppercase tracking-wide">
+          <h2 className="text-white text-lg uppercase tracking-wide">
             New Project
           </h2>
           <button 
             onClick={onClose}
-            className="text-brand-900 hover:text-brand-950 transition-colors cursor-pointer"
+            className="text-white hover:text-cream-100 transition-colors cursor-pointer"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -124,7 +124,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                   onClick={() => handleTagToggle(tag.value)}
                   className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                     selectedTags.includes(tag.value)
-                      ? 'bg-brand-500 text-brand-900'
+                      ? 'bg-brand-500 text-white'
                       : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
                   }`}
                 >
@@ -144,7 +144,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                 onClick={() => setIsStarter(false)}
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   !isStarter
-                    ? 'bg-brand-500 text-brand-900'
+                    ? 'bg-brand-500 text-white'
                     : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
                 }`}
               >
@@ -155,7 +155,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                 onClick={() => setIsStarter(true)}
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   isStarter
-                    ? 'bg-brand-500 text-brand-900'
+                    ? 'bg-brand-500 text-white'
                     : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
                 }`}
               >
@@ -167,7 +167,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
           <button
             type="submit"
             disabled={!title.trim()}
-            className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-600 disabled:cursor-not-allowed text-brand-900 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+            className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-600 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
           >
             Create Project
           </button>

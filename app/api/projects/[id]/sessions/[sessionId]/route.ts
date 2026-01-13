@@ -91,7 +91,7 @@ export async function PATCH(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true },
+    select: { userId: true, submittedAt: true },
   })
 
   if (!project) {
@@ -102,12 +102,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
+  if (project.submittedAt) {
+    return NextResponse.json({ error: "Cannot edit sessions while project is in review" }, { status: 403 })
+  }
+
   const existingSession = await prisma.workSession.findUnique({
     where: { id: sessionId, projectId },
   })
 
   if (!existingSession) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 })
+  }
+
+  if (existingSession.hoursApproved !== null) {
+    return NextResponse.json({ error: "Cannot edit approved sessions" }, { status: 403 })
   }
 
   const body = await request.json()
@@ -199,7 +207,7 @@ export async function DELETE(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true },
+    select: { userId: true, submittedAt: true },
   })
 
   if (!project) {
@@ -210,12 +218,20 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
+  if (project.submittedAt) {
+    return NextResponse.json({ error: "Cannot delete sessions while project is in review" }, { status: 403 })
+  }
+
   const existingSession = await prisma.workSession.findUnique({
     where: { id: sessionId, projectId },
   })
 
   if (!existingSession) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 })
+  }
+
+  if (existingSession.hoursApproved !== null) {
+    return NextResponse.json({ error: "Cannot delete approved sessions" }, { status: 403 })
   }
 
   await prisma.workSession.delete({

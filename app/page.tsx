@@ -172,7 +172,7 @@ export default function Home() {
                 <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                   <button 
                     onClick={() => setIsRSVPOpen(true)}
-                    className="relative bg-brand-500 hover:bg-[#e0643e] px-8 md:px-10 py-2 text-xl md:text-2xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
+                    className="relative bg-brand-500 hover:bg-[#e0643e] px-8 md:px-10 py-2 text-xl md:text-2xl uppercase tracking-wider text-white transition-colors cursor-pointer"
                   >
                     RSVP
                   </button>
