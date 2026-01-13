@@ -42,11 +42,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema, CLI, and generated client for runtime
+# Copy Prisma schema, generated client, and CLI for migrations
 COPY --from=deps /app/prisma ./prisma
 COPY --from=deps /app/app/generated/prisma ./app/generated/prisma
+COPY --from=deps /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 COPY --from=deps /app/node_modules/prisma ./node_modules/prisma
-COPY --from=deps /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+COPY --from=deps /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
 
@@ -55,4 +56,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
+CMD ["node", "server.js"]
