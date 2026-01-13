@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -23,13 +21,12 @@ services:
       - REQUIRE_BASICAUTH
       - BASICAUTH_USERNAME
       - BASICAUTH_PASSWORD
+      - HACKCLUB_CDN_TOKEN
     ports:
       - "3000:3000"
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
