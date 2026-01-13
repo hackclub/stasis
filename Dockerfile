@@ -1,4 +1,3 @@
-# syntax=docker.io/docker/dockerfile:1
 FROM node:20-alpine AS base
 
 # Install dependencies only when needed
@@ -22,8 +21,9 @@ COPY --from=deps /app/prisma ./prisma
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV BETTER_AUTH_SECRET="build-time-placeholder"
 
-RUN yarn run build
+RUN yarn run build --verbose 2>&1
 
 # Production image, copy all the files and run next
 FROM base AS runner
