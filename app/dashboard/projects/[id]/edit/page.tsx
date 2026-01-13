@@ -20,7 +20,7 @@ interface Project {
   description: string | null;
   tags: ProjectTag[];
   isStarter: boolean;
-  githubRepo: string | null;
+
 }
 
 const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
@@ -66,7 +66,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([]);
   const [isStarter, setIsStarter] = useState(false);
-  const [githubRepo, setGithubRepo] = useState('');
+  
   
   const [badges, setBadges] = useState<ProjectBadge[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(false);
@@ -103,7 +103,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           setDescription(data.description || '');
           setSelectedTags(data.tags);
           setIsStarter(data.isStarter);
-          setGithubRepo(data.githubRepo || '');
+          
         } else if (res.status === 404) {
           router.push('/dashboard');
         }
@@ -180,7 +180,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           description: description.trim(),
           tags: selectedTags,
           isStarter,
-          githubRepo: githubRepo.trim(),
+          
         }),
       });
       
@@ -284,27 +284,14 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                       onClick={() => handleTagToggle(tag.value)}
                       className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                         selectedTags.includes(tag.value)
-                          ? 'bg-brand-500 text-brand-900'
-                          : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                          ? 'bg-brand-500 text-white font-medium'
+                          : 'bg-cream-800 text-cream-300 hover:bg-cream-700'
                       }`}
                     >
                       {tag.label}
                     </button>
                   ))}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-cream-500 text-sm uppercase mb-2">
-                  GitHub Repository
-                </label>
-                <input
-                  type="text"
-                  value={githubRepo}
-                  onChange={(e) => setGithubRepo(e.target.value)}
-                  className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
-                  placeholder="https://github.com/user/repo"
-                />
               </div>
 
               <div>
@@ -317,8 +304,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     onClick={() => setIsStarter(false)}
                     className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       !isStarter
-                        ? 'bg-brand-500 text-brand-900'
-                        : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                        ? 'bg-brand-500 text-white font-medium'
+                        : 'bg-cream-800 text-cream-300 hover:bg-cream-700'
                     }`}
                   >
                     Custom
@@ -328,8 +315,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     onClick={() => setIsStarter(true)}
                     className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       isStarter
-                        ? 'bg-brand-500 text-brand-900'
-                        : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                        ? 'bg-brand-500 text-white font-medium'
+                        : 'bg-cream-800 text-cream-300 hover:bg-cream-700'
                     }`}
                   >
                     Starter
@@ -341,16 +328,16 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             {/* Badges section */}
             <div className="bg-cream-900 border-2 border-cream-700 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-cream-100 text-lg uppercase">
+                <h2 className="text-cream-50 text-lg uppercase">
                   Skill Badges ({badges.length}/{MAX_BADGES})
                 </h2>
-                {loadingBadges && <span className="text-cream-600 text-xs">Loading...</span>}
+                {loadingBadges && <span className="text-cream-500 text-xs">Loading...</span>}
               </div>
               
               {/* Claimed badges */}
               {badges.length > 0 && (
                 <div className="mb-4 space-y-2">
-                  <p className="text-cream-600 text-xs uppercase">Claimed</p>
+                  <p className="text-cream-500 text-xs uppercase">Claimed</p>
                   <div className="flex flex-wrap gap-2">
                     {badges.map((badge) => {
                       const badgeInfo = AVAILABLE_BADGES.find(b => b.value === badge.badge);
@@ -359,8 +346,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                           key={badge.id}
                           className={`flex items-center gap-2 px-3 py-1.5 text-sm ${
                             badge.grantedAt 
-                              ? 'bg-green-600/20 border border-green-600 text-green-500' 
-                              : 'bg-brand-500/20 border border-brand-500 text-brand-500'
+                              ? 'bg-green-600/40 border border-green-500 text-green-400' 
+                              : 'bg-brand-500/30 border border-brand-400 text-brand-400'
                           }`}
                         >
                           <span>{badgeInfo?.label || badge.badge}</span>
@@ -370,7 +357,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                             <button
                               type="button"
                               onClick={() => handleUnclaimBadge(badge.id, !!badge.grantedAt)}
-                              className="hover:text-red-500 transition-colors cursor-pointer"
+                              className="hover:text-red-400 transition-colors cursor-pointer"
                             >
                               ×
                             </button>
@@ -385,7 +372,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               {/* Available badges */}
               {badges.length < MAX_BADGES && (
                 <div>
-                  <p className="text-cream-600 text-xs uppercase mb-2">Available to claim</p>
+                  <p className="text-cream-500 text-xs uppercase mb-2">Available to claim</p>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                     {AVAILABLE_BADGES.filter(b => !claimedBadgeTypes.includes(b.value)).map((badge) => (
                       <button
@@ -393,7 +380,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                         type="button"
                         onClick={() => handleClaimBadge(badge.value)}
                         disabled={claimingBadge === badge.value}
-                        className="text-left px-3 py-2 bg-cream-950 border border-cream-800 hover:border-brand-500 text-cream-500 hover:text-cream-100 transition-colors cursor-pointer disabled:opacity-50 text-sm"
+                        className="text-left px-3 py-2 bg-cream-950 border border-cream-700 hover:border-brand-400 text-cream-400 hover:text-cream-200 transition-colors cursor-pointer disabled:opacity-50 text-sm"
                       >
                         {badge.label}
                       </button>
@@ -406,7 +393,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             <button
               type="submit"
               disabled={!title.trim() || saving}
-              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-600 disabled:cursor-not-allowed text-brand-900 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white font-medium py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>

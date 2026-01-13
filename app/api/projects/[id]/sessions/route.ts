@@ -88,7 +88,7 @@ export async function POST(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true },
+    select: { userId: true, submittedAt: true },
   })
 
   if (!project) {
@@ -97,6 +97,10 @@ export async function POST(
 
   if (project.userId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  if (project.submittedAt) {
+    return NextResponse.json({ error: "Cannot add sessions while project is in review" }, { status: 403 })
   }
 
   const body = await request.json()

@@ -19,6 +19,7 @@ interface MediaItem {
   type: "IMAGE" | "VIDEO"
   url: string
   file?: File
+  uploading?: boolean
 }
 
 interface Project {
@@ -124,8 +125,35 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
     if (!files) return;
 
     for (const file of Array.from(files)) {
-      const url = URL.createObjectURL(file);
-      setMedia(prev => [...prev, { type, url, file }]);
+      const tempUrl = URL.createObjectURL(file);
+      setMedia(prev => [...prev, { type, url: tempUrl, file, uploading: true }]);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (res.ok) {
+          const { url } = await res.json();
+          setMedia(prev => prev.map(m => 
+            m.url === tempUrl ? { ...m, url, uploading: false } : m
+          ));
+          URL.revokeObjectURL(tempUrl);
+        } else {
+          setMedia(prev => prev.filter(m => m.url !== tempUrl));
+          URL.revokeObjectURL(tempUrl);
+          const data = await res.json();
+          setError(data.error || 'Failed to upload file');
+        }
+      } catch {
+        setMedia(prev => prev.filter(m => m.url !== tempUrl));
+        URL.revokeObjectURL(tempUrl);
+        setError('Failed to upload file');
+      }
     }
     
     e.target.value = '';
@@ -173,9 +201,16 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
     setSubmitting(true);
 
     try {
+      const stillUploading = media.some(m => m.uploading);
+      if (stillUploading) {
+        setError('Please wait for all files to finish uploading');
+        setSubmitting(false);
+        return;
+      }
+
       const mediaWithUrls = media.map(m => ({
         type: m.type,
-        url: m.url.startsWith('blob:') ? `https://placeholder.com/${Date.now()}` : m.url,
+        url: m.url,
       }));
 
       const res = await fetch(`/api/projects/${projectId}/sessions/${sessionId}`, {
@@ -298,7 +333,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
                     onClick={() => handleCategoryToggle(cat.value)}
                     className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       selectedCategories.includes(cat.value)
-                        ? 'bg-brand-500 text-brand-900'
+                        ? 'bg-brand-500 text-white font-medium'
                         : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
                     }`}
                   >
@@ -313,7 +348,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
               <label className="block text-cream-500 text-sm uppercase mb-2">
                 What Did You Work On?
               </label>
-              <p className="text-cream-600 text-xs mb-3">
+              <p className="text-cream-500 text-xs mb-3">
                 Write in Markdown.
               </p>
               <textarea
@@ -331,7 +366,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
               <label className="block text-cream-500 text-sm uppercase mb-2">
                 Images <span className="text-red-500">*</span>
               </label>
-              <p className="text-cream-600 text-xs mb-3">
+              <p className="text-cream-500 text-xs mb-3">
                 Upload photos of your progress. At least one image is required.
               </p>
               
@@ -375,7 +410,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
                 <label className="block text-cream-500 text-sm uppercase mb-2">
                   Video Clips <span className="text-red-500">*</span>
                 </label>
-                <p className="text-cream-600 text-xs mb-3">
+                <p className="text-cream-500 text-xs mb-3">
                   Record a 10-30 second video explaining what you did. 
                   You need {requiredVideos} video{requiredVideos > 1 ? 's' : ''} for this session length.
                 </p>
@@ -424,7 +459,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-600 disabled:cursor-not-allowed text-brand-900 py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white font-medium py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
             >
               {submitting ? 'Saving...' : 'Save Changes'}
             </button>

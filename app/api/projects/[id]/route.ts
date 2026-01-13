@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
 
-const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo"] as const
+const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
 
@@ -15,6 +15,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   isStarter: boolean
   starterProjectId: string | null
   githubRepo: string | null
+  coverImage: string | null
 }> {
   const result: Record<string, unknown> = {}
   for (const field of ALLOWED_UPDATE_FIELDS) {
@@ -42,7 +43,13 @@ export async function GET(
 
   const project = await prisma.project.findUnique({
     where: { id },
-    include: { workSessions: true, badges: true },
+    include: { 
+      workSessions: {
+        include: { media: true },
+        orderBy: { createdAt: 'desc' },
+      }, 
+      badges: true 
+    },
   })
 
   if (!project) {
@@ -92,6 +99,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
+  if (existingProject.submittedAt && !user?.isAdmin) {
+    return NextResponse.json({ error: "Cannot edit project while in review" }, { status: 403 })
+  }
+
   const body = await request.json()
   const allowedData = pickAllowedFields(body)
 
@@ -132,6 +143,17 @@ export async function DELETE(
 
   if (existingProject.userId !== session.user.id && !user?.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const approvedSessionCount = await prisma.workSession.count({
+    where: { 
+      projectId: id,
+      hoursApproved: { not: null }
+    }
+  })
+
+  if (approvedSessionCount > 0 && !user?.isAdmin) {
+    return NextResponse.json({ error: "Cannot delete project with approved sessions" }, { status: 403 })
   }
 
   await prisma.project.delete({ where: { id } })
