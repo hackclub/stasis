@@ -23,7 +23,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BETTER_AUTH_SECRET="build-time-placeholder"
 
-RUN yarn run build --verbose 2>&1
+RUN yarn run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
