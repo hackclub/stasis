@@ -7,10 +7,14 @@ import { NoiseOverlay } from '../components/NoiseOverlay';
 import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
-import { EditProjectModal } from '../components/projects/EditProjectModal';
-import { ProjectGridHoverCorners } from '../components/starter-projects/ProjectGridHoverCorners';
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import Link from 'next/link';
+
+type BadgeType = 
+  | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
+  | "ANALOG_SENSORS" | "DIGITAL_SENSORS" | "CAD" | "DISPLAYS" | "MOTORS"
+  | "CAMERAS" | "METAL_MACHINING" | "WOOD_FASTENERS" | "MACHINE_LEARNING"
+  | "MCU_INTEGRATION" | "FOUR_LAYER_PCB" | "SOLDERING";
 
 interface WorkSession {
   id: string
@@ -22,7 +26,7 @@ interface WorkSession {
 
 interface ProjectBadge {
   id: string
-  badge: string
+  badge: BadgeType
   claimedAt: string
   grantedAt: string | null
 }
@@ -50,10 +54,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('projects');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedProjectIndex, setSelectedProjectIndex] = useState<number | null>(null);
-  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [gridOffset, setGridOffset] = useState(0);
   const svgContainerRef = useRef<SVGSVGElement>(null);
   const rotationTweensRef = useRef<gsap.core.Tween[]>([]);
@@ -143,26 +143,6 @@ export default function Dashboard() {
     };
   }, []);
 
-  const handleSubmitForReview = async (projectId: string) => {
-    setSubmitting(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/submit`, {
-        method: 'POST',
-      });
-      
-      if (res.ok) {
-        fetchProjects();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to submit for review');
-      }
-    } catch (error) {
-      console.error('Failed to submit for review:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleCreateProject = async (data: {
     title: string
     description: string
@@ -182,45 +162,6 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Failed to create project:', error);
-    }
-  };
-
-  const handleEditProject = async (id: string, data: {
-    title: string
-    description: string
-    tags: ProjectTag[]
-    isStarter: boolean
-    githubRepo: string
-  }) => {
-    try {
-      const res = await fetch(`/api/projects/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      
-      if (res.ok) {
-        setIsEditModalOpen(false);
-        fetchProjects();
-      }
-    } catch (error) {
-      console.error('Failed to update project:', error);
-    }
-  };
-
-  const handleDeleteProject = async (id: string) => {
-    try {
-      const res = await fetch(`/api/projects/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (res.ok) {
-        setIsEditModalOpen(false);
-        setSelectedProjectIndex(null);
-        fetchProjects();
-      }
-    } catch (error) {
-      console.error('Failed to delete project:', error);
     }
   };
 
@@ -265,7 +206,6 @@ export default function Dashboard() {
     );
   }
 
-  const selectedProject = selectedProjectIndex !== null ? projects[selectedProjectIndex] : null;
   const totalHoursClaimed = projects.reduce((acc, p) => acc + p.totalHoursClaimed, 0);
   const totalHoursApproved = projects.reduce((acc, p) => acc + p.totalHoursApproved, 0);
   
@@ -283,8 +223,6 @@ export default function Dashboard() {
   ];
 
   const circles = [160, 400, 640, 1200, 1440, 2160];
-
-  const MIN_HOURS_REQUIRED = 4;
 
   return (
     <>
@@ -468,268 +406,29 @@ export default function Dashboard() {
                 </Link>
               </div>
 
-              {/* Main content area */}
-              <div className="flex flex-col lg:flex-row gap-0.5 bg-cream-500">
-                {/* Preview panel - larger */}
-                <div className="lg:w-[520px] bg-cream-900 p-6 relative min-h-[500px] flex flex-col">
-                  <p className="text-cream-500/20 absolute top-2 right-3 text-xs">DETAILS</p>
-                  
-                  {selectedProject ? (
-                    <div className="flex flex-col h-full">
-                      {/* Header info */}
-                      <div className="space-y-3 pb-4 border-b border-cream-800">
-                        <h2 className="text-brand-500 text-3xl uppercase">
-                          {selectedProject.title}
-                        </h2>
-                        <div className="flex gap-4">
-                          <div>
-                            <p className="text-cream-600 text-xs uppercase">Claimed</p>
-                            <p className="text-cream-100 text-lg">~{selectedProject.totalHoursClaimed.toFixed(1)}h</p>
-                          </div>
-                          <div>
-                            <p className="text-cream-600 text-xs uppercase">Approved</p>
-                            <p className="text-brand-500 text-lg">~{selectedProject.totalHoursApproved.toFixed(1)}h</p>
-                          </div>
-                        </div>
-                        {selectedProject.description && (
-                          <p className="text-cream-500 text-sm">
-                            {selectedProject.description}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-2">
-                          {selectedProject.tags.map((tag) => (
-                            <span 
-                              key={tag} 
-                              className="text-xs bg-cream-850 text-cream-500 px-2 py-1 uppercase"
-                            >
-                              {tag.replace('_', ' ')}
-                            </span>
-                          ))}
-                          {selectedProject.isStarter && (
-                            <span className="text-xs bg-brand-500 text-brand-900 px-2 py-1 uppercase">
-                              Starter
-                            </span>
-                          )}
-                        </div>
-                        {selectedProject.githubRepo && (
-                          <a 
-                            href={selectedProject.githubRepo}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-cream-500 hover:text-brand-500 text-sm flex items-center gap-2 transition-colors"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            {selectedProject.githubRepo.replace('https://github.com/', '')}
-                          </a>
-                        )}
-                      </div>
-
-                      {/* Badges */}
-                      {selectedProject.badges.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-cream-800">
-                          <p className="text-cream-600 text-xs uppercase mb-2">Badges ({selectedProject.badges.length}/3)</p>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedProject.badges.map((badge) => (
-                              <div
-                                key={badge.id}
-                                className={`flex items-center gap-1.5 px-2 py-1 text-xs uppercase ${
-                                  badge.grantedAt
-                                    ? 'bg-green-600/20 border border-green-600 text-green-500'
-                                    : 'bg-brand-500/20 border border-brand-500/50 border-dashed text-brand-500'
-                                }`}
-                              >
-                                {badge.grantedAt && (
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
-                                <span>{badge.badge.replace(/_/g, ' ')}</span>
-                                {!badge.grantedAt && <span className="opacity-60">(pending)</span>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Sessions list */}
-                      <div className="flex-1 overflow-y-auto mt-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-cream-600 text-xs uppercase">Sessions ({selectedProject.workSessions.length})</p>
-                        </div>
-                        {selectedProject.workSessions.length > 0 ? (
-                          <div className="space-y-2">
-                            {selectedProject.workSessions.map((ws) => (
-                              <div 
-                                key={ws.id}
-                                className="bg-cream-950 p-3 border border-cream-800 group"
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-cream-600 text-xs">
-                                    {new Date(ws.createdAt).toLocaleDateString()}
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <div className="text-right">
-                                      <span className="text-cream-100 text-sm">{ws.hoursClaimed}h claimed</span>
-                                      {ws.hoursApproved !== null && (
-                                        <span className="text-brand-500 text-sm ml-2">({ws.hoursApproved}h approved)</span>
-                                      )}
-                                    </div>
-                                    <Link
-                                      href={`/dashboard/projects/${selectedProject.id}/session/${ws.id}/edit`}
-                                      className="opacity-0 group-hover:opacity-100 text-cream-500 hover:text-brand-500 transition-all"
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                      </svg>
-                                    </Link>
-                                  </div>
-                                </div>
-                                {ws.content && (
-                                  <p className="text-cream-500 text-xs mt-2 line-clamp-2">{ws.content}</p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-cream-600 text-sm">No sessions logged yet</p>
-                        )}
-                      </div>
-
-                      {/* Submission Requirements */}
-                      {!selectedProject.submittedAt && (
-                        <div className="mt-4 pt-4 border-t border-cream-800">
-                          <p className="text-cream-600 text-xs uppercase mb-2">Submission Requirements</p>
-                          <div className="space-y-1">
-                            <div className={`flex items-center gap-2 text-xs ${selectedProject.githubRepo ? 'text-green-500' : 'text-cream-500'}`}>
-                              {selectedProject.githubRepo ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              ) : (
-                                <span className="w-3 h-3 border border-cream-600 inline-block" />
-                              )}
-                              GitHub repository linked
-                            </div>
-                            <div className={`flex items-center gap-2 text-xs ${selectedProject.badges.length >= 1 ? 'text-green-500' : 'text-cream-500'}`}>
-                              {selectedProject.badges.length >= 1 ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              ) : (
-                                <span className="w-3 h-3 border border-cream-600 inline-block" />
-                              )}
-                              At least 1 badge claimed
-                            </div>
-                            <div className={`flex items-center gap-2 text-xs ${selectedProject.totalHoursClaimed >= MIN_HOURS_REQUIRED ? 'text-green-500' : 'text-cream-500'}`}>
-                              {selectedProject.totalHoursClaimed >= MIN_HOURS_REQUIRED ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              ) : (
-                                <span className="w-3 h-3 border border-cream-600 inline-block" />
-                              )}
-                              Minimum {MIN_HOURS_REQUIRED} hours logged ({selectedProject.totalHoursClaimed.toFixed(1)}h)
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedProject.submittedAt && (
-                        <div className="mt-4 pt-4 border-t border-cream-800">
-                          <div className="bg-green-600/20 border border-green-600 p-3">
-                            <p className="text-green-500 text-sm uppercase flex items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                              Submitted for Review
-                            </p>
-                            <p className="text-green-500/70 text-xs mt-1">
-                              {new Date(selectedProject.submittedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2 mt-4">
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/dashboard/projects/${selectedProject.id}/session/new`}
-                            className="flex-1 bg-brand-500 hover:bg-brand-400 text-brand-900 py-2 text-sm uppercase tracking-wider transition-colors text-center"
-                          >
-                            + Log Session
-                          </Link>
-                          <button
-                            onClick={() => setIsEditModalOpen(true)}
-                            className="flex-1 bg-cream-850 hover:bg-cream-800 text-cream-100 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
-                          >
-                            Edit
-                          </button>
-                        </div>
-                        
-                        {!selectedProject.submittedAt && (
-                          <button
-                            onClick={() => handleSubmitForReview(selectedProject.id)}
-                            disabled={
-                              submitting ||
-                              !selectedProject.githubRepo ||
-                              selectedProject.badges.length < 1 ||
-                              selectedProject.totalHoursClaimed < MIN_HOURS_REQUIRED
-                            }
-                            className="w-full bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
-                          >
-                            {submitting ? 'Submitting...' : 'Submit for Review'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-cream-500/50 text-lg">
-                        Select a project
-                      </p>
-                    </div>
-                  )}
+              {/* Project Cards Grid */}
+              {loading ? (
+                <div className="p-8 text-center">
+                  <p className="text-cream-500">Loading projects...</p>
                 </div>
-
-                {/* Project grid */}
-                <div className="flex-1 bg-cream-950 relative">
-                  <p className="text-cream-500/20 absolute top-2 right-3 text-xs z-10">PROJECTS</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <NewProjectCard onClick={() => setIsModalOpen(true)} />
                   
-                  {loading ? (
-                    <div className="p-8 text-center">
-                      <p className="text-cream-500">Loading projects...</p>
-                    </div>
-                  ) : (
-                    <div 
-                      ref={setGridEl}
-                      className="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-0.5 bg-cream-500 p-0.5 relative w-fit"
-                    >
-                      <ProjectGridHoverCorners gridEl={gridEl} selectedIndex={selectedProjectIndex} />
-                      
-                      <NewProjectCard onClick={() => setIsModalOpen(true)} />
-                      
-                      {projects.map((project, index) => (
-                        <ProjectCard
-                          key={project.id}
-                          project={project}
-                          selected={selectedProjectIndex === index}
-                          onClick={() => setSelectedProjectIndex(index)}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {!loading && projects.length === 0 && (
-                    <div className="p-8 text-center">
-                      <p className="text-cream-500">No projects yet. Create your first one!</p>
-                    </div>
-                  )}
+                  {projects.map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                    />
+                  ))}
                 </div>
-              </div>
+              )}
+
+              {!loading && projects.length === 0 && (
+                <div className="p-8 text-center">
+                  <p className="text-cream-500">No projects yet. Create your first one!</p>
+                </div>
+              )}
             </>
           )}
 
@@ -804,14 +503,6 @@ export default function Dashboard() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateProject}
-      />
-
-      <EditProjectModal
-        isOpen={isEditModalOpen}
-        project={selectedProject}
-        onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleEditProject}
-        onDelete={handleDeleteProject}
       />
 
       <NoiseOverlay />

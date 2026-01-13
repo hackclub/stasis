@@ -7,7 +7,7 @@ interface Props {
 export function NewProjectCard({ onClick }: Readonly<Props>) {
   return (
     <button 
-      className="aspect-square bg-cream-950 relative select-none w-full cursor-pointer overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-cream-600 hover:border-brand-500 hover:bg-cream-900 transition-colors group"
+      className="bg-cream-950 relative select-none w-full cursor-pointer overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-cream-600 hover:border-brand-500 hover:bg-cream-900 transition-colors group min-h-[280px]"
       onClick={onClick}
     >
       <div className="text-cream-500 group-hover:text-brand-500 transition-colors">
