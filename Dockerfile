@@ -18,6 +18,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
+COPY --from=deps /app/app/generated/prisma ./app/generated/prisma
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
