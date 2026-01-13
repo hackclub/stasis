@@ -42,7 +42,7 @@ export async function GET(
 
   const project = await prisma.project.findUnique({
     where: { id },
-    include: { workSessions: true },
+    include: { workSessions: true, badges: true },
   })
 
   if (!project) {
