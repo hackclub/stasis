@@ -45,7 +45,7 @@ interface Project {
   isStarter: boolean;
 
   coverImage: string | null;
-  submittedAt: string | null;
+  status: "draft" | "in_review" | "approved" | "rejected";
   createdAt: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
@@ -337,16 +337,33 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* Submission Status */}
-          {project.submittedAt ? (
+          {project.status === "in_review" ? (
+            <div className="bg-yellow-600/20 border-2 border-yellow-600 p-4 mb-6">
+              <p className="text-yellow-500 text-lg uppercase flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                In Review
+              </p>
+            </div>
+          ) : project.status === "approved" ? (
             <div className="bg-green-600/20 border-2 border-green-600 p-4 mb-6">
               <p className="text-green-500 text-lg uppercase flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                Submitted for Review
+                Approved
               </p>
-              <p className="text-green-500/70 text-sm mt-1">
-                {new Date(project.submittedAt).toLocaleDateString()}
+            </div>
+          ) : project.status === "rejected" ? (
+            <div className="bg-red-600/20 border-2 border-red-600 p-4 mb-6">
+              <p className="text-red-500 text-lg uppercase flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                Rejected - You can resubmit
               </p>
             </div>
           ) : (
@@ -378,7 +395,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {/* Actions */}
-          {!project.submittedAt && (
+          {(project.status === "draft" || project.status === "rejected") && (
             <div className="flex gap-3 mb-8">
               <Link
                 href={`/dashboard/projects/${project.id}/session/new`}
@@ -397,7 +414,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 disabled={submitting || !canSubmit}
                 className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
-                {submitting ? 'Submitting...' : 'Submit for Review'}
+                {submitting ? 'Submitting...' : (project.status === "rejected" ? 'Resubmit for Review' : 'Submit for Review')}
               </button>
             </div>
           )}
@@ -489,7 +506,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         )}
                       </div>
                       
-                      {isPending && !project.submittedAt && (
+                      {isPending && (project.status === "draft" || project.status === "rejected") && (
                         <Link
                           href={`/dashboard/projects/${project.id}/session/${ws.id}/edit`}
                           className="bg-brand-500 hover:bg-brand-400 text-white px-3 py-1 text-sm uppercase tracking-wide transition-colors"

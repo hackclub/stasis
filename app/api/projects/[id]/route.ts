@@ -99,7 +99,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (existingProject.submittedAt && !user?.isAdmin) {
+  if (existingProject.status === "in_review" && !user?.isAdmin) {
     return NextResponse.json({ error: "Cannot edit project while in review" }, { status: 403 })
   }
 

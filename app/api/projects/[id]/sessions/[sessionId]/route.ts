@@ -91,7 +91,7 @@ export async function PATCH(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, submittedAt: true },
+    select: { userId: true, status: true },
   })
 
   if (!project) {
@@ -102,7 +102,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.submittedAt) {
+  if (project.status === "in_review") {
     return NextResponse.json({ error: "Cannot edit sessions while project is in review" }, { status: 403 })
   }
 
@@ -207,7 +207,7 @@ export async function DELETE(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, submittedAt: true },
+    select: { userId: true, status: true },
   })
 
   if (!project) {
@@ -218,7 +218,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.submittedAt) {
+  if (project.status === "in_review") {
     return NextResponse.json({ error: "Cannot delete sessions while project is in review" }, { status: 403 })
   }
 

@@ -40,7 +40,7 @@ interface Project {
   totalHoursApproved: number
   isStarter: boolean
   coverImage: string | null
-  submittedAt: string | null
+  status: "draft" | "in_review" | "approved" | "rejected"
   createdAt: string
   workSessions: WorkSession[]
   badges: ProjectBadge[]

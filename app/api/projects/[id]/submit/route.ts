@@ -32,7 +32,7 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.submittedAt) {
+  if (project.status !== "draft" && project.status !== "rejected") {
     return NextResponse.json(
       { error: "Project already submitted for review" },
       { status: 400 }
@@ -67,7 +67,7 @@ export async function POST(
 
   const updatedProject = await prisma.project.update({
     where: { id },
-    data: { submittedAt: new Date() },
+    data: { status: "in_review" },
   })
 
   return NextResponse.json(updatedProject)

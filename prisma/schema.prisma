@@ -8,6 +8,13 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ProjectStatus {
+  draft
+  in_review
+  approved
+  rejected
+}
+
 // This is the primary user object
 model User {
   id                 String    @id @default(cuid())
@@ -125,7 +132,7 @@ model Project {
   starterProjectId String?
   githubRepo  String?
   coverImage  String?
-  submittedAt DateTime?
+  status      ProjectStatus @default(draft)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   userId      String
