@@ -65,9 +65,18 @@ export async function POST(
     )
   }
 
+  const body = await request.json().catch(() => ({}))
+  const submissionNotes = typeof body.submissionNotes === "string" ? body.submissionNotes : null
+
   const updatedProject = await prisma.project.update({
     where: { id },
-    data: { status: "in_review" },
+    data: { 
+      status: "in_review",
+      submissionNotes,
+      reviewComments: null,
+      reviewedAt: null,
+      reviewedBy: null,
+    },
   })
 
   return NextResponse.json(updatedProject)

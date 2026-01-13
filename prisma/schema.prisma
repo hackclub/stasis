@@ -124,21 +124,25 @@ enum BadgeType {
 }
 
 model Project {
-  id          String       @id @default(cuid())
-  title       String
-  description String?
-  tags        ProjectTag[]
-  isStarter   Boolean      @default(false)
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  tags            ProjectTag[]
+  isStarter       Boolean       @default(false)
   starterProjectId String?
-  githubRepo  String?
-  coverImage  String?
-  status      ProjectStatus @default(draft)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workSessions WorkSession[]
-  badges      ProjectBadge[]
+  githubRepo      String?
+  coverImage      String?
+  status          ProjectStatus @default(draft)
+  submissionNotes  String?
+  reviewComments   String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workSessions    WorkSession[]
+  badges          ProjectBadge[]
 
   @@index([userId])
   @@map("project")
@@ -150,9 +154,12 @@ model WorkSession {
   hoursApproved Float?
   content       String?
   categories    SessionCategory[]
-  createdAt     DateTime          @default(now())
-  projectId     String
-  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewComments String?
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  createdAt      DateTime          @default(now())
+  projectId      String
+  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   media         SessionMedia[]
 
   @@index([projectId])

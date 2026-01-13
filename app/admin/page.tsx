@@ -1,0 +1,170 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession, signOut } from "@/lib/auth-client";
+import { NoiseOverlay } from '@/app/components/NoiseOverlay';
+import Link from 'next/link';
+
+interface ProjectUser {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+interface WorkSession {
+  id: string;
+  hoursClaimed: number;
+  hoursApproved: number | null;
+}
+
+interface AdminProject {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  submittedAt: string | null;
+  submissionNotes: string | null;
+  user: ProjectUser;
+  workSessions: WorkSession[];
+}
+
+export default function AdminDashboard() {
+  const { data: session } = useSession();
+  const [projects, setProjects] = useState<AdminProject[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const res = await fetch('/api/admin/projects');
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProjects();
+  }, []);
+
+  const getTotalHours = (sessions: WorkSession[]) => {
+    return sessions.reduce((acc, s) => acc + s.hoursClaimed, 0);
+  };
+
+  return (
+    <>
+      <div className="min-h-screen bg-cream-950 font-mono">
+        {/* Header */}
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-cream-500 hover:text-brand-500 transition-colors">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              </svg>
+            </Link>
+            <h1 className="text-brand-500 text-xl uppercase tracking-wide">Admin Dashboard</h1>
+          </div>
+          <div className="flex items-center gap-6">
+            <span className="text-cream-500 text-sm hidden sm:block">
+              {session?.user.name || session?.user.email}
+            </span>
+            <button
+              onClick={() => signOut()}
+              className="text-cream-500 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          {/* Stats */}
+          <div className="mb-6">
+            <p className="text-cream-500 text-sm uppercase">
+              {projects.length} project{projects.length !== 1 ? 's' : ''} awaiting review
+            </p>
+          </div>
+
+          {/* Projects List */}
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-cream-500">Loading projects...</p>
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="bg-cream-900 border-2 border-cream-700 p-8 text-center">
+              <p className="text-cream-500">No projects in review</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {projects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/admin/projects/${project.id}`}
+                  className="block bg-cream-900 border-2 border-cream-700 hover:border-brand-500 p-4 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-cream-100 text-lg uppercase tracking-wide truncate">
+                        {project.title}
+                      </h2>
+                      <p className="text-cream-500 text-sm mt-1">
+                        {project.user.name || project.user.email}
+                        {project.user.name && (
+                          <span className="text-cream-600"> ({project.user.email})</span>
+                        )}
+                      </p>
+                      {project.description && (
+                        <p className="text-cream-400 text-sm mt-2 line-clamp-2">
+                          {project.description}
+                        </p>
+                      )}
+                      {project.submissionNotes && (
+                        <div className="mt-3 bg-cream-950 border border-cream-700 p-3">
+                          <p className="text-cream-500 text-xs uppercase mb-1">Submission Notes</p>
+                          <p className="text-cream-300 text-sm">{project.submissionNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-brand-500 text-lg">
+                        {getTotalHours(project.workSessions).toFixed(1)}h
+                      </p>
+                      <p className="text-cream-500 text-xs uppercase">claimed</p>
+                      {project.submittedAt && (
+                        <p className="text-cream-600 text-xs mt-2">
+                          {new Date(project.submittedAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 text-cream-500 text-sm">
+                    <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
+                    <span className="text-cream-700">•</span>
+                    <span className="text-brand-400">Review →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <NoiseOverlay />
+    </>
+  );
+}
