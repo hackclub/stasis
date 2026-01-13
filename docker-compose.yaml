@@ -23,7 +23,7 @@ services:
       - BASICAUTH_PASSWORD
       - HACKCLUB_CDN_TOKEN
     ports:
-      - "3000:3000"
+      - "3847:3000"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
       interval: 30s
