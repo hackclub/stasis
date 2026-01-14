@@ -11,6 +11,7 @@ RUN yarn --frozen-lockfile
 
 # Generate Prisma client
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN yarn prisma generate
 
 # Rebuild the source code only when needed
@@ -22,7 +23,7 @@ COPY --from=deps /app/app/generated/prisma ./app/generated/prisma
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV BETTER_AUTH_SECRET="build-time-placeholder"
+ENV BETTER_AUTH_SECRET="build-time-placeholder-must-be-32-chars-long"
 
 RUN yarn run build
 
@@ -42,9 +43,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema and generated client
+# Copy Prisma schema, config, and generated client
 COPY --from=deps /app/prisma ./prisma
+COPY --from=deps /app/prisma.config.ts ./
 COPY --from=deps /app/app/generated/prisma ./app/generated/prisma
+COPY --from=deps /app/node_modules/dotenv ./node_modules/dotenv
 
 # Install Prisma CLI for migrations
 RUN yarn global add prisma@7.1.0
