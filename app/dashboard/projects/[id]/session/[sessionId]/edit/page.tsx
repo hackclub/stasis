@@ -355,7 +355,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none font-mono text-sm"
-                placeholder="Describe what you accomplished this session..."
+                placeholder="Describe what you did in this session..."
                 rows={12}
                 required
               />

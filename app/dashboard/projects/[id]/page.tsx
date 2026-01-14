@@ -45,6 +45,7 @@ interface Project {
   isStarter: boolean;
 
   coverImage: string | null;
+  githubRepo: string | null;
   status: "draft" | "in_review" | "approved" | "rejected";
   createdAt: string;
   workSessions: WorkSession[];
@@ -196,7 +197,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const badges = project.badges ?? [];
   const approvedBadges = badges.filter(b => b.grantedAt !== null);
   const pendingBadges = badges.filter(b => b.grantedAt === null);
-  const canSubmit = badges.length >= 1 && project.totalHoursClaimed >= MIN_HOURS_REQUIRED;
+  const canSubmit = badges.length >= 1 && project.totalHoursClaimed >= MIN_HOURS_REQUIRED && !!project.githubRepo;
 
   return (
     <>
@@ -289,7 +290,28 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <span className="text-cream-500">Hours Approved:</span>{' '}
                 <span className="text-brand-400">{project.totalHoursApproved.toFixed(1)}h</span>
               </div>
+            </div>
 
+            {/* GitHub Repo */}
+            <div className="mt-4 text-sm">
+              <span className="text-cream-500">GitHub Repo:</span>{' '}
+              {project.githubRepo ? (
+                <a 
+                  href={project.githubRepo} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-brand-400 hover:text-brand-300 underline"
+                >
+                  {project.githubRepo}
+                </a>
+              ) : (
+                <span className="text-cream-500">
+                  Not set.{' '}
+                  <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
+                    Add one
+                  </Link>
+                </span>
+              )}
             </div>
           </div>
 
@@ -298,7 +320,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Badges</h2>
             
             {badges.length === 0 ? (
-              <p className="text-cream-500 text-sm">No badges claimed yet</p>
+              <p className="text-cream-500 text-sm">
+                No badges claimed yet.{' '}
+                <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
+                  You should claim some
+                </Link>
+              </p>
             ) : (
               <div className="space-y-4">
                 {approvedBadges.length > 0 && (
@@ -389,6 +416,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
                   Minimum {MIN_HOURS_REQUIRED} hours logged ({project.totalHoursClaimed.toFixed(1)}h)
+                </div>
+                <div className={`flex items-center gap-2 text-sm ${project.githubRepo ? 'text-green-400' : 'text-cream-400'}`}>
+                  {project.githubRepo ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  GitHub repo linked
                 </div>
               </div>
             </div>

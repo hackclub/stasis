@@ -20,7 +20,7 @@ interface Project {
   description: string | null;
   tags: ProjectTag[];
   isStarter: boolean;
-
+  githubRepo: string | null;
 }
 
 const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
@@ -66,6 +66,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([]);
   const [isStarter, setIsStarter] = useState(false);
+  const [githubRepo, setGithubRepo] = useState('');
   
   
   const [badges, setBadges] = useState<ProjectBadge[]>([]);
@@ -103,6 +104,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           setDescription(data.description || '');
           setSelectedTags(data.tags);
           setIsStarter(data.isStarter);
+          setGithubRepo(data.githubRepo || '');
           
         } else if (res.status === 404) {
           router.push('/dashboard');
@@ -180,7 +182,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           description: description.trim(),
           tags: selectedTags,
           isStarter,
-          
+          githubRepo: githubRepo.trim() || null,
         }),
       });
       
@@ -269,6 +271,19 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
                   placeholder="What are you building?"
+                />
+              </div>
+
+              <div>
+                <label className="block text-cream-500 text-sm uppercase mb-2">
+                  GitHub Repo <span className="text-brand-400">(required for submission)</span>
+                </label>
+                <input
+                  type="url"
+                  value={githubRepo}
+                  onChange={(e) => setGithubRepo(e.target.value)}
+                  className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                  placeholder="https://github.com/username/repo"
                 />
               </div>
 
