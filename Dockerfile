@@ -43,14 +43,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema, config, and generated client
+# Copy Prisma schema, config, generated client, and all node_modules for migrations
 COPY --from=deps /app/prisma ./prisma
 COPY --from=deps /app/prisma.config.ts ./
 COPY --from=deps /app/app/generated/prisma ./app/generated/prisma
-COPY --from=deps /app/node_modules/dotenv ./node_modules/dotenv
-
-# Install Prisma CLI for migrations
-RUN yarn global add prisma@7.1.0
+COPY --from=deps /app/node_modules ./node_modules
 
 USER nextjs
 
@@ -59,4 +56,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
