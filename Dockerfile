@@ -42,11 +42,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema, generated client, and CLI for migrations
+# Copy Prisma schema and generated client
 COPY --from=deps /app/prisma ./prisma
 COPY --from=deps /app/app/generated/prisma ./app/generated/prisma
-COPY --from=deps /app/node_modules/prisma ./node_modules/prisma
-COPY --from=deps /app/node_modules/@prisma ./node_modules/@prisma
+
+# Install Prisma CLI for migrations
+RUN yarn global add prisma@7.1.0
 
 USER nextjs
 
