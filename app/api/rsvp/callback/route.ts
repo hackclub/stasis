@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { markAccountCreationFinished } from '@/lib/airtable';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
+  const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+  
   try {
     const headersList = await headers();
 
@@ -12,7 +14,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!session?.user?.email) {
-      return NextResponse.redirect(new URL('/?error=auth_failed', request.url));
+      return NextResponse.redirect(new URL('/?error=auth_failed', baseUrl));
     }
 
     // Mark "Finished Account Creation" in Airtable
@@ -26,9 +28,9 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     cookieStore.delete('rsvp_login_hint');
 
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/dashboard', baseUrl));
   } catch (error) {
     console.error('RSVP callback error:', error);
-    return NextResponse.redirect(new URL('/?error=rsvp_failed', request.url));
+    return NextResponse.redirect(new URL('/?error=rsvp_failed', baseUrl));
   }
 }
