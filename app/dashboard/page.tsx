@@ -52,6 +52,7 @@ export default function Dashboard() {
   const { data: session, isPending } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('projects');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [gridOffset, setGridOffset] = useState(0);
@@ -75,6 +76,11 @@ export default function Dashboard() {
   useEffect(() => {
     if (session) {
       fetchProjects();
+      // Check if user is admin
+      fetch('/api/user')
+        .then(res => res.json())
+        .then(data => setIsAdmin(data.isAdmin ?? false))
+        .catch(() => setIsAdmin(false));
     } else {
       setLoading(false);
     }
@@ -288,6 +294,14 @@ export default function Dashboard() {
             <span className="text-cream-500 text-sm hidden sm:block">
               {session.user.name || session.user.email}
             </span>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="text-cream-500 hover:text-brand-500 text-sm uppercase transition-colors"
+              >
+                Admin
+              </Link>
+            )}
             <button
               onClick={() => signOut()}
               className="text-cream-500 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
