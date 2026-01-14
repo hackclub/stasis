@@ -47,10 +47,17 @@ interface AdminProject {
   title: string;
   description: string | null;
   githubRepo: string | null;
+  coverImage: string | null;
   tags: ProjectTag[];
   status: string;
+  isStarter: boolean;
+  starterProjectId: string | null;
+  createdAt: string;
   submittedAt: string | null;
   submissionNotes: string | null;
+  reviewComments: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   user: ProjectUser;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
@@ -242,9 +249,22 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             </p>
           </div>
 
+          {/* Cover Image */}
+          {project.coverImage && (
+            <div className="mb-6">
+              <a href={project.coverImage} target="_blank" rel="noopener noreferrer">
+                <img 
+                  src={project.coverImage} 
+                  alt={project.title}
+                  className="w-full max-h-96 object-cover border-2 border-cream-700 hover:border-brand-500 transition-colors"
+                />
+              </a>
+            </div>
+          )}
+
           {/* Project Details */}
           <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
                 <p className="text-cream-500 text-xs uppercase mb-1">Total Hours Claimed</p>
                 <p className="text-cream-100 text-xl">{totalHoursClaimed.toFixed(1)}h</p>
@@ -253,12 +273,37 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 <p className="text-cream-500 text-xs uppercase mb-1">Sessions</p>
                 <p className="text-cream-100 text-xl">{project.workSessions.length}</p>
               </div>
+              <div>
+                <p className="text-cream-500 text-xs uppercase mb-1">Status</p>
+                <p className={`text-xl uppercase ${
+                  project.status === 'approved' ? 'text-green-500' :
+                  project.status === 'rejected' ? 'text-red-500' :
+                  project.status === 'in_review' ? 'text-brand-500' :
+                  'text-cream-500'
+                }`}>{project.status.replace('_', ' ')}</p>
+              </div>
+              <div>
+                <p className="text-cream-500 text-xs uppercase mb-1">Created</p>
+                <p className="text-cream-100 text-sm">
+                  {new Date(project.createdAt).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric', year: 'numeric'
+                  })}
+                </p>
+              </div>
             </div>
+
+            {project.isStarter && (
+              <div className="mt-4">
+                <span className="bg-brand-500/20 border border-brand-500/50 text-brand-400 px-2 py-1 text-xs uppercase">
+                  Starter Project
+                </span>
+              </div>
+            )}
 
             {project.description && (
               <div className="mt-4">
                 <p className="text-cream-500 text-xs uppercase mb-1">Description</p>
-                <p className="text-cream-300 text-sm">{project.description}</p>
+                <p className="text-cream-300 text-sm whitespace-pre-wrap">{project.description}</p>
               </div>
             )}
 
@@ -311,6 +356,21 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 </div>
               </div>
             )}
+
+            {project.reviewedAt && (
+              <div className="mt-4 pt-4 border-t border-cream-700">
+                <p className="text-cream-500 text-xs uppercase mb-1">Reviewed</p>
+                <p className="text-cream-300 text-sm">
+                  {new Date(project.reviewedAt).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric', year: 'numeric'
+                  })}
+                  {project.reviewedBy && ` by ${project.reviewedBy}`}
+                </p>
+                {project.reviewComments && (
+                  <p className="text-cream-400 text-sm mt-2">{project.reviewComments}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Submission Notes */}
@@ -324,6 +384,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {/* Work Sessions */}
           <div className="mb-8">
             <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Work Sessions</h2>
+            {project.workSessions.length === 0 ? (
+              <div className="bg-cream-900 border-2 border-cream-700 p-6 text-center">
+                <p className="text-cream-500">No work sessions recorded</p>
+              </div>
+            ) : (
             <div className="space-y-4">
               {project.workSessions.map((session) => {
                 const review = sessionReviews[session.id];
@@ -403,99 +468,125 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       </div>
                     )}
 
-                    {/* Session Review Form */}
-                    <div className="bg-cream-950 border border-cream-700 p-3 mt-4">
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
+                    {/* Session Review Form - only show if in_review */}
+                    {project.status === 'in_review' ? (
+                      <div className="bg-cream-950 border border-cream-700 p-3 mt-4">
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          <div>
+                            <label className="text-cream-500 text-xs uppercase block mb-1">
+                              Hours Approved
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max={session.hoursClaimed}
+                              step="0.5"
+                              value={review?.hoursApproved ?? session.hoursClaimed}
+                              onChange={(e) => updateSessionReview(session.id, 'hoursApproved', parseFloat(e.target.value) || 0)}
+                              className="w-full bg-cream-900 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                            />
+                          </div>
+                          <div className="flex items-end">
+                            <span className="text-cream-500 text-sm pb-2">
+                              of {session.hoursClaimed}h claimed
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mb-3">
                           <label className="text-cream-500 text-xs uppercase block mb-1">
-                            Hours Approved
+                            Review Comments (optional)
                           </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={session.hoursClaimed}
-                            step="0.5"
-                            value={review?.hoursApproved ?? session.hoursClaimed}
-                            onChange={(e) => updateSessionReview(session.id, 'hoursApproved', parseFloat(e.target.value) || 0)}
-                            className="w-full bg-cream-900 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                          <textarea
+                            value={review?.reviewComments ?? ''}
+                            onChange={(e) => updateSessionReview(session.id, 'reviewComments', e.target.value)}
+                            rows={2}
+                            className="w-full bg-cream-900 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
+                            placeholder="Add feedback for this session..."
                           />
                         </div>
-                        <div className="flex items-end">
-                          <span className="text-cream-500 text-sm pb-2">
-                            of {session.hoursClaimed}h claimed
-                          </span>
+                        <button
+                          onClick={() => handleSessionReview(session.id)}
+                          disabled={isReviewing}
+                          className={`w-full py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer ${
+                            review?.isReviewed 
+                              ? 'bg-green-600/20 border border-green-600 text-green-400 hover:bg-green-600/30' 
+                              : 'bg-brand-500 hover:bg-brand-400 text-white'
+                          }`}
+                        >
+                          {isReviewing ? 'Saving...' : review?.isReviewed ? 'Update Review' : 'Review Session'}
+                        </button>
+                      </div>
+                    ) : session.hoursApproved !== null && (
+                      <div className="bg-cream-950 border border-cream-700 p-3 mt-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-cream-500 text-sm">Hours Approved: <span className="text-cream-100">{session.hoursApproved}h</span></span>
+                          {session.reviewComments && (
+                            <span className="text-cream-400 text-sm">{session.reviewComments}</span>
+                          )}
                         </div>
                       </div>
-                      <div className="mb-3">
-                        <label className="text-cream-500 text-xs uppercase block mb-1">
-                          Review Comments (optional)
-                        </label>
-                        <textarea
-                          value={review?.reviewComments ?? ''}
-                          onChange={(e) => updateSessionReview(session.id, 'reviewComments', e.target.value)}
-                          rows={2}
-                          className="w-full bg-cream-900 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
-                          placeholder="Add feedback for this session..."
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleSessionReview(session.id)}
-                        disabled={isReviewing}
-                        className={`w-full py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer ${
-                          review?.isReviewed 
-                            ? 'bg-green-600/20 border border-green-600 text-green-400 hover:bg-green-600/30' 
-                            : 'bg-brand-500 hover:bg-brand-400 text-white'
-                        }`}
-                      >
-                        {isReviewing ? 'Saving...' : review?.isReviewed ? 'Update Review' : 'Review Session'}
-                      </button>
-                    </div>
+                    )}
                   </div>
                 );
               })}
             </div>
-          </div>
-
-          {/* Final Decision */}
-          <div className="bg-cream-900 border-2 border-cream-700 p-6">
-            <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Final Decision</h2>
-            
-            {!allSessionsReviewed && (
-              <p className="text-yellow-500 text-sm mb-4">
-                ⚠ Review all sessions before making a final decision
-              </p>
             )}
-
-            <div className="mb-4">
-              <label className="text-cream-500 text-xs uppercase block mb-2">
-                Overall Review Comments (optional)
-              </label>
-              <textarea
-                value={finalComments}
-                onChange={(e) => setFinalComments(e.target.value)}
-                rows={3}
-                className="w-full bg-cream-950 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
-                placeholder="Add overall feedback for the project..."
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleFinalDecision('rejected')}
-                disabled={submitting}
-                className="flex-1 bg-red-600/20 border-2 border-red-600 hover:bg-red-600/30 text-red-500 py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {submitting ? 'Submitting...' : 'Reject Project'}
-              </button>
-              <button
-                onClick={() => handleFinalDecision('approved')}
-                disabled={submitting}
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {submitting ? 'Submitting...' : 'Approve Project'}
-              </button>
-            </div>
           </div>
+
+          {/* Final Decision - only show if in_review */}
+          {project.status === 'in_review' ? (
+            <div className="bg-cream-900 border-2 border-cream-700 p-6">
+              <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Final Decision</h2>
+              
+              {!allSessionsReviewed && (
+                <p className="text-yellow-500 text-sm mb-4">
+                  ⚠ Review all sessions before making a final decision
+                </p>
+              )}
+
+              <div className="mb-4">
+                <label className="text-cream-500 text-xs uppercase block mb-2">
+                  Overall Review Comments (optional)
+                </label>
+                <textarea
+                  value={finalComments}
+                  onChange={(e) => setFinalComments(e.target.value)}
+                  rows={3}
+                  className="w-full bg-cream-950 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
+                  placeholder="Add overall feedback for the project..."
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleFinalDecision('rejected')}
+                  disabled={submitting}
+                  className="flex-1 bg-red-600/20 border-2 border-red-600 hover:bg-red-600/30 text-red-500 py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? 'Submitting...' : 'Reject Project'}
+                </button>
+                <button
+                  onClick={() => handleFinalDecision('approved')}
+                  disabled={submitting}
+                  className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? 'Submitting...' : 'Approve Project'}
+                </button>
+              </div>
+            </div>
+          ) : (project.status === 'approved' || project.status === 'rejected') && (
+            <div className={`border-2 p-6 ${
+              project.status === 'approved' 
+                ? 'bg-green-600/10 border-green-600/50' 
+                : 'bg-red-600/10 border-red-600/50'
+            }`}>
+              <p className={`text-xl uppercase tracking-wide ${
+                project.status === 'approved' ? 'text-green-500' : 'text-red-500'
+              }`}>
+                Project {project.status}
+              </p>
+            </div>
+          )}
         </div>
       </div>
       <NoiseOverlay />

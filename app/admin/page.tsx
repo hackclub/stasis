@@ -77,6 +77,12 @@ export default function AdminDashboard() {
             <h1 className="text-brand-500 text-xl uppercase tracking-wide">Admin Dashboard</h1>
           </div>
           <div className="flex items-center gap-6">
+            <Link
+              href="/admin/users"
+              className="text-cream-500 hover:text-brand-500 text-sm uppercase transition-colors"
+            >
+              Users
+            </Link>
             <span className="text-cream-500 text-sm hidden sm:block">
               {session?.user.name || session?.user.email}
             </span>
