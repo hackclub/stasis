@@ -27,6 +27,9 @@ export async function GET(
         orderBy: { createdAt: "desc" },
       },
       badges: true,
+      bomItems: {
+        orderBy: { createdAt: "desc" },
+      },
     },
   })
 

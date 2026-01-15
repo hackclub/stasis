@@ -29,6 +29,20 @@ interface WorkSession {
   categories: string[];
 }
 
+interface BOMItem {
+  id: string;
+  name: string;
+  purpose: string;
+  costPerItem: number;
+  quantity: number;
+  link: string;
+  distributor: string;
+  status: "pending" | "approved" | "rejected";
+  reviewComments: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+}
+
 interface ProjectBadge {
   id: string;
   badge: BadgeType;
@@ -61,6 +75,7 @@ interface AdminProject {
   user: ProjectUser;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
+  bomItems: BOMItem[];
 }
 
 const TAG_LABELS: Record<ProjectTag, string> = {
@@ -107,6 +122,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [finalComments, setFinalComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
+  const [reviewingBomItem, setReviewingBomItem] = useState<string | null>(null);
+  const [bomReviewComments, setBomReviewComments] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function fetchProject() {
@@ -167,6 +184,41 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       alert('Failed to review session');
     } finally {
       setReviewingSession(null);
+    }
+  };
+
+  const handleBomReview = async (bomId: string, status: 'approved' | 'rejected') => {
+    setReviewingBomItem(bomId);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/bom/${bomId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status,
+          reviewComments: bomReviewComments[bomId] || null,
+        }),
+      });
+
+      if (res.ok) {
+        const updatedItem = await res.json();
+        setProject((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            bomItems: prev.bomItems.map((item) =>
+              item.id === bomId ? { ...item, ...updatedItem } : item
+            ),
+          };
+        });
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to review BOM item');
+      }
+    } catch (error) {
+      console.error('Failed to review BOM item:', error);
+      alert('Failed to review BOM item');
+    } finally {
+      setReviewingBomItem(null);
     }
   };
 
@@ -532,6 +584,167 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             </div>
             )}
           </div>
+
+          {/* Bill of Materials */}
+          {project.bomItems && project.bomItems.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
+              
+              {/* Cost Summary */}
+              {(() => {
+                const totalCost = project.bomItems.reduce((sum, item) => sum + item.costPerItem * item.quantity, 0);
+                const approvedCost = project.bomItems
+                  .filter((item) => item.status === 'approved')
+                  .reduce((sum, item) => sum + item.costPerItem * item.quantity, 0);
+                return (
+                  <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-4">
+                    <div className="flex gap-6">
+                      <div>
+                        <p className="text-cream-500 text-xs uppercase mb-1">Total Estimated</p>
+                        <p className="text-cream-100 text-lg">${totalCost.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-cream-500 text-xs uppercase mb-1">Approved</p>
+                        <p className="text-green-400 text-lg">${approvedCost.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* BOM Table */}
+              <div className="bg-cream-900 border-2 border-cream-700 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-cream-700">
+                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Name</th>
+                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Purpose</th>
+                      <th className="text-right text-cream-500 text-xs uppercase px-4 py-3">Cost</th>
+                      <th className="text-right text-cream-500 text-xs uppercase px-4 py-3">Qty</th>
+                      <th className="text-right text-cream-500 text-xs uppercase px-4 py-3">Total</th>
+                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Link</th>
+                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Distributor</th>
+                      <th className="text-center text-cream-500 text-xs uppercase px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {project.bomItems.map((item) => {
+                      const isReviewing = reviewingBomItem === item.id;
+                      return (
+                        <tr key={item.id} className="border-b border-cream-800 last:border-b-0">
+                          <td className="text-cream-100 px-4 py-3">{item.name}</td>
+                          <td className="text-cream-300 px-4 py-3">{item.purpose}</td>
+                          <td className="text-cream-100 text-right px-4 py-3">${item.costPerItem.toFixed(2)}</td>
+                          <td className="text-cream-100 text-right px-4 py-3">{item.quantity}</td>
+                          <td className="text-cream-100 text-right px-4 py-3">${(item.costPerItem * item.quantity).toFixed(2)}</td>
+                          <td className="px-4 py-3">
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-500 hover:text-brand-400 underline"
+                            >
+                              View
+                            </a>
+                          </td>
+                          <td className="text-cream-300 px-4 py-3">{item.distributor}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col items-center gap-2">
+                              {/* Status Badge */}
+                              <span
+                                className={`px-2 py-0.5 text-xs uppercase ${
+                                  item.status === 'approved'
+                                    ? 'bg-green-600/30 border border-green-600 text-green-400'
+                                    : item.status === 'rejected'
+                                    ? 'bg-red-600/30 border border-red-600 text-red-400'
+                                    : 'bg-yellow-600/30 border border-yellow-600 text-yellow-400'
+                                }`}
+                              >
+                                {item.status}
+                              </span>
+
+                              {/* Review Controls - only show if in_review and item is pending */}
+                              {project.status === 'in_review' && item.status === 'pending' && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleBomReview(item.id, 'approved')}
+                                    disabled={isReviewing}
+                                    className="px-2 py-1 text-xs uppercase bg-green-600 hover:bg-green-500 text-white transition-colors cursor-pointer disabled:opacity-50"
+                                  >
+                                    {isReviewing ? '...' : 'Approve'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleBomReview(item.id, 'rejected')}
+                                    disabled={isReviewing}
+                                    className="px-2 py-1 text-xs uppercase bg-red-600/20 border border-red-600 hover:bg-red-600/30 text-red-500 transition-colors cursor-pointer disabled:opacity-50"
+                                  >
+                                    {isReviewing ? '...' : 'Reject'}
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Review info for reviewed items */}
+                              {item.reviewedAt && (
+                                <span className="text-cream-600 text-xs">
+                                  {new Date(item.reviewedAt).toLocaleDateString()}
+                                  {item.reviewedBy && ` by ${item.reviewedBy}`}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Review Comments Input - show for pending items when in_review */}
+              {project.status === 'in_review' && project.bomItems.some((item) => item.status === 'pending') && (
+                <div className="bg-cream-950 border border-cream-700 p-4 mt-4">
+                  <p className="text-cream-500 text-xs uppercase mb-3">Review Comments for BOM Items</p>
+                  <div className="space-y-3">
+                    {project.bomItems
+                      .filter((item) => item.status === 'pending')
+                      .map((item) => (
+                        <div key={item.id}>
+                          <label className="text-cream-400 text-sm block mb-1">{item.name}</label>
+                          <textarea
+                            value={bomReviewComments[item.id] || ''}
+                            onChange={(e) =>
+                              setBomReviewComments((prev) => ({
+                                ...prev,
+                                [item.id]: e.target.value,
+                              }))
+                            }
+                            rows={2}
+                            className="w-full bg-cream-900 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
+                            placeholder="Optional comments for this item..."
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show review comments for reviewed items */}
+              {project.bomItems.some((item) => item.reviewComments) && (
+                <div className="bg-cream-950 border border-cream-700 p-4 mt-4">
+                  <p className="text-cream-500 text-xs uppercase mb-3">Review Comments</p>
+                  <div className="space-y-2">
+                    {project.bomItems
+                      .filter((item) => item.reviewComments)
+                      .map((item) => (
+                        <div key={item.id} className="flex gap-2">
+                          <span className="text-cream-400 text-sm">{item.name}:</span>
+                          <span className="text-cream-300 text-sm">{item.reviewComments}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Final Decision - only show if in_review */}
           {project.status === 'in_review' ? (

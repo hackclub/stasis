@@ -25,6 +25,7 @@ interface Project {
   totalHoursApproved: number
   isStarter: boolean
   coverImage: string | null
+  status: "draft" | "in_review" | "approved" | "rejected"
   badges?: ProjectBadge[]
 }
 
@@ -88,6 +89,27 @@ export function ProjectCard({ project }: Readonly<Props>) {
           </>
         )}
         
+        {/* Status badge */}
+        <div className="absolute top-2 left-2 z-10">
+          {project.status === 'in_review' ? (
+            <span className="text-[10px] bg-yellow-600 text-white font-medium px-1.5 py-0.5 uppercase">
+              In Review
+            </span>
+          ) : project.status === 'approved' ? (
+            <span className="text-[10px] bg-green-600 text-white font-medium px-1.5 py-0.5 uppercase">
+              Approved
+            </span>
+          ) : project.status === 'rejected' ? (
+            <span className="text-[10px] bg-red-600 text-white font-medium px-1.5 py-0.5 uppercase">
+              Rejected
+            </span>
+          ) : (
+            <span className="text-[10px] bg-cream-700 text-cream-200 font-medium px-1.5 py-0.5 uppercase">
+              Draft
+            </span>
+          )}
+        </div>
+
         {project.isStarter && (
           <div className="absolute top-2 right-2 z-10">
             <span className="text-[10px] bg-brand-500 text-white font-medium px-1.5 py-0.5 uppercase">

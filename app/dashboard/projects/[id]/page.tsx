@@ -35,6 +35,18 @@ interface ProjectBadge {
   grantedAt: string | null;
 }
 
+interface BOMItem {
+  id: string;
+  name: string;
+  purpose: string | null;
+  costPerItem: number;
+  quantity: number;
+  link: string | null;
+  distributor: string | null;
+  status: "pending" | "approved" | "rejected";
+  reviewComments: string | null;
+}
+
 interface Project {
   id: string;
   title: string;
@@ -50,6 +62,7 @@ interface Project {
   createdAt: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
+  bomItems: BOMItem[];
 }
 
 const TAG_LABELS: Record<ProjectTag, string> = {
@@ -92,6 +105,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  
+  const [bomForm, setBomForm] = useState({
+    name: '',
+    purpose: '',
+    costPerItem: '',
+    quantity: '',
+    link: '',
+    distributor: '',
+  });
+  const [addingBom, setAddingBom] = useState(false);
+  const [deletingBomId, setDeletingBomId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProject() {
@@ -179,6 +203,69 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     } finally {
       setUploading(false);
       e.target.value = '';
+    }
+  };
+
+  const handleAddBomItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project || !bomForm.name || !bomForm.costPerItem || !bomForm.quantity) return;
+    
+    setAddingBom(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/bom`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: bomForm.name,
+          purpose: bomForm.purpose || null,
+          costPerItem: parseFloat(bomForm.costPerItem),
+          quantity: parseInt(bomForm.quantity, 10),
+          link: bomForm.link || null,
+          distributor: bomForm.distributor || null,
+        }),
+      });
+      
+      if (res.ok) {
+        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        if (updatedRes.ok) {
+          setProject(await updatedRes.json());
+        }
+        setBomForm({ name: '', purpose: '', costPerItem: '', quantity: '', link: '', distributor: '' });
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to add BOM item');
+      }
+    } catch (error) {
+      console.error('Failed to add BOM item:', error);
+      alert('Failed to add BOM item');
+    } finally {
+      setAddingBom(false);
+    }
+  };
+
+  const handleDeleteBomItem = async (bomId: string) => {
+    if (!project) return;
+    
+    setDeletingBomId(bomId);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/bom/${bomId}`, {
+        method: 'DELETE',
+      });
+      
+      if (res.ok) {
+        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        if (updatedRes.ok) {
+          setProject(await updatedRes.json());
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete BOM item');
+      }
+    } catch (error) {
+      console.error('Failed to delete BOM item:', error);
+      alert('Failed to delete BOM item');
+    } finally {
+      setDeletingBomId(null);
     }
   };
 
@@ -430,6 +517,186 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </div>
             </div>
           )}
+
+          {/* Bill of Materials */}
+          <div className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
+            <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
+            
+            <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
+              <p className="text-blue-400 text-sm">
+                You earn $5/hr for approved hours. Your BOM items will be reviewed when you submit your project, and you&apos;ll receive a grant card to purchase approved materials.
+              </p>
+            </div>
+
+            {(project.bomItems ?? []).length > 0 ? (
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-cream-700">
+                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Name</th>
+                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Purpose</th>
+                      <th className="text-right text-cream-500 uppercase text-xs py-2 pr-3">Cost (USD)</th>
+                      <th className="text-right text-cream-500 uppercase text-xs py-2 pr-3">Qty</th>
+                      <th className="text-right text-cream-500 uppercase text-xs py-2 pr-3">Total (USD)</th>
+                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Link</th>
+                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Distributor</th>
+                      <th className="text-center text-cream-500 uppercase text-xs py-2 pr-3">Status</th>
+                      {(project.status === "draft" || project.status === "rejected") && (
+                        <th className="text-center text-cream-500 uppercase text-xs py-2"></th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(project.bomItems ?? []).map((item) => (
+                      <tr key={item.id} className="border-b border-cream-800">
+                        <td className="text-cream-200 py-2 pr-3">{item.name}</td>
+                        <td className="text-cream-400 py-2 pr-3">{item.purpose || '-'}</td>
+                        <td className="text-cream-200 py-2 pr-3 text-right">${item.costPerItem.toFixed(2)}</td>
+                        <td className="text-cream-200 py-2 pr-3 text-right">{item.quantity}</td>
+                        <td className="text-cream-200 py-2 pr-3 text-right">${(item.costPerItem * item.quantity).toFixed(2)}</td>
+                        <td className="py-2 pr-3">
+                          {item.link ? (
+                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:text-brand-300 underline">
+                              View
+                            </a>
+                          ) : '-'}
+                        </td>
+                        <td className="text-cream-400 py-2 pr-3">{item.distributor || '-'}</td>
+                        <td className="py-2 pr-3 text-center">
+                          {item.status === 'approved' ? (
+                            <span className="bg-green-600/30 border border-green-600 text-green-400 px-2 py-0.5 text-xs uppercase">
+                              Approved
+                            </span>
+                          ) : item.status === 'rejected' ? (
+                            <span className="bg-red-600/30 border border-red-600 text-red-400 px-2 py-0.5 text-xs uppercase">
+                              Rejected
+                            </span>
+                          ) : (
+                            <span className="bg-cream-800 border border-cream-600 text-cream-300 px-2 py-0.5 text-xs uppercase">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        {(project.status === "draft" || project.status === "rejected") && (
+                          <td className="py-2 text-center">
+                            {item.status === 'pending' && (
+                              <button
+                                onClick={() => handleDeleteBomItem(item.id)}
+                                disabled={deletingBomId === item.id}
+                                className="text-red-400 hover:text-red-300 disabled:text-cream-600 transition-colors cursor-pointer"
+                              >
+                                {deletingBomId === item.id ? '...' : '✕'}
+                              </button>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                <div className="flex flex-col items-end gap-1 mt-3 pt-3 border-t border-cream-700">
+                  <div className="flex items-center">
+                    <span className="text-cream-400 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
+                    <span className="text-cream-50 font-medium">
+                      ${(project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-cream-500 text-xs mr-3">Hours needed at $5/hr:</span>
+                    <span className="text-cream-300 text-sm">
+                      {(Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0) / 5 * 4) / 4).toFixed(2)}h
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-cream-500 text-sm mb-4">No items added yet.</p>
+            )}
+
+            {(project.status === "draft" || project.status === "rejected") && (
+              <form onSubmit={handleAddBomItem} className="border-t border-cream-700 pt-4">
+                <p className="text-cream-500 text-xs uppercase mb-3">Add New Item</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <label className="text-cream-500 text-xs uppercase block mb-1">Name *</label>
+                    <input
+                      type="text"
+                      value={bomForm.name}
+                      onChange={(e) => setBomForm({ ...bomForm, name: e.target.value })}
+                      required
+                      className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      placeholder="Component name"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-cream-500 text-xs uppercase block mb-1">Purpose *</label>
+                    <input
+                      type="text"
+                      value={bomForm.purpose}
+                      onChange={(e) => setBomForm({ ...bomForm, purpose: e.target.value })}
+                      required
+                      className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      placeholder="What is it for?"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-cream-500 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={bomForm.costPerItem}
+                      onChange={(e) => setBomForm({ ...bomForm, costPerItem: e.target.value })}
+                      required
+                      className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-cream-500 text-xs uppercase block mb-1">Quantity *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={bomForm.quantity}
+                      onChange={(e) => setBomForm({ ...bomForm, quantity: e.target.value })}
+                      required
+                      className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      placeholder="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-cream-500 text-xs uppercase block mb-1">Link</label>
+                    <input
+                      type="url"
+                      value={bomForm.link}
+                      onChange={(e) => setBomForm({ ...bomForm, link: e.target.value })}
+                      className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <label className="text-cream-500 text-xs uppercase block mb-1">Distributor *</label>
+                    <input
+                      type="text"
+                      value={bomForm.distributor}
+                      onChange={(e) => setBomForm({ ...bomForm, distributor: e.target.value })}
+                      required
+                      className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      placeholder="e.g. Digikey, Amazon"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.costPerItem || !bomForm.quantity || !bomForm.distributor}
+                  className="bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                >
+                  {addingBom ? 'Adding...' : '+ Add Item'}
+                </button>
+              </form>
+            )}
+          </div>
 
           {/* Actions */}
           {(project.status === "draft" || project.status === "rejected") && (
