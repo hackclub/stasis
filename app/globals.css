@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Departure+Mono&display=swap');
-@import '@fontsource/libre-barcode-128';
-@import '@fontsource/libre-barcode-39';
 @import "tailwindcss";
 
 @theme {
@@ -22,9 +19,9 @@
 	--color-brand-500: #D95D39;
 	--color-brand-900: #4A230F;
 
-	--font-mono: 'Departure Mono', monospace;
-	--font-barcode: 'Libre Barcode 128', monospace;
-	--font-qr: 'Libre Barcode 39', monospace;
+	--font-mono: var(--font-mono), monospace;
+	--font-barcode: var(--font-barcode), monospace;
+	--font-qr: var(--font-qr), monospace;
 }
 
 body {
