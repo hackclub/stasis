@@ -144,6 +144,7 @@ model Project {
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   workSessions    WorkSession[]
   badges          ProjectBadge[]
+  bomItems        BOMItem[]
 
   @@index([userId])
   @@map("project")
@@ -184,6 +185,32 @@ enum MediaType {
   VIDEO
 }
 
+enum BOMItemStatus {
+  pending
+  approved
+  rejected
+}
+
+model BOMItem {
+  id             String        @id @default(cuid())
+  name           String
+  purpose        String?
+  costPerItem    Float
+  quantity       Int
+  link           String?
+  distributor    String?
+  status         BOMItemStatus @default(pending)
+  reviewComments String?
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  createdAt      DateTime      @default(now())
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("bom_item")
+}
+
 model ProjectBadge {
   id          String    @id @default(cuid())
   badge       BadgeType
@@ -197,3 +224,5 @@ model ProjectBadge {
   @@index([projectId])
   @@map("project_badge")
 }
+
+

@@ -48,7 +48,10 @@ export async function GET(
         include: { media: true },
         orderBy: { createdAt: 'desc' },
       }, 
-      badges: true 
+      badges: true,
+      bomItems: {
+        orderBy: { createdAt: 'desc' },
+      },
     },
   })
 

@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from "next/server"
+import prisma from "@/lib/prisma"
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { id } = await params
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  })
+
+  const project = await prisma.project.findUnique({
+    where: { id },
+    select: { userId: true },
+  })
+
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 })
+  }
+
+  if (project.userId !== session.user.id && !user?.isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const bomItems = await prisma.bOMItem.findMany({
+    where: { projectId: id },
+    orderBy: { createdAt: "desc" },
+  })
+
+  return NextResponse.json(bomItems)
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { id } = await params
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  })
+
+  const project = await prisma.project.findUnique({
+    where: { id },
+    select: { userId: true, status: true },
+  })
+
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 })
+  }
+
+  if (project.userId !== session.user.id && !user?.isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  if (project.status !== "draft" && project.status !== "rejected") {
+    return NextResponse.json(
+      { error: "Can only add BOM items to draft or rejected projects" },
+      { status: 403 }
+    )
+  }
+
+  const body = await request.json()
+
+  if (!body.name || typeof body.name !== "string") {
+    return NextResponse.json({ error: "name is required" }, { status: 400 })
+  }
+  if (typeof body.costPerItem !== "number") {
+    return NextResponse.json({ error: "costPerItem is required" }, { status: 400 })
+  }
+  if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity)) {
+    return NextResponse.json({ error: "quantity must be an integer" }, { status: 400 })
+  }
+
+  const bomItem = await prisma.bOMItem.create({
+    data: {
+      name: body.name,
+      purpose: body.purpose ?? null,
+      costPerItem: body.costPerItem,
+      quantity: body.quantity,
+      link: body.link ?? null,
+      distributor: body.distributor ?? null,
+      projectId: id,
+    },
+  })
+
+  return NextResponse.json(bomItem, { status: 201 })
+}
