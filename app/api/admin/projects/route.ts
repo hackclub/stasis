@@ -7,7 +7,7 @@ export async function GET() {
   if (adminCheck.error) return adminCheck.error
 
   const projects = await prisma.project.findMany({
-    where: { status: "in_review" },
+    where: { status: { in: ["in_review", "update_requested"] } },
     include: {
       user: {
         select: {

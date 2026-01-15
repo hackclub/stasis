@@ -13,6 +13,7 @@ enum ProjectStatus {
   in_review
   approved
   rejected
+  update_requested
 }
 
 // This is the primary user object

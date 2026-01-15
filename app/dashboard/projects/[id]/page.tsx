@@ -23,6 +23,7 @@ interface WorkSession {
   id: string;
   hoursClaimed: number;
   hoursApproved: number | null;
+  reviewComments: string | null;
   content: string | null;
   createdAt: string;
   media: SessionMedia[];
@@ -58,7 +59,8 @@ interface Project {
 
   coverImage: string | null;
   githubRepo: string | null;
-  status: "draft" | "in_review" | "approved" | "rejected";
+  status: "draft" | "in_review" | "approved" | "rejected" | "update_requested";
+  reviewComments: string | null;
   createdAt: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
@@ -105,6 +107,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   
   const [bomForm, setBomForm] = useState({
     name: '',
@@ -161,6 +164,31 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       }
     } catch (error) {
       console.error('Failed to submit for review:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRequestUpdate = async () => {
+    if (!project) return;
+    setShowUpdateDialog(false);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/request-update`, {
+        method: 'POST',
+      });
+      
+      if (res.ok) {
+        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        if (updatedRes.ok) {
+          setProject(await updatedRes.json());
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to request update');
+      }
+    } catch (error) {
+      console.error('Failed to request update:', error);
     } finally {
       setSubmitting(false);
     }
@@ -285,6 +313,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const approvedBadges = badges.filter(b => b.grantedAt !== null);
   const pendingBadges = badges.filter(b => b.grantedAt === null);
   const canSubmit = badges.length >= 1 && project.totalHoursClaimed >= MIN_HOURS_REQUIRED && !!project.githubRepo;
+  
+  const hasPendingSessions = project.workSessions.some(s => s.hoursApproved === null);
+  const hasPendingBomItems = (project.bomItems ?? []).some(b => b.status === 'pending');
+  const hasPendingWork = hasPendingSessions || hasPendingBomItems;
 
   return (
     <>
@@ -462,13 +494,25 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </p>
             </div>
           ) : project.status === "approved" ? (
-            <div className="bg-green-600/20 border-2 border-green-600 p-4 mb-6">
-              <p className="text-green-500 text-lg uppercase flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Approved
+            <div className={`p-4 mb-6 border-2 ${hasPendingWork ? 'bg-blue-600/20 border-blue-600' : 'bg-green-600/20 border-green-600'}`}>
+              <p className={`text-lg uppercase flex items-center gap-2 ${hasPendingWork ? 'text-blue-400' : 'text-green-500'}`}>
+                {hasPendingWork ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+                {hasPendingWork ? 'Additional Work Pending Review' : 'Approved'}
               </p>
+              {hasPendingWork && (
+                <p className="text-blue-400/80 text-sm mt-3 leading-relaxed">
+                  It looks like you&apos;ve worked more on your project since it was last reviewed. To get additional hours or BOM items approved, click &quot;Request Update Review&quot; below.
+                </p>
+              )}
             </div>
           ) : project.status === "rejected" ? (
             <div className="bg-red-600/20 border-2 border-red-600 p-4 mb-6">
@@ -478,6 +522,22 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
                 Rejected - You can resubmit
+              </p>
+              {project.reviewComments && (
+                <div className="mt-3 pt-3 border-t border-red-600/30">
+                  <p className="text-red-400/80 text-xs uppercase mb-1">Reviewer Feedback</p>
+                  <p className="text-red-300 text-sm whitespace-pre-wrap">{project.reviewComments}</p>
+                </div>
+              )}
+            </div>
+          ) : project.status === "update_requested" ? (
+            <div className="bg-blue-600/20 border-2 border-blue-600 p-4 mb-6">
+              <p className="text-blue-400 text-lg uppercase flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                Update Requested - In Review
               </p>
             </div>
           ) : (
@@ -541,7 +601,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Link</th>
                       <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Distributor</th>
                       <th className="text-center text-cream-500 uppercase text-xs py-2 pr-3">Status</th>
-                      {(project.status === "draft" || project.status === "rejected") && (
+                      {(project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
                         <th className="text-center text-cream-500 uppercase text-xs py-2"></th>
                       )}
                     </tr>
@@ -577,7 +637,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                             </span>
                           )}
                         </td>
-                        {(project.status === "draft" || project.status === "rejected") && (
+                        {(project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
                           <td className="py-2 text-center">
                             {item.status === 'pending' && (
                               <button
@@ -614,7 +674,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <p className="text-cream-500 text-sm mb-4">No items added yet.</p>
             )}
 
-            {(project.status === "draft" || project.status === "rejected") && (
+            {(project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
               <form onSubmit={handleAddBomItem} className="border-t border-cream-700 pt-4">
                 <p className="text-cream-500 text-xs uppercase mb-3">Add New Item</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
@@ -723,6 +783,31 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
 
+          {/* Approved Project Actions */}
+          {project.status === "approved" && (
+            <div className="flex gap-3 mb-8">
+              <Link
+                href={`/dashboard/projects/${project.id}/session/new`}
+                className="flex-1 bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 text-center uppercase tracking-wider transition-colors"
+              >
+                + Log Session
+              </Link>
+              <Link
+                href={`/dashboard/projects/${project.id}/edit`}
+                className="flex-1 bg-cream-800 hover:bg-cream-700 text-cream-100 py-3 text-center uppercase tracking-wider transition-colors"
+              >
+                Edit Project
+              </Link>
+              <button
+                onClick={() => setShowUpdateDialog(true)}
+                disabled={submitting}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                {submitting ? 'Submitting...' : 'Request Update Review'}
+              </button>
+            </div>
+          )}
+
           {/* Submit Confirmation Dialog */}
           {showSubmitDialog && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -743,6 +828,32 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Update Request Confirmation Dialog */}
+          {showUpdateDialog && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-cream-900 border-2 border-cream-600 max-w-md w-full p-6">
+                <h3 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Request Update Review?</h3>
+                <p className="text-cream-300 text-sm leading-relaxed mb-6">
+                  This will submit your new sessions, BOM items, and other changes for review. Your project will remain approved, but new items will be reviewed before being added to your grant.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowUpdateDialog(false)}
+                    className="flex-1 bg-cream-800 hover:bg-cream-700 text-cream-100 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRequestUpdate}
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Request Review
                   </button>
                 </div>
               </div>
@@ -797,7 +908,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         
                         {isFullyApproved ? (
                           <span className="bg-green-600/30 border border-green-600 text-green-400 px-2 py-0.5 text-sm font-medium">
-                            ✓ {ws.hoursApproved}h Approved
+                            ✓ {ws.hoursApproved}/{ws.hoursClaimed}h Approved
                           </span>
                         ) : isPartiallyApproved ? (
                           <span className="bg-yellow-600/30 border border-yellow-600 text-yellow-400 px-2 py-0.5 text-sm font-medium">
@@ -810,7 +921,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         )}
                       </div>
                       
-                      {isPending && (project.status === "draft" || project.status === "rejected") && (
+                      {isPending && (project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
                         <Link
                           href={`/dashboard/projects/${project.id}/session/${ws.id}/edit`}
                           className="bg-brand-500 hover:bg-brand-400 text-white px-3 py-1 text-sm uppercase tracking-wide transition-colors"

@@ -67,9 +67,9 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status !== "draft" && project.status !== "rejected") {
+  if (project.status !== "draft" && project.status !== "rejected" && project.status !== "approved") {
     return NextResponse.json(
-      { error: "Can only add BOM items to draft or rejected projects" },
+      { error: "Cannot add BOM items while project is in review" },
       { status: 403 }
     )
   }

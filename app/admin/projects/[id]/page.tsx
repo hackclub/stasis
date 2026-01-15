@@ -331,6 +331,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   project.status === 'approved' ? 'text-green-500' :
                   project.status === 'rejected' ? 'text-red-500' :
                   project.status === 'in_review' ? 'text-brand-500' :
+                  project.status === 'update_requested' ? 'text-blue-400' :
                   'text-cream-500'
                 }`}>{project.status.replace('_', ' ')}</p>
               </div>
@@ -521,7 +522,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     )}
 
                     {/* Session Review Form - only show if in_review */}
-                    {project.status === 'in_review' ? (
+                    {(project.status === 'in_review' || project.status === 'update_requested') ? (
                       <div className="bg-cream-950 border border-cream-700 p-3 mt-4">
                         <div className="grid grid-cols-2 gap-4 mb-3">
                           <div>
@@ -664,7 +665,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                               </span>
 
                               {/* Review Controls - only show if in_review and item is pending */}
-                              {project.status === 'in_review' && item.status === 'pending' && (
+                              {(project.status === 'in_review' || project.status === 'update_requested') && item.status === 'pending' && (
                                 <div className="flex gap-1">
                                   <button
                                     onClick={() => handleBomReview(item.id, 'approved')}
@@ -700,7 +701,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               </div>
 
               {/* Review Comments Input - show for pending items when in_review */}
-              {project.status === 'in_review' && project.bomItems.some((item) => item.status === 'pending') && (
+              {(project.status === 'in_review' || project.status === 'update_requested') && project.bomItems.some((item) => item.status === 'pending') && (
                 <div className="bg-cream-950 border border-cream-700 p-4 mt-4">
                   <p className="text-cream-500 text-xs uppercase mb-3">Review Comments for BOM Items</p>
                   <div className="space-y-3">
@@ -747,7 +748,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           )}
 
           {/* Final Decision - only show if in_review */}
-          {project.status === 'in_review' ? (
+          {(project.status === 'in_review' || project.status === 'update_requested') ? (
             <div className="bg-cream-900 border-2 border-cream-700 p-6">
               <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Final Decision</h2>
               

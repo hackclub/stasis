@@ -30,6 +30,13 @@ export async function POST(
     )
   }
 
+  if (project.status !== "in_review" && project.status !== "update_requested") {
+    return NextResponse.json(
+      { error: "Project is not pending review" },
+      { status: 400 }
+    )
+  }
+
   const adminUserId = adminCheck.session.user.id
   const now = new Date()
 
