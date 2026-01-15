@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
+import { sanitize } from "@/lib/sanitize"
 
 export async function POST(
   request: NextRequest,
@@ -69,7 +70,7 @@ export async function POST(
     where: { id },
     data: {
       status: decision,
-      reviewComments: typeof reviewComments === "string" ? reviewComments : null,
+      reviewComments: typeof reviewComments === "string" ? sanitize(reviewComments) : null,
       reviewedAt: now,
       reviewedBy: adminUserId,
     },

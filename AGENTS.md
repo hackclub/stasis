@@ -26,6 +26,17 @@
 ### Utilities (`lib/`)
 - `ascii-art.ts` - ASCII art strings
 - `scramble.ts` - useScramble hook for text scramble effect
+- `sanitize.ts` - XSS protection utilities using DOMPurify
+
+## Security
+- **Input Sanitization**: All user text inputs are sanitized using `sanitize()` from `lib/sanitize.ts` before saving to database
+- **CSP Headers**: Content-Security-Policy and security headers are set in `middleware.ts`
+- When adding new API routes that accept user input, always sanitize string fields:
+  ```typescript
+  import { sanitize } from "@/lib/sanitize"
+  // Use sanitize() for plain text, sanitizeHtml() if HTML is allowed
+  const safeTitle = sanitize(body.title)
+  ```
 
 ## Code Style
 - TypeScript with strict mode enabled

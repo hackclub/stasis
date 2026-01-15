@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { sanitize } from "@/lib/sanitize"
 
 export async function GET(
   request: NextRequest,
@@ -88,12 +89,12 @@ export async function POST(
 
   const bomItem = await prisma.bOMItem.create({
     data: {
-      name: body.name,
-      purpose: body.purpose ?? null,
+      name: sanitize(body.name),
+      purpose: body.purpose ? sanitize(body.purpose) : null,
       costPerItem: body.costPerItem,
       quantity: body.quantity,
-      link: body.link ?? null,
-      distributor: body.distributor ?? null,
+      link: body.link ? sanitize(body.link) : null,
+      distributor: body.distributor ? sanitize(body.distributor) : null,
       projectId: id,
     },
   })

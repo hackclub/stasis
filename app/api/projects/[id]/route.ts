@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
+import { sanitize } from "@/lib/sanitize"
 
 const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage"] as const
 
@@ -20,7 +21,12 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   const result: Record<string, unknown> = {}
   for (const field of ALLOWED_UPDATE_FIELDS) {
     if (field in body) {
-      result[field] = body[field]
+      const value = body[field]
+      if (typeof value === "string") {
+        result[field] = sanitize(value)
+      } else {
+        result[field] = value
+      }
     }
   }
   return result

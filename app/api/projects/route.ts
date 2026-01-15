@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
+import { sanitize } from "@/lib/sanitize"
 
 const VALID_TAGS: ProjectTag[] = ["PCB", "ROBOT", "CAD", "ARDUINO", "RASPBERRY_PI"]
 
@@ -76,11 +77,11 @@ export async function POST(request: NextRequest) {
 
   const project = await prisma.project.create({
     data: {
-      title: title.trim(),
-      description: typeof description === "string" ? description.trim() : null,
+      title: sanitize(title.trim()),
+      description: typeof description === "string" ? sanitize(description.trim()) : null,
       tags: validateTags(tags),
       isStarter: Boolean(isStarter),
-      starterProjectId: typeof starterProjectId === "string" ? starterProjectId : null,
+      starterProjectId: typeof starterProjectId === "string" ? sanitize(starterProjectId) : null,
       userId: session.user.id,
     },
   })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { sanitize } from "@/lib/sanitize"
 
 export async function PATCH(
   request: NextRequest,
@@ -72,10 +73,10 @@ export async function PATCH(
     if (typeof body.name !== "string") {
       return NextResponse.json({ error: "name must be a string" }, { status: 400 })
     }
-    updateData.name = body.name
+    updateData.name = sanitize(body.name)
   }
   if (body.purpose !== undefined) {
-    updateData.purpose = body.purpose ?? null
+    updateData.purpose = body.purpose ? sanitize(body.purpose) : null
   }
   if (body.costPerItem !== undefined) {
     if (typeof body.costPerItem !== "number") {
@@ -90,10 +91,10 @@ export async function PATCH(
     updateData.quantity = body.quantity
   }
   if (body.link !== undefined) {
-    updateData.link = body.link ?? null
+    updateData.link = body.link ? sanitize(body.link) : null
   }
   if (body.distributor !== undefined) {
-    updateData.distributor = body.distributor ?? null
+    updateData.distributor = body.distributor ? sanitize(body.distributor) : null
   }
 
   if (Object.keys(updateData).length === 0) {

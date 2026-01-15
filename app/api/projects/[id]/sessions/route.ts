@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { SessionCategory, MediaType } from "@/app/generated/prisma/enums"
+import { sanitize } from "@/lib/sanitize"
 
 const VALID_CATEGORIES: SessionCategory[] = [
   "FIRMWARE",
@@ -159,7 +160,7 @@ export async function POST(
   const workSession = await prisma.workSession.create({
     data: {
       hoursClaimed,
-      content: content.trim(),
+      content: sanitize(content.trim()),
       categories: validatedCategories,
       projectId,
       media: {

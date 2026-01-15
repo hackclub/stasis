@@ -1,9 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const securityHeaders = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' https://hc-cdn.hel1.your-objectstorage.com data: blob:",
+    "font-src 'self'",
+    "frame-ancestors 'none'",
+  ].join("; "),
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
+function addSecurityHeaders(response: NextResponse) {
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  return response;
+}
+
 export function middleware(request: NextRequest) {
   if (process.env.REQUIRE_BASICAUTH !== "true") {
-    return NextResponse.next();
+    return addSecurityHeaders(NextResponse.next());
   }
 
   const authHeader = request.headers.get("authorization");
@@ -18,7 +40,7 @@ export function middleware(request: NextRequest) {
         username === process.env.BASICAUTH_USERNAME &&
         password === process.env.BASICAUTH_PASSWORD
       ) {
-        return NextResponse.next();
+        return addSecurityHeaders(NextResponse.next());
       }
     }
   }

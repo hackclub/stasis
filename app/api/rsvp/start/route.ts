@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { createRSVP } from '@/lib/airtable';
+import { sanitize } from '@/lib/sanitize';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,16 +19,20 @@ export async function POST(request: NextRequest) {
                headersList.get('x-real-ip') ||
                'unknown';
 
+    const safeFirstName = sanitize(firstName);
+    const safeLastName = sanitize(lastName);
+    const safeEmail = sanitize(email);
+
     // Create RSVP in Airtable immediately
     try {
-      await createRSVP({ firstName, lastName, email, ip });
+      await createRSVP({ firstName: safeFirstName, lastName: safeLastName, email: safeEmail, ip });
     } catch (error) {
       console.error('Airtable submission error:', error);
     }
 
     // Set login hint for OAuth
     const cookieStore = await cookies();
-    cookieStore.set('rsvp_login_hint', email, {
+    cookieStore.set('rsvp_login_hint', safeEmail, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
