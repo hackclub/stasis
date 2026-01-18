@@ -5,11 +5,11 @@ import { sanitize } from '@/lib/sanitize';
 
 export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email } = await request.json();
+    const { email } = await request.json();
 
-    if (!firstName || !lastName || !email) {
+    if (!email) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Email is required' },
         { status: 400 }
       );
     }
@@ -19,13 +19,11 @@ export async function POST(request: NextRequest) {
                headersList.get('x-real-ip') ||
                'unknown';
 
-    const safeFirstName = sanitize(firstName);
-    const safeLastName = sanitize(lastName);
     const safeEmail = sanitize(email);
 
-    // Create RSVP in Airtable immediately
+    // Create RSVP in Airtable with email only (name will be filled after HCA auth)
     try {
-      await createRSVP({ firstName: safeFirstName, lastName: safeLastName, email: safeEmail, ip });
+      await createRSVP({ email: safeEmail, ip });
     } catch (error) {
       console.error('Airtable submission error:', error);
     }

@@ -167,7 +167,7 @@ export default function Home() {
             </div>
 
             {/* RSVP Button */}
-            <div className="flex flex-col items-center pt-2 pb-1.5 mb-0 z-1 relative gap-5">
+            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-5">
               <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
                 <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                   <button 

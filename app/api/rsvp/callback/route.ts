@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { auth } from '@/lib/auth';
-import { markAccountCreationFinished } from '@/lib/airtable';
+import { markAccountCreationFinished, updateRSVPName } from '@/lib/airtable';
 
 export async function GET() {
   const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
@@ -17,8 +17,11 @@ export async function GET() {
       return NextResponse.redirect(new URL('/?error=auth_failed', baseUrl));
     }
 
-    // Mark "Finished Account Creation" in Airtable
+    // Update name and mark account creation finished in Airtable
     try {
+      if (session.user.name) {
+        await updateRSVPName(session.user.email, session.user.name);
+      }
       await markAccountCreationFinished(session.user.email);
     } catch (error) {
       console.error('Airtable update error:', error);

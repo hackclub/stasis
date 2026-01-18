@@ -10,8 +10,6 @@ interface RSVPModalProps {
 }
 
 export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -19,8 +17,8 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
   if (!isOpen) return null;
 
   async function handleContinue() {
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      setError('Please fill in all fields');
+    if (!email.trim()) {
+      setError('Please enter your email');
       return;
     }
 
@@ -36,7 +34,7 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
       const response = await fetch('/api/rsvp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, email }),
+        body: JSON.stringify({ email }),
       });
 
       if (!response.ok) {
@@ -71,34 +69,6 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
         <h2 className="text-xl uppercase tracking-wide mb-6 text-cream-800">RSVP for Stasis</h2>
 
         <div className="space-y-4">
-          <div>
-            <label htmlFor="firstName" className="block text-sm uppercase tracking-wide mb-1 text-cream-800">
-              First Name
-            </label>
-            <input
-              id="firstName"
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="w-full px-3 py-2 bg-cream-100 border border-cream-800/30 text-cream-800 placeholder:text-cream-800/50 focus:outline-none focus:border-brand-500"
-              placeholder="Your first name"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="lastName" className="block text-sm uppercase tracking-wide mb-1 text-cream-800">
-              Last Name
-            </label>
-            <input
-              id="lastName"
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="w-full px-3 py-2 bg-cream-100 border border-cream-800/30 text-cream-800 placeholder:text-cream-800/50 focus:outline-none focus:border-brand-500"
-              placeholder="Your last name"
-            />
-          </div>
-
           <div>
             <label htmlFor="email" className="block text-sm uppercase tracking-wide mb-1 text-cream-800">
               Email
