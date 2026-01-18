@@ -63,6 +63,62 @@ export async function createRSVP(data: {
   ]);
 }
 
+export async function findRSVPByEmail(email: string): Promise<boolean> {
+  const base = getAirtableBase();
+
+  if (!base) {
+    return false;
+  }
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+
+  const records = await base(tableName)
+    .select({
+      filterByFormula: `{Email} = '${email}'`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  return records.length > 0;
+}
+
+export async function ensureRSVPExists(email: string, name?: string): Promise<void> {
+  const base = getAirtableBase();
+  if (!base) return;
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+  
+  const nameParts = (name || '').trim().split(/\s+/);
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+
+  const records = await base(tableName)
+    .select({
+      filterByFormula: `{Email} = '${email}'`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  if (records.length > 0) {
+    await base(tableName).update(records[0].id, {
+      'First Name': firstName,
+      'Last Name': lastName,
+      'Finished Account Creation': true,
+    });
+  } else {
+    await base(tableName).create([
+      {
+        fields: {
+          'Email': email,
+          'First Name': firstName,
+          'Last Name': lastName,
+          'Finished Account Creation': true,
+        },
+      },
+    ]);
+  }
+}
+
 export async function updateRSVPName(email: string, fullName: string): Promise<boolean> {
   const base = getAirtableBase();
 

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
 import prisma from "./prisma";
+import { ensureRSVPExists } from "./airtable";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
@@ -26,6 +27,19 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          if (user.email) {
+            try {
+              await ensureRSVPExists(user.email, user.name || undefined);
+            } catch (error) {
+              console.error('Failed to ensure RSVP exists:', error);
+            }
+          }
+        },
+      },
+    },
     account: {
       create: {
         after: async (account) => {
