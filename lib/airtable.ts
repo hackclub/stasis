@@ -84,8 +84,13 @@ export async function updateRSVPName(email: string, fullName: string): Promise<b
     return false;
   }
 
+  const nameParts = fullName.trim().split(/\s+/);
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+
   await base(tableName).update(records[0].id, {
-    'Full Name': fullName,
+    'First Name': firstName,
+    'Last Name': lastName,
   });
 
   return true;
