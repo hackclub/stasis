@@ -108,7 +108,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (existingProject.status === "in_review" && !user?.isAdmin) {
+  // Prevent editing while either stage is in review (unless admin)
+  const inReview = existingProject.designStatus === "in_review" || existingProject.buildStatus === "in_review"
+  if (inReview && !user?.isAdmin) {
     return NextResponse.json({ error: "Cannot edit project while in review" }, { status: 403 })
   }
 

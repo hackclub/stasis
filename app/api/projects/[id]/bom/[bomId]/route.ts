@@ -21,7 +21,7 @@ export async function PATCH(
 
   const project = await prisma.project.findUnique({
     where: { id },
-    select: { userId: true, status: true },
+    select: { userId: true, designStatus: true },
   })
 
   if (!project) {
@@ -32,9 +32,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status !== "draft" && project.status !== "rejected") {
+  if (project.designStatus === "in_review") {
     return NextResponse.json(
-      { error: "Can only update BOM items in draft or rejected projects" },
+      { error: "Cannot update BOM items while design is in review" },
       { status: 403 }
     )
   }
@@ -126,7 +126,7 @@ export async function DELETE(
 
   const project = await prisma.project.findUnique({
     where: { id },
-    select: { userId: true, status: true },
+    select: { userId: true, designStatus: true },
   })
 
   if (!project) {
@@ -137,9 +137,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status !== "draft" && project.status !== "rejected") {
+  if (project.designStatus === "in_review") {
     return NextResponse.json(
-      { error: "Can only delete BOM items in draft or rejected projects" },
+      { error: "Cannot delete BOM items while design is in review" },
       { status: 403 }
     )
   }

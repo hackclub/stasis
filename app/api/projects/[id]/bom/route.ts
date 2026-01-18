@@ -57,7 +57,7 @@ export async function POST(
 
   const project = await prisma.project.findUnique({
     where: { id },
-    select: { userId: true, status: true },
+    select: { userId: true, designStatus: true },
   })
 
   if (!project) {
@@ -68,9 +68,10 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status !== "draft" && project.status !== "rejected" && project.status !== "approved") {
+  // BOM is part of design stage
+  if (project.designStatus === "in_review") {
     return NextResponse.json(
-      { error: "Cannot add BOM items while project is in review" },
+      { error: "Cannot add BOM items while design is in review" },
       { status: 403 }
     )
   }

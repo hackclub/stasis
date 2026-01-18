@@ -92,7 +92,7 @@ export async function PATCH(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, status: true },
+    select: { userId: true, designStatus: true, buildStatus: true },
   })
 
   if (!project) {
@@ -103,16 +103,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status === "in_review") {
-    return NextResponse.json({ error: "Cannot edit sessions while project is in review" }, { status: 403 })
-  }
-
   const existingSession = await prisma.workSession.findUnique({
     where: { id: sessionId, projectId },
   })
 
   if (!existingSession) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 })
+  }
+
+  // Check if the appropriate stage is in review
+  if (existingSession.stage === "DESIGN" && project.designStatus === "in_review") {
+    return NextResponse.json({ error: "Cannot edit design sessions while design is in review" }, { status: 403 })
+  }
+  if (existingSession.stage === "BUILD" && project.buildStatus === "in_review") {
+    return NextResponse.json({ error: "Cannot edit build sessions while build is in review" }, { status: 403 })
   }
 
   if (existingSession.hoursApproved !== null) {
@@ -208,7 +212,7 @@ export async function DELETE(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, status: true },
+    select: { userId: true, designStatus: true, buildStatus: true },
   })
 
   if (!project) {
@@ -219,16 +223,20 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status === "in_review") {
-    return NextResponse.json({ error: "Cannot delete sessions while project is in review" }, { status: 403 })
-  }
-
   const existingSession = await prisma.workSession.findUnique({
     where: { id: sessionId, projectId },
   })
 
   if (!existingSession) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 })
+  }
+
+  // Check if the appropriate stage is in review
+  if (existingSession.stage === "DESIGN" && project.designStatus === "in_review") {
+    return NextResponse.json({ error: "Cannot delete design sessions while design is in review" }, { status: 403 })
+  }
+  if (existingSession.stage === "BUILD" && project.buildStatus === "in_review") {
+    return NextResponse.json({ error: "Cannot delete build sessions while build is in review" }, { status: 403 })
   }
 
   if (existingSession.hoursApproved !== null) {

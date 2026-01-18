@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
+import { StageProgress } from '@/app/components/projects/StageProgress';
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
 
@@ -27,6 +28,7 @@ interface WorkSession {
   createdAt: string;
   media: SessionMedia[];
   categories: string[];
+  stage: "DESIGN" | "BUILD";
 }
 
 interface BOMItem {
@@ -63,15 +65,20 @@ interface AdminProject {
   githubRepo: string | null;
   coverImage: string | null;
   tags: ProjectTag[];
-  status: string;
+  designStatus: string;
+  designSubmissionNotes: string | null;
+  designReviewComments: string | null;
+  designReviewedAt: string | null;
+  designReviewedBy: string | null;
+  buildStatus: string;
+  buildSubmissionNotes: string | null;
+  buildReviewComments: string | null;
+  buildReviewedAt: string | null;
+  buildReviewedBy: string | null;
   isStarter: boolean;
   starterProjectId: string | null;
   createdAt: string;
   submittedAt: string | null;
-  submissionNotes: string | null;
-  reviewComments: string | null;
-  reviewedAt: string | null;
-  reviewedBy: string | null;
   user: ProjectUser;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
@@ -119,7 +126,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [project, setProject] = useState<AdminProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionReviews, setSessionReviews] = useState<Record<string, SessionReviewState>>({});
-  const [finalComments, setFinalComments] = useState('');
+  const [designComments, setDesignComments] = useState('');
+  const [buildComments, setBuildComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
   const [reviewingBomItem, setReviewingBomItem] = useState<string | null>(null);
@@ -222,28 +230,34 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleFinalDecision = async (decision: 'approved' | 'rejected') => {
+  const handleStageDecision = async (stage: 'design' | 'build', decision: 'approved' | 'rejected') => {
     if (!project) return;
 
+    const stageName = stage === 'design' ? 'Design' : 'Build';
     const confirmMessage = decision === 'approved' 
-      ? 'Are you sure you want to approve this project?' 
-      : 'Are you sure you want to reject this project?';
+      ? `Are you sure you want to approve the ${stageName} stage?` 
+      : `Are you sure you want to reject the ${stageName} stage?`;
     
     if (!confirm(confirmMessage)) return;
 
     setSubmitting(true);
     try {
+      const reviewComments = stage === 'design' ? designComments : buildComments;
       const res = await fetch(`/api/admin/projects/${projectId}/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          stage,
           decision,
-          reviewComments: finalComments || null,
+          reviewComments: reviewComments || null,
         }),
       });
 
       if (res.ok) {
-        router.push('/admin');
+        const updatedProject = await res.json();
+        setProject(updatedProject);
+        if (stage === 'design') setDesignComments('');
+        if (stage === 'build') setBuildComments('');
       } else {
         const data = await res.json();
         alert(data.error || 'Failed to submit decision');
@@ -255,6 +269,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       setSubmitting(false);
     }
   };
+
+  const handleDesignDecision = (decision: 'approved' | 'rejected') => handleStageDecision('design', decision);
+  const handleBuildDecision = (decision: 'approved' | 'rejected') => handleStageDecision('build', decision);
 
   const updateSessionReview = (sessionId: string, field: keyof SessionReviewState, value: number | string) => {
     setSessionReviews((prev) => ({
@@ -277,6 +294,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
   const totalHoursClaimed = project.workSessions.reduce((acc, s) => acc + s.hoursClaimed, 0);
   const allSessionsReviewed = Object.values(sessionReviews).every((r) => r.isReviewed);
+  const isDesignInReview = project.designStatus === 'in_review' || project.designStatus === 'update_requested';
+  const isBuildInReview = project.buildStatus === 'in_review' || project.buildStatus === 'update_requested';
+  const isAnyStageInReview = isDesignInReview || isBuildInReview;
 
   return (
     <>
@@ -292,6 +312,15 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="max-w-4xl mx-auto px-4 py-8">
+          {/* Stage Progress */}
+          <div className="mb-6 bg-cream-900 border-2 border-cream-700 p-6">
+            <StageProgress
+              designStatus={project.designStatus as 'draft' | 'in_review' | 'approved' | 'rejected' | 'update_requested'}
+              buildStatus={project.buildStatus as 'draft' | 'in_review' | 'approved' | 'rejected' | 'update_requested'}
+              showMessages={false}
+            />
+          </div>
+
           {/* Project Header */}
           <div className="mb-6">
             <h1 className="text-brand-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
@@ -326,23 +355,33 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 <p className="text-cream-100 text-xl">{project.workSessions.length}</p>
               </div>
               <div>
-                <p className="text-cream-500 text-xs uppercase mb-1">Status</p>
+                <p className="text-cream-500 text-xs uppercase mb-1">Design Status</p>
                 <p className={`text-xl uppercase ${
-                  project.status === 'approved' ? 'text-green-500' :
-                  project.status === 'rejected' ? 'text-red-500' :
-                  project.status === 'in_review' ? 'text-brand-500' :
-                  project.status === 'update_requested' ? 'text-blue-400' :
+                  project.designStatus === 'approved' ? 'text-green-500' :
+                  project.designStatus === 'rejected' ? 'text-red-500' :
+                  project.designStatus === 'in_review' ? 'text-brand-500' :
+                  project.designStatus === 'update_requested' ? 'text-blue-400' :
                   'text-cream-500'
-                }`}>{project.status.replace('_', ' ')}</p>
+                }`}>{project.designStatus.replace('_', ' ')}</p>
               </div>
               <div>
-                <p className="text-cream-500 text-xs uppercase mb-1">Created</p>
-                <p className="text-cream-100 text-sm">
-                  {new Date(project.createdAt).toLocaleDateString('en-US', {
-                    month: 'short', day: 'numeric', year: 'numeric'
-                  })}
-                </p>
+                <p className="text-cream-500 text-xs uppercase mb-1">Build Status</p>
+                <p className={`text-xl uppercase ${
+                  project.buildStatus === 'approved' ? 'text-green-500' :
+                  project.buildStatus === 'rejected' ? 'text-red-500' :
+                  project.buildStatus === 'in_review' ? 'text-brand-500' :
+                  project.buildStatus === 'update_requested' ? 'text-blue-400' :
+                  'text-cream-500'
+                }`}>{project.buildStatus.replace('_', ' ')}</p>
               </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-cream-500 text-xs uppercase mb-1">Created</p>
+              <p className="text-cream-100 text-sm">
+                {new Date(project.createdAt).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric'
+                })}
+              </p>
             </div>
 
             {project.isStarter && (
@@ -410,27 +449,53 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
-            {project.reviewedAt && (
-              <div className="mt-4 pt-4 border-t border-cream-700">
-                <p className="text-cream-500 text-xs uppercase mb-1">Reviewed</p>
-                <p className="text-cream-300 text-sm">
-                  {new Date(project.reviewedAt).toLocaleDateString('en-US', {
-                    month: 'short', day: 'numeric', year: 'numeric'
-                  })}
-                  {project.reviewedBy && ` by ${project.reviewedBy}`}
-                </p>
-                {project.reviewComments && (
-                  <p className="text-cream-400 text-sm mt-2">{project.reviewComments}</p>
+            {(project.designReviewedAt || project.buildReviewedAt) && (
+              <div className="mt-4 pt-4 border-t border-cream-700 space-y-3">
+                {project.designReviewedAt && (
+                  <div>
+                    <p className="text-cream-500 text-xs uppercase mb-1">Design Reviewed</p>
+                    <p className="text-cream-300 text-sm">
+                      {new Date(project.designReviewedAt).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric'
+                      })}
+                      {project.designReviewedBy && ` by ${project.designReviewedBy}`}
+                    </p>
+                    {project.designReviewComments && (
+                      <p className="text-cream-400 text-sm mt-1">{project.designReviewComments}</p>
+                    )}
+                  </div>
+                )}
+                {project.buildReviewedAt && (
+                  <div>
+                    <p className="text-cream-500 text-xs uppercase mb-1">Build Reviewed</p>
+                    <p className="text-cream-300 text-sm">
+                      {new Date(project.buildReviewedAt).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric'
+                      })}
+                      {project.buildReviewedBy && ` by ${project.buildReviewedBy}`}
+                    </p>
+                    {project.buildReviewComments && (
+                      <p className="text-cream-400 text-sm mt-1">{project.buildReviewComments}</p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Submission Notes */}
-          {project.submissionNotes && (
+          {/* Design Submission Notes */}
+          {project.designSubmissionNotes && (
             <div className="bg-yellow-600/10 border-2 border-yellow-600/50 p-4 mb-6">
-              <p className="text-yellow-500 text-xs uppercase mb-2">Submission Notes from User</p>
-              <p className="text-cream-200 text-sm whitespace-pre-wrap">{project.submissionNotes}</p>
+              <p className="text-yellow-500 text-xs uppercase mb-2">Design Submission Notes from User</p>
+              <p className="text-cream-200 text-sm whitespace-pre-wrap">{project.designSubmissionNotes}</p>
+            </div>
+          )}
+
+          {/* Build Submission Notes */}
+          {project.buildSubmissionNotes && (
+            <div className="bg-blue-600/10 border-2 border-blue-600/50 p-4 mb-6">
+              <p className="text-blue-500 text-xs uppercase mb-2">Build Submission Notes from User</p>
+              <p className="text-cream-200 text-sm whitespace-pre-wrap">{project.buildSubmissionNotes}</p>
             </div>
           )}
 
@@ -455,7 +520,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className={`px-2 py-0.5 text-xs uppercase font-bold ${
+                          session.stage === 'DESIGN' 
+                            ? 'bg-purple-600/30 border border-purple-600 text-purple-400' 
+                            : 'bg-cyan-600/30 border border-cyan-600 text-cyan-400'
+                        }`}>
+                          {session.stage}
+                        </span>
                         <span className="text-cream-500 text-sm">
                           {new Date(session.createdAt).toLocaleDateString('en-US', {
                             weekday: 'short',
@@ -521,8 +593,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       </div>
                     )}
 
-                    {/* Session Review Form - only show if in_review */}
-                    {(project.status === 'in_review' || project.status === 'update_requested') ? (
+                    {/* Session Review Form - only show if any stage is in review */}
+                    {isAnyStageInReview ? (
                       <div className="bg-cream-950 border border-cream-700 p-3 mt-4">
                         <div className="grid grid-cols-2 gap-4 mb-3">
                           <div>
@@ -664,8 +736,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                                 {item.status}
                               </span>
 
-                              {/* Review Controls - only show if in_review and item is pending */}
-                              {(project.status === 'in_review' || project.status === 'update_requested') && item.status === 'pending' && (
+                              {/* Review Controls - only show if any stage is in review and item is pending */}
+                              {isAnyStageInReview && item.status === 'pending' && (
                                 <div className="flex gap-1">
                                   <button
                                     onClick={() => handleBomReview(item.id, 'approved')}
@@ -700,8 +772,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 </table>
               </div>
 
-              {/* Review Comments Input - show for pending items when in_review */}
-              {(project.status === 'in_review' || project.status === 'update_requested') && project.bomItems.some((item) => item.status === 'pending') && (
+              {/* Review Comments Input - show for pending items when any stage is in review */}
+              {isAnyStageInReview && project.bomItems.some((item) => item.status === 'pending') && (
                 <div className="bg-cream-950 border border-cream-700 p-4 mt-4">
                   <p className="text-cream-500 text-xs uppercase mb-3">Review Comments for BOM Items</p>
                   <div className="space-y-3">
@@ -747,59 +819,116 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {/* Final Decision - only show if in_review */}
-          {(project.status === 'in_review' || project.status === 'update_requested') ? (
-            <div className="bg-cream-900 border-2 border-cream-700 p-6">
-              <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Final Decision</h2>
+          {/* Design Approval Section */}
+          {isDesignInReview ? (
+            <div className="bg-cream-900 border-2 border-purple-600/50 p-6 mb-6">
+              <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Design Approval</h2>
               
               {!allSessionsReviewed && (
                 <p className="text-yellow-500 text-sm mb-4">
-                  ⚠ Review all sessions before making a final decision
+                  ⚠ Review all sessions before making a decision
                 </p>
               )}
 
               <div className="mb-4">
                 <label className="text-cream-500 text-xs uppercase block mb-2">
-                  Overall Review Comments (optional)
+                  Design Review Comments (optional)
                 </label>
                 <textarea
-                  value={finalComments}
-                  onChange={(e) => setFinalComments(e.target.value)}
+                  value={designComments}
+                  onChange={(e) => setDesignComments(e.target.value)}
                   rows={3}
                   className="w-full bg-cream-950 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
-                  placeholder="Add overall feedback for the project..."
+                  placeholder="Add feedback for the design stage..."
                 />
               </div>
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => handleFinalDecision('rejected')}
+                  onClick={() => handleDesignDecision('rejected')}
                   disabled={submitting}
                   className="flex-1 bg-red-600/20 border-2 border-red-600 hover:bg-red-600/30 text-red-500 py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {submitting ? 'Submitting...' : 'Reject Project'}
+                  {submitting ? 'Submitting...' : 'Reject Design'}
                 </button>
                 <button
-                  onClick={() => handleFinalDecision('approved')}
+                  onClick={() => handleDesignDecision('approved')}
                   disabled={submitting}
                   className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {submitting ? 'Submitting...' : 'Approve Project'}
+                  {submitting ? 'Submitting...' : 'Approve Design'}
                 </button>
               </div>
             </div>
-          ) : (project.status === 'approved' || project.status === 'rejected') && (
-            <div className={`border-2 p-6 ${
-              project.status === 'approved' 
+          ) : (project.designStatus === 'approved' || project.designStatus === 'rejected') && (
+            <div className={`border-2 p-6 mb-6 ${
+              project.designStatus === 'approved' 
                 ? 'bg-green-600/10 border-green-600/50' 
                 : 'bg-red-600/10 border-red-600/50'
             }`}>
               <p className={`text-xl uppercase tracking-wide ${
-                project.status === 'approved' ? 'text-green-500' : 'text-red-500'
+                project.designStatus === 'approved' ? 'text-green-500' : 'text-red-500'
               }`}>
-                Project {project.status}
+                Design {project.designStatus}
               </p>
             </div>
+          )}
+
+          {/* Build Approval Section - only show when design is approved */}
+          {project.designStatus === 'approved' && (
+            isBuildInReview ? (
+              <div className="bg-cream-900 border-2 border-cyan-600/50 p-6 mb-6">
+                <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Build Approval</h2>
+                
+                {!allSessionsReviewed && (
+                  <p className="text-yellow-500 text-sm mb-4">
+                    ⚠ Review all sessions before making a decision
+                  </p>
+                )}
+
+                <div className="mb-4">
+                  <label className="text-cream-500 text-xs uppercase block mb-2">
+                    Build Review Comments (optional)
+                  </label>
+                  <textarea
+                    value={buildComments}
+                    onChange={(e) => setBuildComments(e.target.value)}
+                    rows={3}
+                    className="w-full bg-cream-950 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
+                    placeholder="Add feedback for the build stage..."
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleBuildDecision('rejected')}
+                    disabled={submitting}
+                    className="flex-1 bg-red-600/20 border-2 border-red-600 hover:bg-red-600/30 text-red-500 py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? 'Submitting...' : 'Reject Build'}
+                  </button>
+                  <button
+                    onClick={() => handleBuildDecision('approved')}
+                    disabled={submitting}
+                    className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? 'Submitting...' : 'Approve Build'}
+                  </button>
+                </div>
+              </div>
+            ) : (project.buildStatus === 'approved' || project.buildStatus === 'rejected') && (
+              <div className={`border-2 p-6 mb-6 ${
+                project.buildStatus === 'approved' 
+                  ? 'bg-green-600/10 border-green-600/50' 
+                  : 'bg-red-600/10 border-red-600/50'
+              }`}>
+                <p className={`text-xl uppercase tracking-wide ${
+                  project.buildStatus === 'approved' ? 'text-green-500' : 'text-red-500'
+                }`}>
+                  Build {project.buildStatus}
+                </p>
+              </div>
+            )
           )}
         </div>
       </div>

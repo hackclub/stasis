@@ -16,6 +16,11 @@ enum ProjectStatus {
   update_requested
 }
 
+enum ProjectStage {
+  DESIGN
+  BUILD
+}
+
 // This is the primary user object
 model User {
   id                 String    @id @default(cuid())
@@ -126,44 +131,54 @@ enum BadgeType {
 }
 
 model Project {
-  id              String        @id @default(cuid())
-  title           String
-  description     String?
-  tags            ProjectTag[]
-  isStarter       Boolean       @default(false)
+  id               String        @id @default(cuid())
+  title            String
+  description      String?
+  tags             ProjectTag[]
+  isStarter        Boolean       @default(false)
   starterProjectId String?
-  githubRepo      String?
-  coverImage      String?
-  status          ProjectStatus @default(draft)
-  submissionNotes  String?
-  reviewComments   String?
-  reviewedAt      DateTime?
-  reviewedBy      String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workSessions    WorkSession[]
-  badges          ProjectBadge[]
-  bomItems        BOMItem[]
+  githubRepo       String?
+  coverImage       String?
+  
+  // Stage-based status tracking
+  designStatus          ProjectStatus @default(draft)
+  designSubmissionNotes String?
+  designReviewComments  String?
+  designReviewedAt      DateTime?
+  designReviewedBy      String?
+  
+  buildStatus           ProjectStatus @default(draft)
+  buildSubmissionNotes  String?
+  buildReviewComments   String?
+  buildReviewedAt       DateTime?
+  buildReviewedBy       String?
+  
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workSessions     WorkSession[]
+  badges           ProjectBadge[]
+  bomItems         BOMItem[]
 
   @@index([userId])
   @@map("project")
 }
 
 model WorkSession {
-  id            String            @id @default(cuid())
-  hoursClaimed  Float
-  hoursApproved Float?
-  content       String?
-  categories    SessionCategory[]
+  id             String            @id @default(cuid())
+  hoursClaimed   Float
+  hoursApproved  Float?
+  content        String?
+  categories     SessionCategory[]
+  stage          ProjectStage      @default(BUILD)
   reviewComments String?
   reviewedAt     DateTime?
   reviewedBy     String?
   createdAt      DateTime          @default(now())
   projectId      String
   project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  media         SessionMedia[]
+  media          SessionMedia[]
 
   @@index([projectId])
   @@map("work_session")

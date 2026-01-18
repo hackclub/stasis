@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { SessionCategory, MediaType } from "@/app/generated/prisma/enums"
+import { SessionCategory, MediaType, ProjectStage } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
+
+const VALID_STAGES: ProjectStage[] = ["DESIGN", "BUILD"]
 
 const VALID_CATEGORIES: SessionCategory[] = [
   "FIRMWARE",
@@ -89,7 +91,7 @@ export async function POST(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, status: true },
+    select: { userId: true, designStatus: true, buildStatus: true },
   })
 
   if (!project) {
@@ -100,12 +102,26 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status === "in_review") {
-    return NextResponse.json({ error: "Cannot add sessions while project is in review" }, { status: 403 })
-  }
-
   const body = await request.json()
-  const { hoursClaimed, content, categories, media } = body
+  const { hoursClaimed, content, categories, media, stage: rawStage } = body
+  
+  // Determine stage - default to BUILD if design is approved, otherwise DESIGN
+  const stage: ProjectStage = VALID_STAGES.includes(rawStage) 
+    ? rawStage 
+    : (project.designStatus === "approved" ? "BUILD" : "DESIGN")
+
+  // Prevent adding sessions for a stage that's in review
+  if (stage === "DESIGN" && project.designStatus === "in_review") {
+    return NextResponse.json({ error: "Cannot add design sessions while design is in review" }, { status: 403 })
+  }
+  if (stage === "BUILD" && project.buildStatus === "in_review") {
+    return NextResponse.json({ error: "Cannot add build sessions while build is in review" }, { status: 403 })
+  }
+  
+  // Can only add BUILD sessions if design is approved
+  if (stage === "BUILD" && project.designStatus !== "approved") {
+    return NextResponse.json({ error: "Design must be approved before logging build sessions" }, { status: 403 })
+  }
 
   if (typeof hoursClaimed !== "number" || hoursClaimed <= 0 || hoursClaimed > 24) {
     return NextResponse.json(
@@ -162,6 +178,7 @@ export async function POST(
       hoursClaimed,
       content: sanitize(content.trim()),
       categories: validatedCategories,
+      stage,
       projectId,
       media: {
         create: validatedMedia.map((m) => ({
