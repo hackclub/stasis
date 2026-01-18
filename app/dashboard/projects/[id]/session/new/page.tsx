@@ -21,10 +21,14 @@ interface MediaItem {
   uploading?: boolean
 }
 
+type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested"
+
 interface Project {
   id: string
   title: string
   githubRepo: string | null
+  designStatus: ProjectStatus
+  buildStatus: ProjectStatus
 }
 
 const CATEGORIES: { value: SessionCategory; label: string }[] = [
@@ -418,6 +422,9 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
         url: m.url,
       }));
 
+      // Determine stage based on design status
+      const stage = project?.designStatus === "approved" ? "BUILD" : "DESIGN";
+
       const res = await fetch(`/api/projects/${projectId}/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -426,6 +433,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
           content: content.trim(),
           categories: selectedCategories,
           media: mediaWithUrls,
+          stage,
         }),
       });
 
@@ -472,6 +480,15 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
           <div className="mb-6">
             <h1 className="text-brand-500 text-2xl uppercase tracking-wide">New Journal Entry</h1>
             <p className="text-cream-500 text-sm mt-1">Project: {project.title}</p>
+            <div className="mt-3">
+              <span className={`px-3 py-1 text-sm uppercase ${
+                project.designStatus === "approved" 
+                  ? 'bg-blue-600/30 border border-blue-600 text-blue-400' 
+                  : 'bg-purple-600/30 border border-purple-600 text-purple-400'
+              }`}>
+                {project.designStatus === "approved" ? 'Build Stage Session' : 'Design Stage Session'}
+              </span>
+            </div>
           </div>
 
           {error && (

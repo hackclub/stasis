@@ -45,3 +45,5 @@
 - Named exports for components (e.g., `export function Component`)
 - Tailwind utility classes; custom colors via CSS variables
 - GSAP for complex animations; CSS animations for simple ones
+
+DO NOT ai generate migrations, use prisma tools

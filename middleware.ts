@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const securityHeaders = {
   "Content-Security-Policy": [
     "default-src 'self'",
-    "script-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' https://hc-cdn.hel1.your-objectstorage.com data: blob:",
     "font-src 'self'",

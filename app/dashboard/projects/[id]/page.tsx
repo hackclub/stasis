@@ -4,8 +4,11 @@ import { useState, useEffect, use } from 'react';
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
+import { StageProgress } from '@/app/components/projects/StageProgress';
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
+
+type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -25,6 +28,7 @@ interface WorkSession {
   hoursApproved: number | null;
   reviewComments: string | null;
   content: string | null;
+  stage: "DESIGN" | "BUILD";
   createdAt: string;
   media: SessionMedia[];
 }
@@ -59,8 +63,20 @@ interface Project {
 
   coverImage: string | null;
   githubRepo: string | null;
-  status: "draft" | "in_review" | "approved" | "rejected" | "update_requested";
-  reviewComments: string | null;
+  
+  // Stage-based status
+  designStatus: ProjectStatus;
+  designSubmissionNotes: string | null;
+  designReviewComments: string | null;
+  designReviewedAt: string | null;
+  designReviewedBy: string | null;
+  
+  buildStatus: ProjectStatus;
+  buildSubmissionNotes: string | null;
+  buildReviewComments: string | null;
+  buildReviewedAt: string | null;
+  buildReviewedBy: string | null;
+  
   createdAt: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
@@ -106,8 +122,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [showDesignSubmitDialog, setShowDesignSubmitDialog] = useState(false);
+  const [showBuildSubmitDialog, setShowBuildSubmitDialog] = useState(false);
   
   const [bomForm, setBomForm] = useState({
     name: '',
@@ -144,13 +160,19 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   }, [session, isPending, projectId, router]);
 
-  const handleSubmitForReview = async () => {
+  const handleSubmitStage = async (stage: "design" | "build") => {
     if (!project) return;
-    setShowSubmitDialog(false);
+    if (stage === "design") {
+      setShowDesignSubmitDialog(false);
+    } else {
+      setShowBuildSubmitDialog(false);
+    }
     setSubmitting(true);
     try {
       const res = await fetch(`/api/projects/${project.id}/submit`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage }),
       });
       
       if (res.ok) {
@@ -160,22 +182,44 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         }
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to submit for review');
+        alert(data.error || `Failed to submit ${stage} for review`);
       }
     } catch (error) {
-      console.error('Failed to submit for review:', error);
+      console.error(`Failed to submit ${stage} for review:`, error);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleSubmitDesign = () => handleSubmitStage("design");
+  const handleSubmitBuild = () => handleSubmitStage("build");
+
+  // Computed values for stage requirements
+  const designSessions = project?.workSessions.filter(s => s.stage === "DESIGN") ?? [];
+  const buildSessions = project?.workSessions.filter(s => s.stage === "BUILD") ?? [];
+  const totalBuildHours = buildSessions.reduce((acc, s) => acc + s.hoursClaimed, 0);
+  
+  const canSubmitDesign = project && 
+    (project.designStatus === "draft" || project.designStatus === "rejected") &&
+    project.description?.trim() &&
+    project.bomItems.length > 0 &&
+    designSessions.length > 0 &&
+    project.githubRepo &&
+    project.badges.length > 0;
+    
+  const canSubmitBuild = project &&
+    project.designStatus === "approved" &&
+    (project.buildStatus === "draft" || project.buildStatus === "rejected") &&
+    totalBuildHours >= MIN_HOURS_REQUIRED;
+
   const handleRequestUpdate = async () => {
     if (!project) return;
-    setShowUpdateDialog(false);
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/projects/${project.id}/request-update`, {
+      const res = await fetch(`/api/projects/${project.id}/submit`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: "build" }),
       });
       
       if (res.ok) {
@@ -312,11 +356,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const badges = project.badges ?? [];
   const approvedBadges = badges.filter(b => b.grantedAt !== null);
   const pendingBadges = badges.filter(b => b.grantedAt === null);
-  const canSubmit = badges.length >= 1 && project.totalHoursClaimed >= MIN_HOURS_REQUIRED && !!project.githubRepo;
-  
-  const hasPendingSessions = project.workSessions.some(s => s.hoursApproved === null);
-  const hasPendingBomItems = (project.bomItems ?? []).some(b => b.status === 'pending');
-  const hasPendingWork = hasPendingSessions || hasPendingBomItems;
 
   return (
     <>
@@ -482,87 +521,64 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
           </div>
 
-          {/* Submission Status */}
-          {project.status === "in_review" ? (
-            <div className="bg-yellow-600/20 border-2 border-yellow-600 p-4 mb-6">
-              <p className="text-yellow-500 text-lg uppercase flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                In Review
-              </p>
-            </div>
-          ) : project.status === "approved" ? (
-            <div className={`p-4 mb-6 border-2 ${hasPendingWork ? 'bg-blue-600/20 border-blue-600' : 'bg-green-600/20 border-green-600'}`}>
-              <p className={`text-lg uppercase flex items-center gap-2 ${hasPendingWork ? 'text-blue-400' : 'text-green-500'}`}>
-                {hasPendingWork ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-                {hasPendingWork ? 'Additional Work Pending Review' : 'Approved'}
-              </p>
-              {hasPendingWork && (
-                <p className="text-blue-400/80 text-sm mt-3 leading-relaxed">
-                  It looks like you&apos;ve worked more on your project since it was last reviewed. To get additional hours or BOM items approved, click &quot;Request Update Review&quot; below.
-                </p>
-              )}
-            </div>
-          ) : project.status === "rejected" ? (
-            <div className="bg-red-600/20 border-2 border-red-600 p-4 mb-6">
-              <p className="text-red-500 text-lg uppercase flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                Rejected - You can resubmit
-              </p>
-              {project.reviewComments && (
-                <div className="mt-3 pt-3 border-t border-red-600/30">
-                  <p className="text-red-400/80 text-xs uppercase mb-1">Reviewer Feedback</p>
-                  <p className="text-red-300 text-sm whitespace-pre-wrap">{project.reviewComments}</p>
-                </div>
-              )}
-            </div>
-          ) : project.status === "update_requested" ? (
-            <div className="bg-blue-600/20 border-2 border-blue-600 p-4 mb-6">
-              <p className="text-blue-400 text-lg uppercase flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                Update Requested - In Review
-              </p>
-            </div>
-          ) : (
+          {/* Stage Progress */}
+          <div className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
+            <StageProgress 
+              designStatus={project.designStatus} 
+              buildStatus={project.buildStatus}
+            />
+            
+            {/* Design Stage Review Comments */}
+            {project.designStatus === "rejected" && project.designReviewComments && (
+              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
+                <p className="text-red-400/80 text-xs uppercase mb-1">Design Feedback</p>
+                <p className="text-red-300 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
+              </div>
+            )}
+            
+            {/* Build Stage Review Comments */}
+            {project.buildStatus === "rejected" && project.buildReviewComments && (
+              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
+                <p className="text-red-400/80 text-xs uppercase mb-1">Build Feedback</p>
+                <p className="text-red-300 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Stage Requirements */}
+          {project.designStatus !== "approved" && (
             <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-6">
-              <p className="text-cream-500 text-xs uppercase mb-3">Submission Requirements</p>
+              <p className="text-cream-500 text-xs uppercase mb-3">Design Stage Requirements</p>
               <div className="space-y-2">
-                <div className={`flex items-center gap-2 text-sm ${badges.length >= 1 ? 'text-green-400' : 'text-cream-400'}`}>
-                  {badges.length >= 1 ? (
+                <div className={`flex items-center gap-2 text-sm ${project.description?.trim() ? 'text-green-400' : 'text-cream-400'}`}>
+                  {project.description?.trim() ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   ) : (
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
-                  At least 1 badge claimed
+                  Project description
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.totalHoursClaimed >= MIN_HOURS_REQUIRED ? 'text-green-400' : 'text-cream-400'}`}>
-                  {project.totalHoursClaimed >= MIN_HOURS_REQUIRED ? (
+                <div className={`flex items-center gap-2 text-sm ${project.bomItems.length > 0 ? 'text-green-400' : 'text-cream-400'}`}>
+                  {project.bomItems.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   ) : (
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
-                  Minimum {MIN_HOURS_REQUIRED} hours logged ({project.totalHoursClaimed.toFixed(1)}h)
+                  At least 1 BOM item ({project.bomItems.length} added)
+                </div>
+                <div className={`flex items-center gap-2 text-sm ${designSessions.length > 0 ? 'text-green-400' : 'text-cream-400'}`}>
+                  {designSessions.length > 0 ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  At least 1 work session ({designSessions.length} logged)
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${project.githubRepo ? 'text-green-400' : 'text-cream-400'}`}>
                   {project.githubRepo ? (
@@ -573,6 +589,34 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
                   GitHub repo linked
+                </div>
+                <div className={`flex items-center gap-2 text-sm ${project.badges.length > 0 ? 'text-green-400' : 'text-cream-400'}`}>
+                  {project.badges.length > 0 ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  At least 1 badge claimed ({project.badges.length} claimed)
+                </div>
+              </div>
+            </div>
+          )}
+
+          {project.designStatus === "approved" && project.buildStatus !== "approved" && (
+            <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-6">
+              <p className="text-cream-500 text-xs uppercase mb-3">Build Stage Requirements</p>
+              <div className="space-y-2">
+                <div className={`flex items-center gap-2 text-sm ${totalBuildHours >= MIN_HOURS_REQUIRED ? 'text-green-400' : 'text-cream-400'}`}>
+                  {totalBuildHours >= MIN_HOURS_REQUIRED ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  Minimum {MIN_HOURS_REQUIRED} build hours ({totalBuildHours.toFixed(1)}h logged)
                 </div>
               </div>
             </div>
@@ -601,7 +645,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Link</th>
                       <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Distributor</th>
                       <th className="text-center text-cream-500 uppercase text-xs py-2 pr-3">Status</th>
-                      {(project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
+                      {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
                         <th className="text-center text-cream-500 uppercase text-xs py-2"></th>
                       )}
                     </tr>
@@ -637,7 +681,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                             </span>
                           )}
                         </td>
-                        {(project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
+                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
                           <td className="py-2 text-center">
                             {item.status === 'pending' && (
                               <button
@@ -674,7 +718,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <p className="text-cream-500 text-sm mb-4">No items added yet.</p>
             )}
 
-            {(project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
+            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
               <form onSubmit={handleAddBomItem} className="border-t border-cream-700 pt-4">
                 <p className="text-cream-500 text-xs uppercase mb-3">Add New Item</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
@@ -759,101 +803,94 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* Actions */}
-          {(project.status === "draft" || project.status === "rejected") && (
-            <div className="flex gap-3 mb-8">
-              <Link
-                href={`/dashboard/projects/${project.id}/session/new`}
-                className="flex-1 bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 text-center uppercase tracking-wider transition-colors"
-              >
-                + Log Session
-              </Link>
-              <Link
-                href={`/dashboard/projects/${project.id}/edit`}
-                className="flex-1 bg-cream-800 hover:bg-cream-700 text-cream-100 py-3 text-center uppercase tracking-wider transition-colors"
-              >
-                Edit Project
-              </Link>
+          <div className="flex flex-wrap gap-3 mb-8">
+            {/* Always show Log Session and Edit */}
+            {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
+              <>
+                <Link
+                  href={`/dashboard/projects/${project.id}/session/new`}
+                  className="flex-1 min-w-[200px] bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 text-center uppercase tracking-wider transition-colors"
+                >
+                  + Log Session
+                </Link>
+                <Link
+                  href={`/dashboard/projects/${project.id}/edit`}
+                  className="flex-1 min-w-[200px] bg-cream-800 hover:bg-cream-700 text-cream-100 py-3 text-center uppercase tracking-wider transition-colors"
+                >
+                  Edit Project
+                </Link>
+              </>
+            )}
+            
+            {/* Design Stage Submit Button */}
+            {(project.designStatus === "draft" || project.designStatus === "rejected") && (
               <button
-                onClick={() => setShowSubmitDialog(true)}
-                disabled={submitting || !canSubmit}
-                className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
+                onClick={() => setShowDesignSubmitDialog(true)}
+                disabled={submitting || !canSubmitDesign}
+                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
-                {submitting ? 'Submitting...' : (project.status === "rejected" ? 'Resubmit for Review' : 'Submit for Review')}
+                {submitting ? 'Submitting...' : (project.designStatus === "rejected" ? 'Resubmit Design' : 'Submit Design for Review')}
               </button>
-            </div>
-          )}
-
-          {/* Approved Project Actions */}
-          {project.status === "approved" && (
-            <div className="flex gap-3 mb-8">
-              <Link
-                href={`/dashboard/projects/${project.id}/session/new`}
-                className="flex-1 bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 text-center uppercase tracking-wider transition-colors"
-              >
-                + Log Session
-              </Link>
-              <Link
-                href={`/dashboard/projects/${project.id}/edit`}
-                className="flex-1 bg-cream-800 hover:bg-cream-700 text-cream-100 py-3 text-center uppercase tracking-wider transition-colors"
-              >
-                Edit Project
-              </Link>
+            )}
+            
+            {/* Build Stage Submit Button */}
+            {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected") && (
               <button
-                onClick={() => setShowUpdateDialog(true)}
-                disabled={submitting}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
+                onClick={() => setShowBuildSubmitDialog(true)}
+                disabled={submitting || !canSubmitBuild}
+                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
-                {submitting ? 'Submitting...' : 'Request Update Review'}
+                {submitting ? 'Submitting...' : (project.buildStatus === "rejected" ? 'Resubmit Build' : 'Submit Build for Review')}
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Submit Confirmation Dialog */}
-          {showSubmitDialog && (
+          {/* Design Submit Confirmation Dialog */}
+          {showDesignSubmitDialog && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-900 border-2 border-cream-600 max-w-md w-full p-6">
-                <h3 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Submit for Review?</h3>
+                <h3 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
                 <p className="text-cream-300 text-sm leading-relaxed mb-6">
-                  You can&apos;t make any changes to your project once you submit it until a reviewer approves or rejects it. Make sure your project is in a finished and polished state.
+                  Your design (project details and BOM) will be reviewed. You can still make changes while waiting for approval.
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowSubmitDialog(false)}
+                    onClick={() => setShowDesignSubmitDialog(false)}
                     className="flex-1 bg-cream-800 hover:bg-cream-700 text-cream-100 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleSubmitForReview}
+                    onClick={handleSubmitDesign}
                     className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
-                    Submit
+                    Submit Design
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Update Request Confirmation Dialog */}
-          {showUpdateDialog && (
+          {/* Build Submit Confirmation Dialog */}
+          {showBuildSubmitDialog && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-900 border-2 border-cream-600 max-w-md w-full p-6">
-                <h3 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Request Update Review?</h3>
+                <h3 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
                 <p className="text-cream-300 text-sm leading-relaxed mb-6">
-                  This will submit your new sessions, BOM items, and other changes for review. Your project will remain approved, but new items will be reviewed before being added to your grant.
+                  Your build work will be reviewed. Once approved, your badges will be granted and hours finalized.
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowUpdateDialog(false)}
+                    onClick={() => setShowBuildSubmitDialog(false)}
                     className="flex-1 bg-cream-800 hover:bg-cream-700 text-cream-100 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleRequestUpdate}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                    onClick={handleSubmitBuild}
+                    className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
-                    Request Review
+                    Submit Build
                   </button>
                 </div>
               </div>
@@ -897,6 +934,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex flex-wrap items-center gap-3">
+                        <span className={`px-2 py-0.5 text-xs uppercase ${
+                          ws.stage === "DESIGN" 
+                            ? 'bg-purple-600/30 border border-purple-600 text-purple-400' 
+                            : 'bg-blue-600/30 border border-blue-600 text-blue-400'
+                        }`}>
+                          {ws.stage}
+                        </span>
                         <span className="text-cream-500 text-sm">
                           {new Date(ws.createdAt).toLocaleDateString('en-US', {
                             weekday: 'short',
@@ -921,7 +965,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         )}
                       </div>
                       
-                      {isPending && (project.status === "draft" || project.status === "rejected" || project.status === "approved") && (
+                      {isPending && (project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
                         <Link
                           href={`/dashboard/projects/${project.id}/session/${ws.id}/edit`}
                           className="bg-brand-500 hover:bg-brand-400 text-white px-3 py-1 text-sm uppercase tracking-wide transition-colors"

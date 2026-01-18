@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { sanitize } from "@/lib/sanitize"
 
 export async function POST(
   request: NextRequest,
@@ -26,24 +27,25 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.status !== "approved") {
+  // Only approved builds can request updates
+  if (project.buildStatus !== "approved") {
     return NextResponse.json(
-      { error: "Only approved projects can request updates" },
+      { error: "Only projects with approved builds can request updates" },
       { status: 400 }
     )
   }
 
   const body = await request.json().catch(() => ({}))
-  const submissionNotes = typeof body.submissionNotes === "string" ? body.submissionNotes : null
+  const submissionNotes = typeof body.submissionNotes === "string" ? sanitize(body.submissionNotes) : null
 
   const updatedProject = await prisma.project.update({
     where: { id },
     data: {
-      status: "update_requested",
-      submissionNotes,
-      reviewComments: null,
-      reviewedAt: null,
-      reviewedBy: null,
+      buildStatus: "update_requested",
+      buildSubmissionNotes: submissionNotes,
+      buildReviewComments: null,
+      buildReviewedAt: null,
+      buildReviewedBy: null,
     },
   })
 

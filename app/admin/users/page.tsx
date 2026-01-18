@@ -20,7 +20,8 @@ interface WorkSession {
 interface Project {
   id: string;
   title: string;
-  status: string;
+  designStatus: string;
+  buildStatus: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
 }
@@ -365,14 +366,24 @@ export default function AdminUsersPage() {
                                 >
                                   <div className="flex items-center justify-between mb-1">
                                     <span className="text-cream-200 text-sm">{project.title}</span>
-                                    <span className={`text-xs uppercase ${
-                                      project.status === 'approved' ? 'text-green-500' :
-                                      project.status === 'rejected' ? 'text-red-500' :
-                                      project.status === 'in_review' ? 'text-brand-500' :
-                                      'text-cream-500'
-                                    }`}>
-                                      {project.status.replace('_', ' ')}
-                                    </span>
+                                    <div className="flex gap-2">
+                                      <span className={`text-xs uppercase ${
+                                        project.designStatus === 'approved' ? 'text-green-500' :
+                                        project.designStatus === 'rejected' ? 'text-red-500' :
+                                        project.designStatus === 'in_review' ? 'text-brand-500' :
+                                        'text-cream-500'
+                                      }`}>
+                                        D: {project.designStatus.replace('_', ' ')}
+                                      </span>
+                                      <span className={`text-xs uppercase ${
+                                        project.buildStatus === 'approved' ? 'text-green-500' :
+                                        project.buildStatus === 'rejected' ? 'text-red-500' :
+                                        project.buildStatus === 'in_review' ? 'text-brand-500' :
+                                        'text-cream-500'
+                                      }`}>
+                                        B: {project.buildStatus.replace('_', ' ')}
+                                      </span>
+                                    </div>
                                   </div>
                                   <div className="flex items-center gap-3 text-xs text-cream-500">
                                     <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
