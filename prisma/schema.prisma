@@ -41,6 +41,8 @@ model User {
   hackatimeUserId    String?   @unique
   isAdmin            Boolean   @default(false)
   fraudConvicted     Boolean   @default(false)
+  tutorialDashboard  Boolean   @default(false)
+  tutorialProject    Boolean   @default(false)
   sessions           Session[]
   accounts           Account[]
   projects           Project[]

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface TutorialStep {
   id: string;
@@ -12,6 +12,11 @@ interface TutorialStep {
 }
 
 export type TutorialType = 'dashboard' | 'project';
+
+interface TutorialStatus {
+  tutorialDashboard: boolean;
+  tutorialProject: boolean;
+}
 
 const DASHBOARD_STEPS: TutorialStep[] = [
   {
@@ -120,8 +125,6 @@ const PROJECT_STEPS: TutorialStep[] = [
   },
 ];
 
-const STORAGE_KEY_PREFIX = 'stasis_onboarding_';
-
 interface Props {
   type: TutorialType;
   forceShow?: boolean;
@@ -132,9 +135,9 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
+  const hasFetched = useRef(false);
 
   const TUTORIAL_STEPS = type === 'dashboard' ? DASHBOARD_STEPS : PROJECT_STEPS;
-  const STORAGE_KEY = `${STORAGE_KEY_PREFIX}${type}_completed`;
 
   useEffect(() => {
     if (forceShow) {
@@ -143,12 +146,21 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
       return;
     }
 
-    const completed = localStorage.getItem(STORAGE_KEY);
-    if (!completed) {
-      const timer = setTimeout(() => setIsVisible(true), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [forceShow, STORAGE_KEY]);
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    fetch('/api/user/tutorial')
+      .then(res => res.json())
+      .then((data: TutorialStatus) => {
+        const completed = type === 'dashboard' ? data.tutorialDashboard : data.tutorialProject;
+        if (!completed) {
+          setTimeout(() => setIsVisible(true), 500);
+        }
+      })
+      .catch(() => {
+        // If fetch fails, don't show tutorial
+      });
+  }, [forceShow, type]);
 
   const updateHighlight = useCallback(() => {
     const step = TUTORIAL_STEPS[currentStep];
@@ -226,7 +238,11 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
   };
 
   const handleComplete = () => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    fetch('/api/user/tutorial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type }),
+    });
     setIsVisible(false);
     onComplete?.();
   };
@@ -417,13 +433,9 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
   );
 }
 
-export function resetOnboardingTutorial(type?: TutorialType) {
-  if (type) {
-    localStorage.removeItem(`${STORAGE_KEY_PREFIX}${type}_completed`);
-  } else {
-    localStorage.removeItem(`${STORAGE_KEY_PREFIX}dashboard_completed`);
-    localStorage.removeItem(`${STORAGE_KEY_PREFIX}project_completed`);
-  }
+export async function resetOnboardingTutorial(type?: TutorialType) {
+  const url = type ? `/api/user/tutorial?type=${type}` : '/api/user/tutorial';
+  await fetch(url, { method: 'DELETE' });
 }
 
 export function TutorialHelpButton({ onClick }: Readonly<{ onClick: () => void }>) {
