@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
+import { OnboardingTutorial, TutorialHelpButton } from '../components/OnboardingTutorial';
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import Link from 'next/link';
 import type { Project } from './types';
@@ -14,6 +15,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -69,8 +71,12 @@ export default function ProjectsPage() {
 
   return (
     <>
+      {/* Onboarding Tutorial */}
+      <OnboardingTutorial type="dashboard" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} />
+      <TutorialHelpButton onClick={() => setShowTutorial(true)} />
+
       {/* Badge Progress */}
-      <div className="mb-6 bg-cream-900 border-2 border-cream-600 p-4">
+      <div data-tutorial="badge-progress" className="mb-6 bg-cream-900 border-2 border-cream-600 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-brand-500 text-lg uppercase tracking-wide">Badge Progress</h2>
@@ -113,7 +119,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Stats bar */}
-      <div className="flex items-center justify-between mb-6">
+      <div data-tutorial="stats" className="flex items-center justify-between mb-6">
         <div className="flex gap-6">
           <div>
             <p className="text-cream-300 text-xs uppercase">Projects</p>
@@ -130,6 +136,7 @@ export default function ProjectsPage() {
         </div>
         <Link
           href="/starter-projects"
+          data-tutorial="starter-projects"
           className="text-brand-500 hover:text-brand-400 text-sm uppercase transition-colors flex items-center gap-2"
         >
           Browse Starter Projects

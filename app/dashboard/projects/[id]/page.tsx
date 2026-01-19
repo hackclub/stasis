@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { StageProgress } from '@/app/components/projects/StageProgress';
 import { Timeline } from '@/app/components/projects/Timeline';
+import { OnboardingTutorial, TutorialHelpButton } from '@/app/components/OnboardingTutorial';
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
@@ -126,6 +127,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [uploading, setUploading] = useState(false);
   const [showDesignSubmitDialog, setShowDesignSubmitDialog] = useState(false);
   const [showBuildSubmitDialog, setShowBuildSubmitDialog] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   
   const [bomForm, setBomForm] = useState({
     name: '',
@@ -381,6 +383,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Onboarding Tutorial */}
+      <OnboardingTutorial type="project" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} />
+      <TutorialHelpButton onClick={() => setShowTutorial(true)} />
+
       {/* Breadcrumb */}
       <div className="mb-6">
         <Link href="/dashboard" className="text-cream-300 hover:text-brand-400 transition-colors flex items-center gap-2 text-sm">
@@ -398,7 +404,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="flex-1">
                 <h1 className="text-brand-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
                 {project.description && (
-                  <p className="text-cream-200 text-lg">{project.description}</p>
+                  <p data-tutorial="description" className="text-cream-200 text-lg">{project.description}</p>
                 )}
               </div>
               
@@ -472,7 +478,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
 
             {/* GitHub Repo */}
-            <div className="mt-4 text-sm">
+            <div data-tutorial="github" className="mt-4 text-sm">
               <span className="text-cream-300">GitHub Repo:</span>{' '}
               {project.githubRepo ? (
                 <a 
@@ -495,7 +501,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* Badges Section */}
-          <div className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
+          <div data-tutorial="badges" className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
             <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Badges</h2>
             
             {badges.length === 0 ? (
@@ -543,7 +549,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* Stage Progress */}
-          <div className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
+          <div data-tutorial="stage-progress" className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
             <StageProgress 
               designStatus={project.designStatus} 
               buildStatus={project.buildStatus}
@@ -644,7 +650,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {/* Bill of Materials */}
-          <div className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
+          <div data-tutorial="bom" className="bg-cream-900 border-2 border-cream-700 p-6 mb-6">
             <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
             
             <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
@@ -812,6 +818,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <>
                 <Link
                   href={`/dashboard/projects/${project.id}/session/new`}
+                  data-tutorial="actions"
                   className="flex-1 min-w-[200px] bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 text-center uppercase tracking-wider transition-colors"
                 >
                   + Log Session
@@ -828,6 +835,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {/* Design Stage Submit Button */}
             {(project.designStatus === "draft" || project.designStatus === "rejected") && (
               <button
+                data-tutorial="submit"
                 onClick={() => setShowDesignSubmitDialog(true)}
                 disabled={submitting || !canSubmitDesign}
                 className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
@@ -839,6 +847,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {/* Build Stage Submit Button */}
             {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected") && (
               <button
+                data-tutorial="submit"
                 onClick={() => setShowBuildSubmitDialog(true)}
                 disabled={submitting || !canSubmitBuild}
                 className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
@@ -915,7 +924,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
         {/* Timeline */}
-        <div className="bg-cream-900 border-2 border-cream-700 p-6">
+        <div data-tutorial="timeline" className="bg-cream-900 border-2 border-cream-700 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-cream-50 text-xl uppercase tracking-wide">Timeline</h2>
           </div>
