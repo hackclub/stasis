@@ -5,6 +5,9 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 
 type SessionCategory = 
   | "FIRMWARE"
@@ -67,6 +70,72 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [uploadingToEditor, setUploadingToEditor] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  const uploadImageToEditor = useCallback(async (file: File) => {
+    const imageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!imageTypes.includes(file.type)) {
+      setError("Only images (JPEG, PNG, GIF, WebP) can be embedded in the editor");
+      return;
+    }
+
+    setUploadingToEditor(true);
+    const placeholder = `\n![Uploading ${file.name}...]()\n`;
+    setContent(prev => prev + placeholder);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const { url } = await res.json();
+        const markdown = `![${file.name.replace(/\.[^.]+$/, '')}](${url})`;
+        setContent(prev => prev.replace(placeholder, `\n${markdown}\n`));
+        
+        // Also add to media array so it counts toward the image requirement
+        setMedia(prev => [...prev, { type: "IMAGE", url, uploading: false }]);
+      } else {
+        const data = await res.json();
+        setContent(prev => prev.replace(placeholder, ''));
+        setError(data.error || 'Failed to upload image');
+      }
+    } catch {
+      setContent(prev => prev.replace(placeholder, ''));
+      setError('Failed to upload image');
+    } finally {
+      setUploadingToEditor(false);
+    }
+  }, []);
+
+  const handleEditorDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        uploadImageToEditor(file);
+      }
+    });
+  }, [uploadImageToEditor]);
+
+  const handleEditorPaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          uploadImageToEditor(file);
+        }
+        break;
+      }
+    }
+  }, [uploadImageToEditor]);
 
   useEffect(() => {
     async function fetchProject() {
@@ -397,8 +466,8 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
       return;
     }
 
-    if (imageCount === 0) {
-      setError('At least one image is required');
+    if (imageCount < 2) {
+      setError('At least 2 images are required — drag, drop, or paste images into the editor');
       return;
     }
 
@@ -550,58 +619,33 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
                 What Did You Work On?
               </label>
               <p className="text-cream-500 text-xs mb-3">
-                Write in Markdown. This will be saved to your project&apos;s JOURNAL.md on GitHub.
+                Write in Markdown. <span className="text-cream-300">At least 2 images required</span> — drag, drop, or paste directly into the editor.
+                {uploadingToEditor && <span className="text-brand-400 ml-2">Uploading image...</span>}
               </p>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none font-mono text-sm"
-                placeholder="Describe what you did in this session..."
-                rows={12}
-                required
-              />
-            </div>
-
-            {/* Images */}
-            <div className="bg-cream-900 border-2 border-cream-600 p-4">
-              <label className="block text-cream-500 text-sm uppercase mb-2">
-                Images <span className="text-red-500">*</span>
-              </label>
-              <p className="text-cream-500 text-xs mb-3">
-                Upload photos of your progress. At least one image is required. Max 100MB per file.
-              </p>
-              
-              <div className="flex flex-wrap gap-3 mb-3">
-                {media.filter(m => m.type === "IMAGE").map((item, index) => {
-                  const actualIndex = media.findIndex(m => m === item);
-                  return (
-                    <div key={index} className="relative w-24 h-24 bg-cream-950 border border-cream-800">
-                      <img src={item.url} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removeMedia(actualIndex)}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white flex items-center justify-center cursor-pointer"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <label className="inline-block bg-cream-850 hover:bg-cream-800 text-cream-100 px-4 py-2 text-sm uppercase cursor-pointer transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleFileUpload(e, "IMAGE")}
-                  className="hidden"
+              <div 
+                ref={editorRef}
+                data-color-mode="dark" 
+                className="wmde-markdown-var"
+                onDrop={handleEditorDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onPaste={handleEditorPaste}
+              >
+                <MDEditor
+                  value={content}
+                  onChange={(val) => setContent(val || '')}
+                  height={400}
+                  preview="live"
+                  textareaProps={{
+                    placeholder: "Describe what you did in this session...",
+                  }}
                 />
-                + Add Images
-              </label>
-              
-              {imageCount === 0 && (
-                <p className="text-red-500 text-xs mt-2">At least one image is required</p>
+              </div>
+              {imageCount < 2 && (
+                <p className="text-red-500 text-xs mt-2">
+                  {imageCount === 0 
+                    ? "At least 2 images required — drag, drop, or paste images into the editor above"
+                    : `${imageCount}/2 images added — add ${2 - imageCount} more`}
+                </p>
               )}
             </div>
 
