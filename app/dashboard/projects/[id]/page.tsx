@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
-import { NoiseOverlay } from '@/app/components/NoiseOverlay';
+
 import { StageProgress } from '@/app/components/projects/StageProgress';
 import { Timeline } from '@/app/components/projects/Timeline';
 import Link from 'next/link';
@@ -365,8 +365,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   if (isPending || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-500">Loading...</p>
+      <div className="flex items-center justify-center py-16">
+        <p className="text-cream-300">Loading...</p>
       </div>
     );
   }
@@ -380,26 +380,25 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const pendingBadges = badges.filter(b => b.grantedAt === null);
 
   return (
-    <>
-      <div className="min-h-screen bg-cream-950 font-mono">
-        {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href="/dashboard" className="text-cream-500 hover:text-brand-500 transition-colors flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Back to Dashboard
-          </Link>
-        </div>
+    <div className="max-w-4xl mx-auto">
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <Link href="/dashboard" className="text-cream-300 hover:text-brand-400 transition-colors flex items-center gap-2 text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Projects
+        </Link>
+      </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-8">
+      <div>
           {/* Project Header */}
           <div className="mb-8">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h1 className="text-brand-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
                 {project.description && (
-                  <p className="text-cream-400 text-lg">{project.description}</p>
+                  <p className="text-cream-200 text-lg">{project.description}</p>
                 )}
               </div>
               
@@ -422,15 +421,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </div>
                   </>
                 ) : uploading ? (
-                  <span className="text-cream-500 text-xs uppercase">Uploading...</span>
+                  <span className="text-cream-300 text-xs uppercase">Uploading...</span>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-500 group-hover:text-brand-500 mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-300 group-hover:text-brand-500 mb-1">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                       <circle cx="8.5" cy="8.5" r="1.5"/>
                       <polyline points="21 15 16 10 5 21"/>
                     </svg>
-                    <span className="text-cream-500 group-hover:text-brand-500 text-xs uppercase font-medium">Upload Screenshot</span>
+                    <span className="text-cream-300 group-hover:text-brand-500 text-xs uppercase font-medium">Upload Screenshot</span>
                   </>
                 )}
                 <input 
@@ -463,18 +462,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {/* Stats */}
             <div className="flex gap-6 mt-4 text-sm">
               <div>
-                <span className="text-cream-500">Hours Claimed:</span>{' '}
+                <span className="text-cream-300">Hours Claimed:</span>{' '}
                 <span className="text-cream-200">{project.totalHoursClaimed.toFixed(1)}h</span>
               </div>
               <div>
-                <span className="text-cream-500">Hours Approved:</span>{' '}
+                <span className="text-cream-300">Hours Approved:</span>{' '}
                 <span className="text-brand-400">{project.totalHoursApproved.toFixed(1)}h</span>
               </div>
             </div>
 
             {/* GitHub Repo */}
             <div className="mt-4 text-sm">
-              <span className="text-cream-500">GitHub Repo:</span>{' '}
+              <span className="text-cream-300">GitHub Repo:</span>{' '}
               {project.githubRepo ? (
                 <a 
                   href={project.githubRepo} 
@@ -485,7 +484,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   {project.githubRepo}
                 </a>
               ) : (
-                <span className="text-cream-500">
+                <span className="text-cream-300">
                   Not set.{' '}
                   <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
                     Add one
@@ -500,7 +499,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Badges</h2>
             
             {badges.length === 0 ? (
-              <p className="text-cream-500 text-sm">
+              <p className="text-cream-300 text-sm">
                 No badges claimed yet.{' '}
                 <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
                   You should claim some
@@ -510,7 +509,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="space-y-4">
                 {approvedBadges.length > 0 && (
                   <div>
-                    <p className="text-cream-500 text-xs uppercase mb-2">Approved</p>
+                    <p className="text-cream-300 text-xs uppercase mb-2">Approved</p>
                     <div className="flex flex-wrap gap-2">
                       {approvedBadges.map((badge) => (
                         <span 
@@ -526,7 +525,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 
                 {pendingBadges.length > 0 && (
                   <div>
-                    <p className="text-cream-500 text-xs uppercase mb-2">Pending</p>
+                    <p className="text-cream-300 text-xs uppercase mb-2">Pending</p>
                     <div className="flex flex-wrap gap-2">
                       {pendingBadges.map((badge) => (
                         <span 
@@ -570,9 +569,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           {/* Stage Requirements */}
           {project.designStatus !== "approved" && (
             <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-6">
-              <p className="text-cream-500 text-xs uppercase mb-3">Design Stage Requirements</p>
+              <p className="text-cream-300 text-xs uppercase mb-3">Design Stage Requirements</p>
               <div className="space-y-2">
-                <div className={`flex items-center gap-2 text-sm ${project.description?.trim() ? 'text-green-400' : 'text-cream-400'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.description?.trim() ? 'text-green-400' : 'text-cream-300'}`}>
                   {project.description?.trim() ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -582,7 +581,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Project description
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.bomItems.length > 0 ? 'text-green-400' : 'text-cream-400'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.bomItems.length > 0 ? 'text-green-400' : 'text-cream-300'}`}>
                   {project.bomItems.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -592,7 +591,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   At least 1 BOM item ({project.bomItems.length} added)
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${designSessions.length > 0 ? 'text-green-400' : 'text-cream-400'}`}>
+                <div className={`flex items-center gap-2 text-sm ${designSessions.length > 0 ? 'text-green-400' : 'text-cream-300'}`}>
                   {designSessions.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -602,7 +601,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   At least 1 work session ({designSessions.length} logged)
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.githubRepo ? 'text-green-400' : 'text-cream-400'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.githubRepo ? 'text-green-400' : 'text-cream-300'}`}>
                   {project.githubRepo ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -612,7 +611,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   GitHub repo linked
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.badges.length > 0 ? 'text-green-400' : 'text-cream-400'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.badges.length > 0 ? 'text-green-400' : 'text-cream-300'}`}>
                   {project.badges.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -628,9 +627,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {project.designStatus === "approved" && project.buildStatus !== "approved" && (
             <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-6">
-              <p className="text-cream-500 text-xs uppercase mb-3">Build Stage Requirements</p>
+              <p className="text-cream-300 text-xs uppercase mb-3">Build Stage Requirements</p>
               <div className="space-y-2">
-                <div className={`flex items-center gap-2 text-sm ${totalBuildHours >= MIN_HOURS_REQUIRED ? 'text-green-400' : 'text-cream-400'}`}>
+                <div className={`flex items-center gap-2 text-sm ${totalBuildHours >= MIN_HOURS_REQUIRED ? 'text-green-400' : 'text-cream-300'}`}>
                   {totalBuildHours >= MIN_HOURS_REQUIRED ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -659,16 +658,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-cream-700">
-                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Name</th>
-                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Purpose</th>
-                      <th className="text-right text-cream-500 uppercase text-xs py-2 pr-3">Cost (USD)</th>
-                      <th className="text-right text-cream-500 uppercase text-xs py-2 pr-3">Qty</th>
-                      <th className="text-right text-cream-500 uppercase text-xs py-2 pr-3">Total (USD)</th>
-                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Link</th>
-                      <th className="text-left text-cream-500 uppercase text-xs py-2 pr-3">Distributor</th>
-                      <th className="text-center text-cream-500 uppercase text-xs py-2 pr-3">Status</th>
+                      <th className="text-left text-cream-300 uppercase text-xs py-2 pr-3">Name</th>
+                      <th className="text-left text-cream-300 uppercase text-xs py-2 pr-3">Purpose</th>
+                      <th className="text-right text-cream-300 uppercase text-xs py-2 pr-3">Cost (USD)</th>
+                      <th className="text-right text-cream-300 uppercase text-xs py-2 pr-3">Qty</th>
+                      <th className="text-right text-cream-300 uppercase text-xs py-2 pr-3">Total (USD)</th>
+                      <th className="text-left text-cream-300 uppercase text-xs py-2 pr-3">Link</th>
+                      <th className="text-left text-cream-300 uppercase text-xs py-2 pr-3">Distributor</th>
+                      <th className="text-center text-cream-300 uppercase text-xs py-2 pr-3">Status</th>
                       {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
-                        <th className="text-center text-cream-500 uppercase text-xs py-2"></th>
+                        <th className="text-center text-cream-300 uppercase text-xs py-2"></th>
                       )}
                     </tr>
                   </thead>
@@ -676,7 +675,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     {(project.bomItems ?? []).map((item) => (
                       <tr key={item.id} className="border-b border-cream-800">
                         <td className="text-cream-200 py-2 pr-3">{item.name}</td>
-                        <td className="text-cream-400 py-2 pr-3">{item.purpose || '-'}</td>
+                        <td className="text-cream-200 py-2 pr-3">{item.purpose || '-'}</td>
                         <td className="text-cream-200 py-2 pr-3 text-right">${item.costPerItem.toFixed(2)}</td>
                         <td className="text-cream-200 py-2 pr-3 text-right">{item.quantity}</td>
                         <td className="text-cream-200 py-2 pr-3 text-right">${(item.costPerItem * item.quantity).toFixed(2)}</td>
@@ -687,7 +686,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                             </a>
                           ) : '-'}
                         </td>
-                        <td className="text-cream-400 py-2 pr-3">{item.distributor || '-'}</td>
+                        <td className="text-cream-200 py-2 pr-3">{item.distributor || '-'}</td>
                         <td className="py-2 pr-3 text-center">
                           {item.status === 'approved' ? (
                             <span className="bg-green-600/30 border border-green-600 text-green-400 px-2 py-0.5 text-xs uppercase">
@@ -723,13 +722,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 
                 <div className="flex flex-col items-end gap-1 mt-3 pt-3 border-t border-cream-700">
                   <div className="flex items-center">
-                    <span className="text-cream-400 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
+                    <span className="text-cream-300 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
                     <span className="text-cream-50 font-medium">
                       ${(project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <span className="text-cream-500 text-xs mr-3">Hours needed at $5/hr:</span>
+                    <span className="text-cream-300 text-xs mr-3">Hours needed at $5/hr:</span>
                     <span className="text-cream-300 text-sm">
                       {(Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0) / 5 * 4) / 4).toFixed(2)}h
                     </span>
@@ -737,15 +736,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
             ) : (
-              <p className="text-cream-500 text-sm mb-4">No items added yet.</p>
+              <p className="text-cream-300 text-sm mb-4">No items added yet.</p>
             )}
 
             {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
               <form onSubmit={handleAddBomItem} className="border-t border-cream-700 pt-4">
-                <p className="text-cream-500 text-xs uppercase mb-3">Add New Item</p>
+                <p className="text-cream-300 text-xs uppercase mb-3">Add New Item</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                   <div>
-                    <label className="text-cream-500 text-xs uppercase block mb-1">Name *</label>
+                    <label className="text-cream-300 text-xs uppercase block mb-1">Name *</label>
                     <input
                       type="text"
                       value={bomForm.name}
@@ -756,7 +755,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     />
                   </div>
                   <div>
-                    <label className="text-cream-500 text-xs uppercase block mb-1">Purpose *</label>
+                    <label className="text-cream-300 text-xs uppercase block mb-1">Purpose *</label>
                     <input
                       type="text"
                       value={bomForm.purpose}
@@ -767,7 +766,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     />
                   </div>
                   <div>
-                    <label className="text-cream-500 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
+                    <label className="text-cream-300 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -780,7 +779,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     />
                   </div>
                   <div>
-                    <label className="text-cream-500 text-xs uppercase block mb-1">Quantity *</label>
+                    <label className="text-cream-300 text-xs uppercase block mb-1">Quantity *</label>
                     <input
                       type="number"
                       min="1"
@@ -792,7 +791,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     />
                   </div>
                   <div>
-                    <label className="text-cream-500 text-xs uppercase block mb-1">Link</label>
+                    <label className="text-cream-300 text-xs uppercase block mb-1">Link</label>
                     <input
                       type="url"
                       value={bomForm.link}
@@ -802,7 +801,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     />
                   </div>
                   <div>
-                    <label className="text-cream-500 text-xs uppercase block mb-1">Distributor *</label>
+                    <label className="text-cream-300 text-xs uppercase block mb-1">Distributor *</label>
                     <input
                       type="text"
                       value={bomForm.distributor}
@@ -816,7 +815,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <button
                   type="submit"
                   disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.costPerItem || !bomForm.quantity || !bomForm.distributor}
-                  className="bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                  className="bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
                 >
                   {addingBom ? 'Adding...' : '+ Add Item'}
                 </button>
@@ -849,7 +848,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <button
                 onClick={() => setShowDesignSubmitDialog(true)}
                 disabled={submitting || !canSubmitDesign}
-                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
+                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
                 {submitting ? 'Submitting...' : (project.designStatus === "rejected" ? 'Resubmit Design' : 'Submit Design for Review')}
               </button>
@@ -860,7 +859,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <button
                 onClick={() => setShowBuildSubmitDialog(true)}
                 disabled={submitting || !canSubmitBuild}
-                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
+                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
                 {submitting ? 'Submitting...' : (project.buildStatus === "rejected" ? 'Resubmit Build' : 'Submit Build for Review')}
               </button>
@@ -919,16 +918,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
 
-          {/* Timeline */}
-          <div className="bg-cream-900 border-2 border-cream-700 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-cream-50 text-xl uppercase tracking-wide">Timeline</h2>
-            </div>
-            <Timeline items={timelineItems} />
+        {/* Timeline */}
+        <div className="bg-cream-900 border-2 border-cream-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-cream-50 text-xl uppercase tracking-wide">Timeline</h2>
           </div>
+          <Timeline items={timelineItems} />
         </div>
       </div>
-      <NoiseOverlay />
-    </>
+    </div>
   );
 }

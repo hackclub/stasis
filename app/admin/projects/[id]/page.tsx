@@ -295,7 +295,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-500">Loading...</p>
+        <p className="text-cream-300">Loading...</p>
       </div>
     );
   }
@@ -315,7 +315,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       <div className="min-h-screen bg-cream-950 font-mono">
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href="/admin" className="text-cream-500 hover:text-brand-500 transition-colors flex items-center gap-2">
+          <Link href="/admin" className="text-cream-300 hover:text-brand-500 transition-colors flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -336,7 +336,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {/* Project Header */}
           <div className="mb-6">
             <h1 className="text-brand-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
-            <p className="text-cream-400 text-sm">
+            <p className="text-cream-200 text-sm">
               by {project.user.name || project.user.email}
               {project.user.name && <span className="text-cream-600"> ({project.user.email})</span>}
             </p>
@@ -359,36 +359,36 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <p className="text-cream-500 text-xs uppercase mb-1">Total Hours Claimed</p>
+                <p className="text-cream-300 text-xs uppercase mb-1">Total Hours Claimed</p>
                 <p className="text-cream-100 text-xl">{totalHoursClaimed.toFixed(1)}h</p>
               </div>
               <div>
-                <p className="text-cream-500 text-xs uppercase mb-1">Sessions</p>
+                <p className="text-cream-300 text-xs uppercase mb-1">Sessions</p>
                 <p className="text-cream-100 text-xl">{project.workSessions.length}</p>
               </div>
               <div>
-                <p className="text-cream-500 text-xs uppercase mb-1">Design Status</p>
+                <p className="text-cream-300 text-xs uppercase mb-1">Design Status</p>
                 <p className={`text-xl uppercase ${
                   project.designStatus === 'approved' ? 'text-green-500' :
                   project.designStatus === 'rejected' ? 'text-red-500' :
                   project.designStatus === 'in_review' ? 'text-brand-500' :
                   project.designStatus === 'update_requested' ? 'text-blue-400' :
-                  'text-cream-500'
+                  'text-cream-300'
                 }`}>{project.designStatus.replace('_', ' ')}</p>
               </div>
               <div>
-                <p className="text-cream-500 text-xs uppercase mb-1">Build Status</p>
+                <p className="text-cream-300 text-xs uppercase mb-1">Build Status</p>
                 <p className={`text-xl uppercase ${
                   project.buildStatus === 'approved' ? 'text-green-500' :
                   project.buildStatus === 'rejected' ? 'text-red-500' :
                   project.buildStatus === 'in_review' ? 'text-brand-500' :
                   project.buildStatus === 'update_requested' ? 'text-blue-400' :
-                  'text-cream-500'
+                  'text-cream-300'
                 }`}>{project.buildStatus.replace('_', ' ')}</p>
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-cream-500 text-xs uppercase mb-1">Created</p>
+              <p className="text-cream-300 text-xs uppercase mb-1">Created</p>
               <p className="text-cream-100 text-sm">
                 {new Date(project.createdAt).toLocaleDateString('en-US', {
                   month: 'short', day: 'numeric', year: 'numeric'
@@ -406,14 +406,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
             {project.description && (
               <div className="mt-4">
-                <p className="text-cream-500 text-xs uppercase mb-1">Description</p>
+                <p className="text-cream-300 text-xs uppercase mb-1">Description</p>
                 <p className="text-cream-300 text-sm whitespace-pre-wrap">{project.description}</p>
               </div>
             )}
 
             {project.githubRepo && (
               <div className="mt-4">
-                <p className="text-cream-500 text-xs uppercase mb-1">GitHub Repository</p>
+                <p className="text-cream-300 text-xs uppercase mb-1">GitHub Repository</p>
                 <a 
                   href={project.githubRepo} 
                   target="_blank" 
@@ -427,7 +427,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
             {project.tags.length > 0 && (
               <div className="mt-4">
-                <p className="text-cream-500 text-xs uppercase mb-2">Tags</p>
+                <p className="text-cream-300 text-xs uppercase mb-2">Tags</p>
                 <div className="flex flex-wrap gap-2">
                   {project.tags.map((tag) => (
                     <span 
@@ -443,7 +443,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
             {project.badges.length > 0 && (
               <div className="mt-4">
-                <p className="text-cream-500 text-xs uppercase mb-2">Badges Claimed</p>
+                <p className="text-cream-300 text-xs uppercase mb-2">Badges Claimed</p>
                 <div className="flex flex-wrap gap-2">
                   {project.badges.map((badge) => (
                     <span 
@@ -465,7 +465,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               <div className="mt-4 pt-4 border-t border-cream-700 space-y-3">
                 {project.designReviewedAt && (
                   <div>
-                    <p className="text-cream-500 text-xs uppercase mb-1">Design Reviewed</p>
+                    <p className="text-cream-300 text-xs uppercase mb-1">Design Reviewed</p>
                     <p className="text-cream-300 text-sm">
                       {new Date(project.designReviewedAt).toLocaleDateString('en-US', {
                         month: 'short', day: 'numeric', year: 'numeric'
@@ -473,13 +473,13 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       {project.designReviewedBy && ` by ${project.designReviewedBy}`}
                     </p>
                     {project.designReviewComments && (
-                      <p className="text-cream-400 text-sm mt-1">{project.designReviewComments}</p>
+                      <p className="text-cream-200 text-sm mt-1">{project.designReviewComments}</p>
                     )}
                   </div>
                 )}
                 {project.buildReviewedAt && (
                   <div>
-                    <p className="text-cream-500 text-xs uppercase mb-1">Build Reviewed</p>
+                    <p className="text-cream-300 text-xs uppercase mb-1">Build Reviewed</p>
                     <p className="text-cream-300 text-sm">
                       {new Date(project.buildReviewedAt).toLocaleDateString('en-US', {
                         month: 'short', day: 'numeric', year: 'numeric'
@@ -487,7 +487,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       {project.buildReviewedBy && ` by ${project.buildReviewedBy}`}
                     </p>
                     {project.buildReviewComments && (
-                      <p className="text-cream-400 text-sm mt-1">{project.buildReviewComments}</p>
+                      <p className="text-cream-200 text-sm mt-1">{project.buildReviewComments}</p>
                     )}
                   </div>
                 )}
@@ -516,7 +516,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             <h2 className="text-cream-100 text-xl uppercase tracking-wide mb-4">Work Sessions</h2>
             {project.workSessions.length === 0 ? (
               <div className="bg-cream-900 border-2 border-cream-700 p-6 text-center">
-                <p className="text-cream-500">No work sessions recorded</p>
+                <p className="text-cream-300">No work sessions recorded</p>
               </div>
             ) : (
             <div className="space-y-4">
@@ -540,7 +540,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                         }`}>
                           {session.stage}
                         </span>
-                        <span className="text-cream-500 text-sm">
+                        <span className="text-cream-300 text-sm">
                           {new Date(session.createdAt).toLocaleDateString('en-US', {
                             weekday: 'short',
                             year: 'numeric',
@@ -562,7 +562,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     {session.categories && session.categories.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {session.categories.map((cat, i) => (
-                          <span key={i} className="bg-cream-950 text-cream-400 px-2 py-0.5 text-xs">
+                          <span key={i} className="bg-cream-950 text-cream-200 px-2 py-0.5 text-xs">
                             {cat}
                           </span>
                         ))}
@@ -574,7 +574,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                         {session.content}
                       </div>
                     ) : (
-                      <p className="text-cream-500 text-sm italic mb-4">No content recorded</p>
+                      <p className="text-cream-300 text-sm italic mb-4">No content recorded</p>
                     )}
 
                     {session.media.length > 0 && (
@@ -610,7 +610,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       <div className="bg-cream-950 border border-cream-700 p-3 mt-4">
                         <div className="grid grid-cols-2 gap-4 mb-3">
                           <div>
-                            <label className="text-cream-500 text-xs uppercase block mb-1">
+                            <label className="text-cream-300 text-xs uppercase block mb-1">
                               Hours Approved
                             </label>
                             <input
@@ -624,13 +624,13 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                             />
                           </div>
                           <div className="flex items-end">
-                            <span className="text-cream-500 text-sm pb-2">
+                            <span className="text-cream-300 text-sm pb-2">
                               of {session.hoursClaimed}h claimed
                             </span>
                           </div>
                         </div>
                         <div className="mb-3">
-                          <label className="text-cream-500 text-xs uppercase block mb-1">
+                          <label className="text-cream-300 text-xs uppercase block mb-1">
                             Review Comments (optional)
                           </label>
                           <textarea
@@ -656,9 +656,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     ) : session.hoursApproved !== null && (
                       <div className="bg-cream-950 border border-cream-700 p-3 mt-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-cream-500 text-sm">Hours Approved: <span className="text-cream-100">{session.hoursApproved}h</span></span>
+                          <span className="text-cream-300 text-sm">Hours Approved: <span className="text-cream-100">{session.hoursApproved}h</span></span>
                           {session.reviewComments && (
-                            <span className="text-cream-400 text-sm">{session.reviewComments}</span>
+                            <span className="text-cream-200 text-sm">{session.reviewComments}</span>
                           )}
                         </div>
                       </div>
@@ -685,11 +685,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   <div className="bg-cream-900 border-2 border-cream-700 p-4 mb-4">
                     <div className="flex gap-6">
                       <div>
-                        <p className="text-cream-500 text-xs uppercase mb-1">Total Estimated</p>
+                        <p className="text-cream-300 text-xs uppercase mb-1">Total Estimated</p>
                         <p className="text-cream-100 text-lg">${totalCost.toFixed(2)}</p>
                       </div>
                       <div>
-                        <p className="text-cream-500 text-xs uppercase mb-1">Approved</p>
+                        <p className="text-cream-300 text-xs uppercase mb-1">Approved</p>
                         <p className="text-green-400 text-lg">${approvedCost.toFixed(2)}</p>
                       </div>
                     </div>
@@ -702,14 +702,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-cream-700">
-                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Name</th>
-                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Purpose</th>
-                      <th className="text-right text-cream-500 text-xs uppercase px-4 py-3">Cost</th>
-                      <th className="text-right text-cream-500 text-xs uppercase px-4 py-3">Qty</th>
-                      <th className="text-right text-cream-500 text-xs uppercase px-4 py-3">Total</th>
-                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Link</th>
-                      <th className="text-left text-cream-500 text-xs uppercase px-4 py-3">Distributor</th>
-                      <th className="text-center text-cream-500 text-xs uppercase px-4 py-3">Status</th>
+                      <th className="text-left text-cream-300 text-xs uppercase px-4 py-3">Name</th>
+                      <th className="text-left text-cream-300 text-xs uppercase px-4 py-3">Purpose</th>
+                      <th className="text-right text-cream-300 text-xs uppercase px-4 py-3">Cost</th>
+                      <th className="text-right text-cream-300 text-xs uppercase px-4 py-3">Qty</th>
+                      <th className="text-right text-cream-300 text-xs uppercase px-4 py-3">Total</th>
+                      <th className="text-left text-cream-300 text-xs uppercase px-4 py-3">Link</th>
+                      <th className="text-left text-cream-300 text-xs uppercase px-4 py-3">Distributor</th>
+                      <th className="text-center text-cream-300 text-xs uppercase px-4 py-3">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -787,13 +787,13 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               {/* Review Comments Input - show for pending items when any stage is in review */}
               {isAnyStageInReview && project.bomItems.some((item) => item.status === 'pending') && (
                 <div className="bg-cream-950 border border-cream-700 p-4 mt-4">
-                  <p className="text-cream-500 text-xs uppercase mb-3">Review Comments for BOM Items</p>
+                  <p className="text-cream-300 text-xs uppercase mb-3">Review Comments for BOM Items</p>
                   <div className="space-y-3">
                     {project.bomItems
                       .filter((item) => item.status === 'pending')
                       .map((item) => (
                         <div key={item.id}>
-                          <label className="text-cream-400 text-sm block mb-1">{item.name}</label>
+                          <label className="text-cream-200 text-sm block mb-1">{item.name}</label>
                           <textarea
                             value={bomReviewComments[item.id] || ''}
                             onChange={(e) =>
@@ -815,13 +815,13 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               {/* Show review comments for reviewed items */}
               {project.bomItems.some((item) => item.reviewComments) && (
                 <div className="bg-cream-950 border border-cream-700 p-4 mt-4">
-                  <p className="text-cream-500 text-xs uppercase mb-3">Review Comments</p>
+                  <p className="text-cream-300 text-xs uppercase mb-3">Review Comments</p>
                   <div className="space-y-2">
                     {project.bomItems
                       .filter((item) => item.reviewComments)
                       .map((item) => (
                         <div key={item.id} className="flex gap-2">
-                          <span className="text-cream-400 text-sm">{item.name}:</span>
+                          <span className="text-cream-200 text-sm">{item.name}:</span>
                           <span className="text-cream-300 text-sm">{item.reviewComments}</span>
                         </div>
                       ))}
@@ -843,11 +843,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               )}
 
               <div className="mb-4">
-                <label className="text-cream-500 text-xs uppercase block mb-2">
+                <label className="text-cream-300 text-xs uppercase block mb-2">
                   Grant Amount (optional)
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-cream-400">$</span>
+                  <span className="text-cream-200">$</span>
                   <input
                     type="number"
                     step="0.01"
@@ -861,7 +861,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               </div>
 
               <div className="mb-4">
-                <label className="text-cream-500 text-xs uppercase block mb-2">
+                <label className="text-cream-300 text-xs uppercase block mb-2">
                   Design Review Comments (optional)
                 </label>
                 <textarea
@@ -917,11 +917,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 )}
 
                 <div className="mb-4">
-                  <label className="text-cream-500 text-xs uppercase block mb-2">
+                  <label className="text-cream-300 text-xs uppercase block mb-2">
                     Grant Amount (optional)
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-cream-400">$</span>
+                    <span className="text-cream-200">$</span>
                     <input
                       type="number"
                       step="0.01"
@@ -935,7 +935,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 </div>
 
                 <div className="mb-4">
-                  <label className="text-cream-500 text-xs uppercase block mb-2">
+                  <label className="text-cream-300 text-xs uppercase block mb-2">
                     Build Review Comments (optional)
                   </label>
                   <textarea

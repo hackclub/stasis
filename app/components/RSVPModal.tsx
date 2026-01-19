@@ -54,11 +54,11 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
-        className="absolute inset-0 bg-cream-800/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-cream-900/70 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      <div className="relative bg-[#DAD2BF] border-2 border-cream-800 p-8 max-w-md w-full mx-4 shadow-lg">
+      <div className="relative bg-cream-100 border-2 border-cream-800 p-8 max-w-md w-full mx-4 shadow-lg">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-cream-800 hover:text-brand-500 text-2xl leading-none cursor-pointer"
@@ -78,7 +78,7 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-cream-100 border border-cream-800/30 text-cream-800 placeholder:text-cream-800/50 focus:outline-none focus:border-brand-500"
+              className="w-full px-3 py-2 bg-cream-50 border border-cream-600 text-cream-800 placeholder:text-cream-600 focus:outline-none focus:border-brand-500"
               placeholder="you@example.com"
             />
           </div>
@@ -102,7 +102,7 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
             </MagneticCorners>
           </div>
 
-          <p className="text-xs text-cream-800/70 text-center mt-4">
+          <p className="text-xs text-cream-700 text-center mt-4">
             You&apos;ll be redirected to Hack Club Auth to finish signing up.
           </p>
         </div>

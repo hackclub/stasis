@@ -218,7 +218,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   if (isPending || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-500">Loading...</p>
+        <p className="text-cream-300">Loading...</p>
       </div>
     );
   }
@@ -235,7 +235,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       <div className="min-h-screen bg-cream-950 font-mono">
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href={`/dashboard/projects/${project.id}`} className="text-cream-500 hover:text-brand-500 transition-colors flex items-center gap-2">
+          <Link href={`/dashboard/projects/${project.id}`} className="text-cream-300 hover:text-brand-500 transition-colors flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -249,7 +249,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-cream-900 border-2 border-cream-700 p-6 space-y-6">
               <div>
-                <label className="block text-cream-500 text-sm uppercase mb-2">
+                <label className="block text-cream-300 text-sm uppercase mb-2">
                   Title
                 </label>
                 <input
@@ -263,7 +263,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
-                <label className="block text-cream-500 text-sm uppercase mb-2">
+                <label className="block text-cream-300 text-sm uppercase mb-2">
                   Description
                 </label>
                 <textarea
@@ -275,7 +275,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
-                <label className="block text-cream-500 text-sm uppercase mb-2">
+                <label className="block text-cream-300 text-sm uppercase mb-2">
                   GitHub Repo <span className="text-brand-400">(required for submission)</span>
                 </label>
                 <input
@@ -288,7 +288,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
-                <label className="block text-cream-500 text-sm uppercase mb-2">
+                <label className="block text-cream-300 text-sm uppercase mb-2">
                   Tags
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -310,7 +310,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
-                <label className="block text-cream-500 text-sm uppercase mb-2">
+                <label className="block text-cream-300 text-sm uppercase mb-2">
                   Project Type
                 </label>
                 <div className="flex gap-2">
@@ -346,13 +346,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <h2 className="text-cream-50 text-lg uppercase">
                   Skill Badges ({badges.length}/{MAX_BADGES})
                 </h2>
-                {loadingBadges && <span className="text-cream-500 text-xs">Loading...</span>}
+                {loadingBadges && <span className="text-cream-300 text-xs">Loading...</span>}
               </div>
               
               {/* Claimed badges */}
               {badges.length > 0 && (
                 <div className="mb-4 space-y-2">
-                  <p className="text-cream-500 text-xs uppercase">Claimed</p>
+                  <p className="text-cream-300 text-xs uppercase">Claimed</p>
                   <div className="flex flex-wrap gap-2">
                     {badges.map((badge) => {
                       const badgeInfo = AVAILABLE_BADGES.find(b => b.value === badge.badge);
@@ -387,7 +387,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               {/* Available badges */}
               {badges.length < MAX_BADGES && (
                 <div>
-                  <p className="text-cream-500 text-xs uppercase mb-2">Available to claim</p>
+                  <p className="text-cream-300 text-xs uppercase mb-2">Available to claim</p>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                     {AVAILABLE_BADGES.filter(b => !claimedBadgeTypes.includes(b.value)).map((badge) => (
                       <button
@@ -395,7 +395,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                         type="button"
                         onClick={() => handleClaimBadge(badge.value)}
                         disabled={claimingBadge === badge.value}
-                        className="text-left px-3 py-2 bg-cream-950 border border-cream-700 hover:border-brand-400 text-cream-400 hover:text-cream-200 transition-colors cursor-pointer disabled:opacity-50 text-sm"
+                        className="text-left px-3 py-2 bg-cream-950 border border-cream-700 hover:border-brand-400 text-cream-200 hover:text-cream-200 transition-colors cursor-pointer disabled:opacity-50 text-sm"
                       >
                         {badge.label}
                       </button>
@@ -408,7 +408,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             <button
               type="submit"
               disabled={!title.trim() || saving}
-              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white font-medium py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white font-medium py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -426,7 +426,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             
             {showDeleteConfirm && (
               <div className="mt-4 space-y-3">
-                <p className="text-cream-500 text-sm">
+                <p className="text-cream-300 text-sm">
                   Type <span className="text-red-500 font-bold">{project.title}</span> to confirm deletion:
                 </p>
                 <input

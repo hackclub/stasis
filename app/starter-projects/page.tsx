@@ -474,13 +474,13 @@ export default function StarterProjectsPage() {
                 </div>
                 <div className="flex flex-row border-cream-500 border-y-2 relative z-10">
                   <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
-                    <p className="text-cream-500 absolute top-2 right-4">1</p>
+                    <p className="text-cream-300 absolute top-2 right-4">1</p>
                   </div>
                   <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
-                    <p className="text-cream-500 absolute top-2 right-4">2</p>
+                    <p className="text-cream-300 absolute top-2 right-4">2</p>
                   </div>
                   <div className="flex-1/3 min-h-24 border-cream-500 relative">
-                    <p className="text-cream-500 absolute top-2 right-4">3</p>
+                    <p className="text-cream-300 absolute top-2 right-4">3</p>
                   </div>
                 </div>
                 <button className="text-white text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-500/20 border-r-3">
@@ -523,8 +523,8 @@ export default function StarterProjectsPage() {
 
         <footer className="pt-20 pb-24 relative px-4">
           <div className="mx-auto max-w-md w-max font-mono">
-            <p className="text-xs md:text-sm text-cream-500 text-center">Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
-            <div className="mt-2 text-cream-500 text-center">
+            <p className="text-xs md:text-sm text-cream-300 text-center">Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
+            <div className="mt-2 text-cream-300 text-center">
               <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hack Club</a>
               <span>・</span>
               <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Slack</a>

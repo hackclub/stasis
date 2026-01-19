@@ -207,7 +207,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Title
             </label>
             <input
@@ -221,7 +221,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           </div>
 
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Description
             </label>
             <textarea
@@ -233,7 +233,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           </div>
 
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Tags
             </label>
             <div className="flex flex-wrap gap-2">
@@ -245,7 +245,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                   className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                     selectedTags.includes(tag.value)
                       ? 'bg-brand-500 text-white'
-                      : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                      : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
                   }`}
                 >
                   {tag.label}
@@ -255,7 +255,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           </div>
 
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               GitHub Repository
             </label>
             <input
@@ -270,16 +270,16 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           {/* Badges section */}
           <div className="border-t border-cream-600 pt-6">
             <div className="flex items-center justify-between mb-3">
-              <label className="block text-cream-500 text-sm uppercase">
+              <label className="block text-cream-300 text-sm uppercase">
                 Skill Badges ({badges.length}/{MAX_BADGES})
               </label>
-              {loadingBadges && <span className="text-cream-500 text-xs">Loading...</span>}
+              {loadingBadges && <span className="text-cream-300 text-xs">Loading...</span>}
             </div>
             
             {/* Claimed badges */}
             {badges.length > 0 && (
               <div className="mb-4 space-y-2">
-                <p className="text-cream-500 text-xs uppercase">Claimed</p>
+                <p className="text-cream-300 text-xs uppercase">Claimed</p>
                 <div className="flex flex-wrap gap-2">
                   {badges.map((badge) => {
                     const badgeInfo = AVAILABLE_BADGES.find(b => b.value === badge.badge)
@@ -314,7 +314,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
             {/* Available badges */}
             {badges.length < MAX_BADGES && (
               <div>
-                <p className="text-cream-500 text-xs uppercase mb-2">Available to claim</p>
+                <p className="text-cream-300 text-xs uppercase mb-2">Available to claim</p>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                   {AVAILABLE_BADGES.filter(b => !claimedBadgeTypes.includes(b.value)).map((badge) => (
                     <button
@@ -322,7 +322,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                       type="button"
                       onClick={() => handleClaimBadge(badge.value)}
                       disabled={claimingBadge === badge.value}
-                      className="text-left px-3 py-2 bg-cream-950 border border-cream-800 hover:border-brand-500 text-cream-500 hover:text-cream-100 transition-colors cursor-pointer disabled:opacity-50 text-sm"
+                      className="text-left px-3 py-2 bg-cream-950 border border-cream-800 hover:border-brand-500 text-cream-300 hover:text-cream-100 transition-colors cursor-pointer disabled:opacity-50 text-sm"
                     >
                       {badge.label}
                     </button>
@@ -333,7 +333,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           </div>
 
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Project Type
             </label>
             <div className="flex gap-2">
@@ -343,7 +343,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   !isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
                 }`}
               >
                 Custom
@@ -354,7 +354,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
                 }`}
               >
                 Starter
@@ -382,7 +382,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
               
               {showDeleteConfirm && (
                 <div className="mt-4 space-y-3">
-                  <p className="text-cream-500 text-sm">
+                  <p className="text-cream-300 text-sm">
                     Type <span className="text-red-500 font-bold">{project.title}</span> to confirm deletion:
                   </p>
                   <input

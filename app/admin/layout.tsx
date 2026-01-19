@@ -52,7 +52,7 @@ export default function AdminLayout({
   if (isPending || loading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-500">Loading...</p>
+        <p className="text-cream-300">Loading...</p>
       </div>
     );
   }

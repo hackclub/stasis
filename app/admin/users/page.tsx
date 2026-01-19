@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
           <div className="flex items-center gap-4">
-            <Link href="/admin" className="text-cream-500 hover:text-brand-500 transition-colors">
+            <Link href="/admin" className="text-cream-300 hover:text-brand-500 transition-colors">
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 width="24" 
@@ -134,12 +134,12 @@ export default function AdminUsersPage() {
             <h1 className="text-brand-500 text-xl uppercase tracking-wide">User Management</h1>
           </div>
           <div className="flex items-center gap-6">
-            <span className="text-cream-500 text-sm hidden sm:block">
+            <span className="text-cream-300 text-sm hidden sm:block">
               {session?.user.name || session?.user.email}
             </span>
             <button
               onClick={() => signOut()}
-              className="text-cream-500 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
+              className="text-cream-300 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out
             </button>
@@ -150,7 +150,7 @@ export default function AdminUsersPage() {
           {/* Search & Filters */}
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <p className="text-cream-500 text-sm uppercase">
+              <p className="text-cream-300 text-sm uppercase">
                 {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
               </p>
               <input
@@ -167,7 +167,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterAdmin === true
                     ? 'bg-brand-500 text-cream-950'
-                    : 'bg-cream-900 border border-cream-700 text-cream-400 hover:border-cream-500'
+                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
                 }`}
               >
                 Admins
@@ -177,7 +177,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterAdmin === false
                     ? 'bg-cream-700 text-cream-100'
-                    : 'bg-cream-900 border border-cream-700 text-cream-400 hover:border-cream-500'
+                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
                 }`}
               >
                 Non-Admins
@@ -187,7 +187,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterFraud === true
                     ? 'bg-red-600 text-white'
-                    : 'bg-cream-900 border border-cream-700 text-cream-400 hover:border-cream-500'
+                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
                 }`}
               >
                 Fraud
@@ -197,7 +197,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterFraud === false
                     ? 'bg-green-600 text-white'
-                    : 'bg-cream-900 border border-cream-700 text-cream-400 hover:border-cream-500'
+                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
                 }`}
               >
                 No Fraud
@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
               {(filterAdmin !== null || filterFraud !== null) && (
                 <button
                   onClick={() => { setFilterAdmin(null); setFilterFraud(null); }}
-                  className="px-3 py-1.5 text-xs uppercase text-cream-500 hover:text-cream-300 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs uppercase text-cream-300 hover:text-cream-300 transition-colors cursor-pointer"
                 >
                   Clear Filters
                 </button>
@@ -216,11 +216,11 @@ export default function AdminUsersPage() {
           {/* Users List */}
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-cream-500">Loading users...</p>
+              <p className="text-cream-300">Loading users...</p>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="bg-cream-900 border-2 border-cream-700 p-8 text-center">
-              <p className="text-cream-500">No users found</p>
+              <p className="text-cream-300">No users found</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -244,7 +244,7 @@ export default function AdminUsersPage() {
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-cream-700 flex items-center justify-center flex-shrink-0">
-                            <span className="text-cream-400 text-sm">
+                            <span className="text-cream-200 text-sm">
                               {(user.name || user.email)[0].toUpperCase()}
                             </span>
                           </div>
@@ -265,13 +265,13 @@ export default function AdminUsersPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-cream-500 text-sm truncate">{user.email}</p>
+                          <p className="text-cream-300 text-sm truncate">{user.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6 flex-shrink-0">
                         <div className="text-right hidden sm:block">
                           <p className="text-brand-500">{user.totalProjects} projects</p>
-                          <p className="text-cream-500 text-xs">
+                          <p className="text-cream-300 text-xs">
                             {user.totalHoursApproved.toFixed(1)}h approved
                           </p>
                         </div>
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
                           fill="none" 
                           stroke="currentColor" 
                           strokeWidth="2"
-                          className={`text-cream-500 transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`}
+                          className={`text-cream-300 transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`}
                         >
                           <path d="M6 9l6 6 6-6" />
                         </svg>
@@ -339,7 +339,7 @@ export default function AdminUsersPage() {
                                 className={`text-xs px-2 py-1 ${
                                   badge.grantedAt 
                                     ? 'bg-brand-500/20 text-brand-400 border border-brand-500/50' 
-                                    : 'bg-cream-800 text-cream-500 border border-cream-700'
+                                    : 'bg-cream-800 text-cream-300 border border-cream-700'
                                 }`}
                               >
                                 {badge.badge.replace(/_/g, ' ')}
@@ -371,7 +371,7 @@ export default function AdminUsersPage() {
                                         project.designStatus === 'approved' ? 'text-green-500' :
                                         project.designStatus === 'rejected' ? 'text-red-500' :
                                         project.designStatus === 'in_review' ? 'text-brand-500' :
-                                        'text-cream-500'
+                                        'text-cream-300'
                                       }`}>
                                         D: {project.designStatus.replace('_', ' ')}
                                       </span>
@@ -379,13 +379,13 @@ export default function AdminUsersPage() {
                                         project.buildStatus === 'approved' ? 'text-green-500' :
                                         project.buildStatus === 'rejected' ? 'text-red-500' :
                                         project.buildStatus === 'in_review' ? 'text-brand-500' :
-                                        'text-cream-500'
+                                        'text-cream-300'
                                       }`}>
                                         B: {project.buildStatus.replace('_', ' ')}
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3 text-xs text-cream-500">
+                                  <div className="flex items-center gap-3 text-xs text-cream-300">
                                     <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
                                     <span>•</span>
                                     <span>{hoursClaimed.toFixed(1)}h claimed</span>
@@ -400,7 +400,7 @@ export default function AdminUsersPage() {
                                           className={`text-xs px-1.5 py-0.5 ${
                                             badge.grantedAt 
                                               ? 'bg-brand-500/20 text-brand-400 border border-brand-500/50' 
-                                              : 'bg-cream-900 text-cream-500 border border-cream-700'
+                                              : 'bg-cream-900 text-cream-300 border border-cream-700'
                                           }`}
                                         >
                                           {badge.badge.replace(/_/g, ' ')}

@@ -82,7 +82,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
                     ? 'border-red-400 bg-red-500/30 text-red-300'
                     : step.active
                     ? 'border-yellow-400 bg-yellow-500/30 text-yellow-300'
-                    : 'border-cream-500 bg-cream-800 text-cream-400'
+                    : 'border-cream-500 bg-cream-800 text-cream-200'
                 }`}
               >
                 {step.completed ? (
@@ -107,7 +107,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
                     ? 'text-red-300'
                     : step.active
                     ? 'text-yellow-300'
-                    : 'text-cream-400'
+                    : 'text-cream-200'
                 }`}
               >
                 {step.label}
@@ -130,7 +130,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
       {showMessages && (
         <div className="text-center">
           {designStatus === 'draft' && (
-            <p className="text-cream-400 text-sm">
+            <p className="text-cream-200 text-sm">
               Design your project and log your time. Upload all design files to your GitHub repo. Once your project is submitted and approved, you&apos;ll get money to build your project!
             </p>
           )}

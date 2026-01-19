@@ -154,7 +154,7 @@ export default function Home() {
                 initialDelay={0.8}
                 continuousScramble={false}
                 continuousSpeed={25}
-                className="font-mono text-[1.1rem] md:text-[1.4rem] text-cream-800/20 leading-tight w-full origin-center block whitespace-pre-line bg-[#DAD2BF50]"
+                className="font-mono text-[1.1rem] md:text-[1.4rem] text-cream-600 leading-tight w-full origin-center block whitespace-pre-line bg-cream-200/50"
               />
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -178,7 +178,7 @@ export default function Home() {
                   </button>
                 </MagneticCorners>
               </MagneticCorners>
-              <p className="text-xs text-cream-800/70">
+              <p className="text-xs text-cream-700">
                 Already RSVPed? <LoginButton />
               </p>
             </div>
@@ -187,7 +187,7 @@ export default function Home() {
               <DottedLine orientation="horizontal" />
             </div>
 
-            <p className="text-xs md:text-sm text-center mt-4 text-cream-800/90">Event launches December 2025</p>
+            <p className="text-xs md:text-sm text-center mt-4 text-cream-800">Event launches December 2025</p>
 
             <div className="h-1"></div>
 
@@ -243,7 +243,7 @@ export default function Home() {
               <h2 className="text-lg md:text-xl uppercase tracking-wide mb-4"><ScrambleText>Frequently Asked Questions</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
-                  <div key={i} className="border-b border-cream-800/20">
+                  <div key={i} className="border-b border-cream-600">
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}
                       className="w-full text-left text-sm md:text-base cursor-pointer"
@@ -259,7 +259,7 @@ export default function Home() {
                       </div>
                       {openIndex === i && (
                         <div 
-                          className="pb-2.5 pr-8 text-cream-800/70 faq"
+                          className="pb-2.5 pr-8 text-cream-700 faq"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
                       )}

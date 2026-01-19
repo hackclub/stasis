@@ -87,7 +87,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Title
             </label>
             <input
@@ -101,7 +101,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
           </div>
 
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Description
             </label>
             <textarea
@@ -113,7 +113,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
           </div>
 
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Tags
             </label>
             <div className="flex flex-wrap gap-2">
@@ -125,7 +125,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                   className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                     selectedTags.includes(tag.value)
                       ? 'bg-brand-500 text-white'
-                      : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                      : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
                   }`}
                 >
                   {tag.label}
@@ -135,7 +135,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
           </div>
 
           <div>
-            <label className="block text-cream-500 text-sm uppercase mb-2">
+            <label className="block text-cream-300 text-sm uppercase mb-2">
               Project Type
             </label>
             <div className="flex gap-2">
@@ -145,7 +145,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   !isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
                 }`}
               >
                 Custom
@@ -156,7 +156,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
                 }`}
               >
                 Starter

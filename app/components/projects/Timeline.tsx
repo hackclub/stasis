@@ -84,7 +84,7 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
   if (items.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-cream-500">No activity yet</p>
+        <p className="text-cream-300">No activity yet</p>
       </div>
     );
   }
@@ -107,7 +107,7 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
               <div className="bg-cream-950 border border-cream-700 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-cream-300 text-sm">Project started</span>
-                  <span className="text-cream-500 text-xs">{formatRelativeTime(item.at)}</span>
+                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
               </div>
             )}
@@ -123,13 +123,13 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                     }`}>
                       {item.session.stage}
                     </span>
-                    <span className="text-cream-400 text-sm">
+                    <span className="text-cream-200 text-sm">
                       {item.session.hoursApproved !== null 
                         ? `${item.session.hoursApproved}/${item.session.hoursClaimed}h approved`
                         : `${item.session.hoursClaimed}h claimed`}
                     </span>
                   </div>
-                  <span className="text-cream-500 text-xs">{formatRelativeTime(item.at)}</span>
+                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.session.content && (
                   <p className="text-cream-200 text-sm whitespace-pre-wrap">{item.session.content}</p>
@@ -161,10 +161,10 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                       Submitted {item.stage.toLowerCase()} for review
                     </span>
                   </div>
-                  <span className="text-cream-500 text-xs">{formatRelativeTime(item.at)}</span>
+                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.notes && (
-                  <p className="text-cream-400 text-sm mt-2 whitespace-pre-wrap">{item.notes}</p>
+                  <p className="text-cream-200 text-sm mt-2 whitespace-pre-wrap">{item.notes}</p>
                 )}
               </div>
             )}
@@ -188,7 +188,7 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                         : `requested changes for ${item.stage.toLowerCase()}`}
                     </span>
                   </div>
-                  <span className="text-cream-500 text-xs">{formatRelativeTime(item.at)}</span>
+                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.grantAmount !== null && (
                   <p className="text-green-400 text-sm font-medium">
@@ -196,7 +196,7 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                   </p>
                 )}
                 {item.comments && (
-                  <p className="text-cream-400 text-sm mt-2 whitespace-pre-wrap">{item.comments}</p>
+                  <p className="text-cream-200 text-sm mt-2 whitespace-pre-wrap">{item.comments}</p>
                 )}
               </div>
             )}

@@ -523,7 +523,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
   if (isPending || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-500">Loading...</p>
+        <p className="text-cream-300">Loading...</p>
       </div>
     );
   }
@@ -537,7 +537,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
       <div className="min-h-screen bg-cream-950 font-mono">
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href="/dashboard" className="text-cream-500 hover:text-brand-500 transition-colors flex items-center gap-2">
+          <Link href="/dashboard" className="text-cream-300 hover:text-brand-500 transition-colors flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -548,7 +548,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="mb-6">
             <h1 className="text-brand-500 text-2xl uppercase tracking-wide">New Journal Entry</h1>
-            <p className="text-cream-500 text-sm mt-1">Project: {project.title}</p>
+            <p className="text-cream-300 text-sm mt-1">Project: {project.title}</p>
             <div className="mt-3">
               <span className={`px-3 py-1 text-sm uppercase ${
                 project.designStatus === "approved" 
@@ -569,7 +569,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Hours */}
             <div className="bg-cream-900 border-2 border-cream-600 p-4">
-              <label className="block text-cream-500 text-sm uppercase mb-2">
+              <label className="block text-cream-300 text-sm uppercase mb-2">
                 Hours Spent This Session
               </label>
               <input
@@ -592,7 +592,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
 
             {/* Categories */}
             <div className="bg-cream-900 border-2 border-cream-600 p-4">
-              <label className="block text-cream-500 text-sm uppercase mb-3">
+              <label className="block text-cream-300 text-sm uppercase mb-3">
                 Categories (select all that apply)
               </label>
               <div className="flex flex-wrap gap-2">
@@ -604,7 +604,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
                     className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       selectedCategories.includes(cat.value)
                         ? 'bg-brand-500 text-white font-medium'
-                        : 'bg-cream-850 text-cream-500 hover:bg-cream-800'
+                        : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
                     }`}
                   >
                     {cat.label}
@@ -615,10 +615,10 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
 
             {/* Journal Content */}
             <div className="bg-cream-900 border-2 border-cream-600 p-4">
-              <label className="block text-cream-500 text-sm uppercase mb-2">
+              <label className="block text-cream-300 text-sm uppercase mb-2">
                 What Did You Work On?
               </label>
-              <p className="text-cream-500 text-xs mb-3">
+              <p className="text-cream-300 text-xs mb-3">
                 Write in Markdown. <span className="text-cream-300">At least 2 images required</span> — drag, drop, or paste directly into the editor.
                 {uploadingToEditor && <span className="text-brand-400 ml-2">Uploading image...</span>}
               </p>
@@ -652,10 +652,10 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
             {/* Videos (conditional) */}
             {requiredVideos > 0 && (
               <div className="bg-cream-900 border-2 border-cream-600 p-4">
-                <label className="block text-cream-500 text-sm uppercase mb-2">
+                <label className="block text-cream-300 text-sm uppercase mb-2">
                   Video Clips <span className="text-red-500">*</span>
                 </label>
-                <p className="text-cream-500 text-xs mb-3">
+                <p className="text-cream-300 text-xs mb-3">
                   Record a 10-30 second video explaining what you did. 
                   You need {requiredVideos} video{requiredVideos > 1 ? 's' : ''} for this session length. Max 100MB per file.
                 </p>
@@ -673,7 +673,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
                         >
                           ×
                         </button>
-                        <div className="absolute bottom-1 left-1 bg-cream-950/80 px-1 text-xs text-cream-500">
+                        <div className="absolute bottom-1 left-1 bg-cream-950/80 px-1 text-xs text-cream-300">
                           Video
                         </div>
                       </div>
@@ -694,13 +694,13 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-2 left-2 bg-cream-950/80 px-2 py-1">
-                        <span className="text-cream-400 text-xs uppercase">Preview</span>
+                        <span className="text-cream-200 text-xs uppercase">Preview</span>
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label className="block text-cream-500 text-xs uppercase mb-1">Camera</label>
+                        <label className="block text-cream-300 text-xs uppercase mb-1">Camera</label>
                         <select
                           value={selectedVideoDevice}
                           onChange={(e) => setSelectedVideoDevice(e.target.value)}
@@ -714,7 +714,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
                         </select>
                       </div>
                       <div>
-                        <label className="block text-cream-500 text-xs uppercase mb-1">Microphone</label>
+                        <label className="block text-cream-300 text-xs uppercase mb-1">Microphone</label>
                         <select
                           value={selectedAudioDevice}
                           onChange={(e) => setSelectedAudioDevice(e.target.value)}
@@ -819,7 +819,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-500 disabled:cursor-not-allowed text-white font-medium py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white font-medium py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
             >
               {submitting ? 'Saving...' : 'Save Journal Entry'}
             </button>

@@ -85,7 +85,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
         ) : (
           <>
             <div className="absolute inset-0 bg-gradient-to-br from-cream-800/30 to-cream-950/60" />
-            <span className="text-cream-500 text-xs uppercase z-10">Missing screenshot, add one?</span>
+            <span className="text-cream-300 text-xs uppercase z-10">Missing screenshot, add one?</span>
           </>
         )}
         
@@ -124,11 +124,11 @@ export function ProjectCard({ project }: Readonly<Props>) {
         <h3 className="text-cream-50 text-lg font-mono uppercase tracking-wide truncate group-hover:text-brand-400 transition-colors">
           {project.title}
         </h3>
-        <p className="text-cream-400 text-sm mt-1">
+        <p className="text-cream-200 text-sm mt-1">
           ~{project.totalHoursClaimed.toFixed(1)}h claimed
         </p>
         {project.description && (
-          <p className="text-cream-500 text-xs mt-2 line-clamp-2">
+          <p className="text-cream-300 text-xs mt-2 line-clamp-2">
             {project.description}
           </p>
         )}
@@ -168,7 +168,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
                 </span>
               ))}
               {(approvedBadges.length + pendingBadges.length) > 4 && (
-                <span className="text-[10px] text-cream-400 px-1">
+                <span className="text-[10px] text-cream-200 px-1">
                   +{(approvedBadges.length + pendingBadges.length) - 4}
                 </span>
               )}
