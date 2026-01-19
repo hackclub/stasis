@@ -39,17 +39,43 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: "desc" },
   })
 
-  const projectsWithHours = projects.map((project) => ({
-    ...project,
-    totalHoursClaimed: project.workSessions.reduce(
-      (acc, s) => acc + s.hoursClaimed,
-      0
-    ),
-    totalHoursApproved: project.workSessions.reduce(
-      (acc, s) => acc + (s.hoursApproved ?? 0),
-      0
-    ),
-  }))
+  const projectsWithHours = projects.map((project) => {
+    // Derive a single status from designStatus and buildStatus for the card display
+    let status: "draft" | "in_review" | "approved" | "rejected" = "draft"
+    if (project.buildStatus === "approved") {
+      status = "approved"
+    } else if (project.buildStatus === "in_review") {
+      status = "in_review"
+    } else if (project.buildStatus === "rejected" || project.designStatus === "rejected") {
+      status = "rejected"
+    } else if (project.designStatus === "approved") {
+      // Design approved, build not started or in draft
+      if (project.buildStatus === "draft") {
+        status = "in_review"
+      } else if (project.buildStatus === "update_requested") {
+        status = "rejected" // Show as rejected for card display
+      } else {
+        status = project.buildStatus as "in_review" | "approved" | "rejected"
+      }
+    } else if (project.designStatus === "update_requested") {
+      status = "rejected" // Show as rejected for card display
+    } else if (project.designStatus === "in_review") {
+      status = "in_review"
+    }
+    
+    return {
+      ...project,
+      status,
+      totalHoursClaimed: project.workSessions.reduce(
+        (acc, s) => acc + s.hoursClaimed,
+        0
+      ),
+      totalHoursApproved: project.workSessions.reduce(
+        (acc, s) => acc + (s.hoursApproved ?? 0),
+        0
+      ),
+    }
+  })
 
   return NextResponse.json(projectsWithHours)
 }

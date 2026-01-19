@@ -539,7 +539,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     )}
 
                     {session.content ? (
-                      <div className="text-cream-200 text-sm leading-relaxed mb-4 prose prose-invert prose-sm max-w-none [&_img]:max-w-full [&_img]:max-h-64 [&_img]:border [&_img]:border-cream-600">
+                      <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 mb-4" data-color-mode="dark">
                         <MDPreview source={session.content} />
                       </div>
                     ) : (
