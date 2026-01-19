@@ -225,7 +225,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
       });
 
       if (res.ok) {
-        router.push('/dashboard');
+        router.push(`/dashboard/projects/${projectId}`);
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to update session');
@@ -246,7 +246,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
       });
 
       if (res.ok) {
-        router.push('/dashboard');
+        router.push(`/dashboard/projects/${projectId}`);
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to delete session');

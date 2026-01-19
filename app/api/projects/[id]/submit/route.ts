@@ -76,16 +76,25 @@ export async function POST(
       )
     }
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: {
-        designStatus: "in_review",
-        designSubmissionNotes: submissionNotes,
-        designReviewComments: null,
-        designReviewedAt: null,
-        designReviewedBy: null,
-      },
-    })
+    const [updatedProject] = await prisma.$transaction([
+      prisma.project.update({
+        where: { id },
+        data: {
+          designStatus: "in_review",
+          designSubmissionNotes: submissionNotes,
+          designReviewComments: null,
+          designReviewedAt: null,
+          designReviewedBy: null,
+        },
+      }),
+      prisma.projectSubmission.create({
+        data: {
+          projectId: id,
+          stage: "DESIGN",
+          notes: submissionNotes,
+        },
+      }),
+    ])
 
     return NextResponse.json(updatedProject)
   } else {
@@ -129,16 +138,25 @@ export async function POST(
       )
     }
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: {
-        buildStatus: "in_review",
-        buildSubmissionNotes: submissionNotes,
-        buildReviewComments: null,
-        buildReviewedAt: null,
-        buildReviewedBy: null,
-      },
-    })
+    const [updatedProject] = await prisma.$transaction([
+      prisma.project.update({
+        where: { id },
+        data: {
+          buildStatus: "in_review",
+          buildSubmissionNotes: submissionNotes,
+          buildReviewComments: null,
+          buildReviewedAt: null,
+          buildReviewedBy: null,
+        },
+      }),
+      prisma.projectSubmission.create({
+        data: {
+          projectId: id,
+          stage: "BUILD",
+          notes: submissionNotes,
+        },
+      }),
+    ])
 
     return NextResponse.json(updatedProject)
   }

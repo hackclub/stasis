@@ -5,8 +5,10 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import { StageProgress } from '@/app/components/projects/StageProgress';
+import { Timeline } from '@/app/components/projects/Timeline';
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
+import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
@@ -135,6 +137,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   });
   const [addingBom, setAddingBom] = useState(false);
   const [deletingBomId, setDeletingBomId] = useState<string | null>(null);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
 
   useEffect(() => {
     async function fetchProject() {
@@ -153,8 +156,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       }
     }
 
+    async function fetchTimeline() {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/timeline`);
+        if (res.ok) {
+          const data = await res.json();
+          setTimelineItems(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch timeline:', err);
+      }
+    }
+
     if (session) {
       fetchProject();
+      fetchTimeline();
     } else if (!isPending) {
       router.push('/dashboard');
     }
@@ -176,9 +192,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       });
       
       if (res.ok) {
-        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        const [updatedRes, timelineRes] = await Promise.all([
+          fetch(`/api/projects/${projectId}`),
+          fetch(`/api/projects/${projectId}/timeline`),
+        ]);
         if (updatedRes.ok) {
           setProject(await updatedRes.json());
+        }
+        if (timelineRes.ok) {
+          setTimelineItems(await timelineRes.json());
         }
       } else {
         const data = await res.json();
@@ -897,124 +919,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
 
-          {/* Session Devlogs */}
+          {/* Timeline */}
           <div className="bg-cream-900 border-2 border-cream-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-cream-50 text-xl uppercase tracking-wide">Session Devlogs</h2>
-              <span className="text-cream-500 text-sm">{project.workSessions.length} sessions</span>
+              <h2 className="text-cream-50 text-xl uppercase tracking-wide">Timeline</h2>
             </div>
-            
-            {project.workSessions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-cream-500">No sessions logged yet</p>
-                <Link
-                  href={`/dashboard/projects/${project.id}/session/new`}
-                  className="inline-block mt-4 text-brand-400 hover:text-brand-300 transition-colors"
-                >
-                  Log your first session →
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {project.workSessions.map((ws) => {
-                  const isFullyApproved = ws.hoursApproved !== null && ws.hoursApproved >= ws.hoursClaimed;
-                  const isPartiallyApproved = ws.hoursApproved !== null && ws.hoursApproved > 0 && ws.hoursApproved < ws.hoursClaimed;
-                  const isPending = ws.hoursApproved === null;
-                  
-                  return (
-                  <div 
-                    key={ws.id} 
-                    className={`bg-cream-950 border-2 p-4 ${
-                      isFullyApproved 
-                        ? 'border-green-600/50' 
-                        : isPartiallyApproved 
-                          ? 'border-yellow-600/50' 
-                          : 'border-cream-700'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className={`px-2 py-0.5 text-xs uppercase ${
-                          ws.stage === "DESIGN" 
-                            ? 'bg-purple-600/30 border border-purple-600 text-purple-400' 
-                            : 'bg-blue-600/30 border border-blue-600 text-blue-400'
-                        }`}>
-                          {ws.stage}
-                        </span>
-                        <span className="text-cream-500 text-sm">
-                          {new Date(ws.createdAt).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </span>
-                        
-                        {isFullyApproved ? (
-                          <span className="bg-green-600/30 border border-green-600 text-green-400 px-2 py-0.5 text-sm font-medium">
-                            ✓ {ws.hoursApproved}/{ws.hoursClaimed}h Approved
-                          </span>
-                        ) : isPartiallyApproved ? (
-                          <span className="bg-yellow-600/30 border border-yellow-600 text-yellow-400 px-2 py-0.5 text-sm font-medium">
-                            {ws.hoursApproved}/{ws.hoursClaimed}h Approved
-                          </span>
-                        ) : (
-                          <span className="bg-cream-800 border border-cream-600 text-cream-300 px-2 py-0.5 text-sm">
-                            {ws.hoursClaimed}h Pending Review
-                          </span>
-                        )}
-                      </div>
-                      
-                      {isPending && (project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
-                        <Link
-                          href={`/dashboard/projects/${project.id}/session/${ws.id}/edit`}
-                          className="bg-brand-500 hover:bg-brand-400 text-white px-3 py-1 text-sm uppercase tracking-wide transition-colors"
-                        >
-                          Edit
-                        </Link>
-                      )}
-                    </div>
-                    
-                    {ws.content ? (
-                      <div className="text-cream-200 text-sm whitespace-pre-wrap leading-relaxed">
-                        {ws.content}
-                      </div>
-                    ) : (
-                      <p className="text-cream-500 text-sm italic">No content recorded</p>
-                    )}
-
-                    {ws.media.length > 0 && (
-                      <div className="flex flex-col gap-3 mt-4">
-                        {ws.media.filter(m => m.type === "IMAGE").map((m) => (
-                          <a 
-                            key={m.id} 
-                            href={m.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="block max-w-full"
-                          >
-                            <img 
-                              src={m.url} 
-                              alt="Session media"
-                              className="max-w-full max-h-[32rem] border border-cream-600 hover:border-brand-500 transition-colors"
-                            />
-                          </a>
-                        ))}
-                        {ws.media.filter(m => m.type === "VIDEO").map((m) => (
-                          <video 
-                            key={m.id} 
-                            src={m.url}
-                            controls
-                            className="max-w-full max-h-[32rem] border border-cream-600"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  );
-                })}
-              </div>
-            )}
+            <Timeline items={timelineItems} />
           </div>
         </div>
       </div>

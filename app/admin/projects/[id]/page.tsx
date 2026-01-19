@@ -128,6 +128,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [sessionReviews, setSessionReviews] = useState<Record<string, SessionReviewState>>({});
   const [designComments, setDesignComments] = useState('');
   const [buildComments, setBuildComments] = useState('');
+  const [designGrantAmount, setDesignGrantAmount] = useState('');
+  const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
   const [reviewingBomItem, setReviewingBomItem] = useState<string | null>(null);
@@ -243,6 +245,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
     setSubmitting(true);
     try {
       const reviewComments = stage === 'design' ? designComments : buildComments;
+      const grantAmountStr = stage === 'design' ? designGrantAmount : buildGrantAmount;
+      const grantAmount = grantAmountStr ? parseFloat(grantAmountStr) : null;
+      
       const res = await fetch(`/api/admin/projects/${projectId}/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -250,14 +255,21 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           stage,
           decision,
           reviewComments: reviewComments || null,
+          grantAmount: decision === 'approved' ? grantAmount : null,
         }),
       });
 
       if (res.ok) {
         const updatedProject = await res.json();
         setProject(updatedProject);
-        if (stage === 'design') setDesignComments('');
-        if (stage === 'build') setBuildComments('');
+        if (stage === 'design') {
+          setDesignComments('');
+          setDesignGrantAmount('');
+        }
+        if (stage === 'build') {
+          setBuildComments('');
+          setBuildGrantAmount('');
+        }
       } else {
         const data = await res.json();
         alert(data.error || 'Failed to submit decision');
@@ -832,6 +844,24 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
               <div className="mb-4">
                 <label className="text-cream-500 text-xs uppercase block mb-2">
+                  Grant Amount (optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-cream-400">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={designGrantAmount}
+                    onChange={(e) => setDesignGrantAmount(e.target.value)}
+                    className="w-32 bg-cream-950 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-cream-500 text-xs uppercase block mb-2">
                   Design Review Comments (optional)
                 </label>
                 <textarea
@@ -885,6 +915,24 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     ⚠ Review all sessions before making a decision
                   </p>
                 )}
+
+                <div className="mb-4">
+                  <label className="text-cream-500 text-xs uppercase block mb-2">
+                    Grant Amount (optional)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-cream-400">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={buildGrantAmount}
+                      onChange={(e) => setBuildGrantAmount(e.target.value)}
+                      className="w-32 bg-cream-950 border border-cream-600 text-cream-100 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
 
                 <div className="mb-4">
                   <label className="text-cream-500 text-xs uppercase block mb-2">

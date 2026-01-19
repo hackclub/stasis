@@ -438,7 +438,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
       });
 
       if (res.ok) {
-        router.push('/dashboard');
+        router.push(`/dashboard/projects/${projectId}`);
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to create session');

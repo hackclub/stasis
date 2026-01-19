@@ -21,6 +21,12 @@ enum ProjectStage {
   BUILD
 }
 
+enum ReviewDecision {
+  APPROVED
+  CHANGE_REQUESTED
+  REJECTED
+}
+
 // This is the primary user object
 model User {
   id                 String    @id @default(cuid())
@@ -160,9 +166,38 @@ model Project {
   workSessions     WorkSession[]
   badges           ProjectBadge[]
   bomItems         BOMItem[]
+  submissions      ProjectSubmission[]
+  reviewActions    ProjectReviewAction[]
 
   @@index([userId])
   @@map("project")
+}
+
+model ProjectSubmission {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage     ProjectStage
+  notes     String?
+  createdAt DateTime     @default(now())
+
+  @@index([projectId])
+  @@map("project_submission")
+}
+
+model ProjectReviewAction {
+  id          String         @id @default(cuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage       ProjectStage
+  decision    ReviewDecision
+  comments    String?
+  grantAmount Float?
+  reviewerId  String?
+  createdAt   DateTime       @default(now())
+
+  @@index([projectId])
+  @@map("project_review_action")
 }
 
 model WorkSession {

@@ -25,7 +25,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const { stage, decision, reviewComments } = body
+  const { stage, decision, reviewComments, grantAmount } = body
 
   if (stage !== "design" && stage !== "build") {
     return NextResponse.json(
@@ -44,6 +44,7 @@ export async function POST(
   const adminUserId = adminCheck.session.user.id
   const now = new Date()
   const sanitizedComments = typeof reviewComments === "string" ? sanitize(reviewComments) : null
+  const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0 ? grantAmount : null
 
   if (stage === "design") {
     // Design stage review
@@ -66,31 +67,45 @@ export async function POST(
       })
     }
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: {
-        designStatus: decision,
-        designReviewComments: sanitizedComments,
-        designReviewedAt: now,
-        designReviewedBy: adminUserId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
+    const reviewDecision = decision === "approved" ? "APPROVED" : "REJECTED"
+    
+    const [updatedProject] = await prisma.$transaction([
+      prisma.project.update({
+        where: { id },
+        data: {
+          designStatus: decision,
+          designReviewComments: sanitizedComments,
+          designReviewedAt: now,
+          designReviewedBy: adminUserId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
           },
+          workSessions: {
+            include: { media: true },
+            orderBy: { createdAt: "desc" },
+          },
+          badges: true,
+          bomItems: true,
         },
-        workSessions: {
-          include: { media: true },
-          orderBy: { createdAt: "desc" },
+      }),
+      prisma.projectReviewAction.create({
+        data: {
+          projectId: id,
+          stage: "DESIGN",
+          decision: reviewDecision,
+          comments: sanitizedComments,
+          grantAmount: parsedGrantAmount,
+          reviewerId: adminUserId,
         },
-        badges: true,
-        bomItems: true,
-      },
-    })
+      }),
+    ])
 
     return NextResponse.json(updatedProject)
   } else {
@@ -109,6 +124,8 @@ export async function POST(
       )
     }
 
+    const buildReviewDecision = decision === "approved" ? "APPROVED" : "REJECTED"
+    
     // Use a transaction for build approval to ensure atomicity
     if (decision === "approved") {
       const updatedProject = await prisma.$transaction(async (tx) => {
@@ -134,6 +151,18 @@ export async function POST(
           data: {
             grantedAt: now,
             grantedBy: adminUserId,
+          },
+        })
+
+        // Create review action record
+        await tx.projectReviewAction.create({
+          data: {
+            projectId: id,
+            stage: "BUILD",
+            decision: buildReviewDecision,
+            comments: sanitizedComments,
+            grantAmount: parsedGrantAmount,
+            reviewerId: adminUserId,
           },
         })
 
@@ -167,32 +196,44 @@ export async function POST(
 
       return NextResponse.json(updatedProject)
     } else {
-      // Rejection - no transaction needed
-      const updatedProject = await prisma.project.update({
-        where: { id },
-        data: {
-          buildStatus: decision,
-          buildReviewComments: sanitizedComments,
-          buildReviewedAt: now,
-          buildReviewedBy: adminUserId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
+      // Rejection
+      const [updatedProject] = await prisma.$transaction([
+        prisma.project.update({
+          where: { id },
+          data: {
+            buildStatus: decision,
+            buildReviewComments: sanitizedComments,
+            buildReviewedAt: now,
+            buildReviewedBy: adminUserId,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
             },
+            workSessions: {
+              include: { media: true },
+              orderBy: { createdAt: "desc" },
+            },
+            badges: true,
+            bomItems: true,
           },
-          workSessions: {
-            include: { media: true },
-            orderBy: { createdAt: "desc" },
+        }),
+        prisma.projectReviewAction.create({
+          data: {
+            projectId: id,
+            stage: "BUILD",
+            decision: buildReviewDecision,
+            comments: sanitizedComments,
+            grantAmount: null,
+            reviewerId: adminUserId,
           },
-          badges: true,
-          bomItems: true,
-        },
-      })
+        }),
+      ])
 
       return NextResponse.json(updatedProject)
     }
