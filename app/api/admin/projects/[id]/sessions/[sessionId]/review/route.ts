@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
+import { logAdminAction, AuditAction } from "@/lib/audit"
 
 export async function POST(
   request: NextRequest,
@@ -48,6 +49,15 @@ export async function POST(
     },
     include: { media: true },
   })
+
+  await logAdminAction(
+    AuditAction.ADMIN_REVIEW_SESSION,
+    adminCheck.session.user.id,
+    adminCheck.session.user.email ?? undefined,
+    "WorkSession",
+    sessionId,
+    { hoursApproved, projectId }
+  )
 
   return NextResponse.json(updatedSession)
 }

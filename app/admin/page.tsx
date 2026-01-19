@@ -83,6 +83,12 @@ export default function AdminDashboard() {
             >
               Users
             </Link>
+            <Link
+              href="/admin/audit"
+              className="text-cream-300 hover:text-brand-500 text-sm uppercase transition-colors"
+            >
+              Audit
+            </Link>
             <span className="text-cream-300 text-sm hidden sm:block">
               {session?.user.name || session?.user.email}
             </span>

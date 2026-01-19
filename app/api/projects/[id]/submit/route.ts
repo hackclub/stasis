@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { logAudit, AuditAction } from "@/lib/audit"
 import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
 
 const MIN_BUILD_HOURS_REQUIRED = 4
 
+// TODO: Add rate limiting - prevent submission spam
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -96,6 +98,15 @@ export async function POST(
       }),
     ])
 
+    await logAudit({
+      action: AuditAction.USER_SUBMIT_PROJECT,
+      actorId: session.user.id,
+      actorEmail: session.user.email,
+      targetType: "Project",
+      targetId: id,
+      metadata: { stage: "design", title: project.title },
+    })
+
     return NextResponse.json(updatedProject)
   } else {
     // Build stage submission
@@ -157,6 +168,15 @@ export async function POST(
         },
       }),
     ])
+
+    await logAudit({
+      action: AuditAction.USER_SUBMIT_PROJECT,
+      actorId: session.user.id,
+      actorEmail: session.user.email,
+      targetType: "Project",
+      targetId: id,
+      metadata: { stage: "build", title: project.title },
+    })
 
     return NextResponse.json(updatedProject)
   }

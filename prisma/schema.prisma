@@ -278,4 +278,46 @@ model ProjectBadge {
   @@map("project_badge")
 }
 
+enum AuditAction {
+  // Admin actions (mutations only)
+  ADMIN_GRANT_ADMIN
+  ADMIN_REVOKE_ADMIN
+  ADMIN_FLAG_FRAUD
+  ADMIN_UNFLAG_FRAUD
+  ADMIN_APPROVE_DESIGN
+  ADMIN_REJECT_DESIGN
+  ADMIN_APPROVE_BUILD
+  ADMIN_REJECT_BUILD
+  ADMIN_REQUEST_UPDATE
+  ADMIN_REVIEW_SESSION
+  ADMIN_APPROVE_BOM
+  ADMIN_REJECT_BOM
+  
+  // Security events
+  SUPERADMIN_GRANT
+  
+  // User actions on sensitive data
+  USER_DELETE_PROJECT
+  USER_SUBMIT_PROJECT
+}
+
+model AuditLog {
+  id            String      @id @default(cuid())
+  action        AuditAction
+  actorId       String?
+  actorEmail    String?
+  actorIp       String?
+  actorUserAgent String?
+  targetType    String?
+  targetId      String?
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
 

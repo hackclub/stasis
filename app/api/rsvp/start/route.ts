@@ -3,6 +3,7 @@ import { cookies, headers } from 'next/headers';
 import { createRSVP } from '@/lib/airtable';
 import { sanitize } from '@/lib/sanitize';
 
+// TODO: Add rate limiting - this is a public endpoint vulnerable to abuse
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();

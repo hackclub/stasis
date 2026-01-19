@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import { StageProgress } from '@/app/components/projects/StageProgress';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const MDPreview = dynamic(
+  () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
+  { ssr: false }
+);
 import { ProjectTag } from "@/app/generated/prisma/enums";
 
 type BadgeType = 
@@ -533,8 +539,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     )}
 
                     {session.content ? (
-                      <div className="text-cream-200 text-sm whitespace-pre-wrap leading-relaxed mb-4">
-                        {session.content}
+                      <div className="text-cream-200 text-sm leading-relaxed mb-4 prose prose-invert prose-sm max-w-none [&_img]:max-w-full [&_img]:max-h-64 [&_img]:border [&_img]:border-cream-600">
+                        <MDPreview source={session.content} />
                       </div>
                     ) : (
                       <p className="text-cream-300 text-sm italic mb-4">No content recorded</p>

@@ -78,6 +78,7 @@ export async function GET(
   return NextResponse.json(workSessions)
 }
 
+// TODO: Add rate limiting - prevent session logging spam
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

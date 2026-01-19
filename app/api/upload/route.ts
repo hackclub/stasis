@@ -72,6 +72,7 @@ async function uploadToCDN(file: File): Promise<string> {
   return uploadedFile.deployedUrl
 }
 
+// TODO: Add rate limiting - file uploads are resource-intensive
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {

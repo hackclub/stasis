@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { logAudit, AuditAction } from "@/lib/audit"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
@@ -168,6 +169,15 @@ export async function DELETE(
   }
 
   await prisma.project.delete({ where: { id } })
+
+  await logAudit({
+    action: AuditAction.USER_DELETE_PROJECT,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Project",
+    targetId: id,
+    metadata: { title: existingProject.title },
+  })
 
   return NextResponse.json({ success: true })
 }
