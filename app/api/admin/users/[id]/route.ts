@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
+import { logAdminAction, AuditAction } from "@/lib/audit"
 
 export async function GET(
   request: Request,
@@ -59,6 +60,15 @@ export async function PATCH(
 
   const { isAdmin, fraudConvicted } = body
 
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    select: { isAdmin: true, fraudConvicted: true },
+  })
+
+  if (!existingUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 })
+  }
+
   const updateData: { isAdmin?: boolean; fraudConvicted?: boolean } = {}
   if (typeof isAdmin === "boolean") updateData.isAdmin = isAdmin
   if (typeof fraudConvicted === "boolean") updateData.fraudConvicted = fraudConvicted
@@ -67,6 +77,28 @@ export async function PATCH(
     where: { id },
     data: updateData,
   })
+
+  if (typeof isAdmin === "boolean" && isAdmin !== existingUser.isAdmin) {
+    await logAdminAction(
+      isAdmin ? AuditAction.ADMIN_GRANT_ADMIN : AuditAction.ADMIN_REVOKE_ADMIN,
+      adminCheck.session.user.id,
+      adminCheck.session.user.email ?? undefined,
+      "User",
+      id,
+      { oldValue: existingUser.isAdmin, newValue: isAdmin }
+    )
+  }
+
+  if (typeof fraudConvicted === "boolean" && fraudConvicted !== existingUser.fraudConvicted) {
+    await logAdminAction(
+      fraudConvicted ? AuditAction.ADMIN_FLAG_FRAUD : AuditAction.ADMIN_UNFLAG_FRAUD,
+      adminCheck.session.user.id,
+      adminCheck.session.user.email ?? undefined,
+      "User",
+      id,
+      { oldValue: existingUser.fraudConvicted, newValue: fraudConvicted }
+    )
+  }
 
   return NextResponse.json(user)
 }

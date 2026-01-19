@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth"
+import { logAdminAction } from "@/lib/audit"
 import prisma from "@/lib/prisma"
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
@@ -33,6 +34,14 @@ export async function POST() {
     where: { id: session.user.id, email: superadminEmail },
     data: { isAdmin: true },
   })
+
+  await logAdminAction(
+    "SUPERADMIN_GRANT",
+    session.user.id,
+    session.user.email,
+    "User",
+    session.user.id
+  )
 
   return NextResponse.json({ success: true, message: "Admin access granted" })
 }

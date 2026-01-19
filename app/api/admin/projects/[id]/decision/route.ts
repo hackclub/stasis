@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
 import { sanitize } from "@/lib/sanitize"
+import { logAdminAction, AuditAction } from "@/lib/audit"
 
 export async function POST(
   request: NextRequest,
@@ -107,6 +108,15 @@ export async function POST(
       }),
     ])
 
+    await logAdminAction(
+      decision === "approved" ? AuditAction.ADMIN_APPROVE_DESIGN : AuditAction.ADMIN_REJECT_DESIGN,
+      adminCheck.session.user.id,
+      adminCheck.session.user.email ?? undefined,
+      "Project",
+      id,
+      { decision, grantAmount: parsedGrantAmount, comments: sanitizedComments }
+    )
+
     return NextResponse.json(updatedProject)
   } else {
     // Build stage review
@@ -194,6 +204,15 @@ export async function POST(
         })
       })
 
+      await logAdminAction(
+        AuditAction.ADMIN_APPROVE_BUILD,
+        adminCheck.session.user.id,
+        adminCheck.session.user.email ?? undefined,
+        "Project",
+        id,
+        { decision, grantAmount: parsedGrantAmount, comments: sanitizedComments }
+      )
+
       return NextResponse.json(updatedProject)
     } else {
       // Rejection
@@ -234,6 +253,15 @@ export async function POST(
           },
         }),
       ])
+
+      await logAdminAction(
+        AuditAction.ADMIN_REJECT_BUILD,
+        adminCheck.session.user.id,
+        adminCheck.session.user.email ?? undefined,
+        "Project",
+        id,
+        { decision, comments: sanitizedComments }
+      )
 
       return NextResponse.json(updatedProject)
     }

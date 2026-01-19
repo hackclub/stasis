@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(projectsWithHours)
 }
 
+// TODO: Add rate limiting - prevent spam project creation
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {

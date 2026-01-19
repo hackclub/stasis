@@ -61,7 +61,12 @@ export async function GET(
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
-  if (project.userId !== session.user.id) {
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  })
+
+  if (project.userId !== session.user.id && !user?.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
