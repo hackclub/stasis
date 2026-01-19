@@ -665,7 +665,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       <th className="text-right text-cream-300 uppercase text-xs py-2 pr-3">Total (USD)</th>
                       <th className="text-left text-cream-300 uppercase text-xs py-2 pr-3">Link</th>
                       <th className="text-left text-cream-300 uppercase text-xs py-2 pr-3">Distributor</th>
-                      <th className="text-center text-cream-300 uppercase text-xs py-2 pr-3">Status</th>
                       {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
                         <th className="text-center text-cream-300 uppercase text-xs py-2"></th>
                       )}
@@ -687,32 +686,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                           ) : '-'}
                         </td>
                         <td className="text-cream-200 py-2 pr-3">{item.distributor || '-'}</td>
-                        <td className="py-2 pr-3 text-center">
-                          {item.status === 'approved' ? (
-                            <span className="bg-green-600/30 border border-green-600 text-green-400 px-2 py-0.5 text-xs uppercase">
-                              Approved
-                            </span>
-                          ) : item.status === 'rejected' ? (
-                            <span className="bg-red-600/30 border border-red-600 text-red-400 px-2 py-0.5 text-xs uppercase">
-                              Rejected
-                            </span>
-                          ) : (
-                            <span className="bg-cream-800 border border-cream-600 text-cream-300 px-2 py-0.5 text-xs uppercase">
-                              Pending
-                            </span>
-                          )}
-                        </td>
                         {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
                           <td className="py-2 text-center">
-                            {item.status === 'pending' && (
-                              <button
-                                onClick={() => handleDeleteBomItem(item.id)}
-                                disabled={deletingBomId === item.id}
-                                className="text-red-400 hover:text-red-300 disabled:text-cream-600 transition-colors cursor-pointer"
-                              >
-                                {deletingBomId === item.id ? '...' : '✕'}
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleDeleteBomItem(item.id)}
+                              disabled={deletingBomId === item.id}
+                              className="text-red-400 hover:text-red-300 disabled:text-cream-600 transition-colors cursor-pointer"
+                            >
+                              {deletingBomId === item.id ? '...' : '✕'}
+                            </button>
                           </td>
                         )}
                       </tr>
@@ -871,8 +853,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-900 border-2 border-cream-600 max-w-md w-full p-6">
                 <h3 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
-                <p className="text-cream-300 text-sm leading-relaxed mb-6">
+                <p className="text-cream-300 text-sm leading-relaxed mb-4">
                   Your design (project details and BOM) will be reviewed. You can still make changes while waiting for approval.
+                </p>
+                <p className="text-red-400 text-sm font-medium mb-6">
+                  IMPORTANT: Before submitting, please make sure to read the{' '}
+                  <Link href="/dashboard/guides#submission-guidelines" className="underline hover:text-red-300">
+                    submission guidelines
+                  </Link>
+                  .
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -897,8 +886,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-900 border-2 border-cream-600 max-w-md w-full p-6">
                 <h3 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
-                <p className="text-cream-300 text-sm leading-relaxed mb-6">
+                <p className="text-cream-300 text-sm leading-relaxed mb-4">
                   Your build work will be reviewed. Once approved, your badges will be granted and hours finalized.
+                </p>
+                <p className="text-red-400 text-sm font-medium mb-6">
+                  IMPORTANT: Before submitting, please make sure to read the{' '}
+                  <Link href="/dashboard/guides#submission-guidelines" className="underline hover:text-red-300">
+                    submission guidelines
+                  </Link>
+                  .
                 </p>
                 <div className="flex gap-3">
                   <button

@@ -1,11 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type GuidePage = 'submission-guidelines' | 'faq'
 
 export default function GuidesPage() {
   const [activeGuidePage, setActiveGuidePage] = useState<GuidePage>('submission-guidelines');
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash === 'submission-guidelines') {
+      setActiveGuidePage('submission-guidelines');
+    } else if (hash === 'faq') {
+      setActiveGuidePage('faq');
+    }
+  }, []);
 
   return (
     <div className="flex gap-6">

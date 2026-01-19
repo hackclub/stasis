@@ -1,6 +1,12 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
+
+const MDPreview = dynamic(
+  () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
+  { ssr: false }
+);
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -132,9 +138,11 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                   <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.session.content && (
-                  <p className="text-cream-200 text-sm whitespace-pre-wrap">{item.session.content}</p>
+                  <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="dark">
+                    <MDPreview source={item.session.content} />
+                  </div>
                 )}
-                {item.session.media.length > 0 && (
+                {item.session.media.length > 0 && item.session.media.some(m => !item.session.content?.includes(m.url)) && (
                   <div className="flex flex-col gap-2 mt-3">
                     {item.session.media.filter(m => m.type === "IMAGE").map((m) => (
                       <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
@@ -164,7 +172,9 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                   <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.notes && (
-                  <p className="text-cream-200 text-sm mt-2 whitespace-pre-wrap">{item.notes}</p>
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600" data-color-mode="dark">
+                    <MDPreview source={item.notes} />
+                  </div>
                 )}
               </div>
             )}
@@ -196,7 +206,9 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                   </p>
                 )}
                 {item.comments && (
-                  <p className="text-cream-200 text-sm mt-2 whitespace-pre-wrap">{item.comments}</p>
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600" data-color-mode="dark">
+                    <MDPreview source={item.comments} />
+                  </div>
                 )}
               </div>
             )}
