@@ -349,7 +349,7 @@ export default function StarterProjectsPage() {
         }
       `}</style>
 
-      <div className="bg-[linear-gradient(#40352999,#40352999),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
+      <div className="bg-[linear-gradient(var(--color-cream-850)/0.6,var(--color-cream-850)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
         <div 
           className="absolute inset-0 opacity-40 -z-1000 pointer-none"
           style={{
@@ -385,7 +385,7 @@ export default function StarterProjectsPage() {
                 <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
                   {/* Concentric circles */}
                   {circles.map((diameter) => (
-                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="#44382C" strokeWidth="2" />
+                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="var(--color-cream-700)" strokeWidth="2" />
                   ))}
                   
                   {/* Rotating lines with squares */}
@@ -394,28 +394,28 @@ export default function StarterProjectsPage() {
                       {/* First line */}
                       <g data-line-group={`${i}-1`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="#44382C" strokeWidth="2" />
+                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="var(--color-cream-700)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-1a`}>
-                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                         <g data-square={`${i}-1b`}>
-                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                       </g>
                       
                       {/* Second line (opposite side) */}
                       <g data-line-group={`${i}-2`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="#44382C" strokeWidth="2" />
+                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="var(--color-cream-700)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-2a`}>
-                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                         <g data-square={`${i}-2b`}>
-                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                       </g>
                     </g>
@@ -484,7 +484,7 @@ export default function StarterProjectsPage() {
                   </div>
                 </div>
                 <button className="text-white text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-500/20 border-r-3">
-                  <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, #ea745225 0%, #ea745225 12.5%, transparent 12.5%, transparent 37.5%, #ea745225 37.5%, #ea745225 62.5%, transparent 62.5%, transparent 87.5%, #ea745225 87.5%, #ea745225 100%)' }} />
+                  <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, var(--color-brand-500-25) 0%, var(--color-brand-500-25) 12.5%, transparent 12.5%, transparent 37.5%, var(--color-brand-500-25) 37.5%, var(--color-brand-500-25) 62.5%, transparent 62.5%, transparent 87.5%, var(--color-brand-500-25) 87.5%, var(--color-brand-500-25) 100%)' }} />
                   <div className="z-1 absolute w-full h-full inset-0 bg-linear-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="block overflow-hidden absolute w-full">
                     <span className="block group-hover:translate-y-full transition-all ease-out group-hover:opacity-70">
@@ -537,7 +537,7 @@ export default function StarterProjectsPage() {
         </footer>
 
         {/* footer darkening background */}
-        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(#42382C00,#392E22)] -z-2" />
+        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(var(--color-cream-800-0),var(--color-cream-900))] -z-2" />
       </div>
 
       <NoiseOverlay />

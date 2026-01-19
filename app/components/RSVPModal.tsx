@@ -89,11 +89,11 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
 
           <div className="pt-4">
             <MagneticCorners offset={8}>
-              <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
+              <MagneticCorners mode="border" color="var(--color-brand-500)" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="var(--color-brand-400)">
                 <button
                   onClick={handleContinue}
                   disabled={isSubmitting}
-                  className="relative w-full bg-brand-500 hover:bg-[#e0643e] px-6 py-3 text-lg uppercase tracking-wider text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[52px] min-w-[320px]"
+                  className="relative w-full bg-brand-500 hover:bg-brand-400 px-6 py-3 text-lg uppercase tracking-wider text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[52px] min-w-[320px]"
                 >
                   <span className={isSubmitting ? 'invisible' : ''}>Continue with Hack Club Auth</span>
                   {isSubmitting && <span className="absolute inset-0 flex items-center justify-center">Loading...</span>}
