@@ -29,6 +29,7 @@ export interface Project {
   totalHoursClaimed: number
   totalHoursApproved: number
   isStarter: boolean
+  starterProjectId: string | null
   coverImage: string | null
   status: "draft" | "in_review" | "approved" | "rejected"
   createdAt: string

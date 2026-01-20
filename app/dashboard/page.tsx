@@ -44,6 +44,7 @@ export default function ProjectsPage() {
     description: string
     tags: ProjectTag[]
     isStarter: boolean
+    starterProjectId: string | null
   }) => {
     try {
       const res = await fetch('/api/projects', {

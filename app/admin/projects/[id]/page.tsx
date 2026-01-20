@@ -12,6 +12,7 @@ const MDPreview = dynamic(
   { ssr: false }
 );
 import { ProjectTag } from "@/app/generated/prisma/enums";
+import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -368,7 +369,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             {project.isStarter && (
               <div className="mt-4">
                 <span className="bg-brand-500/20 border border-brand-500/50 text-brand-400 px-2 py-1 text-xs uppercase">
-                  Starter Project
+                  {project.starterProjectId ? `Starter: ${STARTER_PROJECT_NAMES[project.starterProjectId] ?? project.starterProjectId}` : 'Starter Project'}
                 </span>
               </div>
             )}

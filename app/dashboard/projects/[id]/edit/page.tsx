@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import Link from 'next/link';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
+import { STARTER_PROJECTS } from "@/lib/starter-projects";
 
 interface ProjectBadge {
   id: string;
@@ -20,6 +21,7 @@ interface Project {
   description: string | null;
   tags: ProjectTag[];
   isStarter: boolean;
+  starterProjectId: string | null;
   githubRepo: string | null;
 }
 
@@ -66,6 +68,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([]);
   const [isStarter, setIsStarter] = useState(false);
+  const [starterProjectId, setStarterProjectId] = useState('');
   const [githubRepo, setGithubRepo] = useState('');
   
   
@@ -104,6 +107,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           setDescription(data.description || '');
           setSelectedTags(data.tags);
           setIsStarter(data.isStarter);
+          setStarterProjectId(data.starterProjectId || '');
           setGithubRepo(data.githubRepo || '');
           
         } else if (res.status === 404) {
@@ -171,6 +175,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !project) return;
+    if (isStarter && !starterProjectId) return;
     
     setSaving(true);
     try {
@@ -182,6 +187,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           description: description.trim(),
           tags: selectedTags,
           isStarter,
+          starterProjectId: isStarter ? starterProjectId : null,
           githubRepo: githubRepo.trim() || null,
         }),
       });
@@ -338,6 +344,27 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   </button>
                 </div>
               </div>
+
+              {isStarter && (
+                <div>
+                  <label className="block text-cream-300 text-xs uppercase mb-2 mt-4">
+                    Which Starter Project?
+                  </label>
+                  <select
+                    value={starterProjectId}
+                    onChange={(e) => setStarterProjectId(e.target.value)}
+                    className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                    required
+                  >
+                    <option value="">Select a starter project...</option>
+                    {STARTER_PROJECTS.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Badges section */}

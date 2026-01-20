@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ProjectTag } from "@/app/generated/prisma/enums"
+import { STARTER_PROJECTS } from "@/lib/starter-projects"
 
 interface Props {
   isOpen: boolean
@@ -11,6 +12,7 @@ interface Props {
     description: string
     tags: ProjectTag[]
     isStarter: boolean
+    starterProjectId: string | null
   }) => void
 }
 
@@ -27,6 +29,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
   const [description, setDescription] = useState('')
   const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([])
   const [isStarter, setIsStarter] = useState(false)
+  const [starterProjectId, setStarterProjectId] = useState('')
 
   if (!isOpen) return null
 
@@ -41,18 +44,21 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
+    if (isStarter && !starterProjectId) return
     
     onSubmit({
       title: title.trim(),
       description: description.trim(),
       tags: selectedTags,
       isStarter,
+      starterProjectId: isStarter ? starterProjectId : null,
     })
 
     setTitle('')
     setDescription('')
     setSelectedTags([])
     setIsStarter(false)
+    setStarterProjectId('')
   }
 
   return (
@@ -164,9 +170,30 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
             </div>
           </div>
 
+          {isStarter && (
+            <div>
+              <label className="block text-cream-300 text-sm uppercase mb-2">
+                Which Starter Project?
+              </label>
+              <select
+                value={starterProjectId}
+                onChange={(e) => setStarterProjectId(e.target.value)}
+                className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                required
+              >
+                <option value="">Select a starter project...</option>
+                {STARTER_PROJECTS.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={!title.trim()}
+            disabled={!title.trim() || (isStarter && !starterProjectId)}
             className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-600 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
           >
             Create Project

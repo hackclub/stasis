@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ProjectTag } from "@/app/generated/prisma/enums"
+import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects"
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -24,6 +25,7 @@ interface Project {
   totalHoursClaimed: number
   totalHoursApproved: number
   isStarter: boolean
+  starterProjectId: string | null
   coverImage: string | null
   status: "draft" | "in_review" | "approved" | "rejected"
   badges?: ProjectBadge[]
@@ -113,7 +115,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
         {project.isStarter && (
           <div className="absolute top-2 right-2 z-10">
             <span className="text-[10px] bg-brand-500 text-white font-medium px-1.5 py-0.5 uppercase">
-              Starter
+              {project.starterProjectId ? STARTER_PROJECT_NAMES[project.starterProjectId] ?? 'Starter' : 'Starter'}
             </span>
           </div>
         )}
