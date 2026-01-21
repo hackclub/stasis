@@ -230,16 +230,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       });
 
       if (res.ok) {
-        const updatedProject = await res.json();
-        setProject(updatedProject);
-        if (stage === 'design') {
-          setDesignComments('');
-          setDesignGrantAmount('');
-        }
-        if (stage === 'build') {
-          setBuildComments('');
-          setBuildGrantAmount('');
-        }
+        router.push('/admin');
       } else {
         const data = await res.json();
         alert(data.error || 'Failed to submit decision');

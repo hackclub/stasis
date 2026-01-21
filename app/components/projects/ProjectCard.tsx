@@ -70,7 +70,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
   return (
     <Link 
       href={`/dashboard/projects/${project.id}`}
-      className="block bg-cream-950 relative select-none w-full cursor-pointer overflow-hidden hover:bg-cream-900 transition-colors group"
+      className="block bg-cream-900 border border-cream-700 relative select-none w-full cursor-pointer overflow-hidden hover:bg-cream-800 transition-colors group"
       data-project-card="true" 
     >
       {/* Cover Image */}

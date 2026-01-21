@@ -222,7 +222,7 @@ export function HoverScramble({
   }, []);
 
   return (
-    <div className={className} style={{ whiteSpace: 'nowrap' }}>
+    <div className={className}>
       {characters.map((char, i) =>
         char.original === '\n' ? (
           <br key={i} />
