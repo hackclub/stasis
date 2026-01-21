@@ -133,28 +133,28 @@ export default function Home() {
               <ASCIIArt art={asciiArt.earth} horizontalPosition={35} />
 
               <HoverScramble
-                segments={[
-                  { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
-                  { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800 font-medium" },
-                  { text: "EMD\n" },
-                  { text: "FEBRUARY 2026", class: "text-cream-800 font-medium" },
-                  { text: "J R" },
-                  { text: "AUSTIN, TEXAS", class: "text-cream-800 font-medium" },
-                  { text: "P\nFCX XW VQQET S" },
-                  { text: "COMPLETELY FREE", class: "text-cream-800 font-medium" },
-                  { text: "M\nC LQW" },
-                  { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800 font-medium" },
-                  { text: "\nC" },
-                  { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800 font-medium" },
-                  { text: "MEXDLB LEZ\nYRE\tVJ URVSP LWOS JWPOX I SFF" }
-                ]}
-                initialScramble={true}
-                initialDuration={2.5}
-                initialStagger={1.2}
-                initialDelay={0.8}
-                continuousScramble={false}
-                continuousSpeed={25}
-                className="font-mono text-[1.1rem] md:text-[1.4rem] text-cream-600 leading-tight w-full origin-center block whitespace-pre-line bg-cream-200/50"
+              segments={[
+                { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
+                { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
+                { text: "EMD\n" },
+                { text: "FEBRUARY 2026", class: "text-cream-800" },
+                { text: "J R" },
+                { text: "AUSTIN, TEXAS", class: "text-cream-800" },
+                { text: "P\nFCX XW VQQET S" },
+                { text: "COMPLETELY FREE", class: "text-cream-800" },
+                { text: "M\nC LQW" },
+                { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
+                { text: "\nC" },
+                { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
+                { text: "MEXDLB LEZ\nYRE  VJ URVSP LWOS JWPOX I SFF" }
+              ]}
+              initialScramble={true}
+              initialDuration={2.5}
+              initialStagger={1.2}
+              initialDelay={0.8}
+              continuousScramble={false}
+              continuousSpeed={25}
+              className="font-mono font-medium text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-pre-line bg-[#DAD2BF50]"
               />
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -172,7 +172,7 @@ export default function Home() {
                 <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                   <button 
                     onClick={() => setIsRSVPOpen(true)}
-                    className="relative bg-brand-500 hover:bg-[#e0643e] px-8 md:px-10 py-2 text-xl md:text-2xl uppercase tracking-wider text-white transition-colors cursor-pointer"
+                    className="relative bg-brand-500 hover:bg-[#e0643e] px-8 md:px-10 py-2 text-xl md:text-2xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
                   >
                     RSVP
                   </button>
@@ -187,7 +187,7 @@ export default function Home() {
               <DottedLine orientation="horizontal" />
             </div>
 
-            <p className="text-xs md:text-sm text-center mt-4 text-cream-800">Event launches December 2025</p>
+            <p className="text-xs md:text-sm text-center mt-4 text-cream-800/90">Event launches December 2025</p>
 
             <div className="h-1"></div>
 
