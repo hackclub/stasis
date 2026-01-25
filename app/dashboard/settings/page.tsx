@@ -10,7 +10,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-xl mx-auto">
       <div className="bg-cream-900 border-2 border-cream-600 p-6 space-y-6">
         <div>
           <h2 className="text-brand-500 text-xl uppercase mb-4">Account</h2>

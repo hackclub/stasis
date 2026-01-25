@@ -104,19 +104,26 @@ export default function GuidesPage() {
                 <li>Missing firmware/software</li>
               </ul>
               <p className="text-red-400 text-sm mt-2">
-                Any project that includes stolen content, AI-generated readmes or journals, or other fraudulent/dishonest material may be permanently rejected and could result in a ban from Blueprint and other Hack Club programs!
+                Any project that includes stolen content, AI-generated readmes or journals, or other fraudulent/dishonest material may be permanently rejected and could result in a ban from Stasis and other Hack Club programs!
               </p>
 
               <h3 className="text-cream-100 text-lg mt-6 mb-3">3. You have a quality journal</h3>
               <p className="text-cream-300">
-                Your journal is very important for Blueprint! Not only does it allow us to verify the hours you spent, it also allows for other people to look back at your project and follow its journey. Here are some important things to keep in mind while journaling:
+                Your journal is very important for Stasis! Not only does it allow us to verify the hours you spent, it also allows for other people to look back at your project and follow its journey. Here are some important things to keep in mind while journaling:
               </p>
               <ul className="list-disc list-inside text-cream-300 space-y-1">
                 <li>Try to keep each entry under 5 hours, this is not a hard requirement but your project will be more likely to be rejected</li>
                 <li>Take into account your thoughts while making a project</li>
                 <li>Don&apos;t just log the steps that led to your final project! You should have all of your failures and rabbit holes that didn&apos;t end up making it to the final piece.</li>
               </ul>
-              <p className="text-cream-200 italic text-sm">There is no magic bullet, but as long as you put an honest effort forward you will almost certainly be approved.</p>
+
+              <h4 className="text-cream-200 font-medium mt-4 mb-2">MEDIA REQUIREMENTS:</h4>
+              <ul className="list-disc list-inside text-cream-300 space-y-1">
+                <li><strong>Images are required</strong> for every journal entry submission</li>
+                <li><strong>Sessions over 7 hours require a timelapse</strong> recording of your work session</li>
+              </ul>
+
+              <p className="text-cream-200 italic text-sm mt-4">There is no magic bullet, but as long as you put an honest effort forward you will almost certainly be approved.</p>
 
               <h3 className="text-cream-100 text-lg mt-6 mb-3">4. Your project is cost optimized!</h3>
               <p className="text-cream-300">You should always aim to make your project as cheap as possible!</p>
@@ -137,7 +144,7 @@ export default function GuidesPage() {
             <h1 className="text-brand-500 text-2xl uppercase tracking-wide mb-6">Frequently Asked Questions</h1>
             <div className="space-y-4">
               <div className="border-b border-cream-700 pb-4">
-                <h3 className="text-cream-100 text-lg mb-2">What is Blueprint?</h3>
+                <h3 className="text-cream-100 text-lg mb-2">What is Stasis?</h3>
                 <p className="text-cream-300">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
               </div>
               <div className="border-b border-cream-700 pb-4">

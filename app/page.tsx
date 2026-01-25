@@ -187,7 +187,7 @@ export default function Home() {
               <DottedLine orientation="horizontal" />
             </div>
 
-            <p className="text-xs md:text-sm text-center mt-4 text-cream-800/90">Event launches December 2025</p>
+          
 
             <div className="h-1"></div>
 

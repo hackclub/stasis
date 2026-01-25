@@ -498,6 +498,34 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </span>
               )}
             </div>
+
+            {/* Quick Actions */}
+            {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
+              <div className="mt-6">
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href={`/dashboard/projects/${project.id}/session/new`}
+                    data-tutorial="actions"
+                    className="inline-block bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 px-6 text-center uppercase tracking-wider transition-colors"
+                  >
+                    + New Journal Entry
+                  </Link>
+                  <button
+                    data-tutorial="timelapse"
+                    className="inline-flex items-center gap-2 bg-cream-800 hover:bg-cream-700 text-cream-100 font-medium py-3 px-6 text-center uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Start Timelapse
+                  </button>
+                </div>
+                <p className="text-cream-400 text-xs mt-2">
+                  Planning to work 7+ hours? You&apos;ll need to include a timelapse recording of your session.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Badges Section */}
@@ -813,23 +841,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3 mb-8">
-            {/* Always show Log Session and Edit */}
+            {/* Edit button */}
             {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
-              <>
-                <Link
-                  href={`/dashboard/projects/${project.id}/session/new`}
-                  data-tutorial="actions"
-                  className="flex-1 min-w-[200px] bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 text-center uppercase tracking-wider transition-colors"
-                >
-                  + Log Session
-                </Link>
-                <Link
-                  href={`/dashboard/projects/${project.id}/edit`}
-                  className="flex-1 min-w-[200px] bg-cream-800 hover:bg-cream-700 text-cream-100 py-3 text-center uppercase tracking-wider transition-colors"
-                >
-                  Edit Project
-                </Link>
-              </>
+              <Link
+                href={`/dashboard/projects/${project.id}/edit`}
+                className="flex-1 min-w-[200px] bg-cream-800 hover:bg-cream-700 text-cream-100 py-3 text-center uppercase tracking-wider transition-colors"
+              >
+                Edit Project
+              </Link>
             )}
             
             {/* Design Stage Submit Button */}

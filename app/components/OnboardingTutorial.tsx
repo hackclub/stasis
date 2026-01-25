@@ -98,10 +98,17 @@ const PROJECT_STEPS: TutorialStep[] = [
   },
   {
     id: 'actions',
-    title: 'Log Your Work Sessions',
-    content: 'Click "+ Log Session" each time you work on your project. Add photos, describe what you did, and estimate hours. This is how you get paid!',
+    title: 'Journal your progress',
+    content: 'Make a journal entry every time you work on your project. Add photos, describe what you did, and estimate hours.',
     targetSelector: '[data-tutorial="actions"]',
     position: 'top',
+  },
+  {
+    id: 'timelapse',
+    title: 'Record a Timelapse',
+    content: 'Planning a 7+ hour session? Start a timelapse recording before you begin. This is required for longer work sessions.',
+    targetSelector: '[data-tutorial="timelapse"]',
+    position: 'bottom',
   },
   {
     id: 'submit',
@@ -175,7 +182,9 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
         const elementTop = rect.top + window.scrollY;
         let scrollTarget: number;
         
-        if (step.position === 'top' || step.position === 'bottom') {
+        if (step.position === 'top') {
+          scrollTarget = elementTop - tooltipHeight - padding * 3;
+        } else if (step.position === 'bottom') {
           scrollTarget = elementTop - (window.innerHeight - totalNeeded) / 2 - tooltipHeight - padding;
         } else {
           scrollTarget = elementTop - window.innerHeight / 2 + rect.height / 2;
@@ -270,7 +279,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
     const spaceAbove = highlightRect.top;
     const spaceBelow = viewportHeight - highlightRect.bottom;
     
-    const extraOffset = (step.id === 'actions' || step.id === 'submit') ? 60 : 0;
+    const extraOffset = (step.id === 'actions' || step.id === 'submit') ? 100 : 0;
 
     const horizontalCenter = Math.max(
       padding,
@@ -445,10 +454,10 @@ export function TutorialHelpButton({ onClick }: Readonly<{ onClick: () => void }
       className="fixed bottom-6 right-6 z-50 bg-brand-500 hover:bg-brand-400 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
       title="Show tutorial"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>
         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-        <line x1="12" y1="17" x2="12.01" y2="17"/>
+        <circle cx="12" cy="17" r="1" fill="currentColor"/>
       </svg>
     </button>
   );
