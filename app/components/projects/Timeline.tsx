@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
 
 const MDPreview = dynamic(
@@ -86,7 +87,7 @@ function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision
   }
 }
 
-export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
+export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[]; projectId: string }>) {
   if (items.length === 0) {
     return (
       <div className="text-center py-8">
@@ -135,7 +136,21 @@ export function Timeline({ items }: Readonly<{ items: TimelineItem[] }>) {
                         : `${item.session.hoursClaimed}h claimed`}
                     </span>
                   </div>
-                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
+                  <div className="flex items-center gap-2">
+                    {item.session.hoursApproved === null && (
+                      <Link
+                        href={`/dashboard/projects/${projectId}/session/${item.session.id}/edit`}
+                        className="text-cream-400 hover:text-brand-400 transition-colors"
+                        title="Edit journal entry"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </Link>
+                    )}
+                    <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
+                  </div>
                 </div>
                 {item.session.content && (
                   <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="dark">

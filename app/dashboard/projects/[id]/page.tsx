@@ -947,7 +947,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-cream-50 text-xl uppercase tracking-wide">Timeline</h2>
           </div>
-          <Timeline items={timelineItems} />
+          <Timeline items={timelineItems} projectId={projectId} />
         </div>
       </div>
     </div>

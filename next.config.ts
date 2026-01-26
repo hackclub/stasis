@@ -6,7 +6,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'hc-cdn.hel1.your-objectstorage.com',
+        hostname: 'stasis-staging.hackclub-assets.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'stasis.hackclub-assets.com',
       },
     ],
   },
