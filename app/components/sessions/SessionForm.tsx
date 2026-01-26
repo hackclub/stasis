@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { calculateJournalXP } from '@/lib/xp';
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 
@@ -38,6 +39,11 @@ export interface SessionFormData {
   media: MediaItem[]
 }
 
+export interface XPPreviewData {
+  dayStreak: number
+  weekStreak: number
+}
+
 interface SessionFormProps {
   initialData?: SessionFormData
   onSubmit: (data: { hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => Promise<void>
@@ -47,6 +53,7 @@ interface SessionFormProps {
   setError: (error: string | null) => void
   children?: React.ReactNode
   autosaveKey?: string // Unique key for localStorage autosave (e.g., "session-new-{projectId}" or "session-edit-{sessionId}")
+  xpPreviewData?: XPPreviewData // Current streak data for XP preview
 }
 
 export function SessionForm({ 
@@ -57,7 +64,8 @@ export function SessionForm({
   error, 
   setError,
   children,
-  autosaveKey 
+  autosaveKey,
+  xpPreviewData 
 }: Readonly<SessionFormProps>) {
   const [hoursValue, setHoursValue] = useState(initialData?.hoursValue ?? 0);
   const [minutesValue, setMinutesValue] = useState(initialData?.minutesValue ?? 0);
@@ -245,6 +253,13 @@ export function SessionForm({
   const requiredVideos = Math.floor(hoursNum / 4);
   const imageCount = media.filter(m => m.type === "IMAGE").length;
   const videoCount = media.filter(m => m.type === "VIDEO").length;
+
+  const xpPreview = useMemo(() => {
+    if (!xpPreviewData || hoursNum <= 0) return null;
+    const nextDayStreak = xpPreviewData.dayStreak + 1;
+    const nextWeekStreak = xpPreviewData.weekStreak;
+    return calculateJournalXP(nextDayStreak, nextWeekStreak, hoursNum);
+  }, [xpPreviewData, hoursNum]);
 
   const handleCategoryToggle = (cat: SessionCategory) => {
     setSelectedCategories(prev =>
@@ -628,6 +643,18 @@ export function SessionForm({
             <p className="text-brand-500 text-sm mt-4">
               ⚠ Sessions over 4 hours require {requiredVideos} video clip{requiredVideos > 1 ? 's' : ''} (10-30 seconds each)
             </p>
+          )}
+          
+          {xpPreview && (
+            <div className="mt-4 pt-4 border-t border-cream-700">
+              <div className="flex items-center gap-3">
+                <span className="text-cream-400 text-sm uppercase">XP if approved:</span>
+                <span className="text-brand-400 font-bold text-lg">+{xpPreview.xp} XP</span>
+                {xpPreview.multiplier > 1 && (
+                  <span className="text-cream-500 text-sm">({xpPreview.multiplier}x multiplier)</span>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

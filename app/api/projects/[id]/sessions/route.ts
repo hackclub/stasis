@@ -228,7 +228,7 @@ export async function POST(
       }
     }
 
-    const { xp: earnedXP, multiplier } = calculateJournalXP(newDayStreak, newWeekStreak)
+    const { xp: earnedXP, multiplier } = calculateJournalXP(newDayStreak, newWeekStreak, hoursClaimed)
 
     await tx.xPTransaction.create({
       data: {

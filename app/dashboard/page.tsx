@@ -7,6 +7,7 @@ import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial, TutorialHelpButton } from '../components/OnboardingTutorial';
 import { XPDisplay } from '../components/XPDisplay';
+import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import Link from 'next/link';
 import type { Project } from './types';
@@ -123,6 +124,11 @@ export default function ProjectsPage() {
       {/* XP Progress */}
       <div data-tutorial="xp-progress" className="mb-6">
         <XPDisplay />
+      </div>
+
+      {/* Recent Journal Entries */}
+      <div className="mb-6">
+        <RecentJournalEntries />
       </div>
 
       {/* Stats bar */}

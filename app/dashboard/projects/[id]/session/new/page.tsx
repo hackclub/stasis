@@ -5,7 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import Link from 'next/link';
-import { SessionForm, type SessionCategory } from '@/app/components/sessions/SessionForm';
+import { SessionForm, type SessionCategory, type XPPreviewData } from '@/app/components/sessions/SessionForm';
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested"
 
@@ -26,26 +26,39 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [xpPreviewData, setXpPreviewData] = useState<XPPreviewData | null>(null);
 
   useEffect(() => {
-    async function fetchProject() {
+    async function fetchData() {
       try {
-        const res = await fetch(`/api/projects/${projectId}`);
-        if (res.ok) {
-          const data = await res.json();
+        const [projectRes, xpRes] = await Promise.all([
+          fetch(`/api/projects/${projectId}`),
+          fetch('/api/xp'),
+        ]);
+        
+        if (projectRes.ok) {
+          const data = await projectRes.json();
           setProject(data);
-        } else if (res.status === 404) {
+        } else if (projectRes.status === 404) {
           router.push('/dashboard');
         }
+        
+        if (xpRes.ok) {
+          const xpData = await xpRes.json();
+          setXpPreviewData({
+            dayStreak: xpData.dayStreak ?? 0,
+            weekStreak: xpData.weekStreak ?? 0,
+          });
+        }
       } catch (err) {
-        console.error('Failed to fetch project:', err);
+        console.error('Failed to fetch data:', err);
       } finally {
         setLoading(false);
       }
     }
 
     if (session) {
-      fetchProject();
+      fetchData();
     } else if (!isPending) {
       router.push('/dashboard');
     }
@@ -128,6 +141,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
             error={error}
             setError={setError}
             autosaveKey={`session-new-${projectId}`}
+            xpPreviewData={xpPreviewData ?? undefined}
           />
         </div>
       </div>

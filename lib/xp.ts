@@ -1,12 +1,13 @@
-const BASE_XP = 10
+const XP_PER_HOUR = 10
 
-export function calculateJournalXP(dayStreak: number, weekStreak: number): { xp: number; multiplier: number } {
+export function calculateJournalXP(dayStreak: number, weekStreak: number, hours: number = 1): { xp: number; multiplier: number } {
   const dayMultiplier = Math.min(dayStreak, 7) * 0.1
   const weekMultiplier = Math.min(weekStreak, 4) * 0.25
   const multiplier = 1 + dayMultiplier + weekMultiplier
+  const baseXP = XP_PER_HOUR * hours
   
   return {
-    xp: Math.round(BASE_XP * multiplier),
+    xp: Math.round(baseXP * multiplier),
     multiplier: Math.round(multiplier * 100) / 100,
   }
 }
