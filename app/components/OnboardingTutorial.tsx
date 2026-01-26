@@ -33,6 +33,13 @@ const DASHBOARD_STEPS: TutorialStep[] = [
     position: 'bottom',
   },
   {
+    id: 'xp-progress',
+    title: 'Earn XP for Prizes',
+    content: 'Every journal entry earns XP. Keep a daily streak for bonus multipliers (up to 2.7x)! Unlock prizes in order: Sticker → Bandana → T-Shirt → Hoodie.',
+    targetSelector: '[data-tutorial="xp-progress"]',
+    position: 'bottom',
+  },
+  {
     id: 'stats',
     title: 'Track Your Hours',
     content: 'You earn $5/hour for approved work. Log your hours as you work, and they\'ll be reviewed and approved by the team.',

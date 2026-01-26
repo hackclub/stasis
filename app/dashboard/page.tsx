@@ -6,6 +6,7 @@ import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial, TutorialHelpButton } from '../components/OnboardingTutorial';
+import { XPDisplay } from '../components/XPDisplay';
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import Link from 'next/link';
 import type { Project } from './types';
@@ -81,7 +82,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-brand-500 text-lg uppercase tracking-wide">Badge Progress</h2>
-            <p className="text-cream-300 text-sm">Earn {BADGES_REQUIRED} approved badges to attend the event</p>
+            <p className="text-cream-300 text-sm">Badges are specific skills or technologies you use in your projects. Earn {BADGES_REQUIRED} approved badges to qualify for Stasis!</p>
           </div>
           {approvedBadges.length >= BADGES_REQUIRED && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
@@ -117,6 +118,11 @@ export default function ProjectsPage() {
         {pendingBadges.length > 0 && (
           <p className="text-cream-300 text-xs mt-2">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
         )}
+      </div>
+
+      {/* XP Progress */}
+      <div data-tutorial="xp-progress" className="mb-6">
+        <XPDisplay />
       </div>
 
       {/* Stats bar */}
