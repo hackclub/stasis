@@ -659,8 +659,8 @@ export function SessionForm({
         </div>
 
         {/* Categories */}
-        <div className="bg-cream-900 border-2 border-cream-600 p-4">
-          <label className="block text-cream-300 text-sm uppercase mb-3">
+        <div className="bg-cream-100 border-2 border-cream-400 p-4">
+          <label className="block text-cream-700 text-sm uppercase mb-3">
             Categories (select all that apply)
           </label>
           <div className="flex flex-wrap gap-2">
@@ -672,7 +672,7 @@ export function SessionForm({
                 className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   selectedCategories.includes(cat.value)
                     ? 'bg-brand-500 text-white font-medium'
-                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
+                    : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                 }`}
               >
                 {cat.label}
@@ -682,14 +682,14 @@ export function SessionForm({
         </div>
 
         {/* Journal Content */}
-        <div className="bg-cream-900 border-2 border-cream-600 p-4">
-          <label className="block text-cream-300 text-sm uppercase mb-2">
+        <div className="bg-cream-100 border-2 border-cream-400 p-4">
+          <label className="block text-cream-700 text-sm uppercase mb-2">
             What Did You Work On?
           </label>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-cream-300 text-xs">
-              Write in Markdown. <span className="text-cream-300">At least 2 images required</span> — drag, drop, or paste directly into the editor.
-              {uploadingToEditor && <span className="text-brand-400 ml-2">Uploading image...</span>}
+            <p className="text-cream-600 text-xs">
+              Write in Markdown. <span className="text-cream-700">At least 2 images required</span> — drag, drop, or paste directly into the editor.
+              {uploadingToEditor && <span className="text-brand-500 ml-2">Uploading image...</span>}
             </p>
             {autosaveKey && lastSaved && (
               <span className="text-cream-500 text-xs">
@@ -726,11 +726,11 @@ export function SessionForm({
 
         {/* Videos (conditional) */}
         {requiredVideos > 0 && (
-          <div className="bg-cream-900 border-2 border-cream-600 p-4">
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+          <div className="bg-cream-100 border-2 border-cream-400 p-4">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Video Clips <span className="text-red-500">*</span>
             </label>
-            <p className="text-cream-300 text-xs mb-3">
+            <p className="text-cream-600 text-xs mb-3">
               Record a 10-30 second video explaining what you did. 
               You need {requiredVideos} video{requiredVideos > 1 ? 's' : ''} for this session length. Max 100MB per file.
             </p>
@@ -739,7 +739,7 @@ export function SessionForm({
               {media.filter(m => m.type === "VIDEO").map((item, index) => {
                 const actualIndex = media.findIndex(m => m === item);
                 return (
-                  <div key={index} className="relative w-32 h-24 bg-cream-950 border border-cream-800">
+                  <div key={index} className="relative w-32 h-24 bg-cream-200 border border-cream-400">
                     <video src={item.url} className="w-full h-full object-cover" />
                     <button
                       type="button"
@@ -748,7 +748,7 @@ export function SessionForm({
                     >
                       ×
                     </button>
-                    <div className="absolute bottom-1 left-1 bg-cream-950/80 px-1 text-xs text-cream-300">
+                    <div className="absolute bottom-1 left-1 bg-cream-200/80 px-1 text-xs text-cream-700">
                       Video
                     </div>
                   </div>
@@ -758,8 +758,8 @@ export function SessionForm({
 
             {/* Device Selector with Preview */}
             {showDeviceSelector && !isRecording && (
-              <div className="mb-4 p-3 bg-cream-950 border border-cream-700">
-                <div className="relative w-64 h-48 bg-cream-900 border border-cream-600 mb-3">
+              <div className="mb-4 p-3 bg-cream-200 border border-cream-400">
+                <div className="relative w-64 h-48 bg-cream-300 border border-cream-400 mb-3">
                   <video 
                     ref={videoPreviewRef} 
                     autoPlay 
@@ -767,18 +767,18 @@ export function SessionForm({
                     playsInline
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-2 left-2 bg-cream-950/80 px-2 py-1">
-                    <span className="text-cream-200 text-xs uppercase">Preview</span>
+                  <div className="absolute top-2 left-2 bg-cream-200/80 px-2 py-1">
+                    <span className="text-cream-700 text-xs uppercase">Preview</span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <label className="block text-cream-300 text-xs uppercase mb-1">Camera</label>
+                    <label className="block text-cream-700 text-xs uppercase mb-1">Camera</label>
                     <select
                       value={selectedVideoDevice}
                       onChange={(e) => setSelectedVideoDevice(e.target.value)}
-                      className="w-full bg-cream-900 border border-cream-600 text-cream-100 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-cream-100 border border-cream-400 text-cream-800 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
                     >
                       {videoDevices.map((device) => (
                         <option key={device.deviceId} value={device.deviceId}>
@@ -788,11 +788,11 @@ export function SessionForm({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-cream-300 text-xs uppercase mb-1">Microphone</label>
+                    <label className="block text-cream-700 text-xs uppercase mb-1">Microphone</label>
                     <select
                       value={selectedAudioDevice}
                       onChange={(e) => setSelectedAudioDevice(e.target.value)}
-                      className="w-full bg-cream-900 border border-cream-600 text-cream-100 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-cream-100 border border-cream-400 text-cream-800 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
                     >
                       {audioDevices.map((device) => (
                         <option key={device.deviceId} value={device.deviceId}>
@@ -814,7 +814,7 @@ export function SessionForm({
                   <button
                     type="button"
                     onClick={closeDeviceSelector}
-                    className="bg-cream-700 hover:bg-cream-600 text-cream-100 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                    className="bg-cream-400 hover:bg-cream-500 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
@@ -825,7 +825,7 @@ export function SessionForm({
             {/* Recording UI */}
             {isRecording ? (
               <div className="mb-4">
-                <div className="relative w-64 h-48 bg-cream-950 border-2 border-red-500 mb-3">
+                <div className="relative w-64 h-48 bg-cream-200 border-2 border-red-500 mb-3">
                   <video 
                     ref={videoPreviewRef} 
                     autoPlay 
@@ -837,8 +837,8 @@ export function SessionForm({
                     <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                     <span className="text-red-500 text-xs uppercase font-medium">Recording</span>
                   </div>
-                  <div className="absolute top-2 right-2 bg-cream-950/80 px-2 py-1">
-                    <span className="text-white text-sm font-mono">{formatDuration(recordingDuration)}</span>
+                  <div className="absolute top-2 right-2 bg-cream-200/80 px-2 py-1">
+                    <span className="text-cream-800 text-sm font-mono">{formatDuration(recordingDuration)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -852,7 +852,7 @@ export function SessionForm({
                   <button
                     type="button"
                     onClick={cancelRecording}
-                    className="bg-cream-700 hover:bg-cream-600 text-cream-100 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                    className="bg-cream-400 hover:bg-cream-500 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
@@ -868,7 +868,7 @@ export function SessionForm({
                   <span className="w-2 h-2 bg-white rounded-full" />
                   Record with Webcam
                 </button>
-                <label className="inline-block bg-cream-850 hover:bg-cream-800 text-cream-100 px-4 py-2 text-sm uppercase cursor-pointer transition-colors">
+                <label className="inline-block bg-cream-300 hover:bg-cream-400 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors">
                   <input
                     type="file"
                     accept="video/*"
@@ -899,7 +899,7 @@ export function SessionForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white font-medium py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+          className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:text-cream-600 disabled:cursor-not-allowed text-white font-medium py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
         >
           {submitting ? 'Saving...' : submitLabel}
         </button>

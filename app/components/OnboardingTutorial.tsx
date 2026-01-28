@@ -388,7 +388,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
 
       {/* Tooltip */}
       <div
-        className="absolute bg-cream-900 border-2 border-brand-500 p-6 max-w-[360px] w-full shadow-2xl"
+        className="absolute bg-cream-100 border-2 border-brand-500 p-6 max-w-[360px] w-full shadow-2xl"
         style={getTooltipPosition()}
       >
         {/* Progress indicator */}
@@ -397,24 +397,24 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
             <div
               key={index}
               className={`h-1 flex-1 rounded-full transition-colors ${
-                index <= currentStep ? 'bg-brand-500' : 'bg-cream-700'
+                index <= currentStep ? 'bg-brand-500' : 'bg-cream-400'
               }`}
             />
           ))}
         </div>
 
         {/* Step counter */}
-        <p className="text-cream-400 text-xs uppercase tracking-wider mb-2">
+        <p className="text-cream-500 text-xs uppercase tracking-wider mb-2">
           Step {currentStep + 1} of {TUTORIAL_STEPS.length}
         </p>
 
         {/* Title */}
-        <h3 className="text-cream-50 text-lg font-medium mb-3">
+        <h3 className="text-cream-800 text-lg font-medium mb-3">
           {step.title}
         </h3>
 
         {/* Content */}
-        <p className="text-cream-300 text-sm leading-relaxed mb-6">
+        <p className="text-cream-700 text-sm leading-relaxed mb-6">
           {step.content}
         </p>
 
@@ -422,7 +422,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
         <div className="flex items-center justify-between">
           <button
             onClick={handleSkip}
-            className="text-cream-400 text-sm hover:text-cream-200 transition-colors cursor-pointer"
+            className="text-cream-500 text-sm hover:text-cream-700 transition-colors cursor-pointer"
           >
             Skip tutorial
           </button>
@@ -431,7 +431,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
             {currentStep > 0 && (
               <button
                 onClick={handlePrev}
-                className="bg-cream-800 hover:bg-cream-700 text-cream-100 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                className="bg-cream-300 hover:bg-cream-400 text-cream-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Back
               </button>

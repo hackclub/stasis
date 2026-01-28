@@ -70,11 +70,11 @@ export function ProjectCard({ project }: Readonly<Props>) {
   return (
     <Link 
       href={`/dashboard/projects/${project.id}`}
-      className="block bg-cream-900 border border-cream-700 relative select-none w-full cursor-pointer overflow-hidden hover:bg-cream-800 transition-colors group"
+      className="block bg-cream-100 border border-cream-400 relative select-none w-full cursor-pointer overflow-hidden hover:bg-cream-200 transition-colors group"
       data-project-card="true" 
     >
       {/* Cover Image */}
-      <div className="aspect-video bg-cream-900 border-b border-cream-700 flex items-center justify-center relative overflow-hidden">
+      <div className="aspect-video bg-cream-200 border-b border-cream-400 flex items-center justify-center relative overflow-hidden">
         {project.coverImage ? (
           <Image 
             src={project.coverImage} 
@@ -86,8 +86,8 @@ export function ProjectCard({ project }: Readonly<Props>) {
           />
         ) : (
           <>
-            <div className="absolute inset-0 bg-gradient-to-br from-cream-800/30 to-cream-950/60" />
-            <span className="text-cream-300 text-xs uppercase z-10">Missing screenshot, add one?</span>
+            <div className="absolute inset-0 bg-gradient-to-br from-cream-300/30 to-cream-400/60" />
+            <span className="text-cream-700 text-xs uppercase z-10">Missing screenshot, add one?</span>
           </>
         )}
         
@@ -106,7 +106,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
               Rejected
             </span>
           ) : (
-            <span className="text-[10px] bg-cream-700 text-cream-200 font-medium px-1.5 py-0.5 uppercase">
+            <span className="text-[10px] bg-cream-400 text-cream-800 font-medium px-1.5 py-0.5 uppercase">
               Draft
             </span>
           )}
@@ -123,14 +123,14 @@ export function ProjectCard({ project }: Readonly<Props>) {
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-cream-50 text-lg font-mono uppercase tracking-wide truncate group-hover:text-brand-400 transition-colors">
+        <h3 className="text-cream-800 text-lg font-mono uppercase tracking-wide truncate group-hover:text-brand-500 transition-colors">
           {project.title}
         </h3>
-        <p className="text-cream-200 text-sm mt-1">
+        <p className="text-cream-700 text-sm mt-1">
           ~{project.totalHoursClaimed.toFixed(1)}h claimed
         </p>
         {project.description && (
-          <p className="text-cream-300 text-xs mt-2 line-clamp-2">
+          <p className="text-cream-600 text-xs mt-2 line-clamp-2">
             {project.description}
           </p>
         )}
@@ -140,7 +140,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
           {project.tags.slice(0, 3).map((tag) => (
             <span 
               key={tag} 
-              className="text-[10px] bg-cream-800 text-cream-300 px-1.5 py-0.5 uppercase"
+              className="text-[10px] bg-cream-300 text-cream-700 px-1.5 py-0.5 uppercase"
             >
               {TAG_LABELS[tag]}
             </span>
@@ -149,12 +149,12 @@ export function ProjectCard({ project }: Readonly<Props>) {
 
         {/* Badges */}
         {(approvedBadges.length > 0 || pendingBadges.length > 0) && (
-          <div className="mt-3 pt-3 border-t border-cream-700">
+          <div className="mt-3 pt-3 border-t border-cream-400">
             <div className="flex flex-wrap gap-1">
               {approvedBadges.slice(0, 4).map((badge) => (
                 <span 
                   key={badge.id}
-                  className="text-[10px] bg-green-600/40 border border-green-500/60 text-green-400 px-1.5 py-0.5 uppercase"
+                  className="text-[10px] bg-green-100 border border-green-500 text-green-700 px-1.5 py-0.5 uppercase"
                   title={`${BADGE_LABELS[badge.badge]} (Approved)`}
                 >
                   ✓ {BADGE_LABELS[badge.badge]}
@@ -163,14 +163,14 @@ export function ProjectCard({ project }: Readonly<Props>) {
               {pendingBadges.slice(0, 4 - approvedBadges.length).map((badge) => (
                 <span 
                   key={badge.id}
-                  className="text-[10px] bg-cream-800 border border-cream-600 text-cream-300 px-1.5 py-0.5 uppercase"
+                  className="text-[10px] bg-cream-200 border border-cream-400 text-cream-700 px-1.5 py-0.5 uppercase"
                   title={`${BADGE_LABELS[badge.badge]} (Pending)`}
                 >
                   {BADGE_LABELS[badge.badge]}
                 </span>
               ))}
               {(approvedBadges.length + pendingBadges.length) > 4 && (
-                <span className="text-[10px] text-cream-200 px-1">
+                <span className="text-[10px] text-cream-700 px-1">
                   +{(approvedBadges.length + pendingBadges.length) - 4}
                 </span>
               )}

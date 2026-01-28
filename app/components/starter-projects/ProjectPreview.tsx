@@ -35,7 +35,7 @@ export function ProjectPreview({ project, onClick, selected = false }: Readonly<
         }
       `}</style>
       <button 
-        className="aspect-square bg-cream-950 relative select-none w-full cursor-pointer overflow-hidden" 
+        className="aspect-square bg-cream-200 relative select-none w-full cursor-pointer overflow-hidden" 
         data-project-card="true" 
         onClick={onClick}
       >

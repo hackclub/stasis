@@ -69,24 +69,24 @@ export function RecentJournalEntries() {
 
   if (loading) {
     return (
-      <div className="bg-cream-900 border-2 border-cream-600 p-4">
+      <div className="bg-cream-100 border-2 border-cream-400 p-4">
         <h2 className="text-brand-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
-        <p className="text-cream-300 text-sm">Loading...</p>
+        <p className="text-cream-600 text-sm">Loading...</p>
       </div>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <div className="bg-cream-900 border-2 border-cream-600 p-4">
+      <div className="bg-cream-100 border-2 border-cream-400 p-4">
         <h2 className="text-brand-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
-        <p className="text-cream-300 text-sm">No journal entries yet. Log your first work session!</p>
+        <p className="text-cream-600 text-sm">No journal entries yet. Log your first work session!</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-cream-900 border-2 border-cream-600 p-4">
+    <div className="bg-cream-100 border-2 border-cream-400 p-4">
       <h2 className="text-brand-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
       <div className="space-y-3">
         {sessions.map((session) => (
@@ -95,9 +95,9 @@ export function RecentJournalEntries() {
             href={`/dashboard/projects/${session.project.id}`}
             className="block group"
           >
-            <div className="flex gap-3 p-2 -mx-2 hover:bg-cream-800/50 transition-colors">
+            <div className="flex gap-3 p-2 -mx-2 hover:bg-cream-200/50 transition-colors">
               {session.media[0] && (
-                <div className="w-12 h-12 flex-shrink-0 border border-cream-600 overflow-hidden">
+                <div className="w-12 h-12 flex-shrink-0 border border-cream-400 overflow-hidden">
                   <Image
                     src={session.media[0].url}
                     alt=""
@@ -109,14 +109,14 @@ export function RecentJournalEntries() {
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-cream-100 text-sm truncate group-hover:text-brand-400 transition-colors">
+                  <p className="text-cream-800 text-sm truncate group-hover:text-brand-500 transition-colors">
                     {session.project.title}
                   </p>
-                  <span className="text-cream-400 text-xs flex-shrink-0">
+                  <span className="text-cream-500 text-xs flex-shrink-0">
                     {formatRelativeTime(session.createdAt)}
                   </span>
                 </div>
-                <p className="text-cream-300 text-xs truncate mt-0.5">
+                <p className="text-cream-600 text-xs truncate mt-0.5">
                   {session.content
                     ? (() => {
                         const cleaned = stripMarkdown(session.content);
@@ -127,7 +127,7 @@ export function RecentJournalEntries() {
                     : `${session.hoursClaimed}h logged`}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`text-xs ${session.hoursApproved !== null ? 'text-brand-500' : 'text-cream-400'}`}>
+                  <span className={`text-xs ${session.hoursApproved !== null ? 'text-brand-500' : 'text-cream-500'}`}>
                     {session.hoursApproved !== null ? `${session.hoursApproved}h approved` : `${session.hoursClaimed}h pending`}
                   </span>
                 </div>

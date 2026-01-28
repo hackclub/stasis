@@ -135,8 +135,8 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
 
   if (isPending || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-300">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-cream-100 font-mono">
+        <p className="text-cream-700">Loading...</p>
       </div>
     );
   }
@@ -147,10 +147,10 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      <div className="min-h-screen bg-cream-950 font-mono">
+      <div className="min-h-screen bg-cream-100 font-mono">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href={`/dashboard/projects/${projectId}`} className="text-cream-300 hover:text-brand-500 transition-colors flex items-center gap-2">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
+          <Link href={`/dashboard/projects/${projectId}`} className="text-cream-700 hover:text-brand-500 transition-colors flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -161,7 +161,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="mb-6">
             <h1 className="text-brand-500 text-2xl uppercase tracking-wide">Edit Journal Entry</h1>
-            <p className="text-cream-300 text-sm mt-1">Project: {project.title}</p>
+            <p className="text-cream-700 text-sm mt-1">Project: {project.title}</p>
           </div>
 
           <SessionForm
@@ -173,7 +173,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
             setError={setError}
           >
             {/* Delete Section */}
-            <div className="mt-8 pt-6 border-t border-cream-800">
+            <div className="mt-8 pt-6 border-t border-cream-400">
               {!showDeleteConfirm ? (
                 <button
                   type="button"
@@ -190,14 +190,14 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
                       type="button"
                       onClick={handleDelete}
                       disabled={deleting}
-                      className="bg-red-600 hover:bg-red-500 disabled:bg-cream-600 text-white px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                      className="bg-red-600 hover:bg-red-500 disabled:bg-cream-400 text-white px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                     >
                       {deleting ? 'Deleting...' : 'Yes, Delete'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="bg-cream-850 hover:bg-cream-800 text-cream-100 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                      className="bg-cream-200 hover:bg-cream-300 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                     >
                       Cancel
                     </button>

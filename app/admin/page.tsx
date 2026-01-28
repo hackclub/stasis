@@ -57,11 +57,11 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <div className="min-h-screen bg-cream-950 font-mono">
+      <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-cream-300 hover:text-brand-500 transition-colors">
+            <Link href="/dashboard" className="text-cream-700 hover:text-brand-500 transition-colors">
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 width="24" 
@@ -79,22 +79,22 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-6">
             <Link
               href="/admin/users"
-              className="text-cream-300 hover:text-brand-500 text-sm uppercase transition-colors"
+              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors"
             >
               Users
             </Link>
             <Link
               href="/admin/audit"
-              className="text-cream-300 hover:text-brand-500 text-sm uppercase transition-colors"
+              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors"
             >
               Audit
             </Link>
-            <span className="text-cream-300 text-sm hidden sm:block">
+            <span className="text-cream-700 text-sm hidden sm:block">
               {session?.user.name || session?.user.email}
             </span>
             <button
               onClick={() => signOut()}
-              className="text-cream-300 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
+              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out
             </button>
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Stats */}
           <div className="mb-6">
-            <p className="text-cream-300 text-sm uppercase">
+            <p className="text-cream-700 text-sm uppercase">
               {projects.length} project{projects.length !== 1 ? 's' : ''} awaiting review
             </p>
           </div>
@@ -112,11 +112,11 @@ export default function AdminDashboard() {
           {/* Projects List */}
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-cream-300">Loading projects...</p>
+              <p className="text-cream-700">Loading projects...</p>
             </div>
           ) : projects.length === 0 ? (
-            <div className="bg-cream-900 border-2 border-cream-700 p-8 text-center">
-              <p className="text-cream-300">No projects in review</p>
+            <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
+              <p className="text-cream-700">No projects in review</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -124,28 +124,28 @@ export default function AdminDashboard() {
                 <Link
                   key={project.id}
                   href={`/admin/projects/${project.id}`}
-                  className="block bg-cream-900 border-2 border-cream-700 hover:border-brand-500 p-4 transition-colors"
+                  className="block bg-cream-100 border-2 border-cream-400 hover:border-brand-500 p-4 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-cream-100 text-lg uppercase tracking-wide truncate">
+                      <h2 className="text-cream-800 text-lg uppercase tracking-wide truncate">
                         {project.title}
                       </h2>
-                      <p className="text-cream-300 text-sm mt-1">
+                      <p className="text-cream-700 text-sm mt-1">
                         {project.user.name || project.user.email}
                         {project.user.name && (
                           <span className="text-cream-600"> ({project.user.email})</span>
                         )}
                       </p>
                       {project.description && (
-                        <p className="text-cream-200 text-sm mt-2 line-clamp-2">
+                        <p className="text-cream-700 text-sm mt-2 line-clamp-2">
                           {project.description}
                         </p>
                       )}
                       {project.submissionNotes && (
-                        <div className="mt-3 bg-cream-950 border border-cream-700 p-3">
-                          <p className="text-cream-300 text-xs uppercase mb-1">Submission Notes</p>
-                          <p className="text-cream-300 text-sm">{project.submissionNotes}</p>
+                        <div className="mt-3 bg-cream-200 border border-cream-400 p-3">
+                          <p className="text-cream-700 text-xs uppercase mb-1">Submission Notes</p>
+                          <p className="text-cream-700 text-sm">{project.submissionNotes}</p>
                         </div>
                       )}
                     </div>
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
                       <p className="text-brand-500 text-lg">
                         {getTotalHours(project.workSessions).toFixed(1)}h
                       </p>
-                      <p className="text-cream-300 text-xs uppercase">claimed</p>
+                      <p className="text-cream-700 text-xs uppercase">claimed</p>
                       {project.submittedAt && (
                         <p className="text-cream-600 text-xs mt-2">
                           {new Date(project.submittedAt).toLocaleDateString('en-US', {
@@ -165,9 +165,9 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-cream-300 text-sm">
+                  <div className="mt-3 flex items-center gap-2 text-cream-700 text-sm">
                     <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
-                    <span className="text-cream-700">•</span>
+                    <span className="text-cream-500">•</span>
                     <span className="text-brand-400">Review →</span>
                   </div>
                 </Link>
