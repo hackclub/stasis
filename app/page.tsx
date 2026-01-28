@@ -137,16 +137,17 @@ export default function Home() {
                 { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
                 { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
                 { text: "EMD\n" },
-                { text: "FEBRUARY 2026", class: "text-cream-800" },
-                { text: "J R" },
-                { text: "AUSTIN, TEXAS", class: "text-cream-800" },
-                { text: "P\nFCX XW VQQET S" },
+                { text: "A" },
+                { text: "MAY 15-17", class: "text-cream-800" },
+                { text: "J RG HG" },
+                { text: "AUSTIN, TX", class: "text-cream-800" },
+                { text: "PDA\nFCX XW VQQET S" },
                 { text: "COMPLETELY FREE", class: "text-cream-800" },
                 { text: "M\nC LQW" },
                 { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
                 { text: "\nC" },
                 { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
-                { text: "MEXDLB LEZ\nYRE  VJ URVSP LWOS JWPOX I SFF" }
+                { text: "MEXDLB LEZ\nYRE  VJ URVSP LWOSH JWPOX I SFF" }
               ]}
               initialScramble={true}
               initialDuration={2.5}
@@ -202,9 +203,9 @@ export default function Home() {
                 <img src="/pixel-arrow.png" alt="" className="inline-block" style={{ height: '0.9em', imageRendering: 'pixelated', transform: 'translateY(-0.11em)' }} />
               </h2>
               <ul className="space-y-2 text-sm md:text-base [&>li]:pl-4 [&>li]:-indent-4">
-                <li><ScrambleText>· Design hardware projects using three hardware skills, get $$ to build it</ScrambleText></li>
+                <li><ScrambleText>· Design hardware projects and learn new skills, get $$ to build them</ScrambleText></li>
                 <li><ScrambleText>· Earn a badge for each skill you learn</ScrambleText></li>
-                <li><ScrambleText>· Get six badges and fly to Austin, TX! (travel stipends available)</ScrambleText></li>
+                <li><ScrambleText>· Get five badges and fly to Austin, TX! (travel stipends available)</ScrambleText></li>
               </ul>
             </section>
 
@@ -218,14 +219,23 @@ export default function Home() {
             <section className="space-y-4">
               <h2 className="text-lg md:text-xl uppercase tracking-wide"><ScrambleText>Badges You Can Earn</ScrambleText></h2>
               <ul className="space-y-1 text-sm md:text-base [&>li]:pl-4 [&>li]:-indent-4">
-                <li><ScrambleText>· Lorem Ipsum</ScrambleText></li>
-                <li><ScrambleText>· Dolor sit</ScrambleText></li>
-                <li><ScrambleText>· Lorem Ipsum</ScrambleText></li>
-                <li><ScrambleText>· Dolor sit</ScrambleText></li>
-                <li><ScrambleText>· Dolor sit</ScrambleText></li>
-                <li><ScrambleText>· Lorem Ipsum</ScrambleText></li>
-                <li><ScrambleText>· Dolor sit</ScrambleText></li>
-                <li><ScrambleText>· Lorem Ipsum</ScrambleText></li>
+                <li><ScrambleText>· I2C</ScrambleText></li>
+                <li><ScrambleText>· SPI</ScrambleText></li>
+                <li><ScrambleText>· WiFi</ScrambleText></li>
+                <li><ScrambleText>· Bluetooth</ScrambleText></li>
+                <li><ScrambleText>· Other RF (LoRa, etc.)</ScrambleText></li>
+                <li><ScrambleText>· Analog Sensors</ScrambleText></li>
+                <li><ScrambleText>· Digital Sensors</ScrambleText></li>
+                <li><ScrambleText>· CAD</ScrambleText></li>
+                <li><ScrambleText>· Displays</ScrambleText></li>
+                <li><ScrambleText>· Motors</ScrambleText></li>
+                <li><ScrambleText>· Cameras</ScrambleText></li>
+                <li><ScrambleText>· Metal/Machining</ScrambleText></li>
+                <li><ScrambleText>· Wood & Fasteners</ScrambleText></li>
+                <li><ScrambleText>· Machine Learning</ScrambleText></li>
+                <li><ScrambleText>· MCU Integration</ScrambleText></li>
+                <li><ScrambleText>· 4-Layer PCB</ScrambleText></li>
+                <li><ScrambleText>· Soldering</ScrambleText></li>
               </ul>
             </section>
 
