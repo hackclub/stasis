@@ -453,7 +453,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               {project.tags.map((tag) => (
                 <span 
                   key={tag} 
-                  className="text-xs bg-cream-200 text-cream-700 px-2 py-1 uppercase"
+                  className={`text-xs px-2 py-1 uppercase ${
+                    tag === 'CAD' 
+                      ? 'bg-orange-500 text-white' 
+                      : 'bg-cream-200 text-cream-700'
+                  }`}
                 >
                   {TAG_LABELS[tag]}
                 </span>
@@ -466,37 +470,39 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
 
             {/* Stats */}
-            <div className="flex gap-6 mt-4 text-sm">
-              <div>
-                <span className="text-cream-700">Hours Claimed:</span>{' '}
-                <span className="text-cream-800">{project.totalHoursClaimed.toFixed(1)}h</span>
+            <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-fit">
+              <div className="flex gap-6 text-sm">
+                <div>
+                  <span className="text-cream-700">Hours Claimed:</span>{' '}
+                  <span className="text-cream-800">{project.totalHoursClaimed.toFixed(1)}h</span>
+                </div>
+                <div>
+                  <span className="text-cream-700">Hours Approved:</span>{' '}
+                  <span className="text-brand-500">{project.totalHoursApproved.toFixed(1)}h</span>
+                </div>
               </div>
-              <div>
-                <span className="text-cream-700">Hours Approved:</span>{' '}
-                <span className="text-brand-500">{project.totalHoursApproved.toFixed(1)}h</span>
-              </div>
-            </div>
 
-            {/* GitHub Repo */}
-            <div data-tutorial="github" className="mt-4 text-sm">
-              <span className="text-cream-700">GitHub Repo:</span>{' '}
-              {project.githubRepo ? (
-                <a 
-                  href={project.githubRepo} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-brand-500 hover:text-brand-400 underline"
-                >
-                  {project.githubRepo}
-                </a>
-              ) : (
-                <span className="text-cream-700">
-                  Not set.{' '}
-                  <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
-                    Add one
-                  </Link>
-                </span>
-              )}
+              {/* GitHub Repo */}
+              <div data-tutorial="github" className="mt-3 text-sm">
+                <span className="text-cream-700">GitHub Repo:</span>{' '}
+                {project.githubRepo ? (
+                  <a 
+                    href={project.githubRepo} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-brand-500 hover:text-brand-400 underline"
+                  >
+                    {project.githubRepo}
+                  </a>
+                ) : (
+                  <span className="text-cream-700">
+                    Not set.{' '}
+                    <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
+                      Add one
+                    </Link>
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Quick Actions */}
@@ -715,7 +721,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         <td className="py-2 pr-3">
                           {item.link ? (
                             <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-400 underline">
-                              View
+                              Link to Listing
                             </a>
                           ) : '-'}
                         </td>

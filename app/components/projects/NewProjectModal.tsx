@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ProjectTag } from "@/app/generated/prisma/enums"
+import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
+import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
 
 interface Props {
   isOpen: boolean
@@ -11,6 +12,7 @@ interface Props {
     title: string
     description: string
     tags: ProjectTag[]
+    badges: BadgeType[]
     isStarter: boolean
     starterProjectId: string | null
   }) => void
@@ -28,6 +30,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([])
+  const [selectedBadges, setSelectedBadges] = useState<BadgeType[]>([])
   const [isStarter, setIsStarter] = useState(false)
   const [starterProjectId, setStarterProjectId] = useState('')
 
@@ -41,15 +44,27 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
     )
   }
 
+  const handleBadgeToggle = (badge: BadgeType) => {
+    setSelectedBadges(prev => {
+      if (prev.includes(badge)) {
+        return prev.filter(b => b !== badge)
+      }
+      if (prev.length >= MAX_BADGES_PER_PROJECT) return prev
+      return [...prev, badge]
+    })
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
+    if (selectedBadges.length === 0) return
     if (isStarter && !starterProjectId) return
     
     onSubmit({
       title: title.trim(),
       description: description.trim(),
       tags: selectedTags,
+      badges: selectedBadges,
       isStarter,
       starterProjectId: isStarter ? starterProjectId : null,
     })
@@ -57,6 +72,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
     setTitle('')
     setDescription('')
     setSelectedTags([])
+    setSelectedBadges([])
     setIsStarter(false)
     setStarterProjectId('')
   }
@@ -142,6 +158,34 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
 
           <div>
             <label className="block text-cream-700 text-sm uppercase mb-2">
+              Skill Badges <span className="text-cream-500">({selectedBadges.length}/{MAX_BADGES_PER_PROJECT})</span>
+            </label>
+            <p className="text-cream-600 text-xs mb-2">
+              Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll demonstrate in this project.
+            </p>
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+              {AVAILABLE_BADGES.map((badge) => (
+                <button
+                  key={badge.value}
+                  type="button"
+                  onClick={() => handleBadgeToggle(badge.value)}
+                  disabled={!selectedBadges.includes(badge.value) && selectedBadges.length >= MAX_BADGES_PER_PROJECT}
+                  className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
+                    selectedBadges.includes(badge.value)
+                      ? 'bg-brand-500 text-white'
+                      : selectedBadges.length >= MAX_BADGES_PER_PROJECT
+                        ? 'bg-cream-300 text-cream-500 cursor-not-allowed'
+                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                  }`}
+                >
+                  {badge.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Project Type
             </label>
             <div className="flex gap-2">
@@ -193,7 +237,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
 
           <button
             type="submit"
-            disabled={!title.trim() || (isStarter && !starterProjectId)}
+            disabled={!title.trim() || selectedBadges.length === 0 || (isStarter && !starterProjectId)}
             className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
           >
             Create Project

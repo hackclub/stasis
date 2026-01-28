@@ -133,13 +133,41 @@ export function XPDisplay() {
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-2 bg-cream-200 border border-cream-400">
+      {/* Progress bar - solid orange with dotted line markers for incentives */}
+      <div className="relative h-8 bg-brand-500 overflow-visible">
+        {/* Unfilled portion overlay */}
         <div 
-          className="h-full bg-brand-500 transition-all duration-300"
-          style={{ width: `${Math.min(progressPercent, 100)}%` }}
+          className="absolute top-0 h-full bg-cream-300/80 transition-all duration-300"
+          style={{ 
+            left: `${Math.min((data.totalXP / PRIZES[PRIZES.length - 1].xpRequired) * 100, 100)}%`,
+            right: 0
+          }}
         />
+        {/* Dotted line markers for each prize threshold */}
+        {PRIZES.map((prize, index) => {
+          const maxXP = PRIZES[PRIZES.length - 1].xpRequired;
+          const position = (prize.xpRequired / maxXP) * 100;
+          const unlocked = data.totalXP >= prize.xpRequired;
+          const isLast = index === PRIZES.length - 1;
+          return (
+            <div
+              key={prize.name}
+              className="absolute top-0 h-full flex flex-col items-center"
+              style={{ left: `${position}%`, transform: isLast ? 'translateX(-100%)' : 'translateX(-50%)' }}
+              title={`${prize.name}: ${prize.xpRequired} XP`}
+            >
+              {/* Dotted vertical line */}
+              <div className={`w-0.5 h-full border-l-2 border-dashed ${unlocked ? 'border-white' : 'border-cream-600'}`} />
+              {/* Prize label below bar */}
+              <span className={`absolute -bottom-5 text-[10px] font-medium whitespace-nowrap ${unlocked ? 'text-brand-500' : 'text-cream-600'} ${isLast ? 'right-0' : ''}`}>
+                {prize.name} ({prize.xpRequired})
+              </span>
+            </div>
+          );
+        })}
       </div>
+      {/* Spacer for labels below the bar */}
+      <div className="h-4" />
     </div>
   );
 }

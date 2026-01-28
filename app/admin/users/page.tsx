@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from "@/lib/auth-client";
-import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import Link from 'next/link';
 
 interface ProjectBadge {
@@ -43,7 +41,6 @@ interface AdminUser {
 }
 
 export default function AdminUsersPage() {
-  const { data: session } = useSession();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
@@ -114,39 +111,6 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
-        {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
-          <div className="flex items-center gap-4">
-            <Link href="/admin" className="text-cream-700 hover:text-brand-500 transition-colors">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <h1 className="text-brand-500 text-xl uppercase tracking-wide">User Management</h1>
-          </div>
-          <div className="flex items-center gap-6">
-            <span className="text-cream-700 text-sm hidden sm:block">
-              {session?.user.name || session?.user.email}
-            </span>
-            <button
-              onClick={() => signOut()}
-              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-
-        <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Search & Filters */}
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -458,9 +422,6 @@ export default function AdminUsersPage() {
               ))}
             </div>
           )}
-        </div>
-      </div>
-      <NoiseOverlay />
     </>
   );
 }

@@ -36,14 +36,14 @@ export default function DashboardLayout({
     return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
       isActive
         ? 'text-brand-500 border-brand-500'
-        : 'text-cream-700 border-transparent hover:text-cream-900'
+        : 'text-cream-800 border-transparent hover:text-cream-900'
     }`;
   };
 
   if (isPending) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
-        <p className="text-cream-700">Loading...</p>
+        <p className="text-cream-800">Loading...</p>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export default function DashboardLayout({
                 <h1 className="text-2xl uppercase tracking-wide text-brand-500 mb-2">
                   Dashboard
                 </h1>
-                <p className="text-cream-700 text-sm">
+                <p className="text-cream-800 text-sm">
                   Sign in to continue
                 </p>
               </div>

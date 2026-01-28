@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { ProjectTag } from "@/app/generated/prisma/enums"
+import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
+import { VALID_BADGE_TYPES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
 
 const VALID_TAGS: ProjectTag[] = ["PCB", "ROBOT", "CAD", "ARDUINO", "RASPBERRY_PI"]
 
 function validateTags(tags: unknown): ProjectTag[] {
   if (!Array.isArray(tags)) return []
   return tags.filter((tag): tag is ProjectTag => VALID_TAGS.includes(tag as ProjectTag))
+}
+
+function validateBadges(badges: unknown): BadgeType[] {
+  if (!Array.isArray(badges)) return []
+  const validBadges = badges.filter((badge): badge is BadgeType => VALID_BADGE_TYPES.includes(badge as BadgeType))
+  return validBadges.slice(0, MAX_BADGES_PER_PROJECT)
 }
 
 export async function GET(request: NextRequest) {
@@ -88,7 +95,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { title, description, tags, isStarter, starterProjectId } = body
+  const { title, description, tags, badges, isStarter, starterProjectId } = body
 
   if (!title || typeof title !== "string" || title.trim().length === 0) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 })
@@ -102,6 +109,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Description too long" }, { status: 400 })
   }
 
+  const validatedBadges = validateBadges(badges)
+
+  if (validatedBadges.length === 0) {
+    return NextResponse.json({ error: "At least one badge is required" }, { status: 400 })
+  }
+
   const project = await prisma.project.create({
     data: {
       title: sanitize(title.trim()),
@@ -110,7 +123,13 @@ export async function POST(request: NextRequest) {
       isStarter: Boolean(isStarter),
       starterProjectId: typeof starterProjectId === "string" ? sanitize(starterProjectId) : null,
       userId: session.user.id,
+      badges: {
+        create: validatedBadges.map(badge => ({
+          badge,
+        }))
+      },
     },
+    include: { badges: true },
   })
 
   return NextResponse.json(project)

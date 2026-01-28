@@ -42,7 +42,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'stats',
     title: 'Track Your Hours',
-    content: 'You earn $5/hour for approved work. Log your hours as you work, and they\'ll be reviewed and approved by the team.',
+    content: 'You earn $5/hour to buy materials to build your projects. Log your hours designing your project by writing detailed journal entries.',
     targetSelector: '[data-tutorial="stats"]',
     position: 'bottom',
   },
@@ -228,10 +228,21 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
     updateHighlight();
     window.addEventListener('resize', updateRectOnly);
     window.addEventListener('scroll', updateRectOnly);
+
+    const preventScroll = (e: Event) => {
+      e.preventDefault();
+    };
+    
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('wheel', preventScroll, { passive: false });
+    window.addEventListener('touchmove', preventScroll, { passive: false });
     
     return () => {
       window.removeEventListener('resize', updateRectOnly);
       window.removeEventListener('scroll', updateRectOnly);
+      window.removeEventListener('wheel', preventScroll);
+      window.removeEventListener('touchmove', preventScroll);
+      document.body.style.overflow = '';
     };
   }, [isVisible, updateHighlight, updateRectOnly]);
 
