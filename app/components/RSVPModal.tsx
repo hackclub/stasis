@@ -11,6 +11,7 @@ interface RSVPModalProps {
 
 export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
   const [email, setEmail] = useState('');
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -24,6 +25,11 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!ageConfirmed) {
+      setError('Please confirm you are between 13-18 years old');
       return;
     }
 
@@ -81,6 +87,23 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
               className="w-full px-3 py-2 bg-cream-50 border border-cream-600 text-cream-800 placeholder:text-cream-600 focus:outline-none focus:border-brand-500"
               placeholder="you@example.com"
             />
+          </div>
+
+          <div>
+            <p className="text-sm text-cream-700 mb-2">
+              Stasis is for high schoolers only!
+            </p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-brand-500 cursor-pointer"
+              />
+              <span className="text-sm text-cream-800">
+                I confirm I am between 13-18 years old
+              </span>
+            </label>
           </div>
 
           {error && (
