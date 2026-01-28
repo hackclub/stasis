@@ -7,6 +7,7 @@ import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import Link from 'next/link';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECTS } from "@/lib/starter-projects";
+import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges";
 
 interface ProjectBadge {
   id: string;
@@ -32,28 +33,6 @@ const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
   { value: "ARDUINO", label: "Arduino" },
   { value: "RASPBERRY_PI", label: "Raspberry Pi" },
 ];
-
-const AVAILABLE_BADGES: { value: BadgeType; label: string }[] = [
-  { value: "I2C", label: "I2C" },
-  { value: "SPI", label: "SPI" },
-  { value: "WIFI", label: "WiFi" },
-  { value: "BLUETOOTH", label: "Bluetooth" },
-  { value: "OTHER_RF", label: "Other RF (LoRa, etc.)" },
-  { value: "ANALOG_SENSORS", label: "Analog Sensors" },
-  { value: "DIGITAL_SENSORS", label: "Digital Sensors" },
-  { value: "CAD", label: "CAD" },
-  { value: "DISPLAYS", label: "Displays" },
-  { value: "MOTORS", label: "Motors" },
-  { value: "CAMERAS", label: "Cameras" },
-  { value: "METAL_MACHINING", label: "Metal/Machining" },
-  { value: "WOOD_FASTENERS", label: "Wood & Fasteners" },
-  { value: "MACHINE_LEARNING", label: "Machine Learning" },
-  { value: "MCU_INTEGRATION", label: "MCU Integration" },
-  { value: "FOUR_LAYER_PCB", label: "4-Layer PCB" },
-  { value: "SOLDERING", label: "Soldering" },
-];
-
-const MAX_BADGES = 3;
 
 export default function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = use(params);
@@ -137,7 +116,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleClaimBadge = async (badge: BadgeType) => {
-    if (badges.length >= MAX_BADGES) return;
+    if (badges.length >= MAX_BADGES_PER_PROJECT) return;
     if (badges.some(b => b.badge === badge)) return;
     
     setClaimingBadge(badge);
@@ -371,7 +350,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             <div className="bg-cream-200 border-2 border-cream-400 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-cream-800 text-lg uppercase">
-                  Skill Badges ({badges.length}/{MAX_BADGES})
+                  Skill Badges ({badges.length}/{MAX_BADGES_PER_PROJECT})
                 </h2>
                 {loadingBadges && <span className="text-cream-700 text-xs">Loading...</span>}
               </div>
@@ -412,7 +391,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               )}
 
               {/* Available badges */}
-              {badges.length < MAX_BADGES && (
+              {badges.length < MAX_BADGES_PER_PROJECT && (
                 <div>
                   <p className="text-cream-700 text-xs uppercase mb-2">Available to claim</p>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">

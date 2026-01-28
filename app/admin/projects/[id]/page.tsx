@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import { StageProgress } from '@/app/components/projects/StageProgress';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -254,11 +253,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
-        <p className="text-cream-700">Loading...</p>
-      </div>
-    );
+    return <p className="text-cream-700">Loading...</p>;
   }
 
   if (!project) {
@@ -273,18 +268,17 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
   return (
     <>
-      <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
-        {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
-          <Link href="/admin" className="text-cream-700 hover:text-brand-500 transition-colors flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Back to Admin
-          </Link>
-        </div>
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <Link href="/admin" className="text-cream-700 hover:text-brand-500 transition-colors text-sm flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Projects
+        </Link>
+      </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
           {/* Stage Progress */}
           <div className="mb-6 bg-cream-100 border-2 border-cream-400 p-6">
             <StageProgress
@@ -848,9 +842,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               </div>
             )
           )}
-        </div>
       </div>
-      <NoiseOverlay />
     </>
   );
 }

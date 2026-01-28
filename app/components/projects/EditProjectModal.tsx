@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
+import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
 
 interface ProjectBadge {
   id: string
@@ -43,28 +44,6 @@ const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
   { value: "ARDUINO", label: "Arduino" },
   { value: "RASPBERRY_PI", label: "Raspberry Pi" },
 ]
-
-const AVAILABLE_BADGES: { value: BadgeType; label: string }[] = [
-  { value: "I2C", label: "I2C" },
-  { value: "SPI", label: "SPI" },
-  { value: "WIFI", label: "WiFi" },
-  { value: "BLUETOOTH", label: "Bluetooth" },
-  { value: "OTHER_RF", label: "Other RF (LoRa, etc.)" },
-  { value: "ANALOG_SENSORS", label: "Analog Sensors" },
-  { value: "DIGITAL_SENSORS", label: "Digital Sensors" },
-  { value: "CAD", label: "CAD" },
-  { value: "DISPLAYS", label: "Displays" },
-  { value: "MOTORS", label: "Motors" },
-  { value: "CAMERAS", label: "Cameras" },
-  { value: "METAL_MACHINING", label: "Metal/Machining" },
-  { value: "WOOD_FASTENERS", label: "Wood & Fasteners" },
-  { value: "MACHINE_LEARNING", label: "Machine Learning" },
-  { value: "MCU_INTEGRATION", label: "MCU Integration" },
-  { value: "FOUR_LAYER_PCB", label: "4-Layer PCB" },
-  { value: "SOLDERING", label: "Soldering" },
-]
-
-const MAX_BADGES = 3
 
 export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete }: Readonly<Props>) {
   const [title, setTitle] = useState('')
@@ -121,7 +100,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
   }
 
   const handleClaimBadge = async (badge: BadgeType) => {
-    if (badges.length >= MAX_BADGES) return
+    if (badges.length >= MAX_BADGES_PER_PROJECT) return
     if (badges.some(b => b.badge === badge)) return
     
     setClaimingBadge(badge)
@@ -278,7 +257,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           <div className="border-t border-cream-400 pt-6">
             <div className="flex items-center justify-between mb-3">
               <label className="block text-cream-700 text-sm uppercase">
-                Skill Badges ({badges.length}/{MAX_BADGES})
+                Skill Badges ({badges.length}/{MAX_BADGES_PER_PROJECT})
               </label>
               {loadingBadges && <span className="text-cream-600 text-xs">Loading...</span>}
             </div>
@@ -319,7 +298,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
             )}
 
             {/* Available badges */}
-            {badges.length < MAX_BADGES && (
+            {badges.length < MAX_BADGES_PER_PROJECT && (
               <div>
                 <p className="text-cream-600 text-xs uppercase mb-2">Available to claim</p>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">

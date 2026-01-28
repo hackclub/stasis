@@ -361,7 +361,7 @@ export default function StarterProjectsPage() {
         />
 
         <div className="mb-20 ml-16 mt-16">
-          <Link href="/">
+          <Link href="/dashboard">
             <MagneticCorners activationDistance={35} deactivationDistance={45}>
               <button className="block bg-brand-500 p-6 font-mono relative cursor-pointer hover:bg-brand-400">
                 <img src="/home-light.svg" alt="Home" className="w-8 h-8" />

@@ -3,8 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { BadgeType } from "@/app/generated/prisma/enums"
-
-const MAX_BADGES_PER_PROJECT = 3
+import { MAX_BADGES_PER_PROJECT } from "@/lib/badges"
 
 function isValidBadge(value: unknown): value is BadgeType {
   return typeof value === "string" && Object.values(BadgeType).includes(value as BadgeType)

@@ -8,7 +8,7 @@ import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial, TutorialHelpButton } from '../components/OnboardingTutorial';
 import { XPDisplay } from '../components/XPDisplay';
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
-import { ProjectTag } from "@/app/generated/prisma/enums"
+import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import Link from 'next/link';
 import type { Project } from './types';
 
@@ -45,6 +45,7 @@ export default function ProjectsPage() {
     title: string
     description: string
     tags: ProjectTag[]
+    badges: BadgeType[]
     isStarter: boolean
     starterProjectId: string | null
   }) => {
@@ -83,7 +84,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-brand-500 text-lg uppercase tracking-wide">Badge Progress</h2>
-            <p className="text-cream-700 text-sm">Badges are specific skills or technologies you use in your projects. Earn {BADGES_REQUIRED} approved badges to qualify for Stasis!</p>
+            <p className="text-cream-800 text-sm">Badges are specific skills or technologies you use in your projects. Earn {BADGES_REQUIRED} approved badges to qualify for Stasis!</p>
           </div>
           {approvedBadges.length >= BADGES_REQUIRED && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
@@ -117,7 +118,7 @@ export default function ProjectsPage() {
           })}
         </div>
         {pendingBadges.length > 0 && (
-          <p className="text-cream-700 text-xs mt-2">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
+          <p className="text-cream-800 text-xs mt-2">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
         )}
       </div>
 
@@ -135,22 +136,22 @@ export default function ProjectsPage() {
       <div data-tutorial="stats" className="flex items-center justify-between mb-6">
         <div className="flex gap-6">
           <div>
-            <p className="text-cream-700 text-xs uppercase">Projects</p>
+            <p className="text-cream-800 text-xs uppercase">Projects</p>
             <p className="text-cream-800 text-2xl">{projects.length}</p>
           </div>
           <div>
-            <p className="text-cream-700 text-xs uppercase">Claimed</p>
+            <p className="text-cream-800 text-xs uppercase">Claimed</p>
             <p className="text-cream-800 text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
           </div>
           <div>
-            <p className="text-cream-700 text-xs uppercase">Approved</p>
+            <p className="text-cream-800 text-xs uppercase">Approved</p>
             <p className="text-brand-500 text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
           </div>
         </div>
         <Link
           href="/starter-projects"
           data-tutorial="starter-projects"
-          className="text-brand-500 hover:text-brand-400 text-sm uppercase transition-colors flex items-center gap-2"
+          className="bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 text-sm uppercase tracking-wide transition-colors flex items-center gap-2"
         >
           Browse Starter Projects
           <svg 
@@ -170,7 +171,7 @@ export default function ProjectsPage() {
       {/* Project Cards Grid */}
       {loading ? (
         <div className="p-8 text-center">
-          <p className="text-cream-700">Loading projects...</p>
+          <p className="text-cream-800">Loading projects...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -187,7 +188,7 @@ export default function ProjectsPage() {
 
       {!loading && projects.length === 0 && (
         <div className="p-8 text-center">
-          <p className="text-cream-700">No projects yet. Create your first one!</p>
+          <p className="text-cream-800">No projects yet. Create your first one!</p>
         </div>
       )}
 
