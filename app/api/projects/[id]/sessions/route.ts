@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import { SessionCategory, MediaType, ProjectStage, XPTransactionType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { calculateJournalXP, getWeekNumber, isConsecutiveDay, isSameDay } from "@/lib/xp"
+import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 const VALID_STAGES: ProjectStage[] = ["DESIGN", "BUILD"]
 
@@ -61,12 +62,10 @@ export async function GET(
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
-  if (project.userId !== session.user.id && !user?.isAdmin) {
+  if (project.userId !== session.user.id && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

@@ -24,13 +24,18 @@ interface Project {
   badges: ProjectBadge[];
 }
 
+interface UserRole {
+  id: string;
+  role: 'ADMIN' | 'REVIEWER';
+  grantedAt: string;
+}
+
 interface AdminUser {
   id: string;
   email: string;
   name: string | null;
   image: string | null;
   createdAt: string;
-  isAdmin: boolean;
   fraudConvicted: boolean;
   slackId: string | null;
   totalProjects: number;
@@ -38,7 +43,10 @@ interface AdminUser {
   totalHoursApproved: number;
   projects: Project[];
   badges: ProjectBadge[];
+  roles: UserRole[];
 }
+
+const AVAILABLE_ROLES: Array<'ADMIN' | 'REVIEWER'> = ['ADMIN', 'REVIEWER'];
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -46,8 +54,9 @@ export default function AdminUsersPage() {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterAdmin, setFilterAdmin] = useState<boolean | null>(null);
   const [filterFraud, setFilterFraud] = useState<boolean | null>(null);
+  const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | null>(null);
+  const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     fetchUsers();
@@ -67,7 +76,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function updateUser(userId: string, data: { isAdmin?: boolean; fraudConvicted?: boolean }) {
+  async function updateUser(userId: string, data: { fraudConvicted?: boolean; roles?: string[] }) {
     setUpdating(userId);
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -76,8 +85,9 @@ export default function AdminUsersPage() {
         body: JSON.stringify(data),
       });
       if (res.ok) {
-        setUsers(users.map(u => 
-          u.id === userId ? { ...u, ...data } : u
+        const updatedUser = await res.json();
+        setUsers(prev => prev.map(u => 
+          u.id === userId ? { ...u, roles: updatedUser.roles ?? u.roles, fraudConvicted: data.fraudConvicted ?? u.fraudConvicted } : u
         ));
       }
     } catch (error) {
@@ -94,10 +104,66 @@ export default function AdminUsersPage() {
       (user.name?.toLowerCase().includes(query)) ||
       (user.slackId?.toLowerCase().includes(query))
     );
-    const matchesAdmin = filterAdmin === null || user.isAdmin === filterAdmin;
     const matchesFraud = filterFraud === null || user.fraudConvicted === filterFraud;
-    return matchesSearch && matchesAdmin && matchesFraud;
+    const matchesRole = filterRole === null || user.roles?.some(r => r.role === filterRole);
+    return matchesSearch && matchesFraud && matchesRole;
   });
+
+  const hasRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER') => 
+    user.roles?.some(r => r.role === role) ?? false;
+
+  const getRoleInfo = (user: AdminUser, role: 'ADMIN' | 'REVIEWER') =>
+    user.roles?.find(r => r.role === role);
+
+  const getPendingRoles = (user: AdminUser): string[] => {
+    if (pendingRoles[user.id] !== undefined) {
+      return pendingRoles[user.id];
+    }
+    return user.roles?.map(r => r.role) ?? [];
+  };
+
+  const hasPendingRole = (user: AdminUser, role: string): boolean => {
+    return getPendingRoles(user).includes(role);
+  };
+
+  const togglePendingRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER') => {
+    setPendingRoles(prev => {
+      const currentPending = prev[user.id];
+      const current = currentPending !== undefined 
+        ? currentPending 
+        : (user.roles?.map(r => r.role) ?? []);
+      const newRoles = current.includes(role)
+        ? current.filter(r => r !== role)
+        : [...current, role];
+      return { ...prev, [user.id]: newRoles };
+    });
+  };
+
+  const hasPendingChanges = (user: AdminUser): boolean => {
+    if (pendingRoles[user.id] === undefined) return false;
+    const currentRoles = user.roles?.map(r => r.role) ?? [];
+    const pending = pendingRoles[user.id];
+    return JSON.stringify([...currentRoles].sort()) !== JSON.stringify([...pending].sort());
+  };
+
+  const saveRoles = async (user: AdminUser) => {
+    const roles = pendingRoles[user.id];
+    if (roles === undefined) return;
+    await updateUser(user.id, { roles });
+    setPendingRoles(prev => {
+      const next = { ...prev };
+      delete next[user.id];
+      return next;
+    });
+  };
+
+  const cancelRoleChanges = (userId: string) => {
+    setPendingRoles(prev => {
+      const next = { ...prev };
+      delete next[userId];
+      return next;
+    });
+  };
 
   const getUniqueBadges = (badges: ProjectBadge[]) => {
     const unique = new Map<string, ProjectBadge>();
@@ -127,26 +193,6 @@ export default function AdminUsersPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setFilterAdmin(filterAdmin === true ? null : true)}
-                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
-                  filterAdmin === true
-                    ? 'bg-brand-500 text-cream-950'
-                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
-                }`}
-              >
-                Admins
-              </button>
-              <button
-                onClick={() => setFilterAdmin(filterAdmin === false ? null : false)}
-                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
-                  filterAdmin === false
-                    ? 'bg-cream-500 text-cream-800'
-                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
-                }`}
-              >
-                Non-Admins
-              </button>
-              <button
                 onClick={() => setFilterFraud(filterFraud === true ? null : true)}
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterFraud === true
@@ -166,9 +212,30 @@ export default function AdminUsersPage() {
               >
                 No Fraud
               </button>
-              {(filterAdmin !== null || filterFraud !== null) && (
+              <span className="text-cream-400">|</span>
+              <button
+                onClick={() => setFilterRole(filterRole === 'ADMIN' ? null : 'ADMIN')}
+                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                  filterRole === 'ADMIN'
+                    ? 'bg-brand-500 text-cream-950'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
+                }`}
+              >
+                Admin Role
+              </button>
+              <button
+                onClick={() => setFilterRole(filterRole === 'REVIEWER' ? null : 'REVIEWER')}
+                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                  filterRole === 'REVIEWER'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
+                }`}
+              >
+                Reviewer Role
+              </button>
+              {(filterFraud !== null || filterRole !== null) && (
                 <button
-                  onClick={() => { setFilterAdmin(null); setFilterFraud(null); }}
+                  onClick={() => { setFilterFraud(null); setFilterRole(null); }}
                   className="px-3 py-1.5 text-xs uppercase text-cream-700 hover:text-brand-500 transition-colors cursor-pointer"
                 >
                   Clear Filters
@@ -215,12 +282,17 @@ export default function AdminUsersPage() {
                         )}
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-cream-800 truncate">
+                                            <p className="text-cream-800 truncate">
                               {user.name || user.email}
                             </p>
-                            {user.isAdmin && (
+                            {hasRole(user, 'ADMIN') && (
                               <span className="text-xs bg-brand-500 text-cream-950 px-2 py-0.5 uppercase">
                                 Admin
+                              </span>
+                            )}
+                            {hasRole(user, 'REVIEWER') && (
+                              <span className="text-xs bg-blue-600 text-white px-2 py-0.5 uppercase">
+                                Reviewer
                               </span>
                             )}
                             {user.fraudConvicted && (
@@ -379,25 +451,77 @@ export default function AdminUsersPage() {
                         </div>
                       )}
 
+                      {/* Roles Management */}
+                      <div>
+                        <p className="text-cream-600 uppercase text-xs mb-2">Roles</p>
+                        <div className="flex flex-wrap gap-4 mb-3">
+                          {AVAILABLE_ROLES.map((role) => {
+                            const roleInfo = getRoleInfo(user, role);
+                            const checked = hasPendingRole(user, role);
+                            return (
+                              <label
+                                key={role}
+                                className="flex items-start gap-2 cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    togglePendingRole(user, role);
+                                  }}
+                                  disabled={updating === user.id}
+                                  className="mt-0.5 accent-brand-500"
+                                />
+                                <div>
+                                  <span className={`text-sm ${
+                                    role === 'ADMIN' ? 'text-brand-500' : 'text-blue-600'
+                                  }`}>
+                                    {role}
+                                  </span>
+                                  {roleInfo && !hasPendingChanges(user) && (
+                                    <p className="text-xs text-cream-600">
+                                      Granted {new Date(roleInfo.grantedAt).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      })}
+                                    </p>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {hasPendingChanges(user) && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveRoles(user);
+                              }}
+                              disabled={updating === user.id}
+                              className="px-3 py-1.5 text-xs uppercase bg-brand-500 text-cream-950 hover:bg-brand-400 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              {updating === user.id ? 'Saving...' : 'Save Roles'}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelRoleChanges(user.id);
+                              }}
+                              disabled={updating === user.id}
+                              className="px-3 py-1.5 text-xs uppercase bg-cream-300 text-cream-700 hover:bg-cream-400 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Actions */}
                       <div className="flex flex-wrap gap-3 pt-2 border-t border-cream-400">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const action = user.isAdmin ? 'remove admin from' : 'make admin';
-                            if (confirm(`Are you sure you want to ${action} ${user.name || user.email}?`)) {
-                              updateUser(user.id, { isAdmin: !user.isAdmin });
-                            }
-                          }}
-                          disabled={updating === user.id}
-                          className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                            user.isAdmin
-                              ? 'bg-cream-300 text-cream-700 hover:bg-cream-400'
-                              : 'bg-brand-500 text-cream-950 hover:bg-brand-400'
-                          } disabled:opacity-50`}
-                        >
-                          {updating === user.id ? '...' : user.isAdmin ? 'Remove Admin' : 'Make Admin'}
-                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

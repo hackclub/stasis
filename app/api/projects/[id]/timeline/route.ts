@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 export type TimelineItem =
   | {
@@ -61,12 +62,10 @@ export async function GET(
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
-  if (project.userId !== session.user.id && !user?.isAdmin) {
+  if (project.userId !== session.user.id && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
 import { XPTransactionType } from "@/app/generated/prisma/enums"
+import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 const VALID_TYPES: XPTransactionType[] = [
   "JOURNAL_ENTRY",
@@ -17,12 +18,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
-  if (!user?.isAdmin) {
+  if (!isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

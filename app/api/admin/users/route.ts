@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { requireAdmin } from "@/lib/admin-auth"
+import { requirePermission } from "@/lib/admin-auth"
+import { Permission } from "@/lib/permissions"
 
 export async function GET() {
-  const adminCheck = await requireAdmin()
-  if (adminCheck.error) return adminCheck.error
+  const authCheck = await requirePermission(Permission.MANAGE_USERS)
+  if (authCheck.error) return authCheck.error
 
   const users = await prisma.user.findMany({
     include: {
@@ -14,12 +15,16 @@ export async function GET() {
           badges: true,
         },
       },
+      roles: {
+        select: { id: true, role: true, grantedAt: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   })
 
   const usersWithStats = users.map((user) => ({
     ...user,
+    roles: user.roles,
     totalProjects: user.projects.length,
     totalHoursClaimed: user.projects.reduce(
       (acc, p) => acc + p.workSessions.reduce((a, s) => a + s.hoursClaimed, 0),

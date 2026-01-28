@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { requireAdmin } from "@/lib/admin-auth"
+import { requirePermission } from "@/lib/admin-auth"
+import { Permission } from "@/lib/permissions"
 import { logAdminAction, AuditAction } from "@/lib/audit"
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; sessionId: string }> }
 ) {
-  const adminCheck = await requireAdmin()
-  if (adminCheck.error) return adminCheck.error
+  const authCheck = await requirePermission(Permission.REVIEW_SESSIONS)
+  if (authCheck.error) return authCheck.error
 
   const { id: projectId, sessionId } = await params
 
@@ -45,15 +46,15 @@ export async function POST(
       hoursApproved,
       reviewComments: typeof reviewComments === "string" ? reviewComments : null,
       reviewedAt: new Date(),
-      reviewedBy: adminCheck.session.user.id,
+      reviewedBy: authCheck.session.user.id,
     },
     include: { media: true },
   })
 
   await logAdminAction(
     AuditAction.ADMIN_REVIEW_SESSION,
-    adminCheck.session.user.id,
-    adminCheck.session.user.email ?? undefined,
+    authCheck.session.user.id,
+    authCheck.session.user.email ?? undefined,
     "WorkSession",
     sessionId,
     { hoursApproved, projectId }

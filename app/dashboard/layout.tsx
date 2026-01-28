@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from "@/lib/auth-client";
 import { NoiseOverlay } from '../components/NoiseOverlay';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRoles, Role } from "@/lib/hooks/useRoles";
 
 
 
@@ -14,17 +14,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   const { data: session, isPending } = useSession();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { hasRole } = useRoles();
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (session) {
-      fetch('/api/user')
-        .then(res => res.json())
-        .then(data => setIsAdmin(data.isAdmin ?? false))
-        .catch(() => setIsAdmin(false));
-    }
-  }, [session]);
 
 
 
@@ -104,7 +95,7 @@ export default function DashboardLayout({
             <span className="text-cream-700 text-sm hidden sm:block">
               {session.user.name || session.user.email}
             </span>
-            {isAdmin && (
+            {hasRole(Role.ADMIN) && (
               <Link
                 href="/admin"
                 className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors"

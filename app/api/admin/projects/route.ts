@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { requireAdmin } from "@/lib/admin-auth"
+import { requirePermission } from "@/lib/admin-auth"
+import { Permission } from "@/lib/permissions"
 
 export async function GET() {
-  const adminCheck = await requireAdmin()
-  if (adminCheck.error) return adminCheck.error
+  const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
+  if (authCheck.error) return authCheck.error
 
   const projects = await prisma.project.findMany({
     where: {

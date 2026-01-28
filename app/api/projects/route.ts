@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { VALID_BADGE_TYPES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
+import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 const VALID_TAGS: ProjectTag[] = ["PCB", "ROBOT", "CAD", "ARDUINO", "RASPBERRY_PI"]
 
@@ -28,13 +29,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const requestedUserId = searchParams.get("userId")
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
   let whereClause: { userId: string }
-  if (requestedUserId && user?.isAdmin) {
+  if (requestedUserId && isAdmin) {
     whereClause = { userId: requestedUserId }
   } else {
     whereClause = { userId: session.user.id }

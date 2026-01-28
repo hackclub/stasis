@@ -46,7 +46,6 @@ model User {
   slackId            String?   @unique
   verificationStatus String?
   hackatimeUserId    String?   @unique
-  isAdmin            Boolean   @default(false)
   fraudConvicted     Boolean   @default(false)
   tutorialDashboard  Boolean   @default(false)
   tutorialProject    Boolean   @default(false)
@@ -56,6 +55,7 @@ model User {
   xpData             UserXP?
   xpTransactions     XPTransaction[]
   prizeClaims        PrizeClaim[]
+  roles              UserRole[]
 
   @@map("user")
 }
@@ -288,10 +288,28 @@ model ProjectBadge {
   @@map("project_badge")
 }
 
+enum Role {
+  ADMIN
+  REVIEWER
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role
+  grantedAt DateTime @default(now())
+  grantedBy String?
+
+  @@unique([userId, role])
+  @@index([userId])
+  @@map("user_role")
+}
+
 enum AuditAction {
   // Admin actions (mutations only)
-  ADMIN_GRANT_ADMIN
-  ADMIN_REVOKE_ADMIN
+  ADMIN_GRANT_ROLE
+  ADMIN_REVOKE_ROLE
   ADMIN_FLAG_FRAUD
   ADMIN_UNFLAG_FRAUD
   ADMIN_APPROVE_DESIGN

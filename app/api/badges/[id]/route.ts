@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 export async function DELETE(
   request: NextRequest,
@@ -23,16 +24,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Badge not found" }, { status: 404 })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
-  if (badge.project.userId !== session.user.id && !user?.isAdmin) {
+  if (badge.project.userId !== session.user.id && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (badge.grantedAt && !user?.isAdmin) {
+  if (badge.grantedAt && !isAdmin) {
     return NextResponse.json({ error: "Cannot unclaim a granted badge" }, { status: 400 })
   }
 
@@ -52,12 +51,10 @@ export async function PATCH(
 
   const { id } = await params
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
-  if (!user?.isAdmin) {
+  if (!isAdmin) {
     return NextResponse.json({ error: "Admin only" }, { status: 403 })
   }
 

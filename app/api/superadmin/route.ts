@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { logAdminAction } from "@/lib/audit"
 import prisma from "@/lib/prisma"
+import { Role } from "@/lib/permissions"
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 
@@ -30,9 +31,19 @@ export async function POST() {
     return NextResponse.json({ error: "Must be logged in via HCA" }, { status: 403 })
   }
 
-  await prisma.user.update({
-    where: { id: session.user.id, email: superadminEmail },
-    data: { isAdmin: true },
+  await prisma.userRole.upsert({
+    where: {
+      userId_role: {
+        userId: session.user.id,
+        role: Role.ADMIN,
+      },
+    },
+    update: {},
+    create: {
+      user: { connect: { id: session.user.id } },
+      role: Role.ADMIN,
+      grantedBy: session.user.id,
+    },
   })
 
   await logAdminAction(

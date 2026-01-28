@@ -2,13 +2,10 @@
 
 import { useSession, signOut } from "@/lib/auth-client";
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import Link from 'next/link';
-
-interface User {
-  isAdmin: boolean;
-}
+import { useRoles, Permission } from '@/lib/hooks/useRoles';
 
 export default function AdminLayout({
   children,
@@ -18,39 +15,17 @@ export default function AdminLayout({
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { roles, isLoading: rolesLoading, hasPermission } = useRoles();
+  
+  const isLoading = isPending || rolesLoading;
+  const isAuthorized = !isLoading && session && roles.length > 0;
+  const shouldRedirect = !isLoading && (!session || roles.length === 0);
 
   useEffect(() => {
-    async function checkAdmin() {
-      if (!session) {
-        if (!isPending) {
-          router.push('/dashboard');
-        }
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/user');
-        if (res.ok) {
-          const user: User = await res.json();
-          if (!user.isAdmin) {
-            router.push('/dashboard');
-          } else {
-            setIsAdmin(true);
-          }
-        } else {
-          router.push('/dashboard');
-        }
-      } catch {
-        router.push('/dashboard');
-      } finally {
-        setLoading(false);
-      }
+    if (shouldRedirect) {
+      router.push('/dashboard');
     }
-
-    checkAdmin();
-  }, [session, isPending, router]);
+  }, [shouldRedirect, router]);
 
   const getTabClass = (tabPath: string) => {
     const isActive = tabPath === '/admin' 
@@ -64,7 +39,7 @@ export default function AdminLayout({
     }`;
   };
 
-  if (isPending || loading || isAdmin === null) {
+  if (isLoading || !isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
         <p className="text-cream-700">Loading...</p>
@@ -113,12 +88,16 @@ export default function AdminLayout({
               <Link href="/admin" className={getTabClass('/admin')}>
                 Projects
               </Link>
-              <Link href="/admin/users" className={getTabClass('/admin/users')}>
-                Users
-              </Link>
-              <Link href="/admin/audit" className={getTabClass('/admin/audit')}>
-                Audit
-              </Link>
+              {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/users" className={getTabClass('/admin/users')}>
+                  Users
+                </Link>
+              )}
+              {hasPermission(Permission.VIEW_AUDIT_LOG) && (
+                <Link href="/admin/audit" className={getTabClass('/admin/audit')}>
+                  Audit
+                </Link>
+              )}
             </div>
           </div>
         </div>

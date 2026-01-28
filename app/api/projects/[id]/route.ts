@@ -5,6 +5,7 @@ import { logAudit, AuditAction } from "@/lib/audit"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
+import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage"] as const
 
@@ -43,10 +44,8 @@ export async function GET(
   }
 
   const { id } = await params
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
   const project = await prisma.project.findUnique({
     where: { id },
@@ -66,7 +65,7 @@ export async function GET(
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
-  if (project.userId !== session.user.id && !user?.isAdmin) {
+  if (project.userId !== session.user.id && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -92,10 +91,8 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
   const existingProject = await prisma.project.findUnique({
     where: { id },
@@ -105,13 +102,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
-  if (existingProject.userId !== session.user.id && !user?.isAdmin) {
+  if (existingProject.userId !== session.user.id && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   // Prevent editing while either stage is in review (unless admin)
   const inReview = existingProject.designStatus === "in_review" || existingProject.buildStatus === "in_review"
-  if (inReview && !user?.isAdmin) {
+  if (inReview && !isAdmin) {
     return NextResponse.json({ error: "Cannot edit project while in review" }, { status: 403 })
   }
 
@@ -140,10 +137,8 @@ export async function DELETE(
   }
 
   const { id } = await params
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  })
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
 
   const existingProject = await prisma.project.findUnique({
     where: { id },
@@ -153,7 +148,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
-  if (existingProject.userId !== session.user.id && !user?.isAdmin) {
+  if (existingProject.userId !== session.user.id && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -164,7 +159,7 @@ export async function DELETE(
     }
   })
 
-  if (approvedSessionCount > 0 && !user?.isAdmin) {
+  if (approvedSessionCount > 0 && !isAdmin) {
     return NextResponse.json({ error: "Cannot delete project with approved sessions" }, { status: 403 })
   }
 

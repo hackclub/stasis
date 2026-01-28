@@ -888,7 +888,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
                 <h3 className="text-cream-800 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
                 <p className="text-cream-700 text-sm leading-relaxed mb-4">
-                  Your design (project details and BOM) will be reviewed. You can still make changes while waiting for approval.
+                  Your design (project details and BOM) will be reviewed.
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
                   IMPORTANT: Before submitting, please make sure to read the{' '}

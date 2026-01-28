@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { requireAdmin } from "@/lib/admin-auth"
+import { requirePermission } from "@/lib/admin-auth"
+import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
 import { logAdminAction, AuditAction } from "@/lib/audit"
 
@@ -8,8 +9,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const adminCheck = await requireAdmin()
-  if (adminCheck.error) return adminCheck.error
+  const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
+  if (authCheck.error) return authCheck.error
 
   const { id } = await params
 
@@ -42,7 +43,7 @@ export async function POST(
     )
   }
 
-  const adminUserId = adminCheck.session.user.id
+  const adminUserId = authCheck.session.user.id
   const now = new Date()
   const sanitizedComments = typeof reviewComments === "string" ? sanitize(reviewComments) : null
   const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0 ? grantAmount : null
@@ -110,8 +111,8 @@ export async function POST(
 
     await logAdminAction(
       decision === "approved" ? AuditAction.ADMIN_APPROVE_DESIGN : AuditAction.ADMIN_REJECT_DESIGN,
-      adminCheck.session.user.id,
-      adminCheck.session.user.email ?? undefined,
+      authCheck.session.user.id,
+      authCheck.session.user.email ?? undefined,
       "Project",
       id,
       { decision, grantAmount: parsedGrantAmount, comments: sanitizedComments }
@@ -206,8 +207,8 @@ export async function POST(
 
       await logAdminAction(
         AuditAction.ADMIN_APPROVE_BUILD,
-        adminCheck.session.user.id,
-        adminCheck.session.user.email ?? undefined,
+        authCheck.session.user.id,
+        authCheck.session.user.email ?? undefined,
         "Project",
         id,
         { decision, grantAmount: parsedGrantAmount, comments: sanitizedComments }
@@ -256,8 +257,8 @@ export async function POST(
 
       await logAdminAction(
         AuditAction.ADMIN_REJECT_BUILD,
-        adminCheck.session.user.id,
-        adminCheck.session.user.email ?? undefined,
+        authCheck.session.user.id,
+        authCheck.session.user.email ?? undefined,
         "Project",
         id,
         { decision, comments: sanitizedComments }
