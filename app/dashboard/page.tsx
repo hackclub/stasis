@@ -17,6 +17,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const fetchProjects = useCallback(async () => {
@@ -49,6 +50,7 @@ export default function ProjectsPage() {
     isStarter: boolean
     starterProjectId: string | null
   }) => {
+    setModalError(null);
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
@@ -59,9 +61,19 @@ export default function ProjectsPage() {
       if (res.ok) {
         setIsModalOpen(false);
         fetchProjects();
+      } else {
+        const result = await res.json();
+        if (result.error?.includes('already in use')) {
+          setModalError("You've already claimed this badge on another project. Please choose a different badge.");
+        } else {
+          setModalError(result.error || 'Failed to create project');
+        }
+        return { error: result.error };
       }
     } catch (error) {
       console.error('Failed to create project:', error);
+      setModalError('Failed to create project');
+      return { error: 'Failed to create project' };
     }
   };
 
@@ -194,8 +206,9 @@ export default function ProjectsPage() {
 
       <NewProjectModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setModalError(null); }}
         onSubmit={handleCreateProject}
+        error={modalError}
       />
     </>
   );

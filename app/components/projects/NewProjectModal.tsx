@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
@@ -15,7 +15,8 @@ interface Props {
     badges: BadgeType[]
     isStarter: boolean
     starterProjectId: string | null
-  }) => void
+  }) => Promise<{ error?: string } | void>
+  error?: string | null
 }
 
 const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
@@ -26,13 +27,23 @@ const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
   { value: "RASPBERRY_PI", label: "Raspberry Pi" },
 ]
 
-export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) {
+export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<Props>) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([])
   const [selectedBadges, setSelectedBadges] = useState<BadgeType[]>([])
   const [isStarter, setIsStarter] = useState(false)
   const [starterProjectId, setStarterProjectId] = useState('')
+  const [claimedBadges, setClaimedBadges] = useState<BadgeType[]>([])
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/badges?allClaimed=true')
+        .then(res => res.ok ? res.json() : [])
+        .then(setClaimedBadges)
+        .catch(() => setClaimedBadges([]))
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -108,6 +119,11 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-cream-700 text-sm uppercase mb-2">
               Title
@@ -164,23 +180,31 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
               Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll demonstrate in this project.
             </p>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-              {AVAILABLE_BADGES.map((badge) => (
-                <button
-                  key={badge.value}
-                  type="button"
-                  onClick={() => handleBadgeToggle(badge.value)}
-                  disabled={!selectedBadges.includes(badge.value) && selectedBadges.length >= MAX_BADGES_PER_PROJECT}
-                  className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
-                    selectedBadges.includes(badge.value)
-                      ? 'bg-brand-500 text-white'
-                      : selectedBadges.length >= MAX_BADGES_PER_PROJECT
-                        ? 'bg-cream-300 text-cream-500 cursor-not-allowed'
-                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
-                  }`}
-                >
-                  {badge.label}
-                </button>
-              ))}
+              {AVAILABLE_BADGES.map((badge) => {
+                const isClaimed = claimedBadges.includes(badge.value)
+                const isSelected = selectedBadges.includes(badge.value)
+                const isDisabled = isClaimed || (!isSelected && selectedBadges.length >= MAX_BADGES_PER_PROJECT)
+                return (
+                  <button
+                    key={badge.value}
+                    type="button"
+                    onClick={() => !isClaimed && handleBadgeToggle(badge.value)}
+                    disabled={isDisabled}
+                    title={isClaimed ? "Already claimed on another project" : undefined}
+                    className={`px-3 py-1.5 text-sm uppercase transition-colors ${
+                      isSelected
+                        ? 'bg-brand-500 text-white cursor-pointer'
+                        : isClaimed
+                          ? 'bg-cream-200 text-cream-400 cursor-not-allowed line-through'
+                          : selectedBadges.length >= MAX_BADGES_PER_PROJECT
+                            ? 'bg-cream-300 text-cream-500 cursor-not-allowed'
+                            : 'bg-cream-300 text-cream-700 hover:bg-cream-400 cursor-pointer'
+                    }`}
+                  >
+                    {badge.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 

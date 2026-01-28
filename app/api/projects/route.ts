@@ -115,6 +115,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "At least one badge is required" }, { status: 400 })
   }
 
+  const existingBadges = await prisma.projectBadge.findMany({
+    where: { 
+      badge: { in: validatedBadges },
+      project: { userId: session.user.id },
+    },
+    select: { badge: true },
+  })
+
+  if (existingBadges.length > 0) {
+    const taken = existingBadges.map(b => b.badge).join(", ")
+    return NextResponse.json({ error: `Badge(s) already in use: ${taken}` }, { status: 400 })
+  }
+
   const project = await prisma.project.create({
     data: {
       title: sanitize(title.trim()),

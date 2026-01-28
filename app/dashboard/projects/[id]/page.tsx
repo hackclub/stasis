@@ -851,7 +851,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
               <Link
                 href={`/dashboard/projects/${project.id}/edit`}
-                className="flex-1 min-w-[200px] bg-cream-200 hover:bg-cream-300 text-cream-800 py-3 text-center uppercase tracking-wider transition-colors"
+                className="flex-1 min-w-[200px] border-2 border-cream-500 bg-cream-100 hover:bg-cream-200 text-cream-900 py-3 text-center uppercase tracking-wider transition-colors font-medium"
               >
                 Edit Project
               </Link>
