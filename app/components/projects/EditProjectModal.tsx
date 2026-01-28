@@ -185,10 +185,10 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
-        className="absolute inset-0 bg-cream-950/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-cream-900/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative bg-cream-900 border-2 border-cream-600 max-w-2xl w-full mx-4 font-mono max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-cream-100 border-2 border-cream-400 max-w-2xl w-full mx-4 font-mono max-h-[90vh] overflow-y-auto">
         <div className="bg-brand-500 px-4 py-2 flex items-center justify-between sticky top-0 z-10">
           <h2 className="text-white text-lg uppercase tracking-wide">
             Edit Project
@@ -214,33 +214,33 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Title
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+              className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
               placeholder="My Awesome Project"
               required
             />
           </div>
 
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
+              className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
               placeholder="What are you building?"
             />
           </div>
 
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Tags
             </label>
             <div className="flex flex-wrap gap-2">
@@ -252,7 +252,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                   className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                     selectedTags.includes(tag.value)
                       ? 'bg-brand-500 text-white'
-                      : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
+                      : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                   }`}
                 >
                   {tag.label}
@@ -262,31 +262,31 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           </div>
 
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               GitHub Repository
             </label>
             <input
               type="text"
               value={githubRepo}
               onChange={(e) => setGithubRepo(e.target.value)}
-              className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+              className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
               placeholder="https://github.com/user/repo"
             />
           </div>
 
           {/* Badges section */}
-          <div className="border-t border-cream-600 pt-6">
+          <div className="border-t border-cream-400 pt-6">
             <div className="flex items-center justify-between mb-3">
-              <label className="block text-cream-300 text-sm uppercase">
+              <label className="block text-cream-700 text-sm uppercase">
                 Skill Badges ({badges.length}/{MAX_BADGES})
               </label>
-              {loadingBadges && <span className="text-cream-300 text-xs">Loading...</span>}
+              {loadingBadges && <span className="text-cream-600 text-xs">Loading...</span>}
             </div>
             
             {/* Claimed badges */}
             {badges.length > 0 && (
               <div className="mb-4 space-y-2">
-                <p className="text-cream-300 text-xs uppercase">Claimed</p>
+                <p className="text-cream-600 text-xs uppercase">Claimed</p>
                 <div className="flex flex-wrap gap-2">
                   {badges.map((badge) => {
                     const badgeInfo = AVAILABLE_BADGES.find(b => b.value === badge.badge)
@@ -321,7 +321,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
             {/* Available badges */}
             {badges.length < MAX_BADGES && (
               <div>
-                <p className="text-cream-300 text-xs uppercase mb-2">Available to claim</p>
+                <p className="text-cream-600 text-xs uppercase mb-2">Available to claim</p>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                   {AVAILABLE_BADGES.filter(b => !claimedBadgeTypes.includes(b.value)).map((badge) => (
                     <button
@@ -329,7 +329,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                       type="button"
                       onClick={() => handleClaimBadge(badge.value)}
                       disabled={claimingBadge === badge.value}
-                      className="text-left px-3 py-2 bg-cream-950 border border-cream-800 hover:border-brand-500 text-cream-300 hover:text-cream-100 transition-colors cursor-pointer disabled:opacity-50 text-sm"
+                      className="text-left px-3 py-2 bg-cream-200 border border-cream-400 hover:border-brand-500 text-cream-700 hover:text-cream-800 transition-colors cursor-pointer disabled:opacity-50 text-sm"
                     >
                       {badge.label}
                     </button>
@@ -340,7 +340,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           </div>
 
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Project Type
             </label>
             <div className="flex gap-2">
@@ -350,7 +350,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   !isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
+                    : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                 }`}
               >
                 Custom
@@ -361,7 +361,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
+                    : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                 }`}
               >
                 Starter
@@ -371,13 +371,13 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
 
           {isStarter && (
             <div>
-              <label className="block text-cream-300 text-sm uppercase mb-2">
+              <label className="block text-cream-700 text-sm uppercase mb-2">
                 Which Starter Project?
               </label>
               <select
                 value={starterProjectId}
                 onChange={(e) => setStarterProjectId(e.target.value)}
-                className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
                 required
               >
                 <option value="">Select a starter project...</option>
@@ -393,13 +393,13 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
           <button
             type="submit"
             disabled={!title.trim() || (isStarter && !starterProjectId)}
-            className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-600 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+            className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
           >
             Save Changes
           </button>
 
           {onDelete && (
-            <div className="border-t border-cream-600 pt-6 mt-2">
+            <div className="border-t border-cream-400 pt-6 mt-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
@@ -410,21 +410,21 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
               
               {showDeleteConfirm && (
                 <div className="mt-4 space-y-3">
-                  <p className="text-cream-300 text-sm">
+                  <p className="text-cream-700 text-sm">
                     Type <span className="text-red-500 font-bold">{project.title}</span> to confirm deletion:
                   </p>
                   <input
                     type="text"
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    className="w-full bg-cream-950 border-2 border-red-600/50 text-cream-100 px-3 py-2 focus:border-red-500 focus:outline-none transition-colors"
+                    className="w-full bg-cream-200 border-2 border-red-600/50 text-cream-800 px-3 py-2 focus:border-red-500 focus:outline-none transition-colors"
                     placeholder="Type project name..."
                   />
                   <button
                     type="button"
                     onClick={handleDelete}
                     disabled={!canDelete}
-                    className="w-full bg-red-600 hover:bg-red-500 disabled:bg-cream-600 disabled:cursor-not-allowed text-white py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                    className="w-full bg-red-600 hover:bg-red-500 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Permanently Delete Project
                   </button>

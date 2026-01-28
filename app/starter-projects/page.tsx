@@ -332,7 +332,7 @@ export default function StarterProjectsPage() {
     <>
       <style jsx global>{`
         body {
-          background-color: var(--color-cream-850);
+          background-color: var(--color-cream-100);
         }
 
         @keyframes slide-right {
@@ -349,7 +349,7 @@ export default function StarterProjectsPage() {
         }
       `}</style>
 
-      <div className="bg-[linear-gradient(var(--color-cream-850)/0.6,var(--color-cream-850)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
+      <div className="bg-[linear-gradient(var(--color-cream-100)/0.6,var(--color-cream-100)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
         <div 
           className="absolute inset-0 opacity-40 -z-1000 pointer-none"
           style={{
@@ -376,12 +376,12 @@ export default function StarterProjectsPage() {
           <div className="bg-brand-500 text-cream-100 text-xl w-max px-4 py-2 relative after:bg-brand-500 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
             STARTER PROJECTS
           </div>
-          <div className="bg-cream-950 w-full h-max border-2 border-brand-500 flex flex-col relative after:absolute after:left-full after:w-8 after:h-[calc(100%+4px-32px)] after:-top-0.5 after:bg-brand-500 before:absolute before:bg-brand-500 before:-bottom-0.5 before:left-full before:w-8 before:h-8 before:[clip-path:polygon(0_0,0_100%,100%_0)]">
+          <div className="bg-cream-200 w-full h-max border-2 border-brand-500 flex flex-col relative after:absolute after:left-full after:w-8 after:h-[calc(100%+4px-32px)] after:-top-0.5 after:bg-brand-500 before:absolute before:bg-brand-500 before:-bottom-0.5 before:left-full before:w-8 before:h-8 before:[clip-path:polygon(0_0,0_100%,100%_0)]">
             {/* top stuff */}
             <div className="flex flex-row">
               {/* preview */}
-              <div ref={previewContainerRef} className="border-cream-500 border-r-2 flex-3/5 relative overflow-clip min-h-[400px]">
-                <p className="text-cream-500/20 absolute top-1 right-2 z-10">PREVIEW</p>
+              <div ref={previewContainerRef} className="border-cream-400 border-r-2 flex-3/5 relative overflow-clip min-h-[400px]">
+                <p className="text-cream-700/40 absolute top-1 right-2 z-10">PREVIEW</p>
                 <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
                   {/* Concentric circles */}
                   {circles.map((diameter) => (
@@ -428,7 +428,7 @@ export default function StarterProjectsPage() {
                     style={{ opacity: initialMessageOpacity }}
                   >
                     <p 
-                      className="text-cream-500/50 text-2xl font-mono"
+                      className="text-cream-700/50 text-2xl font-mono"
                       style={{ transform: `scale(${initialMessageScale})` }}
                     >
                       Select a project to see details
@@ -448,7 +448,7 @@ export default function StarterProjectsPage() {
               </div>
               {/* details */}
               <div className="flex-2/5 flex flex-col relative">
-                <p className="text-cream-500/20 absolute top-1 right-2">DETAILS</p>
+                <p className="text-cream-700/40 absolute top-1 right-2">DETAILS</p>
                 
                 {/* Hidden measurement divs for all projects */}
                 {projects.map((project, i) => (
@@ -458,8 +458,8 @@ export default function StarterProjectsPage() {
                     className="flex flex-col space-y-3 px-4 py-12 absolute opacity-0 pointer-events-none"
                   >
                     <h2 className="text-brand-500 text-5xl mx-8">{project.name.toUpperCase()}</h2>
-                    <p className="text-cream-50 text-2xl mx-8">{project.hours} hours</p>
-                    <p className="text-cream-50 text-lg mx-8">{project.short_description}</p>
+                    <p className="text-cream-800 text-2xl mx-8">{project.hours} hours</p>
+                    <p className="text-cream-800 text-lg mx-8">{project.short_description}</p>
                   </div>
                 ))}
                 
@@ -469,18 +469,18 @@ export default function StarterProjectsPage() {
                   style={{ minHeight: maxHeight }}
                 >
                   <h2 className="text-brand-500 text-5xl mx-8">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
-                  <p className="text-cream-50 text-2xl mx-8">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
-                  <p className="text-cream-50 text-lg mx-8">{projects[selectedProjectIndex ?? 0].short_description}</p>
+                  <p className="text-cream-800 text-2xl mx-8">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
+                  <p className="text-cream-800 text-lg mx-8">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
-                <div className="flex flex-row border-cream-500 border-y-2 relative z-10">
-                  <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
-                    <p className="text-cream-300 absolute top-2 right-4">1</p>
+                <div className="flex flex-row border-cream-400 border-y-2 relative z-10">
+                  <div className="flex-1/3 min-h-24 border-cream-400 border-r-2 relative">
+                    <p className="text-cream-700 absolute top-2 right-4">1</p>
                   </div>
-                  <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
-                    <p className="text-cream-300 absolute top-2 right-4">2</p>
+                  <div className="flex-1/3 min-h-24 border-cream-400 border-r-2 relative">
+                    <p className="text-cream-700 absolute top-2 right-4">2</p>
                   </div>
-                  <div className="flex-1/3 min-h-24 border-cream-500 relative">
-                    <p className="text-cream-300 absolute top-2 right-4">3</p>
+                  <div className="flex-1/3 min-h-24 border-cream-400 relative">
+                    <p className="text-cream-700 absolute top-2 right-4">3</p>
                   </div>
                 </div>
                 <button className="text-white text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-500/20 border-r-3">
@@ -502,9 +502,9 @@ export default function StarterProjectsPage() {
             {/* grid of projects */}
             <div 
               ref={setGridEl}
-              className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-0.5 bg-cream-500 relative overflow-hidden cursor-pointer pt-0.5"
+              className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-0.5 bg-cream-400 relative overflow-hidden cursor-pointer pt-0.5"
             >
-              <p className="text-cream-500/20 absolute top-1 right-2 z-2">PROJECTS</p>
+              <p className="text-cream-700/40 absolute top-1 right-2 z-2">PROJECTS</p>
               <ProjectGridHoverCorners gridEl={gridEl} selectedIndex={selectedProjectIndex} />
               {projects.map((project, i) => (
                 <ProjectPreview 
@@ -523,8 +523,8 @@ export default function StarterProjectsPage() {
 
         <footer className="pt-20 pb-24 relative px-4">
           <div className="mx-auto max-w-md w-max font-mono">
-            <p className="text-xs md:text-sm text-cream-300 text-center">Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
-            <div className="mt-2 text-cream-300 text-center">
+            <p className="text-xs md:text-sm text-cream-700 text-center">Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
+            <div className="mt-2 text-cream-700 text-center">
               <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hack Club</a>
               <span>・</span>
               <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Slack</a>
@@ -537,7 +537,7 @@ export default function StarterProjectsPage() {
         </footer>
 
         {/* footer darkening background */}
-        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(var(--color-cream-800-0),var(--color-cream-900))] -z-2" />
+        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(var(--color-cream-100-0),var(--color-cream-200))] -z-2" />
       </div>
 
       <NoiseOverlay />

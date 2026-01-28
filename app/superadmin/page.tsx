@@ -28,8 +28,8 @@ export default function SuperAdminPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cream-100">
-      <div className="bg-cream-200 p-8 rounded border border-brand-500">
+    <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)]">
+      <div className="bg-cream-100 p-8 rounded border border-brand-500">
         <h1 className="text-brand-500 text-xl uppercase tracking-wide mb-4">Superadmin Access</h1>
         {status === 'idle' && (
           <button
@@ -39,8 +39,8 @@ export default function SuperAdminPage() {
             Grant Admin Access
           </button>
         )}
-        {status === 'loading' && <p>Granting access...</p>}
-        {status === 'success' && <p className="text-green-600">{message}</p>}
+        {status === 'loading' && <p className="text-cream-700">Granting access...</p>}
+        {status === 'success' && <p className="text-green-500">{message}</p>}
         {status === 'error' && <p className="text-red-600">{message}</p>}
       </div>
     </div>

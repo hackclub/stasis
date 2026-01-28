@@ -119,15 +119,15 @@ export default function PrizesPage() {
   return (
     <div className="space-y-8">
       {/* XP Balance Header */}
-      <div className="bg-cream-900 border-2 border-cream-600 p-6">
+      <div className="bg-cream-100 border-2 border-cream-400 p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-brand-500 text-lg uppercase tracking-wide">Your XP Balance</h2>
-            <p className="text-cream-100 text-4xl font-bold">{xpBalance.toLocaleString()} XP</p>
+            <p className="text-cream-800 text-4xl font-bold">{xpBalance.toLocaleString()} XP</p>
           </div>
           <div className="text-right">
-            <p className="text-cream-300 text-xs uppercase tracking-wide">Current Week</p>
-            <p className="text-cream-100 text-lg">{weekRange.display}</p>
+            <p className="text-cream-700 text-xs uppercase tracking-wide">Current Week</p>
+            <p className="text-cream-800 text-lg">{weekRange.display}</p>
           </div>
         </div>
       </div>
@@ -144,11 +144,11 @@ export default function PrizesPage() {
         
         {loading ? (
           <div className="p-8 text-center">
-            <p className="text-cream-300">Loading prizes...</p>
+            <p className="text-cream-700">Loading prizes...</p>
           </div>
         ) : prizes.length === 0 ? (
-          <div className="bg-cream-900 border-2 border-cream-600 p-8 text-center">
-            <p className="text-cream-300">No prizes available this week.</p>
+          <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
+            <p className="text-cream-700">No prizes available this week.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -161,20 +161,20 @@ export default function PrizesPage() {
               return (
                 <div
                   key={prize.id}
-                  className={`bg-cream-900 border-2 p-4 flex flex-col ${
+                  className={`bg-cream-100 border-2 p-4 flex flex-col ${
                     prize.userClaimed
                       ? 'border-brand-500/50'
-                      : 'border-cream-600'
+                      : 'border-cream-400'
                   }`}
                 >
                   <div className="flex-1">
-                    <h3 className="text-cream-100 text-lg font-medium mb-1">{prize.name}</h3>
-                    <p className="text-cream-300 text-sm mb-3">{prize.description}</p>
+                    <h3 className="text-cream-800 text-lg font-medium mb-1">{prize.name}</h3>
+                    <p className="text-cream-700 text-sm mb-3">{prize.description}</p>
                     
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-brand-400 font-bold">{prize.xpCost.toLocaleString()} XP</p>
                       {remaining !== null && (
-                        <p className="text-cream-400 text-xs uppercase">
+                        <p className="text-cream-600 text-xs uppercase">
                           {remaining > 0 ? `${remaining} left` : 'Sold out'}
                         </p>
                       )}
@@ -192,7 +192,7 @@ export default function PrizesPage() {
                       className={`px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer ${
                         canClaim
                           ? 'bg-brand-500 hover:bg-brand-400 text-white'
-                          : 'bg-cream-800 text-cream-500 cursor-not-allowed'
+                          : 'bg-cream-300 text-cream-600 cursor-not-allowed'
                       }`}
                     >
                       {claiming === prize.id
@@ -215,16 +215,16 @@ export default function PrizesPage() {
       {claimedPrizes.length > 0 && (
         <div>
           <h2 className="text-brand-500 text-xl uppercase tracking-wide mb-4">Your Claimed Prizes</h2>
-          <div className="bg-cream-900 border-2 border-cream-600 divide-y divide-cream-700">
+          <div className="bg-cream-100 border-2 border-cream-400 divide-y divide-cream-400">
             {claimedPrizes.map((claim) => (
               <div key={claim.id} className="p-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-cream-100 font-medium">{claim.prize.name}</h3>
-                  <p className="text-cream-400 text-sm">{claim.prize.description}</p>
+                  <h3 className="text-cream-800 font-medium">{claim.prize.name}</h3>
+                  <p className="text-cream-600 text-sm">{claim.prize.description}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-brand-400 text-sm">{claim.prize.xpCost.toLocaleString()} XP</p>
-                  <p className="text-cream-500 text-xs">
+                  <p className="text-cream-600 text-xs">
                     {new Date(claim.claimedAt).toLocaleDateString()}
                   </p>
                 </div>

@@ -96,8 +96,8 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
 
   if (isPending || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-300">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-cream-100 font-mono">
+        <p className="text-cream-700">Loading...</p>
       </div>
     );
   }
@@ -108,10 +108,10 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <div className="min-h-screen bg-cream-950 font-mono">
+      <div className="min-h-screen bg-cream-100 font-mono">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href="/dashboard" className="text-cream-300 hover:text-brand-500 transition-colors flex items-center gap-2">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
+          <Link href="/dashboard" className="text-cream-700 hover:text-brand-500 transition-colors flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -122,12 +122,12 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="mb-6">
             <h1 className="text-brand-500 text-2xl uppercase tracking-wide">New Journal Entry</h1>
-            <p className="text-cream-300 text-sm mt-1">Project: {project.title}</p>
+            <p className="text-cream-700 text-sm mt-1">Project: {project.title}</p>
             <div className="mt-3">
               <span className={`px-3 py-1 text-sm uppercase ${
                 project.designStatus === "approved" 
-                  ? 'bg-blue-600/30 border border-blue-600 text-blue-400' 
-                  : 'bg-purple-600/30 border border-purple-600 text-purple-400'
+                  ? 'bg-blue-600/30 border border-blue-600 text-blue-600' 
+                  : 'bg-purple-600/30 border border-purple-600 text-purple-600'
               }`}>
                 {project.designStatus === "approved" ? 'Build Stage Session' : 'Design Stage Session'}
               </span>

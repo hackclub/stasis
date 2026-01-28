@@ -35,15 +35,15 @@ export default function DashboardLayout({
     
     return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
       isActive
-        ? 'text-brand-400 border-brand-400'
-        : 'text-cream-300 border-transparent hover:text-cream-50'
+        ? 'text-brand-500 border-brand-500'
+        : 'text-cream-700 border-transparent hover:text-cream-900'
     }`;
   };
 
   if (isPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-300">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
+        <p className="text-cream-700">Loading...</p>
       </div>
     );
   }
@@ -51,14 +51,14 @@ export default function DashboardLayout({
   if (!session) {
     return (
       <>
-        <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-          <div className="bg-cream-900 border-2 border-cream-600 p-8 max-w-md w-full mx-4">
+        <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
+          <div className="bg-cream-200 border-2 border-cream-400 p-8 max-w-md w-full mx-4">
             <div className="space-y-6">
               <div className="text-center">
                 <h1 className="text-2xl uppercase tracking-wide text-brand-500 mb-2">
                   Dashboard
                 </h1>
-                <p className="text-cream-300 text-sm">
+                <p className="text-cream-700 text-sm">
                   Sign in to continue
                 </p>
               </div>
@@ -83,11 +83,11 @@ export default function DashboardLayout({
 
   return (
     <>
-      <div className="min-h-screen bg-cream-950 font-mono relative overflow-hidden">
+      <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href="/" className="text-cream-300 hover:text-brand-400 transition-colors">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
+          <Link href="/" className="text-cream-700 hover:text-brand-500 transition-colors">
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
               width="24" 
@@ -101,20 +101,20 @@ export default function DashboardLayout({
             </svg>
           </Link>
           <div className="flex items-center gap-6">
-            <span className="text-cream-300 text-sm hidden sm:block">
+            <span className="text-cream-700 text-sm hidden sm:block">
               {session.user.name || session.user.email}
             </span>
             {isAdmin && (
               <Link
                 href="/admin"
-                className="text-cream-300 hover:text-brand-400 text-sm uppercase transition-colors"
+                className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors"
               >
                 Admin
               </Link>
             )}
             <button
               onClick={() => signOut()}
-              className="text-cream-300 hover:text-brand-400 text-sm uppercase transition-colors cursor-pointer"
+              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out
             </button>
@@ -122,7 +122,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-cream-800">
+        <div className="border-b border-cream-400">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex gap-0">
               <Link href="/dashboard" className={getTabClass('/dashboard')}>

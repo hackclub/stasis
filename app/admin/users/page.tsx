@@ -114,11 +114,11 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-cream-950 font-mono">
+      <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
           <div className="flex items-center gap-4">
-            <Link href="/admin" className="text-cream-300 hover:text-brand-500 transition-colors">
+            <Link href="/admin" className="text-cream-700 hover:text-brand-500 transition-colors">
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 width="24" 
@@ -134,12 +134,12 @@ export default function AdminUsersPage() {
             <h1 className="text-brand-500 text-xl uppercase tracking-wide">User Management</h1>
           </div>
           <div className="flex items-center gap-6">
-            <span className="text-cream-300 text-sm hidden sm:block">
+            <span className="text-cream-700 text-sm hidden sm:block">
               {session?.user.name || session?.user.email}
             </span>
             <button
               onClick={() => signOut()}
-              className="text-cream-300 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
+              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out
             </button>
@@ -150,7 +150,7 @@ export default function AdminUsersPage() {
           {/* Search & Filters */}
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <p className="text-cream-300 text-sm uppercase">
+              <p className="text-cream-700 text-sm uppercase">
                 {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
               </p>
               <input
@@ -158,7 +158,7 @@ export default function AdminUsersPage() {
                 placeholder="Search by name, email, or Slack ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-cream-900 border-2 border-cream-700 px-4 py-2 text-cream-100 placeholder-cream-600 focus:border-brand-500 focus:outline-none w-full sm:w-80"
+                className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-cream-800 placeholder-cream-600 focus:border-brand-500 focus:outline-none w-full sm:w-80"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -167,7 +167,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterAdmin === true
                     ? 'bg-brand-500 text-cream-950'
-                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
                 }`}
               >
                 Admins
@@ -176,8 +176,8 @@ export default function AdminUsersPage() {
                 onClick={() => setFilterAdmin(filterAdmin === false ? null : false)}
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterAdmin === false
-                    ? 'bg-cream-700 text-cream-100'
-                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
+                    ? 'bg-cream-500 text-cream-800'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
                 }`}
               >
                 Non-Admins
@@ -187,7 +187,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterFraud === true
                     ? 'bg-red-600 text-white'
-                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
                 }`}
               >
                 Fraud
@@ -197,7 +197,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                   filterFraud === false
                     ? 'bg-green-600 text-white'
-                    : 'bg-cream-900 border border-cream-700 text-cream-200 hover:border-cream-500'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
                 }`}
               >
                 No Fraud
@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
               {(filterAdmin !== null || filterFraud !== null) && (
                 <button
                   onClick={() => { setFilterAdmin(null); setFilterFraud(null); }}
-                  className="px-3 py-1.5 text-xs uppercase text-cream-300 hover:text-cream-300 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs uppercase text-cream-700 hover:text-brand-500 transition-colors cursor-pointer"
                 >
                   Clear Filters
                 </button>
@@ -216,22 +216,22 @@ export default function AdminUsersPage() {
           {/* Users List */}
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-cream-300">Loading users...</p>
+              <p className="text-cream-700">Loading users...</p>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="bg-cream-900 border-2 border-cream-700 p-8 text-center">
-              <p className="text-cream-300">No users found</p>
+            <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
+              <p className="text-cream-700">No users found</p>
             </div>
           ) : (
             <div className="space-y-2">
               {filteredUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="bg-cream-900 border-2 border-cream-700"
+                  className="bg-cream-100 border-2 border-cream-400"
                 >
                   {/* User Row */}
                   <div 
-                    className="p-4 cursor-pointer hover:bg-cream-800 transition-colors"
+                    className="p-4 cursor-pointer hover:bg-cream-200 transition-colors"
                     onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -243,15 +243,15 @@ export default function AdminUsersPage() {
                             className="w-10 h-10 rounded-full flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-cream-700 flex items-center justify-center flex-shrink-0">
-                            <span className="text-cream-200 text-sm">
+                          <div className="w-10 h-10 rounded-full bg-cream-400 flex items-center justify-center flex-shrink-0">
+                            <span className="text-cream-800 text-sm">
                               {(user.name || user.email)[0].toUpperCase()}
                             </span>
                           </div>
                         )}
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-cream-100 truncate">
+                            <p className="text-cream-800 truncate">
                               {user.name || user.email}
                             </p>
                             {user.isAdmin && (
@@ -265,13 +265,13 @@ export default function AdminUsersPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-cream-300 text-sm truncate">{user.email}</p>
+                          <p className="text-cream-700 text-sm truncate">{user.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6 flex-shrink-0">
                         <div className="text-right hidden sm:block">
                           <p className="text-brand-500">{user.totalProjects} projects</p>
-                          <p className="text-cream-300 text-xs">
+                          <p className="text-cream-700 text-xs">
                             {user.totalHoursApproved.toFixed(1)}h approved
                           </p>
                         </div>
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
                           fill="none" 
                           stroke="currentColor" 
                           strokeWidth="2"
-                          className={`text-cream-300 transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`}
+                          className={`text-cream-700 transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`}
                         >
                           <path d="M6 9l6 6 6-6" />
                         </svg>
@@ -293,20 +293,20 @@ export default function AdminUsersPage() {
 
                   {/* Expanded Details */}
                   {expandedUser === user.id && (
-                    <div className="border-t border-cream-700 p-4 space-y-4">
+                    <div className="border-t border-cream-400 p-4 space-y-4">
                       {/* User Info */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Email</p>
-                          <p className="text-cream-300">{user.email}</p>
+                          <p className="text-cream-700">{user.email}</p>
                         </div>
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Slack ID</p>
-                          <p className="text-cream-300">{user.slackId || '—'}</p>
+                          <p className="text-cream-700">{user.slackId || '—'}</p>
                         </div>
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Joined</p>
-                          <p className="text-cream-300">
+                          <p className="text-cream-700">
                             {new Date(user.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -316,15 +316,15 @@ export default function AdminUsersPage() {
                         </div>
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Hours Claimed</p>
-                          <p className="text-cream-300">{user.totalHoursClaimed.toFixed(1)}h</p>
+                          <p className="text-cream-700">{user.totalHoursClaimed.toFixed(1)}h</p>
                         </div>
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Hours Approved</p>
-                          <p className="text-cream-300">{user.totalHoursApproved.toFixed(1)}h</p>
+                          <p className="text-cream-700">{user.totalHoursApproved.toFixed(1)}h</p>
                         </div>
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Projects</p>
-                          <p className="text-cream-300">{user.totalProjects}</p>
+                          <p className="text-cream-700">{user.totalProjects}</p>
                         </div>
                       </div>
 
@@ -338,8 +338,8 @@ export default function AdminUsersPage() {
                                 key={badge.id}
                                 className={`text-xs px-2 py-1 ${
                                   badge.grantedAt 
-                                    ? 'bg-brand-500/20 text-brand-400 border border-brand-500/50' 
-                                    : 'bg-cream-800 text-cream-300 border border-cream-700'
+                                    ? 'bg-brand-500/20 text-brand-500 border border-brand-500/50' 
+                                    : 'bg-cream-200 text-cream-700 border border-cream-400'
                                 }`}
                               >
                                 {badge.badge.replace(/_/g, ' ')}
@@ -362,30 +362,30 @@ export default function AdminUsersPage() {
                                 <Link
                                   key={project.id}
                                   href={`/admin/projects/${project.id}`}
-                                  className="block bg-cream-800 hover:bg-cream-700 px-3 py-2 transition-colors"
+                                  className="block bg-cream-200 hover:bg-cream-300 px-3 py-2 transition-colors"
                                 >
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="text-cream-200 text-sm">{project.title}</span>
+                                    <span className="text-cream-800 text-sm">{project.title}</span>
                                     <div className="flex gap-2">
                                       <span className={`text-xs uppercase ${
-                                        project.designStatus === 'approved' ? 'text-green-500' :
-                                        project.designStatus === 'rejected' ? 'text-red-500' :
+                                        project.designStatus === 'approved' ? 'text-green-600' :
+                                        project.designStatus === 'rejected' ? 'text-red-600' :
                                         project.designStatus === 'in_review' ? 'text-brand-500' :
-                                        'text-cream-300'
+                                        'text-cream-700'
                                       }`}>
                                         D: {project.designStatus.replace('_', ' ')}
                                       </span>
                                       <span className={`text-xs uppercase ${
-                                        project.buildStatus === 'approved' ? 'text-green-500' :
-                                        project.buildStatus === 'rejected' ? 'text-red-500' :
+                                        project.buildStatus === 'approved' ? 'text-green-600' :
+                                        project.buildStatus === 'rejected' ? 'text-red-600' :
                                         project.buildStatus === 'in_review' ? 'text-brand-500' :
-                                        'text-cream-300'
+                                        'text-cream-700'
                                       }`}>
                                         B: {project.buildStatus.replace('_', ' ')}
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3 text-xs text-cream-300">
+                                  <div className="flex items-center gap-3 text-xs text-cream-700">
                                     <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
                                     <span>•</span>
                                     <span>{hoursClaimed.toFixed(1)}h claimed</span>
@@ -399,8 +399,8 @@ export default function AdminUsersPage() {
                                           key={badge.id}
                                           className={`text-xs px-1.5 py-0.5 ${
                                             badge.grantedAt 
-                                              ? 'bg-brand-500/20 text-brand-400 border border-brand-500/50' 
-                                              : 'bg-cream-900 text-cream-300 border border-cream-700'
+                                              ? 'bg-brand-500/20 text-brand-500 border border-brand-500/50' 
+                                              : 'bg-cream-100 text-cream-700 border border-cream-400'
                                           }`}
                                         >
                                           {badge.badge.replace(/_/g, ' ')}
@@ -416,7 +416,7 @@ export default function AdminUsersPage() {
                       )}
 
                       {/* Actions */}
-                      <div className="flex flex-wrap gap-3 pt-2 border-t border-cream-800">
+                      <div className="flex flex-wrap gap-3 pt-2 border-t border-cream-400">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -428,7 +428,7 @@ export default function AdminUsersPage() {
                           disabled={updating === user.id}
                           className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${
                             user.isAdmin
-                              ? 'bg-cream-800 text-cream-300 hover:bg-cream-700'
+                              ? 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                               : 'bg-brand-500 text-cream-950 hover:bg-brand-400'
                           } disabled:opacity-50`}
                         >

@@ -223,8 +223,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
   if (isPending || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-950 font-mono">
-        <p className="text-cream-300">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-cream-100 font-mono">
+        <p className="text-cream-700">Loading...</p>
       </div>
     );
   }
@@ -238,10 +238,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      <div className="min-h-screen bg-cream-950 font-mono">
+      <div className="min-h-screen bg-cream-100 font-mono">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-800">
-          <Link href={`/dashboard/projects/${project.id}`} className="text-cream-300 hover:text-brand-500 transition-colors flex items-center gap-2">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
+          <Link href={`/dashboard/projects/${project.id}`} className="text-cream-700 hover:text-brand-500 transition-colors flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -253,48 +253,48 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-brand-500 text-2xl uppercase tracking-wide mb-8">Edit Project</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-cream-900 border-2 border-cream-700 p-6 space-y-6">
+            <div className="bg-cream-200 border-2 border-cream-400 p-6 space-y-6">
               <div>
-                <label className="block text-cream-300 text-sm uppercase mb-2">
+                <label className="block text-cream-700 text-sm uppercase mb-2">
                   Title
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                  className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
                   placeholder="My Awesome Project"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-cream-300 text-sm uppercase mb-2">
+                <label className="block text-cream-700 text-sm uppercase mb-2">
                   Description
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
+                  className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
                   placeholder="What are you building?"
                 />
               </div>
 
               <div>
-                <label className="block text-cream-300 text-sm uppercase mb-2">
+                <label className="block text-cream-700 text-sm uppercase mb-2">
                   GitHub Repo <span className="text-brand-400">(required for submission)</span>
                 </label>
                 <input
                   type="url"
                   value={githubRepo}
                   onChange={(e) => setGithubRepo(e.target.value)}
-                  className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                  className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
                   placeholder="https://github.com/username/repo"
                 />
               </div>
 
               <div>
-                <label className="block text-cream-300 text-sm uppercase mb-2">
+                <label className="block text-cream-700 text-sm uppercase mb-2">
                   Tags
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -306,7 +306,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                       className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                         selectedTags.includes(tag.value)
                           ? 'bg-brand-500 text-white font-medium'
-                          : 'bg-cream-800 text-cream-300 hover:bg-cream-700'
+                          : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                       }`}
                     >
                       {tag.label}
@@ -316,7 +316,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
-                <label className="block text-cream-300 text-sm uppercase mb-2">
+                <label className="block text-cream-700 text-sm uppercase mb-2">
                   Project Type
                 </label>
                 <div className="flex gap-2">
@@ -326,7 +326,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       !isStarter
                         ? 'bg-brand-500 text-white font-medium'
-                        : 'bg-cream-800 text-cream-300 hover:bg-cream-700'
+                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                     }`}
                   >
                     Custom
@@ -337,7 +337,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       isStarter
                         ? 'bg-brand-500 text-white font-medium'
-                        : 'bg-cream-800 text-cream-300 hover:bg-cream-700'
+                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                     }`}
                   >
                     Starter
@@ -347,13 +347,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
               {isStarter && (
                 <div>
-                  <label className="block text-cream-300 text-xs uppercase mb-2 mt-4">
+                  <label className="block text-cream-700 text-xs uppercase mb-2 mt-4">
                     Which Starter Project?
                   </label>
                   <select
                     value={starterProjectId}
                     onChange={(e) => setStarterProjectId(e.target.value)}
-                    className="w-full bg-cream-950 border-2 border-cream-700 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                    className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
                     required
                   >
                     <option value="">Select a starter project...</option>
@@ -368,18 +368,18 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {/* Badges section */}
-            <div className="bg-cream-900 border-2 border-cream-700 p-6">
+            <div className="bg-cream-200 border-2 border-cream-400 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-cream-50 text-lg uppercase">
+                <h2 className="text-cream-800 text-lg uppercase">
                   Skill Badges ({badges.length}/{MAX_BADGES})
                 </h2>
-                {loadingBadges && <span className="text-cream-300 text-xs">Loading...</span>}
+                {loadingBadges && <span className="text-cream-700 text-xs">Loading...</span>}
               </div>
               
               {/* Claimed badges */}
               {badges.length > 0 && (
                 <div className="mb-4 space-y-2">
-                  <p className="text-cream-300 text-xs uppercase">Claimed</p>
+                  <p className="text-cream-700 text-xs uppercase">Claimed</p>
                   <div className="flex flex-wrap gap-2">
                     {badges.map((badge) => {
                       const badgeInfo = AVAILABLE_BADGES.find(b => b.value === badge.badge);
@@ -388,8 +388,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                           key={badge.id}
                           className={`flex items-center gap-2 px-3 py-1.5 text-sm ${
                             badge.grantedAt 
-                              ? 'bg-green-600/40 border border-green-500 text-green-400' 
-                              : 'bg-brand-500/30 border border-brand-400 text-brand-400'
+                              ? 'bg-green-600/40 border border-green-500 text-green-600' 
+                              : 'bg-brand-500/30 border border-brand-400 text-brand-500'
                           }`}
                         >
                           <span>{badgeInfo?.label || badge.badge}</span>
@@ -399,7 +399,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                             <button
                               type="button"
                               onClick={() => handleUnclaimBadge(badge.id, !!badge.grantedAt)}
-                              className="hover:text-red-400 transition-colors cursor-pointer"
+                              className="hover:text-red-500 transition-colors cursor-pointer"
                             >
                               ×
                             </button>
@@ -414,7 +414,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               {/* Available badges */}
               {badges.length < MAX_BADGES && (
                 <div>
-                  <p className="text-cream-300 text-xs uppercase mb-2">Available to claim</p>
+                  <p className="text-cream-700 text-xs uppercase mb-2">Available to claim</p>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                     {AVAILABLE_BADGES.filter(b => !claimedBadgeTypes.includes(b.value)).map((badge) => (
                       <button
@@ -422,7 +422,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                         type="button"
                         onClick={() => handleClaimBadge(badge.value)}
                         disabled={claimingBadge === badge.value}
-                        className="text-left px-3 py-2 bg-cream-950 border border-cream-700 hover:border-brand-400 text-cream-200 hover:text-cream-200 transition-colors cursor-pointer disabled:opacity-50 text-sm"
+                        className="text-left px-3 py-2 bg-white border border-cream-400 hover:border-brand-400 text-cream-800 transition-colors cursor-pointer disabled:opacity-50 text-sm"
                       >
                         {badge.label}
                       </button>
@@ -435,14 +435,14 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             <button
               type="submit"
               disabled={!title.trim() || saving}
-              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-700 disabled:text-cream-300 disabled:cursor-not-allowed text-white font-medium py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white font-medium py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
 
           {/* Delete section */}
-          <div className="mt-8 bg-cream-900 border-2 border-red-600/30 p-6">
+          <div className="mt-8 bg-cream-200 border-2 border-red-600/30 p-6">
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
@@ -453,21 +453,21 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             
             {showDeleteConfirm && (
               <div className="mt-4 space-y-3">
-                <p className="text-cream-300 text-sm">
+                <p className="text-cream-700 text-sm">
                   Type <span className="text-red-500 font-bold">{project.title}</span> to confirm deletion:
                 </p>
                 <input
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  className="w-full bg-cream-950 border-2 border-red-600/50 text-cream-100 px-3 py-2 focus:border-red-500 focus:outline-none transition-colors"
+                  className="w-full bg-white border-2 border-red-600/50 text-cream-800 px-3 py-2 focus:border-red-500 focus:outline-none transition-colors"
                   placeholder="Type project name..."
                 />
                 <button
                   type="button"
                   onClick={handleDelete}
                   disabled={!canDelete || deleting}
-                  className="w-full bg-red-600 hover:bg-red-500 disabled:bg-cream-600 disabled:cursor-not-allowed text-white py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                  className="w-full bg-red-600 hover:bg-red-500 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   {deleting ? 'Deleting...' : 'Permanently Delete Project'}
                 </button>

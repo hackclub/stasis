@@ -77,12 +77,12 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
               <div
                 className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all text-xs font-bold ${
                   step.completed
-                    ? 'border-green-400 bg-green-500 text-white'
+                    ? 'border-green-500 bg-green-500 text-white'
                     : step.rejected
-                    ? 'border-red-400 bg-red-500/30 text-red-300'
+                    ? 'border-red-500 bg-red-100 text-red-600'
                     : step.active
-                    ? 'border-yellow-400 bg-yellow-500/30 text-yellow-300'
-                    : 'border-cream-500 bg-cream-800 text-cream-200'
+                    ? 'border-yellow-500 bg-yellow-100 text-yellow-600'
+                    : 'border-cream-400 bg-cream-200 text-cream-700'
                 }`}
               >
                 {step.completed ? (
@@ -102,12 +102,12 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
               <span
                 className={`text-[10px] mt-1.5 uppercase tracking-wide text-center max-w-16 leading-tight font-medium ${
                   step.completed
-                    ? 'text-green-300'
+                    ? 'text-green-600'
                     : step.rejected
-                    ? 'text-red-300'
+                    ? 'text-red-600'
                     : step.active
-                    ? 'text-yellow-300'
-                    : 'text-cream-200'
+                    ? 'text-yellow-600'
+                    : 'text-cream-700'
                 }`}
               >
                 {step.label}
@@ -118,7 +118,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
             {idx < steps.length - 1 && (
               <div
                 className={`h-0.5 flex-1 mx-1 -mt-5 transition-colors ${
-                  step.completed ? 'bg-green-400' : 'bg-cream-600'
+                  step.completed ? 'bg-green-400' : 'bg-cream-400'
                 }`}
               />
             )}
@@ -130,37 +130,37 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
       {showMessages && (
         <div className="text-center">
           {designStatus === 'draft' && (
-            <p className="text-cream-200 text-sm">
+            <p className="text-cream-700 text-sm">
               Design your project and log your time. Upload all design files to your GitHub repo. Once your project is submitted and approved, you&apos;ll get money to build your project!
             </p>
           )}
           {designStatus === 'in_review' && (
-            <p className="text-yellow-400 text-sm">
+            <p className="text-yellow-600 text-sm">
               Your design is being reviewed. You can still make changes while waiting.
             </p>
           )}
           {designStatus === 'rejected' && (
-            <p className="text-red-400 text-sm">
+            <p className="text-red-600 text-sm">
               Your design needs changes. Review the feedback and resubmit.
             </p>
           )}
           {isDesignComplete && buildStatus === 'draft' && (
-            <p className="text-green-400 text-sm">
+            <p className="text-green-600 text-sm">
               Design approved! Start building and log your work sessions. Check your email for a grant card from HCB.
             </p>
           )}
           {isDesignComplete && buildStatus === 'in_review' && (
-            <p className="text-yellow-400 text-sm">
+            <p className="text-yellow-600 text-sm">
               Your build is being reviewed. Badges will be granted upon approval.
             </p>
           )}
           {isDesignComplete && buildStatus === 'rejected' && (
-            <p className="text-red-400 text-sm">
+            <p className="text-red-600 text-sm">
               Your build needs changes. Review the feedback and resubmit.
             </p>
           )}
           {isBuildComplete && (
-            <p className="text-green-400 text-sm">
+            <p className="text-green-600 text-sm">
               🎉 Project complete! Your badges have been granted.
             </p>
           )}

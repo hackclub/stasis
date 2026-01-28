@@ -79,11 +79,11 @@ export default function ProjectsPage() {
       <TutorialHelpButton onClick={() => setShowTutorial(true)} />
 
       {/* Badge Progress */}
-      <div data-tutorial="badge-progress" className="mb-6 bg-cream-900 border-2 border-cream-600 p-4">
+      <div data-tutorial="badge-progress" className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-brand-500 text-lg uppercase tracking-wide">Badge Progress</h2>
-            <p className="text-cream-300 text-sm">Badges are specific skills or technologies you use in your projects. Earn {BADGES_REQUIRED} approved badges to qualify for Stasis!</p>
+            <p className="text-cream-700 text-sm">Badges are specific skills or technologies you use in your projects. Earn {BADGES_REQUIRED} approved badges to qualify for Stasis!</p>
           </div>
           {approvedBadges.length >= BADGES_REQUIRED && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
@@ -101,7 +101,7 @@ export default function ProjectsPage() {
                     ? 'bg-brand-500 border-brand-400'
                     : isPending
                     ? 'bg-brand-500/20 border-brand-500/50 border-dashed'
-                    : 'bg-cream-950 border-cream-800'
+                    : 'bg-cream-200 border-cream-400'
                 }`}
               >
                 {isApproved && (
@@ -117,7 +117,7 @@ export default function ProjectsPage() {
           })}
         </div>
         {pendingBadges.length > 0 && (
-          <p className="text-cream-300 text-xs mt-2">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
+          <p className="text-cream-700 text-xs mt-2">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
         )}
       </div>
 
@@ -135,15 +135,15 @@ export default function ProjectsPage() {
       <div data-tutorial="stats" className="flex items-center justify-between mb-6">
         <div className="flex gap-6">
           <div>
-            <p className="text-cream-300 text-xs uppercase">Projects</p>
-            <p className="text-cream-100 text-2xl">{projects.length}</p>
+            <p className="text-cream-700 text-xs uppercase">Projects</p>
+            <p className="text-cream-800 text-2xl">{projects.length}</p>
           </div>
           <div>
-            <p className="text-cream-300 text-xs uppercase">Claimed</p>
-            <p className="text-cream-100 text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
+            <p className="text-cream-700 text-xs uppercase">Claimed</p>
+            <p className="text-cream-800 text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
           </div>
           <div>
-            <p className="text-cream-300 text-xs uppercase">Approved</p>
+            <p className="text-cream-700 text-xs uppercase">Approved</p>
             <p className="text-brand-500 text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function ProjectsPage() {
       {/* Project Cards Grid */}
       {loading ? (
         <div className="p-8 text-center">
-          <p className="text-cream-300">Loading projects...</p>
+          <p className="text-cream-700">Loading projects...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -187,7 +187,7 @@ export default function ProjectsPage() {
 
       {!loading && projects.length === 0 && (
         <div className="p-8 text-center">
-          <p className="text-cream-300">No projects yet. Create your first one!</p>
+          <p className="text-cream-700">No projects yet. Create your first one!</p>
         </div>
       )}
 

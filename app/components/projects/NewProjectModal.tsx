@@ -64,10 +64,10 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
-        className="absolute inset-0 bg-cream-950/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-cream-900/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative bg-cream-900 border-2 border-cream-600 max-w-lg w-full mx-4 font-mono">
+      <div className="relative bg-cream-100 border-2 border-cream-400 max-w-lg w-full mx-4 font-mono">
         <div className="bg-brand-500 px-4 py-2 flex items-center justify-between">
           <h2 className="text-white text-lg uppercase tracking-wide">
             New Project
@@ -93,33 +93,33 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Title
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+              className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
               placeholder="My Awesome Project"
               required
             />
           </div>
 
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
+              className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
               placeholder="What are you building?"
             />
           </div>
 
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Tags
             </label>
             <div className="flex flex-wrap gap-2">
@@ -131,7 +131,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                   className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                     selectedTags.includes(tag.value)
                       ? 'bg-brand-500 text-white'
-                      : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
+                      : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                   }`}
                 >
                   {tag.label}
@@ -141,7 +141,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
           </div>
 
           <div>
-            <label className="block text-cream-300 text-sm uppercase mb-2">
+            <label className="block text-cream-700 text-sm uppercase mb-2">
               Project Type
             </label>
             <div className="flex gap-2">
@@ -151,7 +151,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   !isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
+                    : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                 }`}
               >
                 Custom
@@ -162,7 +162,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                   isStarter
                     ? 'bg-brand-500 text-white'
-                    : 'bg-cream-850 text-cream-300 hover:bg-cream-800'
+                    : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
                 }`}
               >
                 Starter
@@ -172,13 +172,13 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
 
           {isStarter && (
             <div>
-              <label className="block text-cream-300 text-sm uppercase mb-2">
+              <label className="block text-cream-700 text-sm uppercase mb-2">
                 Which Starter Project?
               </label>
               <select
                 value={starterProjectId}
                 onChange={(e) => setStarterProjectId(e.target.value)}
-                className="w-full bg-cream-950 border-2 border-cream-600 text-cream-100 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
                 required
               >
                 <option value="">Select a starter project...</option>
@@ -194,7 +194,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: Readonly<Props>) 
           <button
             type="submit"
             disabled={!title.trim() || (isStarter && !starterProjectId)}
-            className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-600 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+            className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
           >
             Create Project
           </button>

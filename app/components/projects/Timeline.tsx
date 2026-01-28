@@ -46,7 +46,7 @@ function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision
     case 'WORK_SESSION':
       return (
         <div className={`${baseClass} bg-blue-500/20 border border-blue-500`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <line x1="16" y1="13" x2="8" y2="13"/>
@@ -57,7 +57,7 @@ function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision
     case 'SUBMISSION':
       return (
         <div className={`${baseClass} bg-purple-500/20 border border-purple-500`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600">
             <polyline points="9 11 12 14 22 4"/>
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
@@ -67,7 +67,7 @@ function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision
       if (decision === 'APPROVED') {
         return (
           <div className={`${baseClass} bg-green-500/20 border border-green-500`}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           </div>
@@ -75,7 +75,7 @@ function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision
       }
       return (
         <div className={`${baseClass} bg-yellow-500/20 border border-yellow-500`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-600">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -91,14 +91,14 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
   if (items.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-cream-300">No activity yet</p>
+        <p className="text-cream-600">No activity yet</p>
       </div>
     );
   }
 
   return (
     <div className="relative">
-      <div className="absolute left-4 top-0 bottom-0 w-px bg-cream-700" />
+      <div className="absolute left-4 top-0 bottom-0 w-px bg-cream-400" />
       
       <div className="space-y-4">
         {items.map((item, idx) => (
@@ -111,26 +111,26 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
             </div>
             
             {item.type === 'PROJECT_CREATED' && (
-              <div className="bg-cream-950 border border-cream-700 p-4">
+              <div className="bg-cream-100 border border-cream-400 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-cream-300 text-sm">Project started</span>
-                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
+                  <span className="text-cream-600 text-sm">Project started</span>
+                  <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
               </div>
             )}
             
             {item.type === 'WORK_SESSION' && (
-              <div className="bg-cream-950 border border-cream-700 p-4">
+              <div className="bg-cream-100 border border-cream-400 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 text-xs uppercase ${
                       item.session.stage === "DESIGN" 
-                        ? 'bg-purple-600/30 border border-purple-600 text-purple-400' 
-                        : 'bg-blue-600/30 border border-blue-600 text-blue-400'
+                        ? 'bg-purple-100 border border-purple-500 text-purple-700' 
+                        : 'bg-blue-100 border border-blue-500 text-blue-700'
                     }`}>
                       {item.session.stage}
                     </span>
-                    <span className="text-cream-200 text-sm">
+                    <span className="text-cream-700 text-sm">
                       {item.session.hoursApproved !== null 
                         ? `${item.session.hoursApproved}/${item.session.hoursClaimed}h approved`
                         : `${item.session.hoursClaimed}h claimed`}
@@ -140,7 +140,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                     {item.session.hoursApproved === null && (
                       <Link
                         href={`/dashboard/projects/${projectId}/session/${item.session.id}/edit`}
-                        className="text-cream-400 hover:text-brand-400 transition-colors"
+                        className="text-cream-500 hover:text-brand-500 transition-colors"
                         title="Edit journal entry"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -149,11 +149,11 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                         </svg>
                       </Link>
                     )}
-                    <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
+                    <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                   </div>
                 </div>
                 {item.session.content && (
-                  <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="dark">
+                  <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="light">
                     <MDPreview source={item.session.content} />
                   </div>
                 )}
@@ -164,12 +164,12 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                         <img 
                           src={m.url} 
                           alt="Session media"
-                          className="max-w-full max-h-64 border border-cream-600 hover:border-brand-500 transition-colors"
+                          className="max-w-full max-h-64 border border-cream-400 hover:border-brand-500 transition-colors"
                         />
                       </a>
                     ))}
                     {item.session.media.filter(m => m.type === "VIDEO").map((m) => (
-                      <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-600" />
+                      <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
                     ))}
                   </div>
                 )}
@@ -177,17 +177,17 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
             )}
             
             {item.type === 'SUBMISSION' && (
-              <div className="bg-cream-950 border border-purple-600/50 p-4">
+              <div className="bg-cream-100 border border-purple-600/50 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-purple-400 text-sm font-medium">
+                    <span className="text-purple-600 text-sm font-medium">
                       Submitted {item.stage.toLowerCase()} for review
                     </span>
                   </div>
-                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
+                  <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.notes && (
-                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600" data-color-mode="dark">
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
                     <MDPreview source={item.notes} />
                   </div>
                 )}
@@ -195,7 +195,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
             )}
             
             {item.type === 'REVIEW_ACTION' && (
-              <div className={`bg-cream-950 border p-4 ${
+              <div className={`bg-cream-100 border p-4 ${
                 item.decision === 'APPROVED' 
                   ? 'border-green-600/50' 
                   : 'border-yellow-600/50'
@@ -203,25 +203,25 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     {item.reviewerName && (
-                      <span className="text-cream-200 text-sm font-medium">{item.reviewerName}</span>
+                      <span className="text-cream-800 text-sm font-medium">{item.reviewerName}</span>
                     )}
                     <span className={`text-sm ${
-                      item.decision === 'APPROVED' ? 'text-green-400' : 'text-yellow-400'
+                      item.decision === 'APPROVED' ? 'text-green-600' : 'text-yellow-600'
                     }`}>
                       {item.decision === 'APPROVED' 
                         ? `approved ${item.stage.toLowerCase()}` 
                         : `requested changes for ${item.stage.toLowerCase()}`}
                     </span>
                   </div>
-                  <span className="text-cream-300 text-xs">{formatRelativeTime(item.at)}</span>
+                  <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.grantAmount !== null && (
-                  <p className="text-green-400 text-sm font-medium">
+                  <p className="text-green-600 text-sm font-medium">
                     Grant approved: ${item.grantAmount.toFixed(2)}
                   </p>
                 )}
                 {item.comments && (
-                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-200 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-600" data-color-mode="dark">
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
                     <MDPreview source={item.comments} />
                   </div>
                 )}
