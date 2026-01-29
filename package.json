@@ -17,6 +17,7 @@
     "@fontsource/libre-barcode-39": "^5.2.10",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
+    "@sentry/nextjs": "^10",
     "@uiw/react-md-editor": "^4.0.11",
     "airtable": "^0.12.2",
     "better-auth": "^1.4.6",
