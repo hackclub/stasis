@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
 import { logAdminAction, AuditAction } from "@/lib/audit"
+import { awardCurrencyForBuildHoursInTx } from "@/lib/currency"
 
 export async function POST(
   request: NextRequest,
@@ -139,11 +140,17 @@ export async function POST(
     
     // Use a transaction for build approval to ensure atomicity
     if (decision === "approved") {
+      // Calculate hours to approve before transaction (for currency award later)
+      const buildSessionsToApprove = project.workSessions.filter(
+        (s) => s.stage === "BUILD" && s.hoursApproved === null
+      )
+      const totalHoursBeingApproved = buildSessionsToApprove.reduce(
+        (sum, s) => sum + s.hoursClaimed,
+        0
+      )
+
       const updatedProject = await prisma.$transaction(async (tx) => {
         // Auto-approve pending BUILD work sessions
-        const buildSessionsToApprove = project.workSessions.filter(
-          (s) => s.stage === "BUILD" && s.hoursApproved === null
-        )
 
         for (const session of buildSessionsToApprove) {
           await tx.workSession.update({
@@ -176,6 +183,16 @@ export async function POST(
             reviewerId: adminUserId,
           },
         })
+
+        // Award currency for build hours (if user is past 10hr threshold)
+        if (totalHoursBeingApproved > 0) {
+          await awardCurrencyForBuildHoursInTx(
+            tx,
+            project.userId,
+            undefined,
+            id
+          )
+        }
 
         // Update project build status
         return tx.project.update({

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { logAdminAction, AuditAction } from "@/lib/audit"
+import { awardCurrencyForBuildHoursInTx } from "@/lib/currency"
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true },
+    select: { id: true, userId: true, designStatus: true },
   })
 
   if (!project) {
@@ -40,15 +41,33 @@ export async function POST(
     )
   }
 
-  const updatedSession = await prisma.workSession.update({
-    where: { id: sessionId },
-    data: {
-      hoursApproved,
-      reviewComments: typeof reviewComments === "string" ? reviewComments : null,
-      reviewedAt: new Date(),
-      reviewedBy: authCheck.session.user.id,
-    },
-    include: { media: true },
+  const updatedSession = await prisma.$transaction(async (tx) => {
+    const session = await tx.workSession.update({
+      where: { id: sessionId },
+      data: {
+        hoursApproved,
+        reviewComments: typeof reviewComments === "string" ? reviewComments : null,
+        reviewedAt: new Date(),
+        reviewedBy: authCheck.session.user.id,
+      },
+      include: { media: true },
+    })
+
+    // Award currency for build hours (if design is approved and session is BUILD stage)
+    if (
+      project.designStatus === "approved" &&
+      workSession.stage === "BUILD" &&
+      hoursApproved > 0
+    ) {
+      await awardCurrencyForBuildHoursInTx(
+        tx,
+        project.userId,
+        sessionId,
+        projectId
+      )
+    }
+
+    return session
   })
 
   await logAdminAction(

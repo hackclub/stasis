@@ -230,11 +230,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     designSessions.length > 0 &&
     project.githubRepo &&
     project.badges.length > 0;
+
+  // Check if there are new build sessions since last approval
+  const hasNewBuildSessions = project?.buildStatus === "approved" && project?.buildReviewedAt
+    ? buildSessions.some(s => new Date(s.createdAt) > new Date(project.buildReviewedAt!))
+    : true;
     
   const canSubmitBuild = project &&
     project.designStatus === "approved" &&
-    (project.buildStatus === "draft" || project.buildStatus === "rejected") &&
-    totalBuildHours >= MIN_HOURS_REQUIRED;
+    (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") &&
+    totalBuildHours >= MIN_HOURS_REQUIRED &&
+    hasNewBuildSessions;
 
   const handleRequestUpdate = async () => {
     if (!project) return;
@@ -870,14 +876,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
             
             {/* Build Stage Submit Button */}
-            {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected") && (
+            {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") && (
               <button
                 data-tutorial="submit"
                 onClick={() => setShowBuildSubmitDialog(true)}
                 disabled={submitting || !canSubmitBuild}
                 className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
-                {submitting ? 'Submitting...' : (project.buildStatus === "rejected" ? 'Resubmit Build' : 'Submit Build for Review')}
+                {submitting ? 'Submitting...' : (project.buildStatus === "draft" ? 'Submit Build for Review' : 'Resubmit Build')}
               </button>
             )}
           </div>
