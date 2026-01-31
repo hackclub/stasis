@@ -4,15 +4,22 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
+type TimelineUser = {
+  name: string | null
+  image: string | null
+}
+
 export type TimelineItem =
   | {
       type: "PROJECT_CREATED"
       at: string
       projectId: string
+      user: TimelineUser
     }
   | {
       type: "WORK_SESSION"
       at: string
+      user: TimelineUser
       session: {
         id: string
         hoursClaimed: number
@@ -27,6 +34,7 @@ export type TimelineItem =
       at: string
       stage: "DESIGN" | "BUILD"
       notes: string | null
+      user: TimelineUser
     }
   | {
       type: "REVIEW_ACTION"
@@ -36,6 +44,7 @@ export type TimelineItem =
       comments: string | null
       grantAmount: number | null
       reviewerName: string | null
+      reviewerImage: string | null
     }
 
 export async function GET(
@@ -55,6 +64,12 @@ export async function GET(
       id: true,
       createdAt: true,
       userId: true,
+      user: {
+        select: {
+          name: true,
+          image: true,
+        },
+      },
     },
   })
 
@@ -92,11 +107,11 @@ export async function GET(
   const reviewers = reviewerIds.length > 0
     ? await prisma.user.findMany({
         where: { id: { in: reviewerIds } },
-        select: { id: true, name: true },
+        select: { id: true, name: true, image: true },
       })
     : []
   
-  const reviewerMap = new Map(reviewers.map((r) => [r.id, r.name]))
+  const reviewerMap = new Map(reviewers.map((r) => [r.id, { name: r.name, image: r.image }]))
 
   const items: TimelineItem[] = []
 
@@ -104,12 +119,14 @@ export async function GET(
     type: "PROJECT_CREATED",
     at: project.createdAt.toISOString(),
     projectId: project.id,
+    user: { name: project.user.name, image: project.user.image },
   })
 
   for (const ws of workSessions) {
     items.push({
       type: "WORK_SESSION",
       at: ws.createdAt.toISOString(),
+      user: { name: project.user.name, image: project.user.image },
       session: {
         id: ws.id,
         hoursClaimed: ws.hoursClaimed,
@@ -131,10 +148,12 @@ export async function GET(
       at: sub.createdAt.toISOString(),
       stage: sub.stage,
       notes: sub.notes,
+      user: { name: project.user.name, image: project.user.image },
     })
   }
 
   for (const ra of reviewActions) {
+    const reviewer = ra.reviewerId ? reviewerMap.get(ra.reviewerId) : null
     items.push({
       type: "REVIEW_ACTION",
       at: ra.createdAt.toISOString(),
@@ -142,7 +161,8 @@ export async function GET(
       decision: ra.decision,
       comments: ra.comments,
       grantAmount: ra.grantAmount,
-      reviewerName: ra.reviewerId ? reviewerMap.get(ra.reviewerId) ?? null : null,
+      reviewerName: reviewer?.name ?? null,
+      reviewerImage: reviewer?.image ?? null,
     })
   }
 

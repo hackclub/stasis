@@ -69,9 +69,24 @@ export default function AdminLayout({
             <h1 className="text-brand-500 text-xl uppercase tracking-wide">Admin</h1>
           </div>
           <div className="flex items-center gap-6">
-            <span className="text-cream-700 text-sm hidden sm:block">
-              {session?.user.name || session?.user.email}
-            </span>
+            <div className="flex items-center gap-2">
+              {session?.user.image ? (
+                <img 
+                  src={session.user.image} 
+                  alt="" 
+                  className="w-8 h-8 rounded-full"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-cream-400 flex items-center justify-center">
+                  <span className="text-cream-800 text-sm">
+                    {(session?.user.name || session?.user.email)?.[0]?.toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <span className="text-cream-700 text-sm hidden sm:block">
+                {session?.user.name || session?.user.email}
+              </span>
+            </div>
             <button
               onClick={() => signOut()}
               className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"

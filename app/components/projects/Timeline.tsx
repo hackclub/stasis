@@ -31,6 +31,25 @@ function formatRelativeTime(dateStr: string): string {
   return 'just now';
 }
 
+function UserAvatar({ name, image }: { name: string | null; image: string | null }) {
+  if (image) {
+    return (
+      <img 
+        src={image} 
+        alt="" 
+        className="w-6 h-6 rounded-full flex-shrink-0"
+      />
+    );
+  }
+  return (
+    <div className="w-6 h-6 rounded-full bg-cream-400 flex items-center justify-center flex-shrink-0">
+      <span className="text-cream-800 text-xs">
+        {name?.[0]?.toUpperCase() || '?'}
+      </span>
+    </div>
+  );
+}
+
 function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision?: string }) {
   const baseClass = "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0";
   
@@ -113,7 +132,11 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
             {item.type === 'PROJECT_CREATED' && (
               <div className="bg-cream-100 border border-cream-400 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-cream-600 text-sm">Project started</span>
+                  <div className="flex items-center gap-2">
+                    <UserAvatar name={item.user.name} image={item.user.image} />
+                    <span className="text-cream-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-cream-600 text-sm">started this project</span>
+                  </div>
                   <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
               </div>
@@ -123,6 +146,9 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
               <div className="bg-cream-100 border border-cream-400 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
+                    <UserAvatar name={item.user.name} image={item.user.image} />
+                    <span className="text-cream-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-cream-600 text-sm">added to the journal</span>
                     <span className={`px-2 py-0.5 text-xs uppercase ${
                       item.session.stage === "DESIGN" 
                         ? 'bg-purple-100 border border-purple-500 text-purple-700' 
@@ -180,8 +206,10 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
               <div className="bg-cream-100 border border-purple-600/50 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-purple-600 text-sm font-medium">
-                      Submitted {item.stage.toLowerCase()} for review
+                    <UserAvatar name={item.user.name} image={item.user.image} />
+                    <span className="text-cream-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-purple-600 text-sm">
+                      submitted {item.stage.toLowerCase()} for review
                     </span>
                   </div>
                   <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
@@ -202,9 +230,8 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
               }`}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    {item.reviewerName && (
-                      <span className="text-cream-800 text-sm font-medium">{item.reviewerName}</span>
-                    )}
+                    <UserAvatar name={item.reviewerName} image={item.reviewerImage} />
+                    <span className="text-cream-800 text-sm font-medium">{item.reviewerName || 'Reviewer'}</span>
                     <span className={`text-sm ${
                       item.decision === 'APPROVED' ? 'text-green-600' : 'text-yellow-600'
                     }`}>

@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
 import prisma from "./prisma";
 import { ensureRSVPExists } from "./airtable";
+import { getSlackProfilePicture } from "./slack";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
@@ -35,6 +36,21 @@ export const auth = betterAuth({
               await ensureRSVPExists(user.email, user.name || undefined);
             } catch (error) {
               console.error('Failed to ensure RSVP exists:', error);
+            }
+          }
+          // Fetch Slack profile picture if user has slackId
+          const slackId = user.slackId as string | undefined;
+          if (slackId && !user.image) {
+            try {
+              const slackImage = await getSlackProfilePicture(slackId);
+              if (slackImage) {
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: { image: slackImage },
+                });
+              }
+            } catch (error) {
+              console.error('Failed to fetch Slack profile picture:', error);
             }
           }
         },
