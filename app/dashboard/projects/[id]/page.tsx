@@ -894,7 +894,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
                 <h3 className="text-cream-800 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
                 <p className="text-cream-700 text-sm leading-relaxed mb-4">
-                  Your design (project details and BOM) will be reviewed.
+                  Your design (project details and BOM) will be reviewed. Once approved, your badges will be granted!
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
                   IMPORTANT: Before submitting, please make sure to read the{' '}
@@ -927,7 +927,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
                 <h3 className="text-cream-800 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
                 <p className="text-cream-700 text-sm leading-relaxed mb-4">
-                  Your build work will be reviewed. Once approved, your badges will be granted and hours finalized.
+                  Your build work will be reviewed. Once approved, your build hours will be finalized.
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
                   IMPORTANT: Before submitting, please make sure to read the{' '}

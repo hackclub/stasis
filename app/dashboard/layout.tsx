@@ -91,21 +91,21 @@ export default function DashboardLayout({
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             </svg>
           </Link>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <span className="text-cream-700 text-sm hidden sm:block">
               {session.user.name || session.user.email}
             </span>
             {hasRole(Role.ADMIN) && (
               <Link
                 href="/admin"
-                className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors"
+                className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors flex items-center"
               >
                 Admin
               </Link>
             )}
             <button
               onClick={() => signOut()}
-              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
+              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer flex items-center"
             >
               Sign Out
             </button>
@@ -120,7 +120,8 @@ export default function DashboardLayout({
                 Projects
               </Link>
               <Link href="/dashboard/guides" className={getTabClass('/dashboard/guides')}>
-                Guides & FAQ
+                <span className="hidden sm:inline">Guides & FAQ</span>
+                <span className="sm:hidden">Guides</span>
               </Link>
               <Link href="/dashboard/settings" className={getTabClass('/dashboard/settings')}>
                 Settings

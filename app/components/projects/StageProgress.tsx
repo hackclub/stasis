@@ -136,7 +136,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
           )}
           {designStatus === 'in_review' && (
             <p className="text-yellow-600 text-sm">
-              Your design is being reviewed. You can still make changes while waiting.
+              Your design is being reviewed. Badges will be granted upon approval.
             </p>
           )}
           {designStatus === 'rejected' && (
@@ -146,12 +146,12 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
           )}
           {isDesignComplete && buildStatus === 'draft' && (
             <p className="text-green-600 text-sm">
-              Design approved! Start building and log your work sessions. Check your email for a grant card from HCB.
+              Design approved and badges granted! Start building and log your work sessions. Check your email for a grant card from HCB.
             </p>
           )}
           {isDesignComplete && buildStatus === 'in_review' && (
             <p className="text-yellow-600 text-sm">
-              Your build is being reviewed. Badges will be granted upon approval.
+              Your build is being reviewed. Build hours will be finalized upon approval.
             </p>
           )}
           {isDesignComplete && buildStatus === 'rejected' && (
@@ -161,7 +161,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
           )}
           {isBuildComplete && (
             <p className="text-green-600 text-sm">
-              🎉 Project complete! Your badges have been granted.
+              🎉 Project complete! Your build hours have been approved.
             </p>
           )}
         </div>

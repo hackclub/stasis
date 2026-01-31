@@ -27,8 +27,8 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   },
   {
     id: 'badge-progress',
-    title: 'Your Goal: Earn Badges',
-    content: 'To attend the event, you need to earn 5 approved skill badges. Each badge represents a skill you\'ve demonstrated in your projects.',
+    title: 'Your Goal: Qualify for Stasis',
+    content: 'To attend the event, you need to earn 5 approved skill badges AND spend 10 hours building projects. Badges are granted when your design is approved.',
     targetSelector: '[data-tutorial="badge-progress"]',
     position: 'bottom',
   },

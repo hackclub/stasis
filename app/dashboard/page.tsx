@@ -85,6 +85,9 @@ export default function ProjectsPage() {
   const approvedBadges = allBadges.filter(b => b.grantedAt !== null);
   const pendingBadges = allBadges.filter(b => b.grantedAt === null);
   const BADGES_REQUIRED = 5;
+  const HOURS_REQUIRED = 10;
+  const badgesComplete = approvedBadges.length >= BADGES_REQUIRED;
+  const hoursComplete = totalHoursApproved >= HOURS_REQUIRED;
 
   return (
     <>
@@ -92,47 +95,74 @@ export default function ProjectsPage() {
       <OnboardingTutorial type="dashboard" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} />
       <TutorialHelpButton onClick={() => setShowTutorial(true)} />
 
-      {/* Badge Progress */}
+      {/* Qualification Progress */}
       <div data-tutorial="badge-progress" className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-brand-500 text-lg uppercase tracking-wide">Badge Progress</h2>
-            <p className="text-cream-800 text-sm">Badges are specific skills or technologies you use in your projects. Earn {BADGES_REQUIRED} approved badges to qualify for Stasis!</p>
+            <h2 className="text-brand-500 text-lg uppercase tracking-wide">Qualification Progress</h2>
+            <p className="text-cream-800 text-sm">Earn {BADGES_REQUIRED} approved badges AND spend {HOURS_REQUIRED} hours building projects to qualify for Stasis!</p>
           </div>
-          {approvedBadges.length >= BADGES_REQUIRED && (
+          {badgesComplete && hoursComplete && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
           )}
         </div>
-        <div className="flex gap-2">
-          {Array.from({ length: BADGES_REQUIRED }).map((_, i) => {
-            const isApproved = i < approvedBadges.length;
-            const isPending = !isApproved && i < approvedBadges.length + pendingBadges.length;
-            return (
-              <div
-                key={i}
-                className={`flex-1 h-10 border-2 transition-all duration-300 flex items-center justify-center ${
-                  isApproved
-                    ? 'bg-brand-500 border-brand-400'
-                    : isPending
-                    ? 'bg-brand-500/20 border-brand-500/50 border-dashed'
-                    : 'bg-cream-200 border-cream-400'
-                }`}
-              >
-                {isApproved && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-                {isPending && (
-                  <span className="text-brand-500 text-xs uppercase">?</span>
-                )}
-              </div>
-            );
-          })}
+        
+        {/* Badge Progress */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-cream-700 text-xs uppercase tracking-wide">Badges ({approvedBadges.length}/{BADGES_REQUIRED})</p>
+            {badgesComplete && <span className="text-green-500 text-xs">✓</span>}
+          </div>
+          <div className="flex gap-2">
+            {Array.from({ length: BADGES_REQUIRED }).map((_, i) => {
+              const isApproved = i < approvedBadges.length;
+              const isPending = !isApproved && i < approvedBadges.length + pendingBadges.length;
+              return (
+                <div
+                  key={i}
+                  className={`flex-1 h-8 border-2 transition-all duration-300 flex items-center justify-center ${
+                    isApproved
+                      ? 'bg-brand-500 border-brand-400'
+                      : isPending
+                      ? 'bg-brand-500/20 border-brand-500/50 border-dashed'
+                      : 'bg-cream-200 border-cream-400'
+                  }`}
+                >
+                  {isApproved && (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                  {isPending && (
+                    <span className="text-brand-500 text-xs uppercase">?</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {pendingBadges.length > 0 && (
+            <p className="text-cream-800 text-xs mt-1">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
+          )}
         </div>
-        {pendingBadges.length > 0 && (
-          <p className="text-cream-800 text-xs mt-2">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
-        )}
+
+        {/* Hours Progress */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-cream-700 text-xs uppercase tracking-wide">Build Hours ({totalHoursApproved.toFixed(1)}/{HOURS_REQUIRED}h)</p>
+            {hoursComplete && <span className="text-green-500 text-xs">✓</span>}
+          </div>
+          <div className="w-full h-8 bg-cream-200 border-2 border-cream-400 relative overflow-hidden">
+            <div 
+              className="h-full bg-brand-500 transition-all duration-500"
+              style={{ width: `${Math.min(100, (totalHoursApproved / HOURS_REQUIRED) * 100)}%` }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={`text-xs font-medium ${hoursComplete ? 'text-white' : 'text-cream-700'}`}>
+                {totalHoursApproved.toFixed(1)}h / {HOURS_REQUIRED}h
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* XP Progress */}
@@ -151,25 +181,25 @@ export default function ProjectsPage() {
       </div>
 
       {/* Stats bar */}
-      <div data-tutorial="stats" className="flex items-center justify-between mb-6">
-        <div className="flex gap-6">
+      <div data-tutorial="stats" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex gap-4 sm:gap-6">
           <div>
             <p className="text-cream-800 text-xs uppercase">Projects</p>
-            <p className="text-cream-800 text-2xl">{projects.length}</p>
+            <p className="text-cream-800 text-xl sm:text-2xl">{projects.length}</p>
           </div>
           <div>
             <p className="text-cream-800 text-xs uppercase">Claimed</p>
-            <p className="text-cream-800 text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
+            <p className="text-cream-800 text-xl sm:text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
           </div>
           <div>
             <p className="text-cream-800 text-xs uppercase">Approved</p>
-            <p className="text-brand-500 text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
+            <p className="text-brand-500 text-xl sm:text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
           </div>
         </div>
         <Link
           href="/starter-projects"
           data-tutorial="starter-projects"
-          className="bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 text-sm uppercase tracking-wide transition-colors flex items-center gap-2"
+          className="bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 text-sm uppercase tracking-wide transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
         >
           Browse Starter Projects
           <svg 

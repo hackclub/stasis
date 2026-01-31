@@ -312,7 +312,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
           .star-tl, .star-tr, .star-bl, .star-br { display: none; }
           .star-tc { display: block; }
           .decoration-left, .decoration-right { display: none; }
-          .text-0, .text-1, .text-3, .text-4, .text-5, .text-6, .text-7 { display: none; }
+          .text-0, .text-1, .text-3, .text-4, .text-5, .text-6, .text-7, .text-9 { display: none; }
           .line-bottom { animation-delay: 200ms !important; }
           .decoration-top { animation-delay: 400ms !important; }
           .decoration-bottom { animation-delay: 500ms !important; }
@@ -410,7 +410,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
 
         {/* Konami arrows (top) */}
         <div 
-          className={`absolute font-mono text-xs text-cream-500 text-9 opacity-80 pointer-events-auto ${mounted ? 'mounted' : ''}`}
+          className={`absolute font-mono text-xs text-cream-500 text-9 opacity-80 pointer-events-auto hidden md:flex ${mounted ? 'mounted' : ''}`}
           style={{ left: `calc(${inset} + 0.75rem)`, top: `calc(${inset} - 1.6rem)`, visibility: mounted ? 'visible' : 'hidden' }}
         >
           {arrowDirections.map((dir, i) => {
@@ -470,7 +470,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
 
         {/* Konami arrows (bottom) */}
         <div 
-          className={`absolute font-mono text-xs text-cream-500 text-9 opacity-80 pointer-events-auto z-10 ${bottomVisible ? 'mounted' : ''}`}
+          className={`absolute font-mono text-xs text-cream-500 text-9 opacity-80 pointer-events-auto z-10 hidden md:flex ${bottomVisible ? 'mounted' : ''}`}
           style={{ right: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px - 1.6rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}
         >
           {arrowDirections.map((dir, i) => {

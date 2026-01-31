@@ -58,22 +58,44 @@ export async function POST(
       )
     }
 
-    // If approving design, also approve pending BOM items
-    if (decision === "approved") {
-      await prisma.bOMItem.updateMany({
-        where: { projectId: id, status: "pending" },
-        data: {
-          status: "approved",
-          reviewedAt: now,
-          reviewedBy: adminUserId,
-        },
-      })
-    }
-
     const reviewDecision = decision === "approved" ? "APPROVED" : "REJECTED"
     
-    const [updatedProject] = await prisma.$transaction([
-      prisma.project.update({
+    const updatedProject = await prisma.$transaction(async (tx) => {
+      // If approving design, also approve pending BOM items and grant badges
+      if (decision === "approved") {
+        await tx.bOMItem.updateMany({
+          where: { projectId: id, status: "pending" },
+          data: {
+            status: "approved",
+            reviewedAt: now,
+            reviewedBy: adminUserId,
+          },
+        })
+        
+        // Grant badges on design approval
+        await tx.projectBadge.updateMany({
+          where: { projectId: id, grantedAt: null },
+          data: {
+            grantedAt: now,
+            grantedBy: adminUserId,
+          },
+        })
+      }
+
+      // Create review action record
+      await tx.projectReviewAction.create({
+        data: {
+          projectId: id,
+          stage: "DESIGN",
+          decision: reviewDecision,
+          comments: sanitizedComments,
+          grantAmount: parsedGrantAmount,
+          reviewerId: adminUserId,
+        },
+      })
+
+      // Update project status
+      return tx.project.update({
         where: { id },
         data: {
           designStatus: decision,
@@ -97,18 +119,8 @@ export async function POST(
           badges: true,
           bomItems: true,
         },
-      }),
-      prisma.projectReviewAction.create({
-        data: {
-          projectId: id,
-          stage: "DESIGN",
-          decision: reviewDecision,
-          comments: sanitizedComments,
-          grantAmount: parsedGrantAmount,
-          reviewerId: adminUserId,
-        },
-      }),
-    ])
+      })
+    })
 
     await logAdminAction(
       decision === "approved" ? AuditAction.ADMIN_APPROVE_DESIGN : AuditAction.ADMIN_REJECT_DESIGN,
@@ -162,15 +174,6 @@ export async function POST(
             },
           })
         }
-
-        // Grant badges only on build approval
-        await tx.projectBadge.updateMany({
-          where: { projectId: id, grantedAt: null },
-          data: {
-            grantedAt: now,
-            grantedBy: adminUserId,
-          },
-        })
 
         // Create review action record
         await tx.projectReviewAction.create({
