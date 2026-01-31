@@ -134,6 +134,9 @@ export default function DashboardLayout({
               <Link href="/dashboard" className={getTabClass('/dashboard')}>
                 Projects
               </Link>
+              <Link href="/dashboard/discover" className={getTabClass('/dashboard/discover')}>
+                Discover
+              </Link>
               <Link href="/dashboard/guides" className={getTabClass('/dashboard/guides')}>
                 <span className="hidden sm:inline">Guides & FAQ</span>
                 <span className="sm:hidden">Guides</span>
