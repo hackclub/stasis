@@ -45,6 +45,21 @@
 
 body {
 	overflow-x: hidden;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 768px) {
+	button, a {
+		min-height: 44px;
+		min-width: 44px;
+	}
+	
+	/* Prevent text size adjustment on orientation change */
+	html {
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
+	}
 }
 
 /* scrollbar css */

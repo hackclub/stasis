@@ -73,24 +73,24 @@ export function XPDisplay() {
         <p className="text-cream-600 text-sm uppercase">XP</p>
       </div>
 
-      <div className="flex items-start gap-8 mb-4">
-        <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-8 mb-4">
+        <div className="flex gap-4 sm:gap-6 flex-wrap">
           <div>
             <p className="text-cream-600 text-xs uppercase">Day Streak</p>
-            <p className="text-cream-800 text-xl">{data.dayStreak} day{data.dayStreak !== 1 ? 's' : ''}</p>
+            <p className="text-cream-800 text-lg sm:text-xl">{data.dayStreak} day{data.dayStreak !== 1 ? 's' : ''}</p>
           </div>
           <div>
             <p className="text-cream-600 text-xs uppercase">Week Streak</p>
-            <p className="text-cream-800 text-xl">{data.weekStreak} week{data.weekStreak !== 1 ? 's' : ''}</p>
+            <p className="text-cream-800 text-lg sm:text-xl">{data.weekStreak} week{data.weekStreak !== 1 ? 's' : ''}</p>
           </div>
-          <div className="bg-brand-500/20 border border-brand-500 px-4 py-2 -my-2">
+          <div className="bg-brand-500/20 border border-brand-500 px-3 sm:px-4 py-2 -my-2">
             <p className="text-brand-400 text-xs uppercase">Multiplier</p>
-            <p className="text-brand-400 text-2xl font-bold">{data.multiplier}x</p>
+            <p className="text-brand-400 text-xl sm:text-2xl font-bold">{data.multiplier}x</p>
           </div>
         </div>
 
         {/* Prize milestones */}
-        <div className="flex flex-col">
+        <div className="flex flex-col overflow-x-auto">
           <div className="flex items-center gap-0">
             {PRIZES.map((prize, i) => {
               const unlocked = data.totalXP >= prize.xpRequired;
@@ -108,14 +108,14 @@ export function XPDisplay() {
                       }`}
                       title={`${prize.xpRequired} XP`}
                     >
-                      <span className={`text-[10px] uppercase tracking-wide font-medium ${unlocked ? 'text-white' : isNext ? 'text-brand-500' : 'text-cream-600'}`}>{prize.name}</span>
+                      <span className={`text-[10px] uppercase tracking-wide font-medium whitespace-nowrap ${unlocked ? 'text-white' : isNext ? 'text-brand-500' : 'text-cream-600'}`}>{prize.name}</span>
                     </div>
                     <p className={`text-[10px] mt-0.5 ${unlocked ? 'text-brand-500' : 'text-cream-500'}`}>
                       {prize.xpRequired}
                     </p>
                   </div>
                   {i < PRIZES.length - 1 && (
-                    <div className={`w-4 h-0.5 mb-4 ${
+                    <div className={`w-3 sm:w-4 h-0.5 mb-4 ${
                       data.totalXP >= PRIZES[i + 1].xpRequired 
                         ? 'bg-brand-500' 
                         : unlocked 

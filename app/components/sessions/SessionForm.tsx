@@ -560,73 +560,73 @@ export function SessionForm({
     return (
         <>
             {/* Journal Entry Guidelines */}
-            <div className="mb-6 bg-cream-900 border-2 border-cream-600 p-4">
-                <h2 className="text-brand-400 text-sm uppercase tracking-wide mb-3">Journal Entry Guidelines</h2>
-                <ul className="list-disc list-inside text-cream-300 text-sm space-y-1">
+            <div className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
+                <h2 className="text-brand-500 text-sm uppercase tracking-wide mb-3">Journal Entry Guidelines</h2>
+                <ul className="list-disc list-inside text-cream-700 text-sm space-y-1">
                     <li>Try to keep each entry under 5 hours</li>
                     <li>Include your thoughts, failures, and rabbit holes—not just final steps</li>
                     <li>Be detailed and thorough with your journal entries.</li>
                     <li>100-200~ words is recommended</li>
-                    <li><strong className="text-cream-100">Images are required</strong> for every journal entry</li>
-                    <li><strong className="text-cream-100">Sessions over 7 hours require a timelapse</strong></li>
+                    <li><strong className="text-cream-800">Images are required</strong> for every journal entry</li>
+                    <li><strong className="text-cream-800">Sessions over 7 hours require a timelapse</strong></li>
                 </ul>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Hours & Minutes */}
-                <div className="bg-cream-900 border-2 border-cream-600 p-4">
-                    <label className="block text-cream-300 text-sm uppercase mb-3">
+                <div className="bg-cream-100 border-2 border-cream-400 p-4">
+                    <label className="block text-cream-700 text-sm uppercase mb-3">
                         Time Spent This Session
                     </label>
                     <div className="flex items-center gap-1.5">
                         {/* Hours */}
-                        <div className="flex border-2 border-cream-600 bg-cream-950">
+                        <div className="flex border-2 border-cream-400 bg-cream-200">
                             <div className="flex flex-col items-center justify-center px-4 py-1.5">
-                                <span className="text-xl text-cream-100 font-bold tabular-nums leading-tight">
+                                <span className="text-xl text-cream-800 font-bold tabular-nums leading-tight">
                                     {hoursValue}
                                 </span>
-                                <span className="text-cream-500 text-[10px] uppercase tracking-wider">hrs</span>
+                                <span className="text-cream-600 text-[10px] uppercase tracking-wider">hrs</span>
                             </div>
-                            <div className="flex flex-col border-l-2 border-cream-600">
+                            <div className="flex flex-col border-l-2 border-cream-400">
                                 <button
                                     type="button"
                                     onClick={() => setHoursValue(Math.min(24, hoursValue + 1))}
-                                    className="w-8 h-6 bg-cream-850 hover:bg-cream-700 active:bg-cream-600 text-cream-100 text-base font-bold transition-colors cursor-pointer border-b border-cream-600 flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
                                 >
                                     +
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setHoursValue(Math.max(0, hoursValue - 1))}
-                                    className="w-8 h-6 bg-cream-850 hover:bg-cream-700 active:bg-cream-600 text-cream-100 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
                                 >
                                     −
                                 </button>
                             </div>
                         </div>
 
-                        <span className="text-cream-500 text-xl">:</span>
+                        <span className="text-cream-600 text-xl">:</span>
 
                         {/* Minutes */}
-                        <div className="flex border-2 border-cream-600 bg-cream-950">
+                        <div className="flex border-2 border-cream-400 bg-cream-200">
                             <div className="flex flex-col items-center justify-center px-4 py-1.5">
-                                <span className="text-xl text-cream-100 font-bold tabular-nums leading-tight">
+                                <span className="text-xl text-cream-800 font-bold tabular-nums leading-tight">
                                     {String(minutesValue).padStart(2, '0')}
                                 </span>
-                                <span className="text-cream-500 text-[10px] uppercase tracking-wider">min</span>
+                                <span className="text-cream-600 text-[10px] uppercase tracking-wider">min</span>
                             </div>
-                            <div className="flex flex-col border-l-2 border-cream-600">
+                            <div className="flex flex-col border-l-2 border-cream-400">
                                 <button
                                     type="button"
                                     onClick={() => setMinutesValue(minutesValue === 45 ? 0 : minutesValue + 15)}
-                                    className="w-8 h-6 bg-cream-850 hover:bg-cream-700 active:bg-cream-600 text-cream-100 text-base font-bold transition-colors cursor-pointer border-b border-cream-600 flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
                                 >
                                     +
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setMinutesValue(minutesValue === 0 ? 45 : minutesValue - 15)}
-                                    className="w-8 h-6 bg-cream-850 hover:bg-cream-700 active:bg-cream-600 text-cream-100 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
                                 >
                                     −
                                 </button>
@@ -646,12 +646,12 @@ export function SessionForm({
                     )}
 
                     {xpPreview && (
-                        <div className="mt-4 pt-4 border-t border-cream-700">
+                        <div className="mt-4 pt-4 border-t border-cream-400">
                             <div className="flex items-center gap-3">
-                                <span className="text-cream-400 text-sm uppercase">XP if approved:</span>
-                                <span className="text-brand-400 font-bold text-lg">+{xpPreview.xp} XP</span>
+                                <span className="text-cream-600 text-sm uppercase">XP if approved:</span>
+                                <span className="text-brand-500 font-bold text-lg">+{xpPreview.xp} XP</span>
                                 {xpPreview.multiplier > 1 && (
-                                    <span className="text-cream-500 text-sm">({xpPreview.multiplier}x multiplier)</span>
+                                    <span className="text-cream-600 text-sm">({xpPreview.multiplier}x multiplier)</span>
                                 )}
                             </div>
                         </div>
@@ -698,7 +698,7 @@ export function SessionForm({
                     </div>
                     <div
                         ref={editorRef}
-                        data-color-mode="dark"
+                        data-color-mode="light"
                         className="wmde-markdown-var"
                         onDrop={handleEditorDrop}
                         onDragOver={(e) => e.preventDefault()}

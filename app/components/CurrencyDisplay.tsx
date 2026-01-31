@@ -127,18 +127,18 @@ export function CurrencyDisplay() {
           </div>
         </div>
       ) : (
-        <div className="flex gap-6 mb-4">
+        <div className="flex flex-wrap gap-4 sm:gap-6 mb-4">
           <div>
             <p className="text-cream-600 text-xs uppercase">Hours Converted</p>
-            <p className="text-cream-800 text-xl">{data.totalBuildHoursEarned.toFixed(1)}h</p>
+            <p className="text-cream-800 text-lg sm:text-xl">{data.totalBuildHoursEarned.toFixed(1)}h</p>
           </div>
           <div>
             <p className="text-cream-600 text-xs uppercase">Total Earned</p>
-            <p className="text-cream-800 text-xl">{data.totalEarned.toLocaleString()}</p>
+            <p className="text-cream-800 text-lg sm:text-xl">{data.totalEarned.toLocaleString()}</p>
           </div>
           <div>
             <p className="text-cream-600 text-xs uppercase">Total Spent</p>
-            <p className="text-cream-800 text-xl">{data.totalSpent.toLocaleString()}</p>
+            <p className="text-cream-800 text-lg sm:text-xl">{data.totalSpent.toLocaleString()}</p>
           </div>
         </div>
       )}

@@ -69,7 +69,7 @@ export default function Home() {
   }
 
   return (
-    <div className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-cream-800 bg-container">
+    <div className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-cream-800 bg-container overflow-x-hidden">
       <style jsx>{`
         .bg-container::before {
           content: '';
@@ -93,7 +93,7 @@ export default function Home() {
       `}</style>
 
       <div className="min-h-screen relative md:pt-12 z-0" style={{ paddingBottom: footerHeight }}>
-        <div className="mx-auto max-w-md pt-32 pb-24 md:py-24 *:py-8 *:md:py-16">
+        <div className="mx-auto max-w-md pt-20 pb-16 md:pt-32 md:pb-24 *:py-6 *:md:py-16">
           {/* Vertical dotted lines (desktop) */}
           <div className="absolute left-1/2 top-0 h-full w-full max-w-md -translate-x-1/2 pointer-events-none md:block hidden">
             <div className="absolute left-0 top-0 h-full">
@@ -104,7 +104,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="space-y-12 px-4 md:px-2">
+          <div className="space-y-8 md:space-y-12 px-5 md:px-2">
             {/* Header */}
             <header className="text-center">
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -112,11 +112,11 @@ export default function Home() {
               </div>
 
               {/* Logo */}
-              <div className="mb-4 py-1 w-full h-auto relative">
+              <div className="mb-2 md:mb-4 py-1 w-full h-auto relative">
                 <img 
                   src="/stasis-logo.svg" 
                   alt="Hack Club Stasis" 
-                  className="absolute max-md:-translate-x-[5%] md:scale-[116%] -translate-y-[28%] md:origin-bottom-right select-none pointer-events-none"
+                  className="absolute -translate-x-[2%] md:-translate-x-0 scale-105 md:scale-[116%] -translate-y-[28%] origin-bottom md:origin-bottom-right select-none pointer-events-none"
                 />
                 <img 
                   src="/stasis-text.svg" 
@@ -155,7 +155,7 @@ export default function Home() {
               initialDelay={0.8}
               continuousScramble={false}
               continuousSpeed={25}
-              className="font-mono font-medium text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-pre-line bg-[#DAD2BF50]"
+              className="font-mono font-medium text-[0.95rem] sm:text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-pre-line bg-[#DAD2BF50]"
               />
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -168,12 +168,12 @@ export default function Home() {
             </div>
 
             {/* RSVP Button */}
-            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-5">
+            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-4 md:gap-5">
               <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
                 <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                   <button 
                     onClick={() => setIsRSVPOpen(true)}
-                    className="relative bg-brand-500 hover:bg-[#e0643e] px-8 md:px-10 py-2 text-xl md:text-2xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
+                    className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-6 sm:px-8 md:px-10 py-2.5 md:py-2 text-lg sm:text-xl md:text-2xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
                   >
                     RSVP
                   </button>
@@ -197,12 +197,12 @@ export default function Home() {
             </div>
 
             {/* How You Qualify */}
-            <section className="space-y-4">
-              <h2 className="text-lg md:text-xl uppercase tracking-wide">
+            <section className="space-y-3 md:space-y-4">
+              <h2 className="text-base sm:text-lg md:text-xl uppercase tracking-wide">
                 <ScrambleText>How You Qualify</ScrambleText>
                 <img src="/pixel-arrow.png" alt="" className="inline-block" style={{ height: '0.9em', imageRendering: 'pixelated', transform: 'translateY(-0.11em)' }} />
               </h2>
-              <ul className="space-y-2 text-sm md:text-base [&>li]:pl-4 [&>li]:-indent-4">
+              <ul className="space-y-2 text-sm md:text-base [&>li]:pl-4 [&>li]:-indent-4 leading-relaxed">
                 <li><ScrambleText>· Design hardware projects and learn new skills, get $$ to build them</ScrambleText></li>
                 <li><ScrambleText>· Earn a badge for each skill you learn</ScrambleText></li>
                 <li><ScrambleText>· Get five badges and fly to Austin, TX! (travel stipends available)</ScrambleText></li>
@@ -216,9 +216,9 @@ export default function Home() {
             <ASCIIArt art={asciiArt.fish} horizontalPosition={65} />
 
             {/* Badges You Can Earn */}
-            <section className="space-y-4">
-              <h2 className="text-lg md:text-xl uppercase tracking-wide"><ScrambleText>Badges You Can Earn</ScrambleText></h2>
-              <ul className="space-y-1 text-sm md:text-base [&>li]:pl-4 [&>li]:-indent-4">
+            <section className="space-y-3 md:space-y-4">
+              <h2 className="text-base sm:text-lg md:text-xl uppercase tracking-wide"><ScrambleText>Badges You Can Earn</ScrambleText></h2>
+              <ul className="space-y-1 text-sm md:text-base [&>li]:pl-4 [&>li]:-indent-4 columns-1 sm:columns-2 md:columns-1 gap-x-6">
                 <li><ScrambleText>· I2C</ScrambleText></li>
                 <li><ScrambleText>· SPI</ScrambleText></li>
                 <li><ScrambleText>· WiFi</ScrambleText></li>
@@ -249,8 +249,8 @@ export default function Home() {
             <ASCIIArt art={asciiArt.donut} horizontalPosition={12} />
 
             {/* FAQ */}
-            <section className="space-y-4 mb-12">
-              <h2 className="text-lg md:text-xl uppercase tracking-wide mb-4"><ScrambleText>Frequently Asked Questions</ScrambleText></h2>
+            <section className="space-y-3 md:space-y-4 mb-8 md:mb-12">
+              <h2 className="text-base sm:text-lg md:text-xl uppercase tracking-wide mb-3 md:mb-4"><ScrambleText>Frequently Asked Questions</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
                   <div key={i} className="border-b border-cream-600">
@@ -258,10 +258,10 @@ export default function Home() {
                       onClick={(e) => { handleClick(e); toggle(i); }}
                       className="w-full text-left text-sm md:text-base cursor-pointer"
                     >
-                      <div className="flex items-center justify-between py-2.5">
+                      <div className="flex items-center justify-between py-3 md:py-2.5">
                         <ScrambleText>{faq.question}</ScrambleText>
                         <span
-                          className="text-xl transition-transform duration-300 ease-out ml-4 mr-2"
+                          className="text-xl transition-transform duration-300 ease-out ml-3 md:ml-4 mr-1 md:mr-2 flex-shrink-0"
                           style={{ transform: `rotate(${openIndex === i ? 45 : 0}deg)` }}
                         >
                           +
@@ -269,7 +269,7 @@ export default function Home() {
                       </div>
                       {openIndex === i && (
                         <div 
-                          className="pb-2.5 pr-8 text-cream-700 faq"
+                          className="pb-3 md:pb-2.5 pr-6 md:pr-8 text-cream-700 faq leading-relaxed"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
                       )}
