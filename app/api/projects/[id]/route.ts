@@ -7,7 +7,7 @@ import { ProjectTag } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
-const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage"] as const
+const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
 
@@ -19,6 +19,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   starterProjectId: string | null
   githubRepo: string | null
   coverImage: string | null
+  noBomNeeded: boolean
 }> {
   const result: Record<string, unknown> = {}
   for (const field of ALLOWED_UPDATE_FIELDS) {

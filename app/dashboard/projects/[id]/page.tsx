@@ -63,6 +63,7 @@ interface Project {
   totalHoursClaimed: number;
   totalHoursApproved: number;
   isStarter: boolean;
+  noBomNeeded: boolean;
 
   coverImage: string | null;
   githubRepo: string | null;
@@ -226,7 +227,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const canSubmitDesign = project && 
     (project.designStatus === "draft" || project.designStatus === "rejected") &&
     project.description?.trim() &&
-    project.bomItems.length > 0 &&
+    (project.bomItems.length > 0 || project.noBomNeeded) &&
     designSessions.length > 0 &&
     project.githubRepo &&
     project.badges.length > 0;
@@ -368,6 +369,28 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       alert('Failed to delete BOM item');
     } finally {
       setDeletingBomId(null);
+    }
+  };
+
+  const handleToggleNoBomNeeded = async () => {
+    if (!project) return;
+    
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noBomNeeded: !project.noBomNeeded }),
+      });
+      
+      if (res.ok) {
+        setProject({ ...project, noBomNeeded: !project.noBomNeeded });
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update project');
+      }
+    } catch (error) {
+      console.error('Failed to update project:', error);
+      alert('Failed to update project');
     }
   };
 
@@ -627,15 +650,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Project description
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.bomItems.length > 0 ? 'text-green-500' : 'text-cream-700'}`}>
-                  {project.bomItems.length > 0 ? (
+                <div className={`flex items-center gap-2 text-sm ${(project.bomItems.length > 0 || project.noBomNeeded) ? 'text-green-500' : 'text-cream-700'}`}>
+                  {(project.bomItems.length > 0 || project.noBomNeeded) ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   ) : (
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
-                  At least 1 BOM item ({project.bomItems.length} added)
+                  {project.noBomNeeded ? 'No parts needed' : `At least 1 BOM item (${project.bomItems.length} added)`}
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${designSessions.length > 0 ? 'text-green-500' : 'text-cream-700'}`}>
                   {designSessions.length > 0 ? (
@@ -848,6 +871,30 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   {addingBom ? 'Adding...' : '+ Add Item'}
                 </button>
               </form>
+            )}
+
+            {(project.designStatus === "draft" || project.designStatus === "rejected") && (
+              <div className="border-t border-cream-400 pt-4 mt-4">
+                <button
+                  onClick={handleToggleNoBomNeeded}
+                  className={`text-sm transition-colors cursor-pointer ${
+                    project.noBomNeeded 
+                      ? 'text-green-600 hover:text-green-500' 
+                      : 'text-cream-600 hover:text-cream-500'
+                  }`}
+                >
+                  {project.noBomNeeded ? (
+                    <span className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      No parts needed for this project
+                    </span>
+                  ) : (
+                    "I don't need to buy any parts for this project"
+                  )}
+                </button>
+              </div>
             )}
           </div>
 

@@ -71,9 +71,23 @@ export async function POST(
       )
     }
 
-    if (project.bomItems.length === 0) {
+    if (project.bomItems.length === 0 && !project.noBomNeeded) {
       return NextResponse.json(
         { error: "At least one BOM item is required for design review" },
+        { status: 400 }
+      )
+    }
+
+    if (!project.githubRepo) {
+      return NextResponse.json(
+        { error: "GitHub repository is required for design review" },
+        { status: 400 }
+      )
+    }
+
+    if (project.badges.length === 0) {
+      return NextResponse.json(
+        { error: "At least one badge is required for design review" },
         { status: 400 }
       )
     }

@@ -167,6 +167,7 @@ model Project {
   starterProjectId String?
   githubRepo       String?
   coverImage       String?
+  noBomNeeded      Boolean       @default(false)
   
   // Stage-based status tracking
   designStatus          ProjectStatus @default(draft)
