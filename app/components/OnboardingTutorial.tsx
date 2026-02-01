@@ -197,9 +197,12 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
           scrollTarget = elementTop - window.innerHeight / 2 + rect.height / 2;
         }
         
+        // Temporarily enable scrolling for Firefox compatibility
+        document.body.style.overflow = '';
         window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
         
         setTimeout(() => {
+          document.body.style.overflow = 'hidden';
           const newRect = element.getBoundingClientRect();
           setHighlightRect(newRect);
         }, 450);
