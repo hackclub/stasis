@@ -64,7 +64,7 @@ export function XPDisplay() {
   return (
     <div className="bg-cream-100 border-2 border-cream-400 p-4">
       <div className="mb-4">
-        <h2 className="text-brand-500 text-lg uppercase tracking-wide">XP Progress</h2>
+        <h2 className="text-brand-500 text-lg uppercase tracking-wide">Your XP</h2>
         <p className="text-cream-700 text-sm">Work on your projects and log a journal entry every day to earn XP and increase your multiplier. Get prizes like a Bandana, T-Shirt, and Hoodie!</p>
       </div>
 

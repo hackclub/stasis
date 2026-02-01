@@ -178,11 +178,9 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                     <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                   </div>
                 </div>
-                {item.session.content && (
-                  <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="light">
-                    <MDPreview source={item.session.content} />
-                  </div>
-                )}
+                <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 [&_.wmde-markdown_h1]:!text-xl [&_.wmde-markdown_h1]:!font-bold [&_.wmde-markdown_h1]:!text-cream-800 [&_.wmde-markdown_h1]:!mb-2" data-color-mode="light">
+                  <MDPreview source={`# ${item.session.title}\n\n${item.session.content || ''}`} />
+                </div>
                 {item.session.media.length > 0 && item.session.media.some(m => !item.session.content?.includes(m.url)) && (
                   <div className="flex flex-col gap-2 mt-3">
                     {item.session.media.filter(m => m.type === "IMAGE").map((m) => (

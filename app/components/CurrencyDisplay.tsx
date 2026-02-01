@@ -104,6 +104,7 @@ export function CurrencyDisplay() {
               : `Complete ${hoursUntilEarning.toFixed(1)} more build hours to start earning ${data.currencyName}!`
             }
           </p>
+          <p className="text-cream-600 text-xs mt-1">1 {data.currencyName} = $1 of flight stipend</p>
         </div>
       </div>
 

@@ -225,6 +225,7 @@ model ProjectReviewAction {
 
 model WorkSession {
   id             String            @id @default(cuid())
+  title          String
   hoursClaimed   Float
   hoursApproved  Float?
   content        String?

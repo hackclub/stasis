@@ -14,6 +14,7 @@ interface Project {
 
 interface WorkSession {
   id: string
+  title: string
   hoursClaimed: number
   content: string | null
   categories: SessionCategory[]
@@ -59,6 +60,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
           const minutes = Math.round((totalHours % 1) * 60 / 15) * 15;
           
           setInitialData({
+            title: sessionData.title || '',
             hoursValue: hours,
             minutesValue: minutes,
             content: sessionData.content || '',
@@ -87,7 +89,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
     }
   }, [session, isPending, projectId, sessionId, router]);
 
-  const handleSubmit = async (data: { hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => {
+  const handleSubmit = async (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => {
     setSubmitting(true);
     setError(null);
 
