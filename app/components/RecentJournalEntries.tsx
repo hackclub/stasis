@@ -109,7 +109,7 @@ export function RecentJournalEntries() {
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-cream-800 text-sm truncate group-hover:text-brand-500 transition-colors">
+                  <p className="text-cream-800 text-base truncate group-hover:text-brand-500 transition-colors">
                     {session.project.title}
                   </p>
                   <span className="text-cream-500 text-xs flex-shrink-0">

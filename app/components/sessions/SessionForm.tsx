@@ -32,6 +32,7 @@ const CATEGORIES: { value: SessionCategory; label: string }[] = [
 ]
 
 export interface SessionFormData {
+    title: string
     hoursValue: number
     minutesValue: number
     content: string
@@ -46,7 +47,7 @@ export interface XPPreviewData {
 
 interface SessionFormProps {
     initialData?: SessionFormData
-    onSubmit: (data: { hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => Promise<void>
+    onSubmit: (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => Promise<void>
     submitLabel: string
     submitting: boolean
     error: string | null
@@ -67,6 +68,7 @@ export function SessionForm({
     autosaveKey,
     xpPreviewData
 }: Readonly<SessionFormProps>) {
+    const [title, setTitle] = useState(initialData?.title ?? '');
     const [hoursValue, setHoursValue] = useState(initialData?.hoursValue ?? 0);
     const [minutesValue, setMinutesValue] = useState(initialData?.minutesValue ?? 0);
     const [content, setContent] = useState(initialData?.content ?? '');
@@ -170,6 +172,7 @@ export function SessionForm({
                 const draft = JSON.parse(saved);
                 // Only restore if there's actual content and no initial data was provided
                 if (draft.content && !initialData?.content) {
+                    if (draft.title) setTitle(draft.title);
                     setContent(draft.content);
                     if (draft.hoursValue !== undefined) setHoursValue(draft.hoursValue);
                     if (draft.minutesValue !== undefined) setMinutesValue(draft.minutesValue);
@@ -201,6 +204,7 @@ export function SessionForm({
 
         const timeoutId = setTimeout(() => {
             const draft = {
+                title,
                 content,
                 hoursValue,
                 minutesValue,
@@ -216,7 +220,7 @@ export function SessionForm({
         }, 1000); // 1 second debounce
 
         return () => clearTimeout(timeoutId);
-    }, [autosaveKey, content, hoursValue, minutesValue, selectedCategories, hasRestoredDraft]);
+    }, [autosaveKey, title, content, hoursValue, minutesValue, selectedCategories, hasRestoredDraft]);
 
     // Clear draft on successful submit
     const clearDraft = useCallback(() => {
@@ -516,6 +520,11 @@ export function SessionForm({
             return;
         }
 
+        if (!title.trim()) {
+            setError('Title is required');
+            return;
+        }
+
         if (!content.trim()) {
             setError('Journal content is required');
             return;
@@ -548,6 +557,7 @@ export function SessionForm({
         }));
 
         await onSubmit({
+            title: title.trim(),
             hoursClaimed: hoursNum,
             content: content.trim(),
             categories: selectedCategories,
@@ -573,6 +583,22 @@ export function SessionForm({
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Title */}
+                <div className="bg-cream-100 border-2 border-cream-400 p-4">
+                    <label htmlFor="session-title" className="block text-cream-700 text-sm uppercase mb-2">
+                        Title
+                    </label>
+                    <input
+                        id="session-title"
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="What did you work on?"
+                        className="w-full px-4 py-2 bg-cream-200 border-2 border-cream-400 text-cream-800 placeholder-cream-500 focus:outline-none focus:border-brand-500"
+                        maxLength={200}
+                    />
+                </div>
+
                 {/* Hours & Minutes */}
                 <div className="bg-cream-100 border-2 border-cream-400 p-4">
                     <label className="block text-cream-700 text-sm uppercase mb-3">

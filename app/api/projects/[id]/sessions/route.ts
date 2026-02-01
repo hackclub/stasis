@@ -104,7 +104,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const { hoursClaimed, content, categories, media, stage: rawStage } = body
+  const { title, hoursClaimed, content, categories, media, stage: rawStage } = body
   
   // Determine stage - default to BUILD if design is approved, otherwise DESIGN
   const stage: ProjectStage = VALID_STAGES.includes(rawStage) 
@@ -122,6 +122,20 @@ export async function POST(
   // Can only add BUILD sessions if design is approved
   if (stage === "BUILD" && project.designStatus !== "approved") {
     return NextResponse.json({ error: "Design must be approved before logging build sessions" }, { status: 403 })
+  }
+
+  if (!title || typeof title !== "string" || title.trim().length === 0) {
+    return NextResponse.json(
+      { error: "Title is required" },
+      { status: 400 }
+    )
+  }
+
+  if (title.length > 200) {
+    return NextResponse.json(
+      { error: "Title too long (max 200 characters)" },
+      { status: 400 }
+    )
   }
 
   if (typeof hoursClaimed !== "number" || hoursClaimed <= 0 || hoursClaimed > 24) {
@@ -177,6 +191,7 @@ export async function POST(
   const result = await prisma.$transaction(async (tx) => {
     const workSession = await tx.workSession.create({
       data: {
+        title: sanitize(title.trim()),
         hoursClaimed,
         content: sanitize(content.trim()),
         categories: validatedCategories,

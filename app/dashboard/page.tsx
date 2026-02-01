@@ -99,7 +99,7 @@ export default function ProjectsPage() {
       <div data-tutorial="badge-progress" className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-brand-500 text-lg uppercase tracking-wide">Qualification Progress</h2>
+            <h2 className="text-brand-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
             <p className="text-cream-800 text-sm">Earn {BADGES_REQUIRED} approved badges AND spend {HOURS_REQUIRED} hours building projects to qualify for Stasis!</p>
           </div>
           {badgesComplete && hoursComplete && (

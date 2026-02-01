@@ -22,6 +22,7 @@ export type TimelineItem =
       user: TimelineUser
       session: {
         id: string
+        title: string
         hoursClaimed: number
         hoursApproved: number | null
         content: string | null
@@ -129,6 +130,7 @@ export async function GET(
       user: { name: project.user.name, image: project.user.image },
       session: {
         id: ws.id,
+        title: ws.title,
         hoursClaimed: ws.hoursClaimed,
         hoursApproved: ws.hoursApproved,
         content: ws.content,

@@ -123,7 +123,21 @@ export async function PATCH(
   }
 
   const body = await request.json()
-  const { hoursClaimed, content, categories, media } = body
+  const { title, hoursClaimed, content, categories, media } = body
+
+  if (!title || typeof title !== "string" || title.trim().length === 0) {
+    return NextResponse.json(
+      { error: "Title is required" },
+      { status: 400 }
+    )
+  }
+
+  if (title.length > 200) {
+    return NextResponse.json(
+      { error: "Title too long (max 200 characters)" },
+      { status: 400 }
+    )
+  }
 
   if (typeof hoursClaimed !== "number" || hoursClaimed <= 0 || hoursClaimed > 24) {
     return NextResponse.json(
@@ -182,6 +196,7 @@ export async function PATCH(
   const workSessionUpdated = await prisma.workSession.update({
     where: { id: sessionId },
     data: {
+      title: sanitize(title.trim()),
       hoursClaimed,
       content: sanitize(content.trim()),
       categories: validatedCategories,
