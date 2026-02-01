@@ -19,7 +19,6 @@ export const AVAILABLE_BADGES: { value: BadgeType; label: string }[] = [
   { value: "MACHINE_LEARNING", label: "Machine Learning" },
   { value: "MCU_INTEGRATION", label: "MCU Integration" },
   { value: "FOUR_LAYER_PCB", label: "4-Layer PCB" },
-  { value: "SOLDERING", label: "Soldering" },
 ]
 
 export const VALID_BADGE_TYPES: BadgeType[] = AVAILABLE_BADGES.map(b => b.value)
