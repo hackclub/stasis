@@ -16,7 +16,7 @@ import { useScramble } from '@/lib/scramble';
 const faqs = [
   {
     question: "How do I qualify for Stasis?",
-    answer: "Design a hardware project that uses 3 of the skills listed, and we'll send you money to build it! When you've built your project, you've earned those 3 badges. Once you earn 6 badges, you've qualified for Stasis, and we'll reserve your spot."
+    answer: "To qualify for Stasis, you need to earn 5 badges by building hardware projects. Each badge is a skill you learn and demonstrate in your projects. You can only earn up to 3 badges per project, so you’ll need to build at least 2 projects to attend. In addition to earning 5 badges, spend 10 hours building your projects and you’ll earn your ticket to Stasis!"
   },
   {
     question: "How many spots are there?",
@@ -235,7 +235,6 @@ export default function Home() {
                 <li><ScrambleText>· Machine Learning</ScrambleText></li>
                 <li><ScrambleText>· MCU Integration</ScrambleText></li>
                 <li><ScrambleText>· 4-Layer PCB</ScrambleText></li>
-                <li><ScrambleText>· Soldering</ScrambleText></li>
               </ul>
             </section>
 

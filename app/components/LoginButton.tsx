@@ -13,7 +13,7 @@ export function LoginButton() {
   return (
     <button
       onClick={handleLogin}
-      className="underline hover:text-brand-500 cursor-pointer"
+      className="text-lg bg-brand-500/20 border border-brand-500 px-3 py-1 hover:bg-brand-500/30 cursor-pointer transition-colors"
     >
       log in
     </button>
