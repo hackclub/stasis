@@ -167,21 +167,25 @@ export default function Home() {
               <DottedLine orientation="horizontal" />
             </div>
 
-            {/* RSVP Button */}
+            {/* Auth Buttons */}
             <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-4 md:gap-5">
-              <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
-                <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
-                  <button 
-                    onClick={() => setIsRSVPOpen(true)}
-                    className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-6 sm:px-8 md:px-10 py-2.5 md:py-2 text-lg sm:text-xl md:text-2xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
-                  >
-                    RSVP
-                  </button>
+              <div className="flex gap-14 md:gap-16">
+                <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
+                  <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
+                    <button 
+                      onClick={() => setIsRSVPOpen(true)}
+                      className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-3 sm:px-4 md:px-5 py-2.5 md:py-2 text-base sm:text-lg md:text-xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
+                    >
+                      Sign Up
+                    </button>
+                  </MagneticCorners>
                 </MagneticCorners>
-              </MagneticCorners>
-              <p className="text-xs text-cream-700">
-                Already RSVPed? <LoginButton />
-              </p>
+                <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
+                  <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
+                    <LoginButton className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-3 sm:px-4 md:px-5 py-2.5 md:py-2 text-base sm:text-lg md:text-xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer" />
+                  </MagneticCorners>
+                </MagneticCorners>
+              </div>
             </div>
 
             <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">

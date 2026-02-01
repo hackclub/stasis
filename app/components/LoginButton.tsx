@@ -2,7 +2,7 @@
 
 import { authClient } from '@/lib/auth-client';
 
-export function LoginButton() {
+export function LoginButton({ className }: Readonly<{ className?: string }>) {
   async function handleLogin() {
     await authClient.signIn.oauth2({
       providerId: 'hca',
@@ -13,9 +13,9 @@ export function LoginButton() {
   return (
     <button
       onClick={handleLogin}
-      className="text-lg bg-brand-500/20 border border-brand-500 px-3 py-1 hover:bg-brand-500/30 cursor-pointer transition-colors"
+      className={className ?? "text-lg bg-brand-500/20 border border-brand-500 px-3 py-1 hover:bg-brand-500/30 cursor-pointer transition-colors"}
     >
-      log in
+      Log In
     </button>
   );
 }
