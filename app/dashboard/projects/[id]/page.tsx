@@ -390,7 +390,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   return (
     <div className="max-w-4xl mx-auto">
       {/* Onboarding Tutorial */}
-      <OnboardingTutorial type="project" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} />
+      <OnboardingTutorial type="project" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} badgeCount={badges.length} />
       <TutorialHelpButton onClick={() => setShowTutorial(true)} />
 
       {/* Breadcrumb */}

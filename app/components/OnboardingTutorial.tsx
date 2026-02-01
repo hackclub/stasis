@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 interface TutorialStep {
   id: string;
@@ -143,15 +143,30 @@ interface Props {
   type: TutorialType;
   forceShow?: boolean;
   onComplete?: () => void;
+  badgeCount?: number;
 }
 
-export function OnboardingTutorial({ type, forceShow = false, onComplete }: Readonly<Props>) {
+export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeCount = 0 }: Readonly<Props>) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
   const hasFetched = useRef(false);
 
-  const TUTORIAL_STEPS = type === 'dashboard' ? DASHBOARD_STEPS : PROJECT_STEPS;
+  const TUTORIAL_STEPS = useMemo(() => {
+    const baseSteps = type === 'dashboard' ? DASHBOARD_STEPS : PROJECT_STEPS;
+    if (type === 'project' && badgeCount >= 3) {
+      return baseSteps.map(step => 
+        step.id === 'badges' 
+          ? { 
+              ...step, 
+              title: 'Nice Work on Badges!',
+              content: 'Good job, you\'ve already added 3 badges to this project! Badges are verified during review to ensure you demonstrated the skills.'
+            }
+          : step
+      );
+    }
+    return baseSteps;
+  }, [type, badgeCount]);
 
   useEffect(() => {
     if (forceShow) {
@@ -197,12 +212,9 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
           scrollTarget = elementTop - window.innerHeight / 2 + rect.height / 2;
         }
         
-        // Temporarily enable scrolling for Firefox compatibility
-        document.body.style.overflow = '';
         window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
         
         setTimeout(() => {
-          document.body.style.overflow = 'hidden';
           const newRect = element.getBoundingClientRect();
           setHighlightRect(newRect);
         }, 450);
@@ -225,29 +237,30 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
     }
   }, [currentStep, TUTORIAL_STEPS]);
 
+  // Throttled version for scroll/resize events
+  const throttledUpdateRect = useMemo(() => {
+    let rafId: number | null = null;
+    return () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        updateRectOnly();
+        rafId = null;
+      });
+    };
+  }, [updateRectOnly]);
+
   useEffect(() => {
     if (!isVisible) return;
     
     updateHighlight();
-    window.addEventListener('resize', updateRectOnly);
-    window.addEventListener('scroll', updateRectOnly);
-
-    const preventScroll = (e: Event) => {
-      e.preventDefault();
-    };
-    
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('wheel', preventScroll, { passive: false });
-    window.addEventListener('touchmove', preventScroll, { passive: false });
+    window.addEventListener('resize', throttledUpdateRect);
+    window.addEventListener('scroll', throttledUpdateRect);
     
     return () => {
-      window.removeEventListener('resize', updateRectOnly);
-      window.removeEventListener('scroll', updateRectOnly);
-      window.removeEventListener('wheel', preventScroll);
-      window.removeEventListener('touchmove', preventScroll);
-      document.body.style.overflow = '';
+      window.removeEventListener('resize', throttledUpdateRect);
+      window.removeEventListener('scroll', throttledUpdateRect);
     };
-  }, [isVisible, updateHighlight, updateRectOnly]);
+  }, [isVisible, updateHighlight, throttledUpdateRect]);
 
   const handleNext = () => {
     if (currentStep < TUTORIAL_STEPS.length - 1) {
@@ -277,12 +290,10 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
     onComplete?.();
   };
 
-  if (!isVisible) return null;
-
   const step = TUTORIAL_STEPS[currentStep];
   const isCenter = step.position === 'center' || !highlightRect;
 
-  const getTooltipPosition = () => {
+  const tooltipPosition = useMemo(() => {
     if (isCenter || !highlightRect) {
       return {
         top: '50%',
@@ -294,8 +305,8 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
     const padding = 32;
     const tooltipWidth = 360;
     const tooltipHeight = 240;
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
 
     const spaceAbove = highlightRect.top;
     const spaceBelow = viewportHeight - highlightRect.bottom;
@@ -356,7 +367,9 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
           transform: 'translate(-50%, -50%)',
         };
     }
-  };
+  }, [isCenter, highlightRect, step.id, step.position]);
+
+  if (!isVisible) return null;
 
   return (
     <div className="fixed inset-0 z-[100]">
@@ -403,7 +416,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete }: Read
       {/* Tooltip */}
       <div
         className="absolute bg-cream-100 border-2 border-brand-500 p-6 max-w-[360px] w-full shadow-2xl"
-        style={getTooltipPosition()}
+        style={tooltipPosition}
       >
         {/* Progress indicator */}
         <div className="flex gap-1 mb-4">
