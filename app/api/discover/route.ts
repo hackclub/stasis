@@ -26,6 +26,11 @@ export async function GET(request: NextRequest) {
   const projects = await prisma.project.findMany({
     take: limit + 1,
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    where: {
+      workSessions: {
+        some: {},
+      },
+    },
     include: {
       user: {
         select: {
