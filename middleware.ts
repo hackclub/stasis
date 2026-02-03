@@ -9,6 +9,7 @@ const securityHeaders = {
     "img-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://avatars.slack-edge.com data: blob:",
     "media-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com blob:",
     "font-src 'self'",
+    "worker-src 'self' blob:",
     "frame-ancestors 'none'",
   ].join("; "),
   "X-Content-Type-Options": "nosniff",

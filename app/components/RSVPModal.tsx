@@ -60,7 +60,7 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
-        className="absolute inset-0 bg-cream-900/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#3D3229]/80"
         onClick={onClose}
       />
       

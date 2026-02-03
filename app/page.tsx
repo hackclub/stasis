@@ -1,17 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import PageBorder from './components/PageBorder';
 import { DottedLine } from './components/DottedLine';
 import { NoiseOverlay } from './components/NoiseOverlay';
 import { MagneticCorners } from './components/MagneticCorners';
 import { HoverScramble } from './components/HoverScramble';
 import { ASCIIArt } from './components/ASCIIArt';
-import { RSVPModal } from './components/RSVPModal';
-import { LoginButton } from './components/LoginButton';
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
+import { authClient } from '@/lib/auth-client';
 
 const faqs = [
   {
@@ -56,7 +54,51 @@ function ScrambleText({ children, className }: { children: string; className?: s
 export default function Home() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
-  const [isRSVPOpen, setIsRSVPOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSignUp() {
+    if (!email.trim()) {
+      setError('Please enter your email');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/rsvp/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start RSVP');
+      }
+
+      await authClient.signIn.oauth2({
+        providerId: 'hca',
+        callbackURL: '/api/rsvp/callback',
+      });
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleLogin() {
+    await authClient.signIn.oauth2({
+      providerId: 'hca',
+      callbackURL: '/dashboard',
+    });
+  }
 
   function toggle(index: number) {
     setOpenIndex(openIndex === index ? null : index);
@@ -137,11 +179,11 @@ export default function Home() {
                 { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
                 { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
                 { text: "EMD\n" },
-                { text: "A" },
+                { text: "AE" },
                 { text: "MAY 15-17", class: "text-cream-800" },
-                { text: "J RG HG" },
+                { text: "JRG HGG" },
                 { text: "AUSTIN, TX", class: "text-cream-800" },
-                { text: "PDA\nFCX XW VQQET S" },
+                { text: "PA\nFCX XW VQQET S" },
                 { text: "COMPLETELY FREE", class: "text-cream-800" },
                 { text: "M\nC LQW" },
                 { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
@@ -167,25 +209,45 @@ export default function Home() {
               <DottedLine orientation="horizontal" />
             </div>
 
-            {/* Auth Buttons */}
-            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-4 md:gap-5">
-              <div className="flex gap-14 md:gap-16">
-                <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
+            {/* Sign Up Section */}
+            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-3 md:gap-4">
+              <p className="text-xs text-cream-700 text-center">
+                Stasis is for high schoolers aged 13-18.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSignUp()}
+                  className="flex-1 px-3 py-2.5 bg-cream-50 border border-cream-600 text-cream-800 placeholder:text-cream-600 focus:outline-none focus:border-brand-500 text-sm md:text-base"
+                  placeholder="you@example.com"
+                />
+                <MagneticCorners offset={8}>
                   <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                     <button 
-                      onClick={() => setIsRSVPOpen(true)}
-                      className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-3 sm:px-4 md:px-5 py-2.5 md:py-2 text-base sm:text-lg md:text-xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer"
+                      onClick={handleSignUp}
+                      disabled={isSubmitting}
+                      className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-4 py-2.5 text-sm sm:text-base uppercase tracking-wider text-brand-900 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     >
-                      Sign Up
+                      <span className={isSubmitting ? 'invisible' : ''}>Sign Up</span>
+                      {isSubmitting && <span className="absolute inset-0 flex items-center justify-center">Loading...</span>}
                     </button>
                   </MagneticCorners>
                 </MagneticCorners>
-                <MagneticCorners offset={12} activationDistance={30} deactivationDistance={40}>
-                  <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
-                    <LoginButton className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-3 sm:px-4 md:px-5 py-2.5 md:py-2 text-base sm:text-lg md:text-xl uppercase tracking-wider text-brand-900 transition-colors cursor-pointer" />
-                  </MagneticCorners>
-                </MagneticCorners>
               </div>
+
+              {error && (
+                <p className="text-brand-500 text-sm">{error}</p>
+              )}
+
+              <button
+                onClick={handleLogin}
+                className="text-sm text-cream-700 hover:text-brand-500 underline cursor-pointer transition-colors"
+              >
+                Already have an account? Log in
+              </button>
             </div>
 
             <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -287,7 +349,6 @@ export default function Home() {
 
       <PageBorder onFooterHeightChange={(h) => setFooterHeight(h)} />
       <NoiseOverlay />
-      <RSVPModal isOpen={isRSVPOpen} onClose={() => setIsRSVPOpen(false)} />
     </div>
   );
 }

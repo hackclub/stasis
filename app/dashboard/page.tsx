@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
@@ -14,12 +15,27 @@ import Link from 'next/link';
 import type { Project } from './types';
 
 export default function ProjectsPage() {
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+
+  if (!isPending && !session) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+        <h1 className="text-cream-800 text-2xl uppercase tracking-wide mb-4">You&apos;re logged out</h1>
+        <p className="text-cream-700 mb-6">Do you want to log in?</p>
+        <button
+          onClick={() => authClient.signIn.oauth2({ providerId: 'hca', callbackURL: '/dashboard' })}
+          className="bg-brand-500 hover:bg-brand-400 text-white px-6 py-3 text-sm uppercase tracking-wide transition-colors"
+        >
+          Log in with Hack Club
+        </button>
+      </div>
+    );
+  }
 
   const fetchProjects = useCallback(async () => {
     try {

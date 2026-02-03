@@ -164,7 +164,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
-        className="absolute inset-0 bg-cream-900/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#3D3229]/80"
         onClick={onClose}
       />
       <div className="relative bg-cream-100 border-2 border-cream-400 max-w-2xl w-full mx-4 font-mono max-h-[90vh] overflow-y-auto">

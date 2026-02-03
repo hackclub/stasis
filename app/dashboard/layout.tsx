@@ -47,10 +47,10 @@ export default function DashboardLayout({
             <div className="space-y-6">
               <div className="text-center">
                 <h1 className="text-2xl uppercase tracking-wide text-brand-500 mb-2">
-                  Dashboard
+                  You&apos;re logged out
                 </h1>
                 <p className="text-cream-800 text-sm">
-                  Sign in to continue
+                  Do you want to log in?
                 </p>
               </div>
               <button
