@@ -52,7 +52,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       <img 
         src={src} 
         alt={alt || ''} 
-        className="max-w-full h-auto rounded my-4 border border-cream-700"
+        className="max-w-full h-auto rounded my-4 border-4 border-brand-500 mx-auto block"
       />
     ),
     blockquote: ({ children }) => (
