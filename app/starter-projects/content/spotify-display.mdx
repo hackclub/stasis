@@ -1,0 +1,400 @@
+# Spotify Display - A Tutorial
+
+Hello! This tutorial will be split into two parts, hardware and software. You will be learning about CAD, SPI communication, and WiFi!
+
+## Hardware
+
+This device is relatively simple when it comes to hardware, you will need:
+
+* 1x ESP32 Board (any works, but we will be using the LOLIN C3 mini)
+* 1x 1.8" TFT display (ST7735 or ILI9341)
+* 3x Tactile switches (keyboard switches work too!)
+* 4x M3 Heatset inserts
+* Soldering iron (optional, or else you should use dupont cables)
+
+For the case, it will be modelled in Fusion360! It is free for students [here](https://www.autodesk.com/education/edu-software/fusion)
+
+## Case
+
+Download these parts to use in our CAD!
+
+* [Screen](https://grabcad.com/library/tft-display-1-8-1)
+* [ESP32](https://grabcad.com/library/wemos-esp32-c3-mini-v1-0-0-1) (download the .step!)
+* [Keyboard Switch](https://grabcad.com/library/outemu-mx-switch-1)
+
+Start by creating a new project, then a new design. In this design, click on the upload button in the top left, and upload the downloaded assets above. Once uploaded, drag and drop the screen into your project.
+
+Create a new sketch by pressing the sketch button and select the plane you want to work on (XY plane).
+
+Create a 50x70mm rectangle:
+
+![Create rectangle](https://github.com/user-attachments/assets/2fe1a258-9618-4f2b-a35c-0544265ea5e4)
+
+Click on that new sketched rectangle and press **e**, extrude it to 60mm.
+
+Next, create a new sketch on the front side of the extruded body. Create another rectangle from the edge to the other edge of the screen: (43.5mm x 38mm)
+
+![Screen cutout](https://github.com/user-attachments/assets/fb92eccd-2d8b-4abd-ad66-e4f1d0b975bb)
+
+Extrude that so that it turns into a hole through the case.
+
+Now, go to the other side (opposite of screen) and we will bore out the case, create another sketch and make it 5mm smaller on each edge (40mm x 60mm)
+
+![Bore out case](https://github.com/user-attachments/assets/275779eb-92f6-41b3-967d-e23158808b62)
+
+Extrude this so that there is 2mm left on the screen part, (58mm)
+
+Now, let's make this look less ugly! Select the top edges:
+
+![Select edges](https://github.com/user-attachments/assets/0881d56d-94ac-4409-8cc6-91b231a59add)
+
+Click fillet under the modify section, and set it to 5mm. This will round out the edges and make it look MUCH nicer.
+
+Next, add in the ESP32 you downloaded, right click on the component in the browser and click break link, and disable visibility for the header pins.
+
+![ESP32 setup](https://github.com/user-attachments/assets/16965f70-aab8-45ef-91fc-2c4558d62f39)
+
+Click **'m'**, and rotate the ESP32 so that it is in the right orientation, then click the point to point method:
+
+![Point to point](https://github.com/user-attachments/assets/df33bfd8-e4ee-4029-bf26-d384db18d0fb)
+
+Select the first point as the bottom edge of the ESP32, and the second edge as the center bottom of the inside of the case:
+
+![Position ESP32](https://github.com/user-attachments/assets/0fa6b1eb-f3e2-4be3-ac37-a8b05045dabf)
+
+Now, we will work on the inside of the case. To get a better look into the middle, go under inspect and click on "Section Analysis":
+
+![Section analysis](https://github.com/user-attachments/assets/0a9a491e-f17d-478a-a4cc-2d881b9b07a4)
+
+Place it on the top of the case and drag it down until you can see into the case:
+
+![Inside view](https://github.com/user-attachments/assets/f1ccd331-546c-4619-a077-1dbf33a99342)
+
+Create walls on all 3 sides of the ESP to make sure it will not come out when plugging it in:
+
+![ESP walls](https://github.com/user-attachments/assets/34acb532-0777-44b1-8e4e-706440e9477e)
+
+Extrude the sketch 4mm and fillet the bottom side so that there are no overhangs during printing:
+
+![Extruded walls](https://github.com/user-attachments/assets/a721ed74-3021-4f3c-9224-a16639833317)
+
+This next part is optional, but highly recommended. Create a small lip so that the ESP can't escape vertically:
+
+![ESP lip](https://github.com/user-attachments/assets/d20d7bc4-5cf6-4e18-859a-19fbf19e1e94)
+
+That's it for the insides! Go back to your browser and under the Analysis folder, delete the Section Analysis you created.
+
+Create a new sketch on the very back of the case, and create 4 rectangles:
+
+* The outer edge of the case
+* The inside of the case
+* The port of the ESP
+* The inside of the case with a gap of 2mm
+
+![Back sketch](https://github.com/user-attachments/assets/39dcf4c5-5e49-45a7-9926-acc2581e639a)
+
+Next, create two small lines here:
+
+![Small lines](https://github.com/user-attachments/assets/add702f8-8166-4601-bcf5-38a92df062a5)
+
+Extrude everything but the charging hole 2mm, and extrude the 2mm gap 4mm with the exclusion of the bottom edge: (blue = 2mm, red = 4mm) Make sure the operation on extrude is "New Body"!
+
+![Extrude colors](https://github.com/user-attachments/assets/440675bb-cdc5-42a4-b70e-4b699655a3fc)
+
+![New body](https://github.com/user-attachments/assets/db656d51-4fce-4a0f-9953-62347857105d)
+
+You should be left with something like this:
+
+![Back result](https://github.com/user-attachments/assets/350f0240-8dd2-43f5-9b7d-ada1a82df13d)
+
+That's all for the bottom of the case! You are ready to add keyboard switch holes! Move to the top of the case, and head over to [kbplate.ai03.com](https://kbplate.ai03.com/) and paste in `["a","b","c"]`. Hit download DXF on the bottom, and upload that into Fusion. Drag and drop the DXF anywhere, and use free rotate so that it is parallel with the top of the case. Next, use the point to point move method to get it centered:
+
+![Key switches](https://github.com/user-attachments/assets/04ef7fb9-0136-4e71-8be3-0d79c50f6bb0)
+
+Finally, extrude the 3 keyswitch holes so that they cut into the case. Your final product should look like so:
+
+![Final top](https://github.com/user-attachments/assets/a17e7617-1560-4fe2-bb25-67af32232b44)
+
+![Final back](https://github.com/user-attachments/assets/3789fc38-cfc0-4bf2-be0e-3e8868a65e2b)
+
+That's it for the case! Next, we will work on the software and API setup.
+
+---
+
+## Spotify API setup
+
+1. Hop over to [developer.spotify.com](https://developer.spotify.com/) and click on your profile in the top left and click dashboard.
+
+2. Press create new app and you'll be prompted with a screen to fill in details.
+
+![Spotify dashboard](https://github.com/user-attachments/assets/08ea6cbd-1e50-4130-96ad-a5f4a30cbff7)
+
+3. Give it a name, write a small description, and add a random redirect URI for now! (we will change this later)
+
+4. Press save, then click on the app you just created, copy the Client ID and client secret and keep it aside for now.
+
+---
+
+## Software
+
+We will be using Arduino IDE, download it [here](https://www.arduino.cc/en/software/)
+
+This will be split into a few sections:
+
+* What you'll need
+* WiFi connection
+* Spotify library methods
+* TFT screen setup
+* Code example
+
+### What you'll need
+
+Before we start, a few things need to be installed.
+
+1. Follow [this tutorial](https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/) on how to install the ESP32 board in Arduino IDE
+
+2. Install the following libraries:
+   * [SpotifyEsp32](https://github.com/FinianLandes/SpotifyEsp32) (install as a .zip)
+   * Adafruit_ST7735
+   * Adafruit_GFX
+
+Use the library manager to install the last two! Install all the pre-reqs when the pop-up shows after you click install.
+
+You're all done! In your new sketch, include the following:
+
+```cpp
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+#include <WiFi.h>
+#include <SpotifyEsp32.h>
+#include <SPI.h>
+```
+
+Inside `void setup()`, include the following:
+
+```cpp
+Serial.begin(115200);
+```
+
+This makes sure that the ESP32 can communicate with the computer over serial.
+
+For general rule of thumb, if you would like to create a variable/object, it should go outside of any method, if you would like to setup something (e.g. it should only run once such as connecting to wifi), it should be in `void setup()`, if you would like something to run continuously, it should be in `void loop()`.
+
+### WiFi Connection
+
+We will need to store your WiFi credentials in the file, create two new lines under the included libraries:
+
+```cpp
+char* SSID = "INSERT_SSID_HERE";
+char* PASSWORD = "INSERT_PASSWORD_HERE";
+```
+
+These are two new variables that will hold your ssid/password.
+
+In the setup method (`void setup`), insert the following:
+
+```cpp
+WiFi.begin(SSID, PASSWORD); // Attempt to connect to wifi
+Serial.print("Connecting to WiFi..."); // This will print into the console!
+while(WiFi.status() != WL_CONNECTED) // Checking if the wifi has connected
+{
+    delay(1000);
+    Serial.print("."); // show a loading dot every second
+}
+Serial.printf("\nConnected!\n"); // Wifi connected!
+```
+
+That's it! Now the ESP is connected to WiFi.
+
+If you would like to learn more behind the WiFi library, I would recommend checking out [this guide](https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/).
+
+### Spotify Library Methods
+
+Create the following variables:
+
+```cpp
+const char* CLIENT_ID = "CLIENT_ID";
+const char* CLIENT_SECRET = "CLIENT_SECRET";
+```
+
+Create your spotify object as such:
+
+```cpp
+Spotify sp(CLIENT_ID, CLIENT_SECRET);
+```
+
+You can rename `sp` to anything you would like! This is the name of your object.
+
+To setup the connection between your ESP and Spotify, it's relatively similar to WiFi! This block of code will connect the ESP to the Spotify client:
+
+```cpp
+sp.begin();
+while(!sp.is_auth())
+{
+    sp.handle_client();
+}
+Serial.println("Connected to Spotify!");
+```
+
+Remember to put a `delay(ms)` at the end of the loop - Spotify's API has a rate limit! (change ms with 1000 for 1s or 2000 for 2s)
+
+#### General Methods
+
+```cpp
+sp.current_artist_names(); // returns String of all artists separated by a ','
+sp.current_track_name();   // returns String of song name
+sp.start_resume_playback(); // Calling this method will pause/play the track
+sp.skip();                  // skips current track
+sp.previous();              // goes to previous track
+sp.is_playing();            // returns a boolean if something is playing currently
+```
+
+We will use these in an example!
+
+### TFT Screen
+
+In this project, we will be using the ST7735 Screen.
+
+We need to define the pin variables that we will be connecting our screen to! Refer to the hardware section of the tutorial for the proper pin assignments. Create the variables as such:
+
+```cpp
+#define TFT_CS 1
+#define TFT_RST 2
+#define TFT_DC 3
+#define TFT_SCLK 4
+#define TFT_MOSI 5
+```
+
+Again, the numbers 1-5 will be changed based on your pin assignments on the ESP.
+
+Create your screen object:
+
+```cpp
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+```
+
+Similar to the Spotify object setup, you can change "tft" to anything you would like.
+
+In your setup, initiate the screen:
+
+```cpp
+tft.initR(INITR_BLACKTAB); // the type of screen
+tft.setRotation(1); // this makes the screen landscape! remove this line for portrait
+Serial.println("TFT Initialized!");
+tft.fillScreen(ST77XX_BLACK); // make sure there is nothing in the buffer
+
+/*
+INSERT WIFI SETUP HERE
+*/
+
+tft.setCursor(0,0); // make the cursor at the top left
+tft.write(WiFi.localIP().toString().c_str()); // print out IP on the screen
+```
+
+#### General Methods
+
+```cpp
+tft.write("STRING HERE");  // prints out the string
+tft.setCursor(x,y);        // the screen is 160x128! Think of it as a x,y grid
+tft.fillScreen(ST77XX_COLOR); // most of the main colors are here!
+tft.drawRect(Cursorx, Cursory, RectWidth, RectHeight, ST77XX_color); // draws a rectangle
+tft.fillRect(Cursorx, Cursory, RectWidth, RectHeight, ST77XX_color); // fills in a rectangle
+tft.setTextSize(integer);  // try it out! Use 1,2,3, etc.
+```
+
+Note that when printing strings from Spotify, store the String into a variable, then properly format the string as such:
+
+```cpp
+tft.write(variable.toString().c_str());
+```
+
+It will not work otherwise and you will be met with an error!
+
+### General Example
+
+Now, we will combine everything to show an example! Please keep in mind, this is a very bare bones program just to show the functionality of the code.
+
+```cpp
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+#include <WiFi.h>
+#include <SpotifyEsp32.h>
+#include <SPI.h>
+
+#define TFT_CS 1
+#define TFT_RST 2
+#define TFT_DC 3
+#define TFT_SCLK 4
+#define TFT_MOSI 5
+
+char* SSID = "YOUR WIFI SSID";
+const char* PASSWORD = "YOUR WIFI PASSWORD";
+const char* CLIENT_ID = "YOUR CLIENT ID FROM THE SPOTIFY DASHBOARD";
+const char* CLIENT_SECRET = "YOUR CLIENT SECRET FROM THE SPOTIFY DASHBOARD";
+
+String lastArtist;
+String lastTrackname;
+
+Spotify sp(CLIENT_ID, CLIENT_SECRET);
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+
+
+void setup() {
+    Serial.begin(115200);
+
+    tft.initR(INITR_BLACKTAB); // the type of screen
+    tft.setRotation(1); // this makes the screen landscape! remove this line for portrait
+    Serial.println("TFT Initialized!");
+    tft.fillScreen(ST77XX_BLACK); // make sure there is nothing in the buffer
+
+    WiFi.begin(SSID, PASSWORD);
+    Serial.print("Connecting to WiFi...");
+    while(WiFi.status() != WL_CONNECTED)
+    {
+        delay(1000);
+        Serial.print(".");
+    }
+    Serial.printf("\nConnected!\n");
+
+    tft.setCursor(0,0); // make the cursor at the top left
+    tft.write(WiFi.localIP().toString().c_str()); // print out IP on the screen
+
+    sp.begin();
+    while(!sp.is_auth()){
+        sp.handle_client();
+    }
+    Serial.println("Authenticated");
+}
+
+void loop()
+{
+    String currentArtist = sp.current_artist_names();
+    String currentTrackname = sp.current_track_name();
+
+    if (lastArtist != currentArtist && currentArtist != "Something went wrong" && !currentArtist.isEmpty()) {
+        tft.fillScreen(ST77XX_BLACK);
+        lastArtist = currentArtist;
+        Serial.println("Artist: " + lastArtist);
+        tft.setCursor(10,10);
+        tft.write(lastArtist.c_str());
+    }
+
+    if (lastTrackname != currentTrackname && currentTrackname != "Something went wrong" && currentTrackname != "null") {
+        lastTrackname = currentTrackname;
+        Serial.println("Track: " + lastTrackname);
+        tft.setCursor(10,40);
+        tft.write(lastTrackname.c_str());
+    }
+    delay(2000);
+}
+```
+
+That's all! If you would like to learn more about what methods / customizations you can do, check out these pages:
+
+* [SpotifyEsp32 Examples](https://github.com/FinianLandes/SpotifyEsp32/tree/main/examples) - More examples!
+* [SpotifyEsp32 Source](https://github.com/FinianLandes/SpotifyEsp32/blob/main/src/SpotifyEsp32.cpp) - All the methods and what they return
+* [Adafruit GFX Library](https://learn.adafruit.com/adafruit-gfx-graphics-library/overview) - All the graphics that are possible with the ST7735 screen (fonts, colors, etc.)

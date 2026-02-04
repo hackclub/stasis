@@ -92,6 +92,13 @@ export async function POST(
       )
     }
 
+    if (!project.coverImage) {
+      return NextResponse.json(
+        { error: "Project image is required for design review" },
+        { status: 400 }
+      )
+    }
+
     const [updatedProject] = await prisma.$transaction([
       prisma.project.update({
         where: { id },
