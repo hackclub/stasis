@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageBorder from './components/PageBorder';
 import { DottedLine } from './components/DottedLine';
 import { NoiseOverlay } from './components/NoiseOverlay';
@@ -11,10 +11,13 @@ import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
 import { authClient } from '@/lib/auth-client';
 
+const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
+const SIGNUP_GOAL = 5000;
+
 const faqs = [
   {
     question: "How do I qualify for Stasis?",
-    answer: "To qualify for Stasis, you need to earn 5 badges by building hardware projects. Each badge is a skill you learn and demonstrate in your projects. You can only earn up to 3 badges per project, so you’ll need to build at least 2 projects to attend. In addition to earning 5 badges, spend 10 hours building your projects and you’ll earn your ticket to Stasis!"
+    answer: "To qualify for Stasis, you need to earn 5 badges by building hardware projects. Each badge is a skill you learn and demonstrate in your projects. You can only earn up to 3 badges per project, so you'll need to build at least 2 projects to attend. In addition to earning 5 badges, spend 10 hours building your projects and you'll earn your ticket to Stasis!"
   },
   {
     question: "How many spots are there?",
@@ -57,6 +60,28 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [signupCount, setSignupCount] = useState(0);
+
+  useEffect(() => {
+    if (!PRELAUNCH_MODE) return;
+    
+    async function fetchCount() {
+      try {
+        const response = await fetch('/api/prelaunch/count');
+        if (response.ok) {
+          const data = await response.json();
+          setSignupCount(data.count);
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleSignUp() {
     if (!email.trim()) {
@@ -89,6 +114,42 @@ export default function Home() {
       });
     } catch {
       setError('Something went wrong. Please try again.');
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handlePrelaunchRSVP() {
+    if (!email.trim()) {
+      setError('Please enter your email');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/prelaunch/rsvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to RSVP');
+      }
+
+      setSuccess(true);
+      setEmail('');
+      setSignupCount(prev => prev + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
       setIsSubmitting(false);
     }
   }
@@ -155,14 +216,14 @@ export default function Home() {
 
               {/* Logo */}
               <div className="mb-2 md:mb-4 py-1 w-full h-auto relative">
-                <img 
-                  src="/stasis-logo.svg" 
-                  alt="Hack Club Stasis" 
+                <img
+                  src="/stasis-logo.svg"
+                  alt="Hack Club Stasis"
                   className="absolute -translate-x-[2%] md:-translate-x-0 scale-105 md:scale-[116%] -translate-y-[28%] origin-bottom md:origin-bottom-right select-none pointer-events-none"
                 />
-                <img 
-                  src="/stasis-text.svg" 
-                  alt="" 
+                <img
+                  src="/stasis-text.svg"
+                  alt=""
                   className="opacity-0 pointer-events-none select-none"
                 />
               </div>
@@ -209,52 +270,93 @@ export default function Home() {
               <DottedLine orientation="horizontal" />
             </div>
 
-            {/* Sign Up Section */}
-            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-3 md:gap-4">
-              <p className="text-xs text-cream-700 text-center">
-                Stasis is for high schoolers aged 13-18.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSignUp()}
-                  className="flex-1 px-3 py-2.5 bg-cream-50 border border-cream-600 text-cream-800 placeholder:text-cream-600 focus:outline-none focus:border-brand-500 text-sm md:text-base"
-                  placeholder="you@example.com"
-                />
-                <MagneticCorners offset={8}>
-                  <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
-                    <button 
-                      onClick={handleSignUp}
-                      disabled={isSubmitting}
-                      className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-4 py-2.5 text-sm sm:text-base uppercase tracking-wider text-brand-900 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                      <span className={isSubmitting ? 'invisible' : ''}>Sign Up</span>
-                      {isSubmitting && <span className="absolute inset-0 flex items-center justify-center">Loading...</span>}
-                    </button>
-                  </MagneticCorners>
-                </MagneticCorners>
+            {/* Prelaunch Progress Section */}
+            {PRELAUNCH_MODE && (
+              <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-2 md:gap-3 mt-4 md:mt-6">
+                <p className="text-sm text-cream-700 uppercase tracking-wide">
+                  Stasis launches at 5,000 signups!
+                </p>
+                <div className="text-center w-full max-w-sm">
+                  <div className="text-3xl md:text-4xl font-bold text-brand-500 mb-2">
+                    {signupCount.toLocaleString()} <span className="text-cream-600 text-xl md:text-2xl">/ {SIGNUP_GOAL.toLocaleString()}</span>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full h-3 bg-cream-300 border border-cream-600 relative overflow-hidden">
+                    <div 
+                      className="h-full bg-brand-500 transition-all duration-500 ease-out"
+                      style={{ width: `${Math.max(Math.min((signupCount / SIGNUP_GOAL) * 100, 100), 1)}%` }}
+                    />
+                  </div>
+                </div>
               </div>
+            )}
 
-              {error && (
-                <p className="text-brand-500 text-sm">{error}</p>
+            {PRELAUNCH_MODE && (
+              <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
+                <DottedLine orientation="horizontal" />
+              </div>
+            )}
+
+            {/* Sign Up / RSVP Section */}
+            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-3 md:gap-4 mt-4 md:mt-6">
+              {PRELAUNCH_MODE && success ? (
+                <div className="text-center py-4">
+                  <p className="text-brand-500 font-medium">
+                    <ScrambleText>You&apos;re on the list!</ScrambleText>
+                  </p>
+                  <p className="text-sm text-cream-700 mt-2">
+                    <ScrambleText>We&apos;ll email you when registration opens.</ScrambleText>
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-row gap-2 sm:gap-3 w-full max-w-sm">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
+                      className="flex-1 min-w-0 px-3 py-2.5 bg-cream-50 border border-cream-600 text-cream-800 placeholder:text-cream-600 focus:outline-none focus:border-brand-500 text-sm md:text-base"
+                      placeholder="you@example.com"
+                    />
+                    <MagneticCorners offset={8}>
+                      <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
+                        <button
+                          onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
+                          disabled={isSubmitting}
+                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-3 sm:px-4 py-2.5 text-sm sm:text-base uppercase tracking-wider text-brand-900 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                          <span className={isSubmitting ? 'invisible' : ''}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
+                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center">...</span>}
+                        </button>
+                      </MagneticCorners>
+                    </MagneticCorners>
+                  </div>
+
+                  {error && (
+                    <p className="text-brand-500 text-sm">{error}</p>
+                  )}
+
+                  <p className="text-xs text-cream-700 text-center">
+                    Stasis is for high schoolers aged 13-18.
+                  </p>
+
+                  {!PRELAUNCH_MODE && (
+                    <button
+                      onClick={handleLogin}
+                      className="text-sm text-cream-700 hover:text-brand-500 underline cursor-pointer transition-colors"
+                    >
+                      Already have an account? Log in
+                    </button>
+                  )}
+                </>
               )}
-
-              <button
-                onClick={handleLogin}
-                className="text-sm text-cream-700 hover:text-brand-500 underline cursor-pointer transition-colors"
-              >
-                Already have an account? Log in
-              </button>
             </div>
 
             <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
               <DottedLine orientation="horizontal" />
             </div>
-
-          
 
             <div className="h-1"></div>
 
@@ -333,7 +435,7 @@ export default function Home() {
                         </span>
                       </div>
                       {openIndex === i && (
-                        <div 
+                        <div
                           className="pb-3 md:pb-2.5 pr-6 md:pr-8 text-cream-700 faq leading-relaxed"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />

@@ -14,6 +14,7 @@ interface MagneticCornersProps {
   deactivationDistance?: number;
   hoverOffsetIncrease?: number;
   children?: ReactNode;
+  className?: string;
 }
 
 export function MagneticCorners({
@@ -27,7 +28,8 @@ export function MagneticCorners({
   activationDistance = 50,
   deactivationDistance = 60,
   hoverOffsetIncrease = 4,
-  children
+  children,
+  className
 }: Readonly<MagneticCornersProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [translateX, setTranslateX] = useState(0);
@@ -101,7 +103,7 @@ export function MagneticCorners({
       `}</style>
       <div
         ref={containerRef}
-        className={`magnetic-corners-wrapper relative inline-block ${isActive ? 'active' : ''}`}
+        className={`magnetic-corners-wrapper relative inline-block ${isActive ? 'active' : ''} ${className || ''}`}
       >
         {children}
         

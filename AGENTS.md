@@ -47,3 +47,5 @@
 - GSAP for complex animations; CSS animations for simple ones
 
 DO NOT ai generate migrations, use prisma tools
+
+When using playwright, make images in /tmp
