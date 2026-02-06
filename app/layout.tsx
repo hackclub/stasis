@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Libre_Barcode_128, Libre_Barcode_39 } from "next/font/google";
+import { Libre_Barcode_128, Libre_Barcode_39 } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import AsteroidCatWrapper from "./components/AsteroidCatWrapper";
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
+const departureMono = localFont({
+  src: "../public/fonts/DepartureMono-Regular.woff2",
   variable: "--font-mono",
+  display: "swap",
 });
 
 const libreBarcode128 = Libre_Barcode_128({
@@ -35,7 +37,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.svg" />
       </head>
-      <body className={`antialiased ${jetbrainsMono.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
+      <body className={`antialiased ${departureMono.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
         {children}
         <AsteroidCatWrapper />
       </body>

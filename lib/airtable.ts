@@ -43,6 +43,8 @@ export async function markAccountCreationFinished(email: string): Promise<boolea
 export async function createRSVP(data: {
   email: string;
   ip?: string;
+  referralType?: string | null;
+  referredBy?: string | null;
 }) {
   const base = getAirtableBase();
 
@@ -53,14 +55,20 @@ export async function createRSVP(data: {
 
   const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
 
-  return base(tableName).create([
-    {
-      fields: {
-        'Email': data.email,
-        'IP': data.ip || '',
-      },
-    },
-  ]);
+  const fields: Record<string, string | number> = {
+    'Email': data.email,
+    'IP': data.ip || '',
+  };
+
+  if (data.referralType) {
+    fields['UTM Source'] = data.referralType;
+  }
+
+  if (data.referredBy) {
+    fields['Referred By'] = Number(data.referredBy);
+  }
+
+  return base(tableName).create([{ fields }]);
 }
 
 export async function findRSVPByEmail(email: string): Promise<boolean> {
