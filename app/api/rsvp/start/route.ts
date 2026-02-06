@@ -3,33 +3,60 @@ import { cookies, headers } from 'next/headers';
 import { createRSVP } from '@/lib/airtable';
 import { sanitize } from '@/lib/sanitize';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
+
 // TODO: Add rate limiting - this is a public endpoint vulnerable to abuse
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, referralType, referralCode: referredBy } = await request.json();
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
       );
     }
 
+    const safeEmail = sanitize(email.trim().toLowerCase());
+
+    if (!EMAIL_REGEX.test(safeEmail)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    const safeReferralType = referralType ? sanitize(String(referralType)) : null;
+    const safeReferredBy = referredBy ? sanitize(String(referredBy)) : null;
+
     const headersList = await headers();
     const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                headersList.get('x-real-ip') ||
                'unknown';
 
-    const safeEmail = sanitize(email);
-
-    // Create RSVP in Airtable with email only (name will be filled after HCA auth)
     try {
-      await createRSVP({ email: safeEmail, ip });
+      await createRSVP({
+        email: safeEmail,
+        ip,
+        referralType: safeReferralType,
+        referredBy: safeReferredBy,
+      });
     } catch (error) {
       console.error('Airtable submission error:', error);
+      if (isPrelaunch) {
+        return NextResponse.json(
+          { error: 'Failed to save RSVP' },
+          { status: 500 }
+        );
+      }
     }
 
-    // Set login hint for OAuth
+    if (isPrelaunch) {
+      return NextResponse.json({ success: true });
+    }
+
+    // Set login hint for OAuth (only when not in prelaunch mode)
     const cookieStore = await cookies();
     cookieStore.set('rsvp_login_hint', safeEmail, {
       httpOnly: true,

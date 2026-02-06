@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import PageBorder from './components/PageBorder';
 import { DottedLine } from './components/DottedLine';
 import { NoiseOverlay } from './components/NoiseOverlay';
 import { MagneticCorners } from './components/MagneticCorners';
 import { HoverScramble } from './components/HoverScramble';
 import { ASCIIArt } from './components/ASCIIArt';
+
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
 import { authClient } from '@/lib/auth-client';
@@ -54,7 +56,11 @@ function ScrambleText({ children, className }: { children: string; className?: s
   return <span ref={ref} className={className}>{children}</span>;
 }
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const referralType = searchParams.get('t');
+  const referralCode = searchParams.get('r');
+
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
   const [email, setEmail] = useState('');
@@ -133,10 +139,10 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/prelaunch/rsvp', {
+      const response = await fetch('/api/rsvp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, referralType, referralCode }),
       });
 
       if (!response.ok) {
@@ -273,12 +279,12 @@ export default function Home() {
             {/* Prelaunch Progress Section */}
             {PRELAUNCH_MODE && (
               <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-2 md:gap-3 mt-4 md:mt-6">
-                <p className="text-sm text-cream-700 uppercase tracking-wide">
+                <p className="text-xs text-cream-700 uppercase tracking-wide">
                   Stasis launches at 5,000 signups!
                 </p>
                 <div className="text-center w-full max-w-sm">
-                  <div className="text-3xl md:text-4xl font-bold text-brand-500 mb-2">
-                    {signupCount.toLocaleString()} <span className="text-cream-600 text-xl md:text-2xl">/ {SIGNUP_GOAL.toLocaleString()}</span>
+                  <div className="text-3xl md:text-4xl font-bold mb-2">
+                    <span className="text-brand-500">{signupCount.toLocaleString()}</span> <span className="text-cream-600">/ {SIGNUP_GOAL.toLocaleString()}</span>
                   </div>
                   
                   {/* Progress Bar */}
@@ -306,7 +312,7 @@ export default function Home() {
                     <ScrambleText>You&apos;re on the list!</ScrambleText>
                   </p>
                   <p className="text-sm text-cream-700 mt-2">
-                    <ScrambleText>We&apos;ll email you when registration opens.</ScrambleText>
+                    <ScrambleText>Check your email for more information.</ScrambleText>
                   </p>
                 </div>
               ) : (
@@ -320,12 +326,12 @@ export default function Home() {
                       className="flex-1 min-w-0 px-3 py-2.5 bg-cream-50 border border-cream-600 text-cream-800 placeholder:text-cream-600 focus:outline-none focus:border-brand-500 text-sm md:text-base"
                       placeholder="you@example.com"
                     />
-                    <MagneticCorners offset={8}>
+                    <MagneticCorners offset={12}>
                       <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                         <button
                           onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
                           disabled={isSubmitting}
-                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-3 sm:px-4 py-2.5 text-sm sm:text-base uppercase tracking-wider text-brand-900 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-5 sm:px-6 py-2.5 text-sm sm:text-base uppercase tracking-wider text-brand-900 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
                           <span className={isSubmitting ? 'invisible' : ''}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
                           {isSubmitting && <span className="absolute inset-0 flex items-center justify-center">...</span>}
@@ -452,5 +458,13 @@ export default function Home() {
       <PageBorder onFooterHeightChange={(h) => setFooterHeight(h)} />
       <NoiseOverlay />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }
