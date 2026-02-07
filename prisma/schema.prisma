@@ -53,6 +53,7 @@ model User {
   slackId            String?   @unique
   verificationStatus String?
   hackatimeUserId    String?   @unique
+  bio                String?
   fraudConvicted     Boolean   @default(false)
   tutorialDashboard  Boolean   @default(false)
   tutorialProject    Boolean   @default(false)

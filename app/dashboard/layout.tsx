@@ -24,7 +24,7 @@ export default function DashboardLayout({
       ? pathname === '/dashboard'
       : pathname.startsWith(tabPath);
     
-    return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
+    return `px-6 py-3 text-sm uppercase tracking-wider font-bold transition-colors border-b-2 -mb-[2px] ${
       isActive
         ? 'text-brand-500 border-brand-500'
         : 'text-cream-800 border-transparent hover:text-cream-900'
@@ -47,11 +47,8 @@ export default function DashboardLayout({
             <div className="space-y-6">
               <div className="text-center">
                 <h1 className="text-2xl uppercase tracking-wide text-brand-500 mb-2">
-                  You&apos;re logged out
+                  You need to be logged in to see this profile
                 </h1>
-                <p className="text-cream-800 text-sm">
-                  Do you want to log in?
-                </p>
               </div>
               <button
                 onClick={() =>
@@ -92,7 +89,7 @@ export default function DashboardLayout({
             </svg>
           </Link>
           <div className="flex items-center gap-4 sm:gap-6">
-            <div className="flex items-center gap-2">
+            <Link href={`/dashboard/profile/${session.user.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               {session.user.image ? (
                 <img 
                   src={session.user.image} 
@@ -106,10 +103,10 @@ export default function DashboardLayout({
                   </span>
                 </div>
               )}
-              <span className="text-cream-700 text-sm hidden sm:block">
+              <span className="text-brand-500 font-bold text-sm hidden sm:block">
                 {session.user.name || session.user.email}
               </span>
-            </div>
+            </Link>
             {hasRole(Role.ADMIN) && (
               <Link
                 href="/admin"

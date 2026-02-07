@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from "@/lib/auth-client";
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { ProjectTag } from "@/app/generated/prisma/enums";
 
 interface DiscoverProject {
@@ -56,6 +57,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
+  const router = useRouter();
   const thumbnail = project.coverImage || project.images[0];
   
   return (
@@ -118,7 +120,15 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
         )}
 
         <div className="flex items-center justify-between text-xs text-cream-600">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="flex items-center gap-2 hover:text-brand-500 transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(`/dashboard/profile/${project.user.id}`);
+            }}
+          >
             {project.user.image ? (
               <img
                 src={project.user.image}
@@ -133,7 +143,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
               </div>
             )}
             <span>{project.user.name || 'Anonymous'}</span>
-          </div>
+          </button>
           <div className="flex items-center gap-3">
             <span>{project.sessionCount} entries</span>
             <span>{formatRelativeTime(project.lastActivity)}</span>

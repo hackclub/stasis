@@ -123,7 +123,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-cream-800 text-lg font-mono uppercase tracking-wide truncate group-hover:text-brand-500 transition-colors">
+        <h3 className="text-brand-500 font-bold text-lg font-mono uppercase tracking-wide truncate group-hover:text-brand-400 transition-colors">
           {project.title}
         </h3>
         <p className="text-cream-700 text-sm mt-1">

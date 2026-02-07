@@ -25,34 +25,45 @@ function addSecurityHeaders(response: NextResponse) {
   return response;
 }
 
-export function middleware(request: NextRequest) {
-  if (process.env.REQUIRE_BASICAUTH !== "true") {
-    return addSecurityHeaders(NextResponse.next());
-  }
-
+function checkBasicAuth(request: NextRequest): boolean {
   const authHeader = request.headers.get("authorization");
+  if (!authHeader) return false;
 
-  if (authHeader) {
-    const [scheme, encoded] = authHeader.split(" ");
-    if (scheme === "Basic" && encoded) {
-      const decoded = atob(encoded);
-      const [username, password] = decoded.split(":");
+  const [scheme, encoded] = authHeader.split(" ");
+  if (scheme !== "Basic" || !encoded) return false;
 
-      if (
-        username === process.env.BASICAUTH_USERNAME &&
-        password === process.env.BASICAUTH_PASSWORD
-      ) {
-        return addSecurityHeaders(NextResponse.next());
-      }
-    }
-  }
+  const decoded = atob(encoded);
+  const [username, password] = decoded.split(":");
+  return (
+    username === process.env.BASICAUTH_USERNAME &&
+    password === process.env.BASICAUTH_PASSWORD
+  );
+}
 
+function requireAuth(): NextResponse {
   return new NextResponse("Authentication required", {
     status: 401,
     headers: {
       "WWW-Authenticate": 'Basic realm="Secure Area"',
     },
   });
+}
+
+export function middleware(request: NextRequest) {
+  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
+  const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === "true";
+  const requireSiteAuth = process.env.REQUIRE_BASICAUTH === "true";
+
+  if (requireSiteAuth) {
+    if (!checkBasicAuth(request)) return requireAuth();
+    return addSecurityHeaders(NextResponse.next());
+  }
+
+  if (isPrelaunch && isDashboard) {
+    if (!checkBasicAuth(request)) return requireAuth();
+  }
+
+  return addSecurityHeaders(NextResponse.next());
 }
 
 export const config = {

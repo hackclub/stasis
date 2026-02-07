@@ -271,7 +271,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
               {project.title}
             </h1>
             <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-2">
+              <Link href={`/dashboard/profile/${project.user.id}`} className="flex items-center gap-2 hover:text-brand-500 transition-colors">
                 {project.user.image ? (
                   <img src={project.user.image} alt="" className="w-6 h-6 rounded-full" />
                 ) : (
@@ -280,7 +280,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
                   </div>
                 )}
                 <span className="text-cream-700">{project.user.name || 'Anonymous'}</span>
-              </div>
+              </Link>
               <span className="text-cream-600">•</span>
               <span className="text-cream-600">{project.sessionCount} journal entries</span>
               <span className="text-cream-600">•</span>
