@@ -74,19 +74,9 @@ export default function DashboardLayout({
       <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
-          <Link href="/" className="text-cream-700 hover:text-brand-500 transition-colors">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-            >
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            </svg>
+        <div className="pl-3 pr-6 py-2 flex items-center justify-between border-b border-cream-400">
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <img src="/stasis-logo.svg" alt="Stasis" className="h-10 w-auto" />
           </Link>
           <div className="flex items-center gap-4 sm:gap-6">
             <Link href={`/dashboard/profile/${session.user.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
