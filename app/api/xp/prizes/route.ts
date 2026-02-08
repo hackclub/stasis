@@ -24,7 +24,9 @@ export async function GET() {
       weekEnd: { gte: weekStart },
     },
     include: {
-      claims: true,
+      _count: {
+        select: { claims: true },
+      },
     },
   })
 
@@ -36,7 +38,7 @@ export async function GET() {
   const claimedPrizeIds = new Set(userClaims.map((c) => c.prizeId))
 
   const prizesWithStatus = prizes.map((prize) => {
-    const claimCount = prize.claims.length
+    const claimCount = prize._count.claims
     const remainingQuantity = prize.maxQuantity
       ? prize.maxQuantity - claimCount
       : null

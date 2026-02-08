@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { sanitize } from "@/lib/sanitize"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { logAdminAction, AuditAction } from "@/lib/audit"
@@ -41,12 +42,19 @@ export async function POST(
     )
   }
 
+  if (hoursApproved > workSession.hoursClaimed * 2) {
+    return NextResponse.json(
+      { error: "hoursApproved cannot exceed twice the claimed hours" },
+      { status: 400 }
+    )
+  }
+
   const updatedSession = await prisma.$transaction(async (tx) => {
     const session = await tx.workSession.update({
       where: { id: sessionId },
       data: {
         hoursApproved,
-        reviewComments: typeof reviewComments === "string" ? reviewComments : null,
+        reviewComments: typeof reviewComments === "string" ? sanitize(reviewComments) : null,
         reviewedAt: new Date(),
         reviewedBy: authCheck.session.user.id,
       },

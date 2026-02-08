@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { SessionCategory, MediaType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
+import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 const VALID_CATEGORIES: SessionCategory[] = [
@@ -35,7 +36,8 @@ function validateMedia(media: unknown): MediaInput[] {
       m !== null &&
       (m.type === "IMAGE" || m.type === "VIDEO") &&
       typeof m.url === "string" &&
-      m.url.length > 0
+      m.url.length > 0 &&
+      isValidUrl(m.url)
   )
 }
 

@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
-import { Permission, hasPermission, getUserRoles } from "@/lib/permissions"
+import { Permission, hasPermission } from "@/lib/permissions"
 import { logAdminAction, AuditAction } from "@/lib/audit"
 import { Role } from "@/app/generated/prisma/client"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
 
 export async function GET(
   request: Request,
@@ -60,13 +58,14 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const authCheck = await requirePermission(Permission.MANAGE_USERS)
+  if (authCheck.error) return authCheck.error
 
-  const actorRoles = await getUserRoles(session.user.id)
   const { id } = await params
+
+  const isSelf = id === authCheck.session.user.id
+
+  const actorRoles = authCheck.roles
   const body = await request.json()
 
   const { fraudConvicted, roles: newRoles } = body
@@ -99,18 +98,25 @@ export async function PATCH(
     const rolesToAdd = validatedNewRoles.filter((r) => !currentRoles.includes(r))
     const rolesToRemove = currentRoles.filter((r) => !validatedNewRoles.includes(r))
 
+    if (isSelf && rolesToRemove.length > 0) {
+      return NextResponse.json(
+        { error: "Cannot remove roles from your own account" },
+        { status: 403 }
+      )
+    }
+
     for (const role of rolesToAdd) {
       await prisma.userRole.create({
         data: {
           user: { connect: { id } },
           role,
-          grantedBy: session.user.id,
+          grantedBy: authCheck.session.user.id,
         },
       })
       await logAdminAction(
         AuditAction.ADMIN_GRANT_ROLE,
-        session.user.id,
-        session.user.email ?? undefined,
+        authCheck.session.user.id,
+        authCheck.session.user.email ?? undefined,
         "User",
         id,
         { role }
@@ -123,8 +129,8 @@ export async function PATCH(
       })
       await logAdminAction(
         AuditAction.ADMIN_REVOKE_ROLE,
-        session.user.id,
-        session.user.email ?? undefined,
+        authCheck.session.user.id,
+        authCheck.session.user.email ?? undefined,
         "User",
         id,
         { role }
@@ -133,7 +139,13 @@ export async function PATCH(
   }
 
   if (typeof fraudConvicted === "boolean") {
-    if (!hasPermission(actorRoles, Permission.MANAGE_USERS)) {
+    if (isSelf) {
+      return NextResponse.json(
+        { error: "Cannot modify fraud status on your own account" },
+        { status: 403 }
+      )
+    }
+    if (!hasPermission(actorRoles, Permission.FLAG_FRAUD)) {
       return NextResponse.json(
         { error: "Forbidden: MANAGE_USERS permission required" },
         { status: 403 }
@@ -148,8 +160,8 @@ export async function PATCH(
     if (fraudConvicted !== existingUser.fraudConvicted) {
       await logAdminAction(
         fraudConvicted ? AuditAction.ADMIN_FLAG_FRAUD : AuditAction.ADMIN_UNFLAG_FRAUD,
-        session.user.id,
-        session.user.email ?? undefined,
+        authCheck.session.user.id,
+        authCheck.session.user.email ?? undefined,
         "User",
         id,
         { oldValue: existingUser.fraudConvicted, newValue: fraudConvicted }

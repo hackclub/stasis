@@ -5,11 +5,14 @@ import { logAudit, AuditAction } from "@/lib/audit"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
+import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
+
+const URL_FIELDS: ReadonlySet<string> = new Set(["coverImage", "githubRepo"])
 
 function pickAllowedFields(body: Record<string, unknown>): Partial<{
   title: string
@@ -26,6 +29,9 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
     if (field in body) {
       const value = body[field]
       if (typeof value === "string") {
+        if (URL_FIELDS.has(field)) {
+          if (!isValidUrl(value)) continue
+        }
         result[field] = sanitize(value)
       } else {
         result[field] = value
@@ -111,6 +117,11 @@ export async function PATCH(
   const inReview = existingProject.designStatus === "in_review" || existingProject.buildStatus === "in_review"
   if (inReview && !isAdmin) {
     return NextResponse.json({ error: "Cannot edit project while in review" }, { status: 403 })
+  }
+
+  const buildApproved = existingProject.buildStatus === "approved"
+  if (buildApproved && !isAdmin) {
+    return NextResponse.json({ error: "Cannot edit project after build approval" }, { status: 403 })
   }
 
   const body = await request.json()

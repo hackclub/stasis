@@ -14,11 +14,26 @@ const s3Client = new S3Client({
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME
 
-async function uploadToS3(file: File, folder: "images" | "videos"): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
-  
-  const ext = file.name.split(".").pop() || (folder === "videos" ? "webm" : "jpg")
+const ALLOWED_EXTENSIONS: Record<string, { mime: string; folder: "images" | "videos" }> = {
+  jpg: { mime: "image/jpeg", folder: "images" },
+  jpeg: { mime: "image/jpeg", folder: "images" },
+  png: { mime: "image/png", folder: "images" },
+  gif: { mime: "image/gif", folder: "images" },
+  webp: { mime: "image/webp", folder: "images" },
+  mp4: { mime: "video/mp4", folder: "videos" },
+  webm: { mime: "video/webm", folder: "videos" },
+  mov: { mime: "video/quicktime", folder: "videos" },
+  mkv: { mime: "video/x-matroska", folder: "videos" },
+}
+
+function getExtensionFromMime(mimeType: string): string | null {
+  for (const [ext, config] of Object.entries(ALLOWED_EXTENSIONS)) {
+    if (config.mime === mimeType) return ext
+  }
+  return null
+}
+
+async function uploadToS3(buffer: Buffer, ext: string, mime: string, folder: "images" | "videos"): Promise<string> {
   const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`
   
   await s3Client.send(
@@ -26,7 +41,7 @@ async function uploadToS3(file: File, folder: "images" | "videos"): Promise<stri
       Bucket: S3_BUCKET,
       Key: key,
       Body: buffer,
-      ContentType: file.type,
+      ContentType: mime,
     })
   )
   
@@ -38,7 +53,6 @@ async function uploadToS3(file: File, folder: "images" | "videos"): Promise<stri
   return `${publicBaseUrl.replace(/\/$/, "")}/${key}`
 }
 
-// TODO: Add rate limiting - file uploads are resource-intensive
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
@@ -53,32 +67,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    console.log("Upload request:", { name: file.name, type: file.type, size: file.size })
+    const rawExt = file.name.split(".").pop()?.toLowerCase() || ""
+    let ext = rawExt
+    let config = ALLOWED_EXTENSIONS[ext]
 
-    const imageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-    const videoTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-matroska"]
-    const allowedTypes = [...imageTypes, ...videoTypes]
-    
-    // Also allow empty type for blobs and check by extension
-    const ext = file.name.split(".").pop()?.toLowerCase()
-    const isVideoByExt = ["mp4", "webm", "mov", "mkv"].includes(ext || "")
-    
-    if (!allowedTypes.includes(file.type) && !isVideoByExt) {
-      return NextResponse.json({ error: `Invalid file type: ${file.type}. Use JPEG, PNG, GIF, WebP, MP4, WebM, or MOV` }, { status: 400 })
+    if (!config) {
+      const extFromMime = getExtensionFromMime(file.type)
+      if (extFromMime) {
+        ext = extFromMime
+        config = ALLOWED_EXTENSIONS[ext]
+      }
     }
 
-    const maxSize = 100 * 1024 * 1024 // 100MB
+    if (!config) {
+      return NextResponse.json(
+        { error: "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, MP4, WebM, MOV, MKV" },
+        { status: 400 }
+      )
+    }
+
+    const maxSize = 100 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json({ error: "File too large. Max 100MB" }, { status: 400 })
     }
 
-    const isVideo = videoTypes.includes(file.type) || isVideoByExt
-    
     if (!S3_BUCKET || !process.env.S3_ACCESS_KEY_ID) {
       return NextResponse.json({ error: "S3 not configured" }, { status: 500 })
     }
-    
-    const url = await uploadToS3(file, isVideo ? "videos" : "images")
+
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    const url = await uploadToS3(buffer, ext, config.mime, config.folder)
 
     return NextResponse.json({ url })
   } catch (error) {

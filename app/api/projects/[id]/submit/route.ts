@@ -138,7 +138,7 @@ export async function POST(
       )
     }
 
-    if (project.buildStatus !== "draft" && project.buildStatus !== "rejected" && project.buildStatus !== "approved") {
+    if (project.buildStatus !== "draft" && project.buildStatus !== "rejected" && project.buildStatus !== "update_requested") {
       return NextResponse.json(
         { error: "Build already submitted for review" },
         { status: 400 }

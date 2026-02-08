@@ -83,8 +83,6 @@ export async function GET(request: NextRequest) {
       coverImage: p.coverImage,
       images: allImages,
       tags: p.tags,
-      designStatus: p.designStatus,
-      buildStatus: p.buildStatus,
       user: p.user,
       kudosCount: p._count.kudos,
       sessionCount: p._count.workSessions,

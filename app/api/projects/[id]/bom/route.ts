@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
+import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 export async function GET(
@@ -91,7 +92,7 @@ export async function POST(
       purpose: body.purpose ? sanitize(body.purpose) : null,
       costPerItem: body.costPerItem,
       quantity: body.quantity,
-      link: body.link ? sanitize(body.link) : null,
+      link: body.link && isValidUrl(body.link) ? sanitize(body.link) : null,
       distributor: body.distributor ? sanitize(body.distributor) : null,
       projectId: id,
     },

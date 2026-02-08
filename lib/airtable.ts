@@ -1,5 +1,9 @@
 import Airtable from 'airtable';
 
+function escapeAirtableValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 function getAirtableBase() {
   const apiKey = process.env.AIRTABLE_API_KEY;
   const baseId = process.env.AIRTABLE_BASE_ID;
@@ -24,7 +28,7 @@ export async function markAccountCreationFinished(email: string): Promise<boolea
 
   const records = await base(tableName)
     .select({
-      filterByFormula: `{Email} = '${email}'`,
+      filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`,
       maxRecords: 1,
     })
     .firstPage();
@@ -82,7 +86,7 @@ export async function findRSVPByEmail(email: string): Promise<boolean> {
 
   const records = await base(tableName)
     .select({
-      filterByFormula: `{Email} = '${email}'`,
+      filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`,
       maxRecords: 1,
     })
     .firstPage();
@@ -102,7 +106,7 @@ export async function ensureRSVPExists(email: string, name?: string): Promise<vo
 
   const records = await base(tableName)
     .select({
-      filterByFormula: `{Email} = '${email}'`,
+      filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`,
       maxRecords: 1,
     })
     .firstPage();
@@ -139,7 +143,7 @@ export async function updateRSVPName(email: string, fullName: string): Promise<b
 
   const records = await base(tableName)
     .select({
-      filterByFormula: `{Email} = '${email}'`,
+      filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`,
       maxRecords: 1,
     })
     .firstPage();
@@ -164,6 +168,8 @@ export async function getReferrerByNumber(referrerNumber: number): Promise<{
   email: string;
   totalReferrals: number;
 } | null> {
+  if (!Number.isFinite(referrerNumber) || referrerNumber < 0) return null;
+
   const base = getAirtableBase();
   if (!base) return null;
 

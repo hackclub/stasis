@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
+import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 export async function PATCH(
@@ -90,7 +91,7 @@ export async function PATCH(
     updateData.quantity = body.quantity
   }
   if (body.link !== undefined) {
-    updateData.link = body.link ? sanitize(body.link) : null
+    updateData.link = body.link && isValidUrl(body.link) ? sanitize(body.link) : null
   }
   if (body.distributor !== undefined) {
     updateData.distributor = body.distributor ? sanitize(body.distributor) : null

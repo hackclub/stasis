@@ -8,10 +8,27 @@ export async function GET() {
   if (authCheck.error) return authCheck.error
 
   const users = await prisma.user.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      createdAt: true,
+      fraudConvicted: true,
+      slackId: true,
+      verificationStatus: true,
       projects: {
-        include: {
-          workSessions: true,
+        select: {
+          id: true,
+          title: true,
+          designStatus: true,
+          buildStatus: true,
+          workSessions: {
+            select: {
+              hoursClaimed: true,
+              hoursApproved: true,
+            },
+          },
           badges: true,
         },
       },

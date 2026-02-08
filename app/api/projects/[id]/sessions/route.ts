@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { SessionCategory, MediaType, ProjectStage, XPTransactionType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
+import { isValidUrl } from "@/lib/url"
 import { calculateJournalXP, getWeekNumber, isConsecutiveDay, isSameDay } from "@/lib/xp"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
@@ -38,7 +39,8 @@ function validateMedia(media: unknown): MediaInput[] {
       m !== null &&
       (m.type === "IMAGE" || m.type === "VIDEO") &&
       typeof m.url === "string" &&
-      m.url.length > 0
+      m.url.length > 0 &&
+      isValidUrl(m.url)
   )
 }
 
@@ -104,6 +106,22 @@ export async function POST(
   }
 
   const body = await request.json()
+
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const dailySessionCount = await prisma.workSession.count({
+    where: {
+      project: { userId: session.user.id },
+      createdAt: { gte: todayStart },
+    },
+  })
+  if (dailySessionCount >= 10) {
+    return NextResponse.json(
+      { error: "Daily session limit reached (max 10 per day)" },
+      { status: 429 }
+    )
+  }
+
   const { title, hoursClaimed, content, categories, media, stage: rawStage } = body
   
   // Determine stage - default to BUILD if design is approved, otherwise DESIGN

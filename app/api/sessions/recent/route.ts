@@ -22,7 +22,12 @@ export async function GET() {
       createdAt: "desc",
     },
     take: 5,
-    include: {
+    select: {
+      id: true,
+      title: true,
+      hoursClaimed: true,
+      stage: true,
+      createdAt: true,
       project: {
         select: {
           id: true,
@@ -33,6 +38,9 @@ export async function GET() {
         take: 1,
         where: {
           type: "IMAGE",
+        },
+        select: {
+          url: true,
         },
       },
     },

@@ -14,7 +14,7 @@ import { useScramble } from '@/lib/scramble';
 import { authClient } from '@/lib/auth-client';
 
 const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
-const SIGNUP_GOAL = 5000;
+const SIGNUP_GOAL = 3000;
 
 const faqs = [
   {
@@ -280,7 +280,7 @@ function HomeContent() {
             {PRELAUNCH_MODE && (
               <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-2 md:gap-3 mt-4 md:mt-6">
                 <p className="text-xs text-cream-700 uppercase tracking-wide">
-                  Stasis launches at 5,000 signups!
+                  Stasis launches at 3,000 signups!
                 </p>
                 <div className="text-center w-full max-w-sm">
                   <div className="text-3xl md:text-4xl font-bold mb-2">
