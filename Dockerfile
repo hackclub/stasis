@@ -55,4 +55,7 @@ USER nextjs
 
 EXPOSE 3000
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=10 \
+  CMD curl -f http://localhost:3000/ || exit 1
+
 CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
