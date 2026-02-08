@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
-import { createRSVP, findRSVPByEmail } from '@/lib/airtable';
+import { createRSVP, findRSVPByEmail, getReferrerByNumber } from '@/lib/airtable';
 import { sanitize } from '@/lib/sanitize';
+import { sendReferralNotification } from '@/lib/loops';
 
 const EMAIL_REGEX = /^[^\s@'"]+@[^\s@'"]+\.[^\s@'"]+$/;
 const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
@@ -50,6 +51,21 @@ export async function POST(request: NextRequest) {
         referralType: safeReferralType,
         referredBy: safeReferredBy,
       });
+      if (safeReferredBy) {
+        const referrerNumber = Number(safeReferredBy);
+        if (!isNaN(referrerNumber)) {
+          const referrer = await getReferrerByNumber(referrerNumber);
+          if (referrer) {
+            await sendReferralNotification({
+              referrerEmail: referrer.email,
+              referralLink: `https://stasis.hack.club/${referrerNumber}`,
+              totalReferrals: referrer.totalReferrals + 1,
+            }).catch((err) =>
+              console.error('Referral notification error:', err)
+            );
+          }
+        }
+      }
     } catch (error) {
       console.error('Airtable submission error:', error);
       if (isPrelaunch) {

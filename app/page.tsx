@@ -247,7 +247,7 @@ function HomeContent() {
                 { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
                 { text: "EMD\n" },
                 { text: "AE" },
-                { text: "MAY 15-17", class: "text-cream-800" },
+                { text: "MAY 15-18", class: "text-cream-800" },
                 { text: "JRG HGG" },
                 { text: "AUSTIN, TX", class: "text-cream-800" },
                 { text: "PA\nFCX XW VQQET S" },

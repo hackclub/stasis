@@ -160,6 +160,32 @@ export async function updateRSVPName(email: string, fullName: string): Promise<b
   return true;
 }
 
+export async function getReferrerByNumber(referrerNumber: number): Promise<{
+  email: string;
+  totalReferrals: number;
+} | null> {
+  const base = getAirtableBase();
+  if (!base) return null;
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+
+  const records = await base(tableName)
+    .select({
+      filterByFormula: `{Loops - stasisReferralCode} = ${referrerNumber}`,
+      fields: ['Email', 'Total Referrals'],
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  if (records.length === 0) return null;
+
+  const record = records[0];
+  return {
+    email: record.get('Email') as string,
+    totalReferrals: (record.get('Total Referrals') as number) || 0,
+  };
+}
+
 export async function getRSVPCount(): Promise<number> {
   const base = getAirtableBase();
 
