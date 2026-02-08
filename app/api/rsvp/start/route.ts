@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
-import { createRSVP } from '@/lib/airtable';
+import { createRSVP, findRSVPByEmail } from '@/lib/airtable';
 import { sanitize } from '@/lib/sanitize';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[^\s@'"]+@[^\s@'"]+\.[^\s@'"]+$/;
 const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
 
 // TODO: Add rate limiting - this is a public endpoint vulnerable to abuse
@@ -24,6 +24,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
+      );
+    }
+
+    const alreadyRSVPed = await findRSVPByEmail(safeEmail);
+    if (alreadyRSVPed) {
+      return NextResponse.json(
+        { error: 'This email has already been RSVPed' },
+        { status: 409 }
       );
     }
 

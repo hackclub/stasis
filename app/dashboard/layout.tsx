@@ -24,9 +24,9 @@ export default function DashboardLayout({
       ? pathname === '/dashboard'
       : pathname.startsWith(tabPath);
     
-    return `px-6 py-3 text-sm uppercase tracking-wider font-bold transition-colors border-b-2 -mb-[2px] ${
+    return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
       isActive
-        ? 'text-brand-500 border-brand-500'
+        ? 'text-brand-500 border-brand-500 font-bold'
         : 'text-cream-800 border-transparent hover:text-cream-900'
     }`;
   };
@@ -47,7 +47,7 @@ export default function DashboardLayout({
             <div className="space-y-6">
               <div className="text-center">
                 <h1 className="text-2xl uppercase tracking-wide text-brand-500 mb-2">
-                  You need to be logged in to see this profile
+                  You need to be logged in to view this page
                 </h1>
               </div>
               <button

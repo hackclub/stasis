@@ -44,15 +44,16 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start RSVP');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to start RSVP');
       }
 
       await authClient.signIn.oauth2({
         providerId: 'hca',
         callbackURL: '/api/rsvp/callback',
       });
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setIsSubmitting(false);
     }
   }
