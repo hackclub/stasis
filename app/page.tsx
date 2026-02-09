@@ -290,7 +290,7 @@ function HomeContent() {
                   STASIS LAUNCHES AT 3,000 SIGNUPS!
                 </p>
                 <div className="text-center w-full max-w-sm">
-                  <div className="text-[40px] font-bold mb-2">
+                  <div className="text-[40px] mb-2">
                     <span className="text-brand-500">{signupCount.toLocaleString()}</span> <span className="text-cream-900">/ {SIGNUP_GOAL.toLocaleString()}</span>
                   </div>
                   
