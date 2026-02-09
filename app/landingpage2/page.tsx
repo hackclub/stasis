@@ -2,19 +2,19 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import PageBorder from './components/PageBorder';
-import { DottedLine } from './components/DottedLine';
-import { NoiseOverlay } from './components/NoiseOverlay';
-import { MagneticCorners } from './components/MagneticCorners';
-import { HoverScramble } from './components/HoverScramble';
-import { ASCIIArt } from './components/ASCIIArt';
+import PageBorder from '../components/PageBorder';
+import { DottedLine } from '../components/DottedLine';
+import { NoiseOverlay } from '../components/NoiseOverlay';
+import { MagneticCorners } from '../components/MagneticCorners';
+import { HoverScramble } from '../components/HoverScramble';
+import { ASCIIArt } from '../components/ASCIIArt';
 
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
 import { authClient } from '@/lib/auth-client';
 
 const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
-const SIGNUP_GOAL = 3000;
+const SIGNUP_GOAL = 5000;
 
 const faqs = [
   {
@@ -56,7 +56,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
   return <span ref={ref} className={className}>{children}</span>;
 }
 
-function HomeContent() {
+function LandingPage2Content() {
   const searchParams = useSearchParams();
   const referralType = searchParams.get('t');
   const referralCode = searchParams.get('r');
@@ -209,9 +209,9 @@ function HomeContent() {
       `}</style>
 
       <div className="min-h-screen relative md:pt-12 z-0" style={{ paddingBottom: footerHeight }}>
-        <div className="mx-auto max-w-[460px] pt-20 pb-16 md:pt-32 md:pb-24 *:py-6 *:md:py-16">
+        <div className="mx-auto max-w-md pt-20 pb-16 md:pt-32 md:pb-24 *:py-6 *:md:py-16">
           {/* Vertical dotted lines (desktop) */}
-          <div className="absolute left-1/2 top-0 h-full w-full max-w-[460px] -translate-x-1/2 pointer-events-none md:block hidden">
+          <div className="absolute left-1/2 top-0 h-full w-full max-w-md -translate-x-1/2 pointer-events-none md:block hidden">
             <div className="absolute left-0 top-0 h-full">
               <DottedLine orientation="vertical" />
             </div>
@@ -220,7 +220,7 @@ function HomeContent() {
             </div>
           </div>
 
-          <div className="space-y-8 md:space-y-12 px-5 md:px-0">
+          <div className="space-y-8 md:space-y-12 px-5 md:px-2">
             {/* Header */}
             <header className="text-center">
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -249,29 +249,29 @@ function HomeContent() {
               <ASCIIArt art={asciiArt.earth} horizontalPosition={35} />
 
               <HoverScramble
-              segments={[
-                { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
-                { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
-                { text: "EMD\n" },
-                { text: "AE" },
-                { text: "MAY 15-18", class: "text-cream-800" },
-                { text: "JRG HGG" },
-                { text: "AUSTIN, TX", class: "text-cream-800" },
-                { text: "PA\nFCX XW VQQET S" },
-                { text: "COMPLETELY FREE", class: "text-cream-800" },
-                { text: "M\nC LQW" },
-                { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
-                { text: "\nC" },
-                { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
-                { text: "MEXDLB LEZ\nYRE  VJ URVSP LWOSH JWPOX I SFF" }
-              ]}
-              initialScramble={true}
-              initialDuration={2.5}
-              initialStagger={1.2}
-              initialDelay={0.8}
-              continuousScramble={false}
-              continuousSpeed={25}
-              className="font-mono font-medium text-[0.95rem] sm:text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-nowrap overflow-hidden bg-[#DAD2BF50]"
+                segments={[
+                  { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
+                  { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
+                  { text: "EMD\n" },
+                  { text: "AE" },
+                  { text: "MAY 15-18", class: "text-cream-800" },
+                  { text: "JRG HGG" },
+                  { text: "AUSTIN, TX", class: "text-cream-800" },
+                  { text: "PA\nFCX XW VQQET S" },
+                  { text: "COMPLETELY FREE", class: "text-cream-800" },
+                  { text: "M\nC LQW" },
+                  { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
+                  { text: "\nC" },
+                  { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
+                  { text: "MEXDLB LEZ\nYRE  VJ URVSP LWOSH JWPOX I SFF" }
+                ]}
+                initialScramble={true}
+                initialDuration={2.5}
+                initialStagger={1.2}
+                initialDelay={0.8}
+                continuousScramble={false}
+                continuousSpeed={25}
+                className="font-mono font-medium text-[0.95rem] sm:text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-pre-line bg-[#DAD2BF50]"
               />
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -286,26 +286,24 @@ function HomeContent() {
             {/* Prelaunch Progress Section */}
             {PRELAUNCH_MODE && (
               <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-2 md:gap-3 mt-4 md:mt-6">
-                <p className="text-[18px] text-cream-700">
-                  STASIS LAUNCHES AT 3,000 SIGNUPS!
+                <p className="text-xs text-cream-700 uppercase tracking-wide">
+                  STASIS LAUNCHES AT 5,000 SIGNUPS!
                 </p>
                 <div className="text-center w-full max-w-sm">
-                  <div className="text-[40px] font-bold mb-2">
-                    <span className="text-brand-500">{signupCount.toLocaleString()}</span> <span className="text-cream-900">/ {SIGNUP_GOAL.toLocaleString()}</span>
+                  <div className="text-3xl md:text-4xl font-bold mb-2">
+                    <span className="text-brand-500">{signupCount.toLocaleString()}</span> <span className="text-cream-600">/ {SIGNUP_GOAL.toLocaleString()}</span>
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="w-full h-[27px] bg-[#d95d39] py-[2px] px-[6px]">
-                    <div className="h-full bg-cream-50 overflow-hidden flex">
-                      <div 
-                        className="h-full bg-[#d95d39] transition-all duration-500 ease-out"
-                        style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
-                      />
-                      <div 
-                        className="h-full bg-gold-500 transition-all duration-500 ease-out"
-                        style={{ width: `${Math.max(Math.min((recentCount / SIGNUP_GOAL) * 100, 100), 0)}%` }}
-                      />
-                    </div>
+                  <div className="w-full h-[27px] border-y-2 border-x-[6px] border-[#d95d39] relative overflow-hidden flex">
+                    <div 
+                      className="h-full bg-[#d95d39] transition-all duration-500 ease-out"
+                      style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
+                    />
+                    <div 
+                      className="h-full bg-gold-500 transition-all duration-500 ease-out"
+                      style={{ width: `${Math.max(Math.min((recentCount / SIGNUP_GOAL) * 100, 100), 0)}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -318,7 +316,7 @@ function HomeContent() {
             )}
 
             {/* Sign Up / RSVP Section */}
-            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-[3px] mt-4 md:mt-6">
+            <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-3 md:gap-4 mt-4 md:mt-6">
               {PRELAUNCH_MODE && success ? (
                 <div className="text-center py-4">
                   <p className="text-brand-500 font-medium">
@@ -330,13 +328,13 @@ function HomeContent() {
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-row gap-5 w-full items-center">
+                  <div className="flex flex-row gap-2 sm:gap-3 w-full max-w-sm">
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
-                      className="min-w-0 flex-1 h-[47px] px-3 bg-[#e9e3d6] border border-black text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[18px]"
+                      className="flex-1 min-w-0 px-3 py-2.5 bg-[#e9e3d6] border border-black text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-sm md:text-base"
                       placeholder="you@example.com"
                     />
                     <MagneticCorners offset={12}>
@@ -344,10 +342,10 @@ function HomeContent() {
                         <button
                           onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
                           disabled={isSubmitting}
-                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] border-2 border-[#DAD2BF] px-8 py-2 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] px-5 sm:px-6 py-2.5 text-sm sm:text-base uppercase tracking-wider text-brand-900 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          <span className={`text-[22px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
-                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[18px] text-[#4a230f]">...</span>}
+                          <span className={isSubmitting ? 'invisible' : ''}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
+                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center">...</span>}
                         </button>
                       </MagneticCorners>
                     </MagneticCorners>
@@ -357,7 +355,7 @@ function HomeContent() {
                     <p className="text-brand-500 text-sm">{error}</p>
                   )}
 
-                  <p className="text-[14px] text-cream-700 text-left w-full">
+                  <p className="text-xs text-cream-700 text-center">
                     For high schoolers aged 13-18.
                   </p>
 
@@ -385,30 +383,31 @@ function HomeContent() {
 
             {/* How You Qualify */}
             <section className="space-y-3 md:space-y-4">
-              <h2 className="text-[24px] uppercase leading-normal">
+              <h2 className="text-lg sm:text-xl md:text-2xl uppercase tracking-wide">
                 <ScrambleText>{">>: How You Qualify"}</ScrambleText>
               </h2>
-              <ul className="space-y-2 text-[18px] [&>li]:pl-4 [&>li]:-indent-4 leading-relaxed text-left">
-                <li><ScrambleText>• Design hardware projects using three hardware skills, get $$ to build it</ScrambleText></li>
-                <li><ScrambleText>• Earn a badge for each skill you learn</ScrambleText></li>
-                <li><ScrambleText>• Get five badges and fly to Austin, TX! (travel stipends available)</ScrambleText></li>
+              <ul className="space-y-2 text-base md:text-lg [&>li]:pl-4 [&>li]:-indent-4 leading-relaxed text-justify">
+                <li><ScrambleText>· Design hardware projects using three hardware skills, get $$ to build it</ScrambleText></li>
+                <li><ScrambleText>· Earn a badge for each skill you learn</ScrambleText></li>
+                <li><ScrambleText>· Get six badges and fly to Austin, TX! (travel stipends available)</ScrambleText></li>
               </ul>
 
               {/* Badges */}
               <div className="pt-2">
-                <div className="relative mt-4">
-                  {/* BADGES heading - overlaps top edge of bracket box */}
-                  <div className="absolute -top-[12px] left-0 right-0 flex items-center justify-center gap-3 z-10">
-                    <div className="w-[35px] h-px bg-[#d95d39]" />
-                    <span className="text-xl uppercase tracking-wider text-[#d95d39] px-1">Badges</span>
-                    <div className="w-[35px] h-px bg-[#d95d39]" />
-                  </div>
+                {/* BADGES heading with full-width lines */}
+                <div className="flex items-center gap-3 mb-0">
+                  <div className="flex-1 h-px bg-[#d95d39]" />
+                  <span className="text-xl uppercase tracking-wider text-[#d95d39]">Badges</span>
+                  <div className="flex-1 h-px bg-[#d95d39]" />
+                </div>
+                {/* Bracket box */}
+                <div className="relative mt-2">
                   {/* Corner brackets */}
                   <div className="absolute left-0 top-0 w-[18px] h-[18px] border-l-[3px] border-t-[3px] border-[#d95d39]" />
                   <div className="absolute right-0 top-0 w-[18px] h-[18px] border-r-[3px] border-t-[3px] border-[#d95d39]" />
                   <div className="absolute left-0 bottom-0 w-[18px] h-[18px] border-l-[3px] border-b-[3px] border-[#d95d39]" />
                   <div className="absolute right-0 bottom-0 w-[18px] h-[18px] border-r-[3px] border-b-[3px] border-[#d95d39]" />
-                  <ul className="grid grid-cols-2 gap-x-1 gap-y-0 text-[17px] leading-[25px] [&>li]:pl-4 [&>li]:-indent-4 px-4 py-3 pt-5">
+                  <ul className="grid grid-cols-2 gap-x-1 gap-y-0 text-[17px] leading-[25px] [&>li]:pl-4 [&>li]:-indent-4 px-4 py-3">
                     <li><ScrambleText>· I2C</ScrambleText></li>
                     <li><ScrambleText>· Displays</ScrambleText></li>
                     <li><ScrambleText>· SPI</ScrambleText></li>
@@ -426,8 +425,8 @@ function HomeContent() {
                     <li><ScrambleText>· CAD</ScrambleText></li>
                     <li><ScrambleText>· 4-Layer PCBs</ScrambleText></li>
                   </ul>
+                  <div className="text-right text-xs text-[#d95d39] pr-2 pb-1">16/16</div>
                 </div>
-                <div className="text-right text-xs text-cream-700 mt-1">16/16</div>
               </div>
             </section>
 
@@ -443,26 +442,26 @@ function HomeContent() {
 
             {/* FAQ */}
             <section className="space-y-3 md:space-y-4 mb-8 md:mb-12">
-              <h2 className="text-[24px] uppercase leading-normal mb-3 md:mb-4"><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
+              <h2 className="text-base sm:text-lg md:text-xl uppercase tracking-wide mb-3 md:mb-4"><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
                   <div key={i} className={`border-b border-[#443c38] ${openIndex === i ? 'bg-[rgba(156,143,136,0.19)]' : ''}`}>
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}
-                      className="w-full text-left text-[18px] cursor-pointer"
+                      className="w-full text-left text-sm md:text-base cursor-pointer"
                     >
-                      <div className="flex items-center justify-between py-4">
+                      <div className="flex items-center justify-between py-3 md:py-2.5 px-1">
                         <span>
                           <span className="mr-1">{'>'}</span>
                           <ScrambleText>{faq.question}</ScrambleText>
                         </span>
-                        <span className="ml-3 mr-1 flex-shrink-0">
+                        <span className="text-xl ml-3 md:ml-4 mr-1 md:mr-2 flex-shrink-0">
                           {openIndex === i ? '×' : '+'}
                         </span>
                       </div>
                       {openIndex === i && (
                         <div
-                          className="pb-4 text-cream-800 faq leading-relaxed"
+                          className="pb-3 md:pb-2.5 px-1 pr-6 md:pr-8 text-cream-800 faq leading-relaxed"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
                       )}
@@ -481,10 +480,10 @@ function HomeContent() {
   );
 }
 
-export default function Home() {
+export default function LandingPage2() {
   return (
     <Suspense>
-      <HomeContent />
+      <LandingPage2Content />
     </Suspense>
   );
 }

@@ -214,4 +214,27 @@ export async function getRSVPCount(): Promise<number> {
   return count;
 }
 
+export async function getRSVPCountLast24Hours(): Promise<number> {
+  const base = getAirtableBase();
+
+  if (!base) {
+    return 0;
+  }
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+
+  let count = 0;
+  await base(tableName)
+    .select({
+      fields: ['Email'],
+      filterByFormula: "IS_AFTER(CREATED_TIME(), DATEADD(NOW(), -24, 'hours'))",
+    })
+    .eachPage((records, fetchNextPage) => {
+      count += records.length;
+      fetchNextPage();
+    });
+
+  return count;
+}
+
 
