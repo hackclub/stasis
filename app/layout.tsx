@@ -23,16 +23,16 @@ const libreBarcode39 = Libre_Barcode_39({
 });
 
 export const metadata: Metadata = {
-  title: "Hack Club Stasis",
+  title: "Stasis",
   description: "A 50/50 High School Hardware Hackathon in Austin, TX on May 15-18",
   openGraph: {
-    title: "Hack Club Stasis",
+    title: "Stasis",
     description: "A 50/50 High School Hardware Hackathon in Austin, TX on May 15-18",
-    siteName: "Hack Club Stasis",
+    siteName: "Stasis",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hack Club Stasis",
+    title: "Stasis",
     description: "A 50/50 High School Hardware Hackathon in Austin, TX on May 15-18",
   },
 };

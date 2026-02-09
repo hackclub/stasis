@@ -231,7 +231,7 @@ function HomeContent() {
               <div className="mb-2 md:mb-4 py-1 w-full h-auto relative">
                 <img
                   src="/stasis-logo.svg"
-                  alt="Hack Club Stasis"
+                  alt="Stasis"
                   className="absolute -translate-x-[2%] md:-translate-x-0 scale-105 md:scale-[116%] -translate-y-[28%] origin-bottom md:origin-bottom-right select-none pointer-events-none"
                 />
                 <img
