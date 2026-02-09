@@ -228,11 +228,11 @@ function HomeContent() {
               </div>
 
               {/* Logo */}
-              <div className="mb-2 md:mb-4 py-1 w-full h-auto relative">
+              <div className="mb-2 md:mb-4 w-full h-auto relative">
                 <img
                   src="/stasis-logo.svg"
                   alt="Stasis"
-                  className="absolute -translate-x-[2%] md:-translate-x-0 scale-105 md:scale-[116%] -translate-y-[28%] origin-bottom md:origin-bottom-right select-none pointer-events-none"
+                  className="absolute -translate-x-[2%] md:-translate-x-4 scale-105 md:scale-[107%] -translate-y-[28%] origin-bottom md:origin-bottom-right select-none pointer-events-none"
                 />
                 <img
                   src="/stasis-text.svg"
@@ -263,7 +263,7 @@ function HomeContent() {
                 { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
                 { text: "\nC" },
                 { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
-                { text: "MEXDLB LEZ\nYRE  VJ URVSP LWOSH JWPOX I SFF" }
+                { text: "MEXDLB LEZ\nYRE VJ URVSP LWOSH JWPOX I SFF" }
               ]}
               initialScramble={true}
               initialDuration={2.5}
@@ -271,7 +271,7 @@ function HomeContent() {
               initialDelay={0.8}
               continuousScramble={false}
               continuousSpeed={25}
-              className="font-mono font-medium text-[0.95rem] sm:text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-nowrap overflow-hidden bg-[#DAD2BF50]"
+              className="font-mono text-[0.95rem] sm:text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-nowrap overflow-hidden bg-[#DAD2BF50] py-1"
               />
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -285,29 +285,27 @@ function HomeContent() {
 
             {/* Prelaunch Progress Section */}
             {PRELAUNCH_MODE && (
-              <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-2 md:gap-3 mt-4 md:mt-6">
-                <p className="text-[18px] text-cream-700">
-                  STASIS LAUNCHES AT 3,000 SIGNUPS!
+              <div className="flex flex-col items-center py-2 mb-0 z-1 relative w-full gap-1">
+                <p className="text-[14px] md:text-[18px] text-cream-700 -mt-1">
+                  STASIS LAUNCHES AT 3,000 RSVPS!
                 </p>
-                <div className="text-center w-full max-w-sm">
-                  <div className="text-[40px] mb-2">
-                    <span className="text-brand-500">{signupCount.toLocaleString()}</span> <span className="text-cream-900">/ {SIGNUP_GOAL.toLocaleString()}</span>
+                <div className="w-full md:px-5 -mt-2">
+                  <div className="text-center whitespace-nowrap text-[40px]">
+                    <span className="text-[#d95d39]">{signupCount.toLocaleString()}</span> <span className="text-cream-800">/ {SIGNUP_GOAL.toLocaleString()}</span>
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="w-full h-[27px] bg-[#d95d39] py-[2px] px-[6px]">
-                    <div className="h-full bg-cream-50 overflow-hidden flex">
-                      <div 
+                    <div className="w-full h-6 border-box border-x-6 border-y-2 border-[#d95d39] overflow-hidden flex">
+                      {/* <div 
                         className="h-full bg-[#d95d39] transition-all duration-500 ease-out"
                         style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
-                      />
+                      /> */}
                       <div 
                         className="h-full bg-gold-500 transition-all duration-500 ease-out"
                         style={{ width: `${Math.max(Math.min((recentCount / SIGNUP_GOAL) * 100, 100), 0)}%` }}
                       />
                     </div>
                   </div>
-                </div>
               </div>
             )}
 
@@ -330,24 +328,25 @@ function HomeContent() {
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-row gap-5 w-full items-center">
+                  <div className="flex flex-row gap-5 w-full md:px-5 items-center">
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
-                      className="min-w-0 flex-1 h-[47px] px-3 bg-[#e9e3d6] border border-black text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[18px]"
+                      className="min-w-0 flex-1 h-[47px] px-3 bg-[#e9e3d6] border border-black text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[14px] md:text-[18px]"
                       placeholder="you@example.com"
                     />
+                    
                     <MagneticCorners offset={12}>
                       <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                         <button
                           onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
                           disabled={isSubmitting}
-                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] border-2 border-[#DAD2BF] px-8 h-[43px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors box-border"
                         >
-                          <span className={`text-[22px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
-                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[18px] text-[#4a230f]">...</span>}
+                          <span className={`text-[24px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
+                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[14px] md:text-[18px] text-[#4a230f]">...</span>}
                         </button>
                       </MagneticCorners>
                     </MagneticCorners>
@@ -357,7 +356,7 @@ function HomeContent() {
                     <p className="text-brand-500 text-sm">{error}</p>
                   )}
 
-                  <p className="text-[14px] text-cream-700 text-left w-full">
+                  <p className="text-[14px] text-cream-600 text-left w-full mt-2 md:mt-0 md:px-5 ">
                     For high schoolers aged 13-18.
                   </p>
 
@@ -384,18 +383,18 @@ function HomeContent() {
             </div>
 
             {/* How You Qualify */}
-            <section className="space-y-3 md:space-y-4">
-              <h2 className="text-[24px] uppercase leading-normal">
+            <section className="space-y-3 md:space-y-4 md:px-5 py-1">
+              <h2 className="text-[24px] uppercase text-cream-700">
                 <ScrambleText>{">>: How You Qualify"}</ScrambleText>
               </h2>
-              <ul className="space-y-2 text-[18px] [&>li]:pl-4 [&>li]:-indent-4 leading-relaxed text-left">
+              <ul className="space-y-2 text-[14px] md:text-[18px] [&>li]:pl-4 [&>li]:-indent-4 leading-snug text-left text-cream-700">
                 <li><ScrambleText>• Design hardware projects using three hardware skills, get $$ to build it</ScrambleText></li>
                 <li><ScrambleText>• Earn a badge for each skill you learn</ScrambleText></li>
                 <li><ScrambleText>• Get five badges and fly to Austin, TX! (travel stipends available)</ScrambleText></li>
               </ul>
 
               {/* Badges */}
-              <div className="pt-2">
+              <div className="pt-1">
                 <div className="relative mt-4">
                   {/* BADGES heading - overlaps top edge of bracket box */}
                   <div className="absolute -top-[12px] left-0 right-0 flex items-center justify-center gap-3 z-10">
@@ -408,26 +407,30 @@ function HomeContent() {
                   <div className="absolute right-0 top-0 w-[18px] h-[18px] border-r-[3px] border-t-[3px] border-[#d95d39]" />
                   <div className="absolute left-0 bottom-0 w-[18px] h-[18px] border-l-[3px] border-b-[3px] border-[#d95d39]" />
                   <div className="absolute right-0 bottom-0 w-[18px] h-[18px] border-r-[3px] border-b-[3px] border-[#d95d39]" />
-                  <ul className="grid grid-cols-2 gap-x-1 gap-y-0 text-[17px] leading-[25px] [&>li]:pl-4 [&>li]:-indent-4 px-4 py-3 pt-5">
-                    <li><ScrambleText>· I2C</ScrambleText></li>
-                    <li><ScrambleText>· Displays</ScrambleText></li>
-                    <li><ScrambleText>· SPI</ScrambleText></li>
-                    <li><ScrambleText>· Motors</ScrambleText></li>
-                    <li><ScrambleText>· WiFi</ScrambleText></li>
-                    <li><ScrambleText>· Cameras</ScrambleText></li>
-                    <li><ScrambleText>· Bluetooth</ScrambleText></li>
-                    <li><ScrambleText>· Metal/Machining</ScrambleText></li>
-                    <li><ScrambleText>· Other RF</ScrambleText></li>
-                    <li><ScrambleText>· Wood & Fasteners</ScrambleText></li>
-                    <li><ScrambleText>· Analog Sensors</ScrambleText></li>
-                    <li><ScrambleText>· Machine Learning</ScrambleText></li>
-                    <li><ScrambleText>· Digital Sensors</ScrambleText></li>
-                    <li><ScrambleText>· MCU Integration</ScrambleText></li>
-                    <li><ScrambleText>· CAD</ScrambleText></li>
-                    <li><ScrambleText>· 4-Layer PCBs</ScrambleText></li>
-                  </ul>
+                  <div className="grid grid-cols-2 gap-x-1 gap-y-0 text-[14px] md:text-[16px] leading-[25px]  px-4 py-3 pt-5">
+                    <ul className="[&>li]:pl-4 [&>li]:-indent-4">
+                      <li><ScrambleText>· I2C</ScrambleText></li>
+                      <li><ScrambleText>· SPI</ScrambleText></li>
+                      <li><ScrambleText>· WiFi</ScrambleText></li>
+                      <li><ScrambleText>· Bluetooth</ScrambleText></li>
+                      <li><ScrambleText>· Other RF</ScrambleText></li>
+                      <li><ScrambleText>· Analog Sensors</ScrambleText></li>
+                      <li><ScrambleText>· Digital Sensors</ScrambleText></li>
+                      <li><ScrambleText>· MCU Integration</ScrambleText></li>
+                    </ul>
+                    <ul className="[&>li]:pl-4 [&>li]:-indent-4">
+                      <li><ScrambleText>· Displays</ScrambleText></li>
+                      <li><ScrambleText>· Motors</ScrambleText></li>
+                      <li><ScrambleText>· Cameras</ScrambleText></li>
+                      <li><ScrambleText>· Metal/Machining</ScrambleText></li>
+                      <li><ScrambleText>· Machine Learning</ScrambleText></li>
+                      <li><ScrambleText>· Wood & Fasteners</ScrambleText></li>
+                      <li><ScrambleText>· CAD</ScrambleText></li>
+                      <li><ScrambleText>· 4-Layer PCBs</ScrambleText></li>
+                    </ul>
+                  </div>
                 </div>
-                <div className="text-right text-xs text-cream-700 mt-1">16/16</div>
+                <div className="text-right text-xs text-cream-400 mt-1">16/16</div>
               </div>
             </section>
 
@@ -442,18 +445,18 @@ function HomeContent() {
             <ASCIIArt art={asciiArt.donut} horizontalPosition={12} />
 
             {/* FAQ */}
-            <section className="space-y-3 md:space-y-4 mb-8 md:mb-12">
-              <h2 className="text-[24px] uppercase leading-normal mb-3 md:mb-4"><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
+            <section className="text-cream-700 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12">
+              <h2 className="text-[24px] uppercase leading-normal mb-0 md:mb-2 "><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
-                  <div key={i} className={`border-b border-[#443c38] ${openIndex === i ? 'bg-[rgba(156,143,136,0.19)]' : ''}`}>
+                  <div key={i} className={`border-b-[1.5] border-cream-700 ${openIndex === i ? 'bg-cream-300/50' : ''}`}>
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}
-                      className="w-full text-left text-[18px] cursor-pointer"
+                      className="w-full text-left text-[14px] md:text-[18px] cursor-pointer"
                     >
-                      <div className="flex items-center justify-between py-4 px-4">
+                      <div className="flex items-center justify-between py-3 px-4">
                         <span>
-                          <span className="mr-1">{'>'}</span>
+                          <span className="mr-1">{'> '}</span>
                           <ScrambleText>{faq.question}</ScrambleText>
                         </span>
                         <span className="ml-3 mr-1 flex-shrink-0">
@@ -462,7 +465,7 @@ function HomeContent() {
                       </div>
                       {openIndex === i && (
                         <div
-                          className="pb-4 px-4 text-cream-800 faq leading-relaxed"
+                          className="pb-4 px-4 text-cream-700 faq leading-snug"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
                       )}
