@@ -344,7 +344,7 @@ function HomeContent() {
                         <button
                           onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
                           disabled={isSubmitting}
-                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] border-2 border-[#DAD2BF] px-8 py-2 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] border-2 border-[#DAD2BF] px-8 h-[43px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <span className={`text-[22px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
                           {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[18px] text-[#4a230f]">...</span>}
@@ -451,7 +451,7 @@ function HomeContent() {
                       onClick={(e) => { handleClick(e); toggle(i); }}
                       className="w-full text-left text-[18px] cursor-pointer"
                     >
-                      <div className="flex items-center justify-between py-4">
+                      <div className="flex items-center justify-between py-4 px-4">
                         <span>
                           <span className="mr-1">{'>'}</span>
                           <ScrambleText>{faq.question}</ScrambleText>
@@ -462,7 +462,7 @@ function HomeContent() {
                       </div>
                       {openIndex === i && (
                         <div
-                          className="pb-4 text-cream-800 faq leading-relaxed"
+                          className="pb-4 px-4 text-cream-800 faq leading-relaxed"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
                       )}
