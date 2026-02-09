@@ -13,6 +13,7 @@ import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
 import { authClient } from '@/lib/auth-client';
 
+
 const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
 const SIGNUP_GOAL = 3000;
 
@@ -43,7 +44,7 @@ const faqs = [
   },
   {
     question: "Who's eligible?",
-    answer: "To be eligible for Stasis, you must be between the ages of <mark>13 and 18</mark> (<b>inclusive</b>), and you must be able to attend the event in person."
+    answer: "To be eligible for Stasis, you must be between the ages of <mark>13 and 18</mark> (inclusive), and you must be able to attend the event in person."
   },
   {
     question: "I have more questions!",
@@ -204,7 +205,7 @@ function HomeContent() {
         .faq :global(mark) {
           background-color: #d95d39;
           color: #dad2bf;
-          padding: 0.1em 0.25em;
+          padding: 0.05em 0.15em;
         }
       `}</style>
 
@@ -459,8 +460,8 @@ function HomeContent() {
                           <span className="mr-1">{'> '}</span>
                           <ScrambleText>{faq.question}</ScrambleText>
                         </span>
-                        <span className="ml-3 mr-1 flex-shrink-0">
-                          {openIndex === i ? '×' : '+'}
+                        <span className="ml-3 mr-1 flex-shrink-0 transition-all duration-300 ease-in-out" style={{ transform: openIndex === i ? 'rotate(45deg)' : 'rotate(0deg)' }}>
+                          <img src="/plus.svg" alt="" className="w-4 h-4" />
                         </span>
                       </div>
                       {openIndex === i && (
