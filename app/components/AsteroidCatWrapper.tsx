@@ -13,9 +13,9 @@ export default function AsteroidCatWrapper() {
   const asteroidCatRef = useRef<AsteroidCatRef>(null);
 
   useEffect(() => {
-    if (asteroidCatRef.current) {
-      window.__stasisAsteroidCat = asteroidCatRef.current;
-    }
+    window.__stasisAsteroidCat = {
+      trigger: () => asteroidCatRef.current?.trigger()
+    };
     return () => {
       delete window.__stasisAsteroidCat;
     };
