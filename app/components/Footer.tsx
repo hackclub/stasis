@@ -26,10 +26,10 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
   return (
     <footer className="pointer-events-auto pt-16 relative">
       <div
-        className="pointer-events-auto pb-12 px-4"
-        style={{ paddingLeft: `max(1rem, ${inset})`, paddingRight: `max(1rem, ${inset})` }}
+        className="text-center pointer-events-auto pb-12 px-4
+        "
       >
-        <div className="mx-auto max-w-md w-max">
+        <div className="mx-auto w-full">
           <p className="font-mono text-xs md:text-sm">
             Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers
           </p>
