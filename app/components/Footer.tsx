@@ -29,11 +29,11 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
         className="text-center pointer-events-auto pb-12 px-4
         "
       >
-        <div className="mx-auto w-full">
+        <div className="mx-auto w-full text-center">
           <p className="font-mono text-xs md:text-sm">
             Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers
           </p>
-          <div className="mt-2">
+          <div className="mt-2 mx-auto">
             <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hack Club</a>
             <span>・</span>
             <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Slack</a>
