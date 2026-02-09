@@ -25,6 +25,7 @@ const libreBarcode39 = Libre_Barcode_39({
 export const metadata: Metadata = {
   title: "Stasis",
   description: "A 50/50 High School Hardware Hackathon in Austin, TX on May 15-18",
+  themeColor:"#C4B9A2",
   openGraph: {
     title: "Stasis",
     description: "A 50/50 High School Hardware Hackathon in Austin, TX on May 15-18",
@@ -46,6 +47,8 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.svg" />
+        <meta name="msapplication-navbutton-color" content="#C4B9A2" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="#C4B9A2" />
       </head>
       <body className={`antialiased ${departureMono.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
         {children}
