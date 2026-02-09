@@ -51,8 +51,9 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
     if (konamiCompletedRef.current) return;
 
     if (direction === KONAMI_SEQUENCE[konamiProgressRef.current]) {
-      setActivatedArrows(prev => new Set([...prev, konamiProgressRef.current]));
-      triggerFlash([konamiProgressRef.current]);
+      const currentIndex = konamiProgressRef.current;
+      setActivatedArrows(prev => new Set([...prev, currentIndex]));
+      triggerFlash([currentIndex]);
       konamiProgressRef.current++;
       setKonamiProgress(konamiProgressRef.current);
 
