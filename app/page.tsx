@@ -296,13 +296,13 @@ function HomeContent() {
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="w-full h-6 border-box border-x-6 border-y-2 border-[#d95d39] overflow-hidden flex">
+                  <div className="w-full h-6 border-box border-x-6 border-y-2 border-[#d95d39] overflow-hidden flex px-[0.1rem] items-center">
                         <div 
-                          className="h-full bg-[#d95d39] transition-all duration-500 ease-out"
+                          className="h-4 bg-[#d95d39] transition-all duration-500 ease-out"
                           style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
                         />
                         <div 
-                          className="h-full bg-gold-500 transition-all duration-500 ease-out"
+                          className="h-4 bg-gold-500 transition-all duration-500 ease-out"
                           style={{ width: `${Math.max(Math.min((recentCount / SIGNUP_GOAL) * 100, 100), 0)}%` }}
                         />
                       </div>
