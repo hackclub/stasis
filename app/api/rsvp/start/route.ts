@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { createRSVP, findRSVPByEmail, getReferrerByNumber } from '@/lib/airtable';
 import { sanitize } from '@/lib/sanitize';
-import { sendReferralNotification } from '@/lib/loops';
+import { addContactToLoops, sendReferralNotification } from '@/lib/loops';
 
 const EMAIL_REGEX = /^[^\s@'"]+@[^\s@'"]+\.[^\s@'"]+$/;
 const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
@@ -75,6 +75,12 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+
+    const referralCodeNumber = safeReferredBy ? Number(safeReferredBy) : undefined;
+    addContactToLoops({
+      email: safeEmail,
+      referralCode: !isNaN(referralCodeNumber as number) ? referralCodeNumber : undefined,
+    }).catch((err) => console.error('Loops contact creation error:', err));
 
     if (isPrelaunch) {
       return NextResponse.json({ success: true });

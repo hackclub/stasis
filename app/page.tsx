@@ -288,7 +288,7 @@ function HomeContent() {
             {PRELAUNCH_MODE && (
               <div className="flex flex-col items-center py-2 mb-0 z-1 relative w-full gap-1">
                 <p className="text-[14px] md:text-[18px] text-cream-700 -mt-1">
-                  STASIS LAUNCHES AT 3,000 RSVPS!
+                  STASIS LAUNCHES AT {SIGNUP_GOAL.toLocaleString()} SIGNUPS!
                 </p>
                 <div className="w-full md:px-5 -mt-2">
                   <div className="text-center whitespace-nowrap text-[40px]">
@@ -296,17 +296,26 @@ function HomeContent() {
                   </div>
                   
                   {/* Progress Bar */}
-                    <div className="w-full h-6 border-box border-x-6 border-y-2 border-[#d95d39] overflow-hidden flex">
-                      {/* <div 
-                        className="h-full bg-[#d95d39] transition-all duration-500 ease-out"
-                        style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
-                      /> */}
-                      <div 
-                        className="h-full bg-gold-500 transition-all duration-500 ease-out"
-                        style={{ width: `${Math.max(Math.min((recentCount / SIGNUP_GOAL) * 100, 100), 0)}%` }}
-                      />
+                  <div className="relative group">
+                    <div className="w-full h-[27px] bg-[#d95d39] py-[2px] px-[6px]">
+                      <div className="h-full bg-cream-50 overflow-hidden flex">
+                        <div 
+                          className="h-full bg-[#d95d39] transition-all duration-500 ease-out"
+                          style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
+                        />
+                        <div 
+                          className="h-full bg-gold-500 transition-all duration-500 ease-out"
+                          style={{ width: `${Math.max(Math.min((recentCount / SIGNUP_GOAL) * 100, 100), 0)}%` }}
+                        />
+                      </div>
                     </div>
+                    {recentCount > 0 && (
+                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-cream-700 whitespace-nowrap pointer-events-none">
+                        +{recentCount} in the last 24h
+                      </div>
+                    )}
                   </div>
+                </div>
               </div>
             )}
 
@@ -329,25 +338,29 @@ function HomeContent() {
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-row gap-5 w-full md:px-5 items-center">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
-                      className="min-w-0 flex-1 h-[47px] px-3 bg-[#e9e3d6] border border-black text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[14px] md:text-[18px]"
-                      placeholder="you@example.com"
-                    />
-                    
+                  <div className="flex flex-row gap-[7px] w-full md:px-5 items-stretch">
+                    <div className="relative min-w-0 flex-1">
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
+                        className="w-full h-[47px] px-3 bg-[#e9e3d6] border border-cream-800 text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[14px] md:text-[18px]"
+                        placeholder="bobberson@email.com"
+                      />
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, currentColor 2px, currentColor 3px)', backgroundSize: '100% 3px' }} />
+                    </div>
+
                     <MagneticCorners offset={12}>
                       <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                         <button
                           onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
                           disabled={isSubmitting}
-                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors box-border"
+                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] w-[146px] h-[57px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <span className={`text-[24px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
-                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[14px] md:text-[18px] text-[#4a230f]">...</span>}
+                          <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
+                          <span className={`text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
+                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[18px] text-[#4a230f]">...</span>}
                         </button>
                       </MagneticCorners>
                     </MagneticCorners>
@@ -357,7 +370,7 @@ function HomeContent() {
                     <p className="text-brand-500 text-sm">{error}</p>
                   )}
 
-                  <p className="text-[14px] text-cream-600 text-left w-full mt-2 md:mt-0 md:px-5 ">
+                  <p className="text-[14px] text-cream-600 text-left w-full mt-2 md:mt-0 md:px-5">
                     For high schoolers aged 13-18.
                   </p>
 
