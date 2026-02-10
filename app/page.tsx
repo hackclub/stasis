@@ -338,7 +338,7 @@ function HomeContent() {
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-row gap-[7px] w-full md:px-5 items-stretch">
+                  <div className="flex flex-row gap-4 w-full md:px-5 items-stretch">
                     <div className="relative min-w-0 flex-1">
                       <input
                         type="email"
@@ -348,7 +348,7 @@ function HomeContent() {
                         className="w-full h-[47px] px-3 bg-[#e9e3d6] border border-cream-800 text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[14px] md:text-[18px]"
                         placeholder="bobberson@email.com"
                       />
-                      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, currentColor 2px, currentColor 3px)', backgroundSize: '100% 3px' }} />
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]" />
                     </div>
 
                     <MagneticCorners offset={12}>
@@ -356,7 +356,7 @@ function HomeContent() {
                         <button
                           onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
                           disabled={isSubmitting}
-                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#c85a35] w-[146px] h-[57px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors box-border"
                         >
                           <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
                           <span className={`text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
