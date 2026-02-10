@@ -29,10 +29,14 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
   const [activatedArrows, setActivatedArrows] = useState<Set<number>>(new Set());
   const [flashingArrows, setFlashingArrows] = useState<Set<number>>(new Set());
   const [konamiCompleted, setKonamiCompleted] = useState(false);
+  const [footerLoaded, setFooterLoaded] = useState(false);
   
   const footerRef = useRef<HTMLDivElement>(null);
+  const footerLoadedRef = useRef(false);
+
   const konamiProgressRef = useRef(0);
   const konamiCompletedRef = useRef(false);
+  
 
   const triggerFlash = useCallback((arrowIndices: number[]) => {
     setFlashingArrows(new Set(arrowIndices));
@@ -81,10 +85,10 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
   resetKonamiRef.current = resetKonami;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-      setBottomVisible(true);
-    }, 100);
+    // const timer = setTimeout(() => {
+    //   setMounted(true);
+    //   setBottomVisible(true);
+    // }, 100);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const keyMap: Record<string, string> = {
@@ -107,7 +111,13 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         const height = footerRef.current.offsetHeight;
         setFooterHeight(height);
         onFooterHeightChange?.(height);
+
+        if (height > 0 && !footerLoadedRef.current) {
+          footerLoadedRef.current = true;
+          setFooterLoaded(true);
+        }
       }
+
       setContainerHeight(document.body.scrollHeight);
     };
 
@@ -118,7 +128,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
     window.addEventListener('resize', updateHeight);
 
     return () => {
-      clearTimeout(timer);
+      // clearTimeout(timer);
       resizeObserver.disconnect();
       window.removeEventListener('resize', updateHeight);
       window.removeEventListener('keydown', handleKeyDown);
@@ -127,6 +137,17 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
   }, [onFooterHeightChange]);
 
   const arrowDirections: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right'];
+
+  useEffect(() => {
+    if (footerLoaded) {
+      const timer = setTimeout(() => {
+        setMounted(true);
+        setBottomVisible(true);
+      }, 100); 
+
+      return () => clearTimeout(timer);
+    }
+  }, [footerLoaded]);
 
   return (
     <>
