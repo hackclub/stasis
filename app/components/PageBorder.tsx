@@ -490,7 +490,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
 
         {/* Footer */}
         <div className="absolute left-0 right-0" style={{ bottom: 0 }} ref={footerRef}>
-          <Footer inset={inset} />
+          <Footer />
         </div>
       </div>
     </>
