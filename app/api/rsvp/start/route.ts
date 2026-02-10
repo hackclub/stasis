@@ -44,13 +44,17 @@ export async function POST(request: NextRequest) {
                headersList.get('x-real-ip') ||
                'unknown';
 
+    let newReferralCode: number | undefined;
     try {
-      await createRSVP({
+      const rsvpResult = await createRSVP({
         email: safeEmail,
         ip,
         referralType: safeReferralType,
         referredBy: safeReferredBy,
       });
+      if (rsvpResult?.referralCode) {
+        newReferralCode = rsvpResult.referralCode;
+      }
       if (safeReferredBy) {
         const referrerNumber = Number(safeReferredBy);
         if (!isNaN(referrerNumber)) {
@@ -76,10 +80,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const referralCodeNumber = safeReferredBy ? Number(safeReferredBy) : undefined;
     addContactToLoops({
       email: safeEmail,
-      referralCode: !isNaN(referralCodeNumber as number) ? referralCodeNumber : undefined,
+      referralCode: newReferralCode,
     }).catch((err) => console.error('Loops contact creation error:', err));
 
     if (isPrelaunch) {

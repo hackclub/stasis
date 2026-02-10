@@ -72,7 +72,10 @@ export async function createRSVP(data: {
     fields['Referred By'] = Number(data.referredBy);
   }
 
-  return base(tableName).create([{ fields }]);
+  const result = await base(tableName).create([{ fields }]);
+  const record = result[0];
+  const referralCode = record.get('Loops - stasisReferralCode') as number | undefined;
+  return { referralCode: referralCode ?? null };
 }
 
 export async function findRSVPByEmail(email: string): Promise<boolean> {
