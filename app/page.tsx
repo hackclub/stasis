@@ -59,7 +59,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
 
 function HomeContent() {
   const searchParams = useSearchParams();
-  const referralType = searchParams.get('t');
+  const referralType = searchParams.get('t') || searchParams.get('utm_source');
   const referralCode = searchParams.get('r');
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
