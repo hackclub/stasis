@@ -296,9 +296,7 @@ function HomeContent() {
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="relative group">
-                    <div className="w-full h-[27px] bg-[#d95d39] py-[2px] px-[6px]">
-                      <div className="h-full bg-cream-50 overflow-hidden flex">
+                  <div className="w-full h-6 border-box border-x-6 border-y-2 border-[#d95d39] overflow-hidden flex">
                         <div 
                           className="h-full bg-[#d95d39] transition-all duration-500 ease-out"
                           style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
@@ -314,8 +312,7 @@ function HomeContent() {
                         +{recentCount} in the last 24h
                       </div>
                     )}
-                  </div>
-                </div>
+          
               </div>
             )}
 
@@ -338,7 +335,7 @@ function HomeContent() {
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-row gap-4 w-full md:px-5 items-stretch">
+                  <div className="flex flex-row items-center gap-4 w-full md:px-5">
                     <div className="relative min-w-0 flex-1">
                       <input
                         type="email"
@@ -346,7 +343,7 @@ function HomeContent() {
                         onChange={(e) => setEmail(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
                         className="w-full h-[47px] px-3 bg-[#e9e3d6] border border-cream-800 text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[14px] md:text-[18px]"
-                        placeholder="bobberson@email.com"
+                        placeholder="example@email.com"
                       />
                       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]" />
                     </div>
