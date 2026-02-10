@@ -36,7 +36,7 @@ const faqs = [
   },
   {
     question: "What does 50/50 mean?",
-    answer: "Stasis will have an <mark>equal split</mark> of hackers that are male-identifying and hackers that are underrepresented in tech because of their gender. If you identify with a gender that is a minority in STEM, then you fall in the underrepresented 50. If you identify with a gender that is a majority in STEM, you fall into the male-identifying 50."
+    answer: "Stasis will have an <mark>equal split</mark> of hackers that are male-identifying and hackers that are underrepresented in tech because of their gender. If you identify with a gender that is a minority in STEM, then you fall in the underrepresented half. If you identify with a gender that is a majority in STEM, you fall into the male-identifying half."
   },
   {
     question: "Is this legit? What's Hack Club?",
