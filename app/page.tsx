@@ -22,10 +22,7 @@ const faqs = [
     question: "How do I qualify for Stasis?",
     answer: "To qualify for Stasis, you need to earn <mark>5 badges</mark> by building hardware projects. Each badge is a skill you learn and demonstrate in your projects. You can only earn <mark>up to 3 badges per project</mark>, so you'll need to build at least 2 projects to attend. In addition to earning 5 badges, spend <mark>10 hours</mark> building your projects and you'll earn your ticket to Stasis!"
   },
-  {
-    question: "How many spots are there?",
-    answer: "Stasis will have <mark>100 teenagers</mark> from all over the world, with spots being <mark>first come first serve</mark>, so get started as soon as you can!"
-  },
+
   {
     question: "I don't know hardware!",
     answer: "Don't worry! Stasis is <mark>100% beginner friendly</mark>, we have a ton of starter projects for you to start learning skills, and if you complete and build a starter project, you can get 3 badges!"
