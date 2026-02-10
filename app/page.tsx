@@ -20,7 +20,7 @@ const SIGNUP_GOAL = 3000;
 const faqs = [
   {
     question: "How do I qualify for Stasis?",
-    answer: "To qualify for Stasis, you need to earn <mark>5 badges</mark> by building hardware projects. Each badge is a skill you learn and demonstrate in your projects. You can only earn <mark>up to 3 badges per project</mark>, so you'll need to build at least 2 projects to attend. In addition to earning 6 badges, spend <mark>10 hours</mark> building your projects and you'll earn your ticket to Stasis!"
+    answer: "To qualify for Stasis, you need to earn <mark>5 badges</mark> by building hardware projects. Each badge is a skill you learn and demonstrate in your projects. You can only earn <mark>up to 3 badges per project</mark>, so you'll need to build at least 2 projects to attend. In addition to earning 5 badges, spend <mark>10 hours</mark> building your projects and you'll earn your ticket to Stasis!"
   },
   {
     question: "How many spots are there?",
