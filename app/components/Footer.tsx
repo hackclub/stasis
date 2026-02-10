@@ -24,7 +24,7 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
   }, [handleMouseMove]);
 
   return (
-    <footer className="pointer-events-auto pt-16 relative">
+    <footer className="bg-blue-400 pointer-events-auto pt-16">
       <div
         className="text-center pointer-events-auto pb-12 px-4
         "
