@@ -125,6 +125,9 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
 
     const resizeObserver = new ResizeObserver(updateHeight);
     resizeObserver.observe(document.body);
+    if (footerRef.current) {
+      resizeObserver.observe(footerRef.current);
+    }
     window.addEventListener('resize', updateHeight);
 
     return () => {
