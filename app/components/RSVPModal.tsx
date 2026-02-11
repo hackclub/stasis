@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { MagneticCorners } from './MagneticCorners';
 import { authClient } from '@/lib/auth-client';
 
@@ -14,10 +14,12 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false);
 
   if (!isOpen) return null;
 
   async function handleContinue() {
+    if (submittingRef.current) return;
     if (!email.trim()) {
       setError('Please enter your email');
       return;
@@ -35,6 +37,7 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
 
     setError('');
     setIsSubmitting(true);
+    submittingRef.current = true;
 
     try {
       const response = await fetch('/api/rsvp/start', {
@@ -55,6 +58,7 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setIsSubmitting(false);
+      submittingRef.current = false;
     }
   }
 

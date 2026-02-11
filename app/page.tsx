@@ -69,6 +69,7 @@ function HomeContent() {
   const [recentCount, setRecentCount] = useState(0);
   const [displayCount, setDisplayCount] = useState(0);
   const pageWrapperRef = useRef<HTMLDivElement>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (pageWrapperRef.current) {
@@ -118,6 +119,7 @@ function HomeContent() {
   }, [signupCount]);
 
   async function handleSignUp() {
+    if (submittingRef.current) return;
     if (!email.trim()) {
       setError('Please enter your email');
       return;
@@ -130,6 +132,7 @@ function HomeContent() {
 
     setError('');
     setIsSubmitting(true);
+    submittingRef.current = true;
 
     try {
       const response = await fetch('/api/rsvp/start', {
@@ -149,10 +152,12 @@ function HomeContent() {
     } catch {
       setError('Something went wrong. Please try again.');
       setIsSubmitting(false);
+      submittingRef.current = false;
     }
   }
 
   async function handlePrelaunchRSVP() {
+    if (submittingRef.current) return;
     if (!email.trim()) {
       setError('Please enter your email');
       return;
@@ -165,6 +170,7 @@ function HomeContent() {
 
     setError('');
     setIsSubmitting(true);
+    submittingRef.current = true;
 
     try {
       const response = await fetch('/api/rsvp/start', {
@@ -185,6 +191,7 @@ function HomeContent() {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
+      submittingRef.current = false;
     }
   }
 
