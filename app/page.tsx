@@ -32,10 +32,6 @@ const faqs = [
     answer: "Yes! If you follow a starter project's tutorial and build it, you can earn <mark>up to 3 badges</mark>. This can only be done once, however, so you can't complete 2 starter projects and get 5 badges."
   },
   {
-    question: "What does 50/50 mean?",
-    answer: "Stasis will have an <mark>equal split</mark> of hackers that are male-identifying and hackers that are underrepresented in tech because of their gender. If you identify with a gender that is a minority in STEM, then you fall in the underrepresented half. If you identify with a gender that is a majority in STEM, you fall into the male-identifying half."
-  },
-  {
     question: "Is this legit? What's Hack Club?",
     answer: "<a href='https://hackclub.com'>Hack Club</a> is the world's largest community of teenage makers, and a <mark>501(c)(3) nonprofit</mark>. Hack Club is supported by donations from tech companies like GitHub and individuals like Michael Dell. Hack Club is <a href='https://hcb.hackclub.com/hq'>fiscally transparent</a>."
   },
@@ -281,11 +277,11 @@ function HomeContent() {
 
               <HoverScramble
               segments={[
-                { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU" },
-                { text: "50/50 HARDWARE HACKATHON", class: "text-cream-800" },
-                { text: "EMD\n" },
+                { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU XR" },
+                { text: "HARDWARE HACKATHON", class: "text-cream-800" },
+                { text: "QJ EMD\n" },
                 { text: "AE" },
-                { text: "MAY 15-18", class: "text-cream-800" },
+                { text: "MAY 15-19", class: "text-cream-800" },
                 { text: "JRG HGG" },
                 { text: "AUSTIN, TX", class: "text-cream-800" },
                 { text: "PA\nFCX XW VQQET S" },
