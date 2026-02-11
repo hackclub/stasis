@@ -25,9 +25,9 @@ export default function GuidesContent() {
   const currentPage = GUIDE_PAGES.find(p => p.id === activeGuidePage);
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-      {/* Sidebar Navigation - dropdown on mobile, vertical sidebar on desktop */}
-      <div className="w-full md:w-56 shrink-0">
+    <div className="relative flex flex-col md:block">
+      {/* Sidebar Navigation - dropdown on mobile, absolutely positioned on desktop */}
+      <div className="w-full md:w-56 md:absolute md:right-[calc(50%+theme(maxWidth.3xl)/2+1.5rem)]">
         <nav className="bg-cream-100 border-2 border-cream-400 p-3 md:p-4 md:sticky md:top-8">
           {/* Mobile: dropdown menu */}
           <div className="md:hidden relative">
@@ -116,7 +116,7 @@ export default function GuidesContent() {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 min-w-0">
+      <div className="max-w-3xl mx-auto w-full">
         {activeGuidePage === 'submission-guidelines' && (
           <div className="bg-cream-100 border-2 border-cream-400 p-4 md:p-6">
             <h1 className="text-brand-500 text-xl md:text-2xl uppercase tracking-wide mb-4 md:mb-6">Submission Guidelines</h1>
