@@ -30,11 +30,19 @@ export const metadata: Metadata = {
     title: "Stasis",
     description: "A High School Hardware Hackathon in Austin, TX on May 15-19",
     siteName: "Stasis",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Stasis",
     description: "A High School Hardware Hackathon in Austin, TX on May 15-19",
+    images: ["/og-image.png"],
   },
 };
 
