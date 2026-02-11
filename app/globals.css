@@ -49,6 +49,11 @@ body {
 	-webkit-tap-highlight-color: transparent;
 }
 
+::selection {
+	background-color: var(--color-brand-500);
+	color: var(--color-cream-100);
+}
+
 /* Better touch targets on mobile */
 @media (max-width: 768px) {
 	button, a {

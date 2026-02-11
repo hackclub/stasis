@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PageBorder from './components/PageBorder';
 import { DottedLine } from './components/DottedLine';
@@ -67,6 +67,15 @@ function HomeContent() {
   const [success, setSuccess] = useState(false);
   const [signupCount, setSignupCount] = useState(0);
   const [recentCount, setRecentCount] = useState(0);
+  const [displayCount, setDisplayCount] = useState(0);
+  const pageWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (pageWrapperRef.current) {
+      (window as any).__stasisPageWrapper = pageWrapperRef.current;
+    }
+    return () => { delete (window as any).__stasisPageWrapper; };
+  }, []);
 
   useEffect(() => {
     if (!PRELAUNCH_MODE) return;
@@ -88,6 +97,25 @@ function HomeContent() {
     const interval = setInterval(fetchCount, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (signupCount === 0) return;
+
+    const duration = 1500;
+    const start = performance.now();
+    const startValue = Math.max(displayCount, 0);
+
+    function animate(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayCount(Math.max(0, Math.round(startValue + (signupCount - startValue) * eased)));
+      if (progress < 1) requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signupCount]);
 
   async function handleSignUp() {
     if (!email.trim()) {
@@ -178,7 +206,7 @@ function HomeContent() {
   }
 
   return (
-    <div className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-cream-800 bg-container overflow-x-hidden">
+    <div ref={pageWrapperRef} className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-cream-800 bg-container overflow-x-hidden">
       <style jsx>{`
         .bg-container::before {
           content: '';
@@ -226,25 +254,23 @@ function HomeContent() {
               </div>
 
               {/* Logo */}
-              <div className="mb-2 md:mb-4 w-full h-auto relative">
+              <div className="mb-2 md:mb-4 w-full relative" style={{ aspectRatio: '625/81' }}>
                 <img
                   src="/stasis-logo.svg"
                   alt="Stasis"
+                  width={727}
+                  height={147}
                   className="absolute -translate-x-[2%] md:-translate-x-4 scale-105 md:scale-[107%] -translate-y-[28%] origin-bottom md:origin-bottom-right select-none pointer-events-none"
                 />
-                <img
-                  src="/stasis-text.svg"
-                  alt=""
-                  className="opacity-0 pointer-events-none select-none"
-                />
+                <div className="opacity-0 pointer-events-none select-none" style={{ aspectRatio: '625/81', width: '100%' }} />
               </div>
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
                 <DottedLine orientation="horizontal" />
               </div>
 
-              <ASCIIArt art={asciiArt.hackclub} horizontalPosition={80} />
-              <ASCIIArt art={asciiArt.earth} horizontalPosition={35} />
+              <ASCIIArt art={asciiArt.hackclub} horizontalPosition={80} verticalOffset="5rem" />
+              <ASCIIArt art={asciiArt.earth} horizontalPosition={35} verticalOffset="12rem" />
 
               <HoverScramble
               segments={[
@@ -289,7 +315,7 @@ function HomeContent() {
                 </p>
                 <div className="w-full md:px-5 -mt-2">
                   <div className="text-center whitespace-nowrap text-[40px]">
-                    <span className="text-[#d95d39]">{signupCount.toLocaleString()}</span> <span className="text-cream-800">/ {SIGNUP_GOAL.toLocaleString()}</span>
+                    <span className="text-[#d95d39]">{displayCount.toLocaleString()}</span> <span className="text-cream-800">/ {SIGNUP_GOAL.toLocaleString()}</span>
                   </div>
                   
                   {/* Progress Bar */}
@@ -360,13 +386,13 @@ function HomeContent() {
                     </MagneticCorners>
                   </div>
 
-                  {error && (
-                    <p className="text-brand-500 text-sm">{error}</p>
-                  )}
-
                   <p className="text-[14px] text-cream-600 text-left w-full mt-2 md:mt-0 md:px-5">
                     For high schoolers aged 13-18.
                   </p>
+
+                  {error && (
+                    <p className="text-brand-500 text-sm">{error}</p>
+                  )}
 
                   {!PRELAUNCH_MODE && (
                     <button
@@ -446,18 +472,18 @@ function HomeContent() {
               <DottedLine orientation="horizontal" />
             </div>
 
-            <ASCIIArt art={asciiArt.fish} horizontalPosition={65} />
-            <ASCIIArt art={asciiArt.cat} horizontalPosition={85} />
-            <ASCIIArt art={asciiArt.roflcopter} horizontalPosition={35} verticalOffset="30rem" />
-            <ASCIIArt art={asciiArt.duck} horizontalPosition={90} verticalOffset="28rem" />
-            <ASCIIArt art={asciiArt.donut} horizontalPosition={12} />
+            <ASCIIArt art={asciiArt.fish} horizontalPosition={65} verticalOffset="55rem" />
+            <ASCIIArt art={asciiArt.cat} horizontalPosition={85} verticalOffset="62rem" />
+            <ASCIIArt art={asciiArt.roflcopter} horizontalPosition={35} verticalOffset="85rem" />
+            <ASCIIArt art={asciiArt.duck} horizontalPosition={90} verticalOffset="90rem" />
+            <ASCIIArt art={asciiArt.donut} horizontalPosition={12} verticalOffset="48rem" />
 
             {/* FAQ */}
             <section className="text-cream-700 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12">
               <h2 className="text-[24px] uppercase leading-normal mb-0 md:mb-2 "><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
-                  <div key={i} className={`border-b-[1.5] border-cream-700 ${openIndex === i ? 'bg-cream-300/50' : ''}`}>
+                  <div key={i} className={`border-b-[1.5] border-cream-700 transition-colors duration-300 ${openIndex === i ? 'bg-cream-300/25' : ''}`}>
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}
                       className="w-full text-left text-[14px] md:text-[18px] cursor-pointer"
@@ -471,13 +497,18 @@ function HomeContent() {
                           <img src="/plus.svg" alt="" className="w-4 h-4" />
                         </span>
                       </div>
-                      {openIndex === i && (
+                    </button>
+                    <div
+                      className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+                      style={{ gridTemplateRows: openIndex === i ? '1fr' : '0fr' }}
+                    >
+                      <div className="overflow-hidden">
                         <div
                           className="pb-4 px-4 text-cream-700 faq leading-snug"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
-                      )}
-                    </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
