@@ -103,7 +103,8 @@ export function MagneticCorners({
       `}</style>
       <div
         ref={containerRef}
-        className={`magnetic-corners-wrapper relative inline-block ${isActive ? 'active' : ''} ${className || ''}`}
+        className={`magnetic-corners-wrapper relative inline-block ${isActive ? 'active cursor-pointer' : ''} ${className || ''}`}
+        onClick={isActive ? handleHitboxClick : undefined}
       >
         {children}
         

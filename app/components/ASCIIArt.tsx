@@ -8,7 +8,7 @@ type Props = Readonly<{
   verticalOffset?: string;
 }>;
 
-export function ASCIIArt({ art, horizontalPosition, verticalOffset = '-50%' }: Props) {
+export function ASCIIArt({ art, horizontalPosition, verticalOffset = '0' }: Props) {
   const [mouseX, setMouseX] = useState(0);
   const [mouseY, setMouseY] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,7 +29,7 @@ export function ASCIIArt({ art, horizontalPosition, verticalOffset = '-50%' }: P
     <div
       ref={containerRef}
       className="absolute max-sm:hidden pointer-events-none select-none -z-1"
-      style={{ left: `${horizontalPosition}%`, transform: `translate(-50%, ${verticalOffset})` }}
+      style={{ left: `${horizontalPosition}%`, top: verticalOffset, transform: 'translateX(-50%)' }}
     >
       <pre className="text-cream-800/12 text-[0.7rem] leading-[1.2] whitespace-pre font-mono text-left">
         {art}
