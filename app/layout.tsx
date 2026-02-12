@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: "Stasis",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
       },
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Stasis",
     description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
-    images: ["/og-image.png"],
+    images: ["/og-image.jpg"],
   },
 };
 
