@@ -23,6 +23,7 @@ const libreBarcode39 = Libre_Barcode_39({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://stasis.hackclub.com"),
   title: "Stasis",
   description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
   themeColor:"#C4B9A2",
