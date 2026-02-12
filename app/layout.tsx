@@ -24,11 +24,11 @@ const libreBarcode39 = Libre_Barcode_39({
 
 export const metadata: Metadata = {
   title: "Stasis",
-  description: "A High School Hardware Hackathon in Austin, TX on May 15-19",
+  description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
   themeColor:"#C4B9A2",
   openGraph: {
     title: "Stasis",
-    description: "A High School Hardware Hackathon in Austin, TX on May 15-19",
+    description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
     siteName: "Stasis",
     images: [
       {
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Stasis",
-    description: "A High School Hardware Hackathon in Austin, TX on May 15-19",
+    description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
     images: ["/og-image.png"],
   },
 };
