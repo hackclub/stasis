@@ -20,7 +20,7 @@ const SIGNUP_GOAL = 3000;
 const faqs = [
   {
     question: "How do I qualify for Stasis?",
-    answer: "To qualify for Stasis, you need to earn <mark>5 badges</mark> by building hardware projects. Each badge is a skill you learn and demonstrate in your projects. You can only earn <mark>up to 3 badges per project</mark>, so you'll need to build at least 2 projects to attend. In addition to earning 5 badges, spend <mark>10 hours</mark> building your projects and you'll earn your ticket to Stasis!"
+    answer: "To qualify for Stasis, just make <mark>3 hardware projects</mark> (~45 hours) and you'll earn your ticket to Stasis!"
   },
 
   {
@@ -424,10 +424,9 @@ function HomeContent() {
               <h2 className="text-[24px] uppercase text-cream-700">
                 <ScrambleText>{">>: How You Qualify"}</ScrambleText>
               </h2>
-              <ul className="space-y-2 text-[14px] md:text-[18px] [&>li]:pl-4 [&>li]:-indent-4 leading-snug text-left text-cream-700">
-                <li><ScrambleText>• Design hardware projects using three hardware skills, get $$ to build it</ScrambleText></li>
-                <li><ScrambleText>• Earn a badge for each skill you learn</ScrambleText></li>
-                <li><ScrambleText>• Get five badges and fly to Austin, TX! (travel stipends available)</ScrambleText></li>
+              <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-cream-700">
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>Make 3 hardware projects (~45 hrs)</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>Fly to Austin, TX! (travel stipends available)</ScrambleText></span></li>
               </ul>
 
               {/* Badges */}
