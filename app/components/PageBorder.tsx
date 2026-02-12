@@ -37,6 +37,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
   const konamiProgressRef = useRef(0);
   const konamiCompletedRef = useRef(false);
   
+  const [allContentLoaded, setAllContentLoaded] = useState(false);
 
   const triggerFlash = useCallback((arrowIndices: number[]) => {
     setFlashingArrows(new Set(arrowIndices));
@@ -152,6 +153,31 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
     }
   }, [footerLoaded]);
 
+  useEffect(() => {
+    const handleLoad = () => {
+      setTimeout(() => {
+        setAllContentLoaded(true);
+      }, 1600);
+    };
+      if (document.readyState === 'complete') {
+    handleLoad();
+  } else {
+    window.addEventListener('load', handleLoad);
+    return () => window.removeEventListener('load', handleLoad);
+  }
+}, []);
+
+useEffect(() => {
+  if (allContentLoaded) {
+    setMounted(true);
+    setTimeout(() => {
+      setFooterLoaded(true);
+      if (footerRef.current) {
+        footerRef.current.style.opacity = '1';
+      }    
+    }, 100);
+  }
+}, [allContentLoaded]);
   return (
     <>
       <style jsx global>{`
@@ -196,6 +222,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
           from { opacity: 0; transform: translateX(-100%); }
           to { opacity: 1; transform: translateX(0); }
         }
+        
         @keyframes flashWhite {
           0% { opacity: 1; }
           100% { opacity: 0; }
@@ -513,7 +540,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         </div>
 
         {/* Footer */}
-        <div className="absolute left-0 right-0" style={{ bottom: 0 }} ref={footerRef}>
+        <div className="absolute left-0 right-0 bottom-0 opacity-0" ref={footerRef}>
           <Footer />
         </div>
       </div>
