@@ -482,14 +482,14 @@ function HomeContent() {
             <ASCIIArt art={asciiArt.donut} horizontalPosition={12} verticalOffset="48rem" />
 
             {/* FAQ */}
-            <section className="text-cream-700 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12">
+            <section className="text-cream-700 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12 text-[14px] md:text-[18px] ">
               <h2 className="text-[24px] uppercase leading-normal mb-0 md:mb-2 "><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
                   <div key={i} className={`border-b-[1.5] border-cream-700 transition-colors duration-300 ${openIndex === i ? 'bg-cream-300/25' : ''}`}>
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}
-                      className="w-full text-left text-[14px] md:text-[18px] cursor-pointer"
+                      className="w-full text-left cursor-pointer"
                     >
                       <div className="flex items-center justify-between py-3 px-4">
                         <span>
