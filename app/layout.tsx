@@ -27,6 +27,9 @@ export const metadata: Metadata = {
   title: "Stasis",
   description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
   themeColor:"#C4B9A2",
+  icons: {
+    icon: "/favicon.svg",
+  },
   openGraph: {
     title: "Stasis",
     description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
@@ -55,7 +58,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.svg" />
         <meta name="msapplication-navbutton-color" content="#C4B9A2" />
         <meta name="apple-mobile-web-app-status-bar-style" content="#C4B9A2" />
       </head>
