@@ -313,7 +313,7 @@ function HomeContent() {
             {/* Prelaunch Progress Section */}
             {PRELAUNCH_MODE && (
               <div className="flex flex-col items-center py-2 mb-0 z-1 relative w-full gap-1">
-                <p className="text-[14px] md:text-[18px] text-cream-700 -mt-1">
+                <p className="text-[14px] md:text-[18px] text-cream-800 -mt-1">
                   STASIS LAUNCHES AT {SIGNUP_GOAL.toLocaleString()} SIGNUPS!
                 </p>
                 <div className="w-full md:px-5 -mt-2">
@@ -333,8 +333,10 @@ function HomeContent() {
                         />
                       </div>
                     </div>
+
+                    {/* is this doing anything?? */}
                     {recentCount > 0 && (
-                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-cream-700 whitespace-nowrap pointer-events-none">
+                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-cream-800 whitespace-nowrap pointer-events-none">
                         +{recentCount} in the last 24h
                       </div>
                     )}
@@ -355,7 +357,7 @@ function HomeContent() {
                   <p className="text-brand-500 font-medium">
                     <ScrambleText>You&apos;re on the list!</ScrambleText>
                   </p>
-                  <p className="text-sm text-cream-700 mt-2">
+                  <p className="text-sm text-cream-800 mt-2">
                     <ScrambleText>Check your email for more information.</ScrambleText>
                   </p>
                 </div>
@@ -389,7 +391,7 @@ function HomeContent() {
                     </MagneticCorners>
                   </div>
 
-                  <p className="text-[14px] text-cream-600 text-left w-full mt-2 md:mt-0 md:px-5">
+                  <p className="text-[14px] text-cream-400 text-left w-full mt-2 md:mt-0 md:px-5">
                     For high schoolers aged 13-18.
                   </p>
 
@@ -400,7 +402,7 @@ function HomeContent() {
                   {!PRELAUNCH_MODE && (
                     <button
                       onClick={handleLogin}
-                      className="text-sm text-cream-700 hover:text-brand-500 underline cursor-pointer transition-colors"
+                      className="text-sm text-cream-800 hover:text-brand-500 underline cursor-pointer transition-colors"
                     >
                       Already have an account? Log in
                     </button>
@@ -421,10 +423,10 @@ function HomeContent() {
 
             {/* How You Qualify */}
             <section className="space-y-3 md:space-y-4 md:px-5 py-1">
-              <h2 className="text-[24px] uppercase text-cream-700">
+              <h2 className="text-[24px] uppercase text-cream-800">
                 <ScrambleText>{">>: How You Qualify"}</ScrambleText>
               </h2>
-              <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-cream-700">
+              <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-cream-800">
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>Make 3 hardware projects (~45 hrs)</ScrambleText></span></li>
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>Fly to Austin, TX! (travel stipends available)</ScrambleText></span></li>
               </ul>
@@ -481,11 +483,11 @@ function HomeContent() {
             <ASCIIArt art={asciiArt.donut} horizontalPosition={12} verticalOffset="48rem" />
 
             {/* FAQ */}
-            <section className="text-cream-700 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12 text-[14px] md:text-[18px] ">
+            <section className="text-cream-800 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12 text-[14px] md:text-[18px] ">
               <h2 className="text-[24px] uppercase leading-normal mb-0 md:mb-2 "><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
-                  <div key={i} className={`border-b-[1.5] border-cream-700 transition-colors duration-300 ${openIndex === i ? 'bg-cream-300/25' : ''}`}>
+                  <div key={i} className={`border-b-[1.5] border-cream-800 transition-colors duration-300 ${openIndex === i ? 'bg-cream-300/25' : ''}`}>
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}
                       className="w-full text-left cursor-pointer"
@@ -506,7 +508,7 @@ function HomeContent() {
                     >
                       <div className="overflow-hidden">
                         <div
-                          className="pb-4 px-4 text-cream-700 faq leading-snug"
+                          className="pb-4 px-4 text-cream-800 faq leading-snug"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
                       </div>
