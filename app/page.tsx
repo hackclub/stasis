@@ -28,8 +28,8 @@ const faqs = [
     answer: "Don't worry! Stasis is <mark>100% beginner friendly</mark>, we have a ton of starter projects for you to start learning skills, and if you complete and build a starter project, you can get 3 badges!"
   },
   {
-    question: "Wait, I can get badges from learning hardware?",
-    answer: "Yes! If you follow a starter project's tutorial and build it, you can earn <mark>up to 3 badges</mark>. This can only be done once, however, so you can't complete 2 starter projects and get 5 badges."
+    question: "What are the badges about?",
+    answer: "With each hardware skill you use in your project, you can earn a badge that goes on your profile page! Special merch will be given out to those who reach <mark>5 badges</mark>, and you'll also be mailed a real-life badge so you can show off your skills!<br><br>Each project can earn a maximum of <mark>3 badges</mark> and must meet each badge's criteria."
   },
   {
     question: "Is this legit? What's Hack Club?",
