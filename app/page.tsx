@@ -469,7 +469,7 @@ function HomeContent() {
                     </ul>
                   </div>
                 </div>
-                <div className="text-right text-xs text-cream-400 mt-1">16/16</div>
+                <div aria-hidden="true" className="text-right text-xs text-cream-400 mt-1">16/16</div>
               </div>
             </section>
 
