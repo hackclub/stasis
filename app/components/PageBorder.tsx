@@ -378,9 +378,10 @@ useEffect(() => {
         }
       `}</style>
 
-      <div 
-        className="pointer-events-none absolute inset-0 z-50 transition-all duration-300" 
+      <div
+        className="pointer-events-none absolute inset-0 z-50 transition-all duration-300"
         style={{ height: containerHeight }}
+        aria-hidden="true"
       >
         {/* Top line */}
         <div 
@@ -470,8 +471,8 @@ useEffect(() => {
             return (
               <div key={i} className={`arrow-wrapper inline-block overflow-hidden relative ${activatedArrows.has(i) ? 'activated' : ''} ${flashingArrows.has(i) ? 'flash' : ''}`}>
                 <span>
-                  <img className="arrow-dark transition-opacity duration-50" src="/pixel-arrow-dark.png" alt={dir} style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
-                  <img className="arrow-light opacity-0 absolute top-0 left-0 transition-opacity duration-50" src="/pixel-arrow.png" alt={dir} style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
+                  <img className="arrow-dark transition-opacity duration-50" src="/pixel-arrow-dark.png" alt="" style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
+                  <img className="arrow-light opacity-0 absolute top-0 left-0 transition-opacity duration-50" src="/pixel-arrow.png" alt="" style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
                   <img className="arrow-white" src="/pixel-arrow.png" alt="" style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)`, filter: 'brightness(5)', opacity: 0 }} />
                 </span>
               </div>
@@ -530,8 +531,8 @@ useEffect(() => {
             return (
               <div key={i} className={`arrow-wrapper inline-block overflow-hidden relative ${activatedArrows.has(i) ? 'activated' : ''} ${flashingArrows.has(i) ? 'flash' : ''}`}>
                 <span>
-                  <img className="arrow-dark transition-opacity duration-50" src="/pixel-arrow-dark.png" alt={dir} style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
-                  <img className="arrow-light opacity-0 absolute top-0 left-0 transition-opacity duration-50" src="/pixel-arrow.png" alt={dir} style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
+                  <img className="arrow-dark transition-opacity duration-50" src="/pixel-arrow-dark.png" alt="" style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
+                  <img className="arrow-light opacity-0 absolute top-0 left-0 transition-opacity duration-50" src="/pixel-arrow.png" alt="" style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)` }} />
                   <img className="arrow-white" src="/pixel-arrow.png" alt="" style={{ height: '0.8rem', imageRendering: 'pixelated', transform: `rotate(${rotation}deg)`, filter: 'brightness(5)', opacity: 0 }} />
                 </span>
               </div>
@@ -539,7 +540,10 @@ useEffect(() => {
           })}
         </div>
 
-        {/* Footer */}
+      </div>
+
+      {/* Footer - outside aria-hidden so screen readers can access it */}
+      <div className="pointer-events-none absolute inset-0 z-50" style={{ height: containerHeight }}>
         <div className="absolute left-0 right-0 bottom-0 opacity-0" ref={footerRef}>
           <Footer />
         </div>

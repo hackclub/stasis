@@ -17,6 +17,7 @@ export function DottedLine({ orientation = 'horizontal' }: Props) {
 
   return (
     <div
+      aria-hidden="true"
       className={`absolute -z-2 z-50 ${orientation} ${orientation === 'vertical' ? 'w-px h-full' : 'h-px w-full'}`}
       style={{
         backgroundRepeat: 'repeat',
