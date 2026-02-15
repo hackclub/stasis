@@ -292,6 +292,7 @@ function HomeContent() {
                 { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
                 { text: "MEXDLB LEZ\nYRE VJ URVSP LWOSH JWPOX I SFF" }
               ]}
+              srLabel="A hardware hackathon happening May 15 to 18, in Austin, Texas. The event is completely free with flight stipends available. For high schoolers only."
               initialScramble={true}
               initialDuration={2.5}
               initialStagger={1.2}

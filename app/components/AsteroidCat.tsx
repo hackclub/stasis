@@ -407,7 +407,7 @@ const AsteroidCat = forwardRef<AsteroidCatRef>((_, ref) => {
         }
       `}</style>
 
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 999999999, transform: shakeTransform }}>
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 999999999, transform: shakeTransform }} aria-hidden="true">
         {smokeParticles.map(particle => (
           <img
             key={particle.id}

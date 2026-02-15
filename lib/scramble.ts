@@ -45,6 +45,18 @@ export function useScramble<T extends HTMLElement>(options: ScrambleOptions = {}
     const node = ref.current;
     if (!node) return;
 
+    // Capture original text before DOM manipulation for screen readers
+    const originalText = node.textContent || '';
+
+    // Hide the scrambled visual text from screen readers
+    node.setAttribute('aria-hidden', 'true');
+
+    // Insert an sr-only element with the original readable text
+    const srOnly = document.createElement('span');
+    srOnly.className = 'sr-only';
+    srOnly.textContent = originalText;
+    node.parentElement?.insertBefore(srOnly, node);
+
     const getRandomChar = (): string => {
       return opts.charset[Math.floor(Math.random() * opts.charset.length)];
     };
@@ -195,6 +207,7 @@ export function useScramble<T extends HTMLElement>(options: ScrambleOptions = {}
       stopAnimation();
       observer?.disconnect();
       mutationObserver?.disconnect();
+      srOnly.remove();
     };
   }, []);
 
