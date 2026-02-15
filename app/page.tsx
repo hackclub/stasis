@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     question: "Who's eligible?",
-    answer: "To be eligible for Stasis, you must be between the ages of <mark>13 and 18</mark> (inclusive), and you must be able to attend the event in person."
+    answer: "To be eligible for Stasis, you must be between the ages of <mark>13 and 18</mark> (inclusive)."
   },
   {
     question: "I have more questions!",
