@@ -21,6 +21,7 @@ interface Props {
   continuousSpeed?: number;
   continuousCharset?: string;
   className?: string;
+  srLabel?: string;
 }
 
 interface CharState {
@@ -45,6 +46,7 @@ export function HoverScramble({
   continuousSpeed = 150,
   continuousCharset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*',
   className = '',
+  srLabel,
 }: Readonly<Props>) {
   const getRandomChar = useCallback(
     (customCharset?: string): string => {
@@ -221,27 +223,35 @@ export function HoverScramble({
     };
   }, []);
 
+  const accessibleText = srLabel ?? segments
+    .filter((s) => s.class)
+    .map((s) => s.text)
+    .join('. ');
+
   return (
-    <div className={className}>
-      {characters.map((char, i) =>
-        char.original === '\n' ? (
-          <br key={i} />
-        ) : char.original === '\t' ? (
-          <span key={i} className={char.segmentClass}>{'\u00A0\u00A0\u00A0\u00A0'}</span>
-        ) : char.original === ' ' ? (
-          <span key={i} className={char.segmentClass}>
-            {char.current}
-          </span>
-        ) : (
-          <span
-            key={i}
-            className={`cursor-default ${char.segmentClass}`}
-            onMouseEnter={() => handleHover(i)}
-          >
-            {char.current}
-          </span>
-        )
-      )}
-    </div>
+    <>
+      {accessibleText && <p className="sr-only">{accessibleText}</p>}
+      <div className={className} aria-hidden="true">
+        {characters.map((char, i) =>
+          char.original === '\n' ? (
+            <br key={i} />
+          ) : char.original === '\t' ? (
+            <span key={i} className={char.segmentClass}>{'\u00A0\u00A0\u00A0\u00A0'}</span>
+          ) : char.original === ' ' ? (
+            <span key={i} className={char.segmentClass}>
+              {char.current}
+            </span>
+          ) : (
+            <span
+              key={i}
+              className={`cursor-default ${char.segmentClass}`}
+              onMouseEnter={() => handleHover(i)}
+            >
+              {char.current}
+            </span>
+          )
+        )}
+      </div>
+    </>
   );
 }

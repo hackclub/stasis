@@ -30,6 +30,7 @@ export function ASCIIArt({ art, horizontalPosition, verticalOffset = '0' }: Prop
       ref={containerRef}
       className="absolute max-sm:hidden pointer-events-none select-none -z-1"
       style={{ left: `${horizontalPosition}%`, top: verticalOffset, transform: 'translateX(-50%)' }}
+      aria-hidden="true"
     >
       <pre className="text-cream-800/12 text-[0.7rem] leading-[1.2] whitespace-pre font-mono text-left">
         {art}
