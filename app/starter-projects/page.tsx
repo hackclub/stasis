@@ -8,7 +8,79 @@ import { PlaceholderProjectPreview } from '../components/starter-projects/Placeh
 import { ProjectPreview } from '../components/starter-projects/ProjectPreview';
 import { ProjectGridHoverCorners } from '../components/starter-projects/ProjectGridHoverCorners';
 import Link from 'next/link';
-import { projects } from './projects';
+
+const projects = [
+  {
+    id: 'hackpad',
+    name: 'Hackpad',
+    hours: 6,
+    short_description: 'A PCB and a case for a custom macropad.',
+    badges: []
+  },
+  {
+    id: 'spotify-thing',
+    name: 'LED Cube',
+    hours: 8,
+    short_description: 'A 3D LED display controlled by Arduino.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Synth Kit',
+    hours: 10,
+    short_description: 'Build a DIY analog synthesizer from scratch.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Smart Mirror',
+    hours: 12,
+    short_description: 'A Raspberry Pi powered two-way mirror.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Bot Arm',
+    hours: 15,
+    short_description: 'A 3D printed robotic arm with servo control.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Mini Drone',
+    hours: 20,
+    short_description: 'A custom quadcopter with FPV camera.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'GamePad',
+    hours: 7,
+    short_description: 'A wireless controller for retro gaming.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'VU Meter',
+    hours: 5,
+    short_description: 'An audio visualizer with RGB LEDs.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Weather Station',
+    hours: 9,
+    short_description: 'Track temperature, humidity, and pressure.',
+    badges: []
+  },
+  {
+    id: 'hackpad',
+    name: 'Badge PCB',
+    hours: 4,
+    short_description: 'A wearable LED badge with animations.',
+    badges: []
+  }
+];
 
 export default function StarterProjectsPage() {
   const [gridOffset, setGridOffset] = useState(0);
@@ -277,7 +349,7 @@ export default function StarterProjectsPage() {
         }
       `}</style>
 
-      <div className="bg-[linear-gradient(#40352999,#40352999),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
+      <div className="bg-[linear-gradient(var(--color-cream-850)/0.6,var(--color-cream-850)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
         <div 
           className="absolute inset-0 opacity-40 -z-1000 pointer-none"
           style={{
@@ -313,7 +385,7 @@ export default function StarterProjectsPage() {
                 <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
                   {/* Concentric circles */}
                   {circles.map((diameter) => (
-                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="#44382C" strokeWidth="2" />
+                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="var(--color-cream-700)" strokeWidth="2" />
                   ))}
                   
                   {/* Rotating lines with squares */}
@@ -322,28 +394,28 @@ export default function StarterProjectsPage() {
                       {/* First line */}
                       <g data-line-group={`${i}-1`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="#44382C" strokeWidth="2" />
+                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="var(--color-cream-700)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-1a`}>
-                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                         <g data-square={`${i}-1b`}>
-                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                       </g>
                       
                       {/* Second line (opposite side) */}
                       <g data-line-group={`${i}-2`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="#44382C" strokeWidth="2" />
+                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="var(--color-cream-700)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-2a`}>
-                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                         <g data-square={`${i}-2b`}>
-                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="#44382C" />
+                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="var(--color-cream-700)" />
                         </g>
                       </g>
                     </g>
@@ -411,29 +483,20 @@ export default function StarterProjectsPage() {
                     <p className="text-cream-300 absolute top-2 right-4">3</p>
                   </div>
                 </div>
-                {projects[selectedProjectIndex ?? 0].hasTutorial ? (
-                  <Link 
-                    href={`/starter-projects/${projects[selectedProjectIndex ?? 0].id}`}
-                    className="text-white text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-500/20 border-r-3 block text-center"
-                  >
-                    <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, #ea745225 0%, #ea745225 12.5%, transparent 12.5%, transparent 37.5%, #ea745225 37.5%, #ea745225 62.5%, transparent 62.5%, transparent 87.5%, #ea745225 87.5%, #ea745225 100%)' }} />
-                    <div className="z-1 absolute w-full h-full inset-0 bg-linear-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className="block overflow-hidden absolute w-full">
-                      <span className="block group-hover:translate-y-full transition-all ease-out group-hover:opacity-70">
-                        GUIDE
-                      </span>
+                <button className="text-white text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-500/20 border-r-3">
+                  <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, var(--color-brand-500-25) 0%, var(--color-brand-500-25) 12.5%, transparent 12.5%, transparent 37.5%, var(--color-brand-500-25) 37.5%, var(--color-brand-500-25) 62.5%, transparent 62.5%, transparent 87.5%, var(--color-brand-500-25) 87.5%, var(--color-brand-500-25) 100%)' }} />
+                  <div className="z-1 absolute w-full h-full inset-0 bg-linear-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="block overflow-hidden absolute w-full">
+                    <span className="block group-hover:translate-y-full transition-all ease-out group-hover:opacity-70">
+                      GUIDE
                     </span>
-                    <span className="block overflow-hidden">
-                      <span className="block group-[:not(:hover)]:-translate-y-full transition-all ease-out group-[:not(:hover)]:opacity-70">
-                        GUIDE
-                      </span>
+                  </span>
+                  <span className="block overflow-hidden">
+                    <span className="block group-[:not(:hover)]:-translate-y-full transition-all ease-out group-[:not(:hover)]:opacity-70">
+                      GUIDE
                     </span>
-                  </Link>
-                ) : (
-                  <div className="text-cream-500 text-2xl w-full py-8 relative overflow-hidden z-1 bg-cream-700/50 border-cream-600/20 border-r-3 text-center cursor-not-allowed">
-                    <span className="opacity-50">COMING SOON</span>
-                  </div>
-                )}
+                  </span>
+                </button>
               </div>
             </div>
             {/* grid of projects */}
@@ -474,7 +537,7 @@ export default function StarterProjectsPage() {
         </footer>
 
         {/* footer darkening background */}
-        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(#42382C00,#392E22)] -z-2" />
+        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(var(--color-cream-800-0),var(--color-cream-900))] -z-2" />
       </div>
 
       <NoiseOverlay />
