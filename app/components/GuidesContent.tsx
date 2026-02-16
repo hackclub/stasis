@@ -201,7 +201,7 @@ export default function GuidesContent() {
               </ul>
 
               <div className="mt-8 p-4 bg-brand-500/10 border border-brand-500/30">
-                <p className="text-brand-400">If you have all of that, you should be good to go! Go ahead and submit your project :)</p>
+                <p className="text-brand-600">If you have all of that, you should be good to go! Go ahead and submit your project :)</p>
               </div>
             </div>
           </div>
