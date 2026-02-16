@@ -4,7 +4,7 @@ export function PlaceholderProjectPreview() {
       className="aspect-square relative bg-size-[3rem_3rem]"
       data-placeholder="true"
       style={{ 
-        backgroundImage: 'linear-gradient(135deg, #C4B9A266 0%, #C4B9A266 12.5%, transparent 12.5%, transparent 37.5%, #C4B9A266 37.5%, #C4B9A266 62.5%, transparent 62.5%, transparent 87.5%, #C4B9A266 87.5%, #C4B9A266 100%), linear-gradient(#D5CCB7, #D5CCB7)'
+        backgroundImage: 'linear-gradient(135deg, #44382C33 0%, #44382C33 12.5%, transparent 12.5%, transparent 37.5%, #44382C33 37.5%, #44382C33 62.5%, transparent 62.5%, transparent 87.5%, #44382C33 87.5%, #44382C33 100%), linear-gradient(#3B3026, #3B3026)'
       }}
     />
   );
