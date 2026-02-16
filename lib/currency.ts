@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma"
 import { CurrencyTransactionType, Prisma } from "../app/generated/prisma/client"
 
 // Currency name - change this when you decide on a name
-export const CURRENCY_NAME = "CURRENCY_NAME"
+export const CURRENCY_NAME = "Bits"
 
 // Conversion rate: 10 currency per 1 hour
 export const CURRENCY_PER_HOUR = 10
