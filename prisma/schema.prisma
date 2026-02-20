@@ -470,6 +470,24 @@ model CurrencyTransaction {
   @@map("currency_transaction")
 }
 
+// Temporary RSVP storage (fallback when Airtable is down)
+model TempRsvp {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  ip              String?
+  utmSource       String?
+  referredBy      String?
+  firstName       String?
+  lastName        String?
+  finishedAccount Boolean  @default(false)
+  syncedToAirtable Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([syncedToAirtable])
+  @@map("temp_rsvp")
+}
+
 // Kudos - social appreciation for projects
 model Kudos {
   id        String   @id @default(cuid())
