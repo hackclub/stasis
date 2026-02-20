@@ -26,7 +26,12 @@ export async function GET(request: NextRequest) {
         r.finishedAccount ? "true" : "false",
         r.createdAt.toISOString(),
       ]
-        .map((v) => `"${v.replace(/"/g, '""')}"`)
+        .map((v) => {
+          const escaped = v.replace(/"/g, '""')
+          // Prefix formula-starting chars to prevent CSV injection in Excel/Sheets
+          const safe = /^[=+\-@]/.test(escaped) ? `'${escaped}` : escaped
+          return `"${safe}"`
+        })
         .join(",")
     )
     const csv = [header, ...rows].join("\n")

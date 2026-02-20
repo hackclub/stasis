@@ -6,7 +6,9 @@ function usePostgres(): boolean {
 }
 
 function escapeAirtableValue(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  // Strip control characters, then escape backslashes and single quotes
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\x00-\x1F\x7F]/g, '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 function getAirtableBase() {
@@ -49,7 +51,8 @@ export async function airtableCreateRSVP(data: {
   const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
   const fields: Record<string, string | number> = { Email: data.email, IP: data.ip || '' };
   if (data.referralType) fields['UTM Source'] = data.referralType;
-  if (data.referredBy) fields['Referred By'] = Number(data.referredBy);
+  const referredByNum = Number(data.referredBy);
+  if (data.referredBy && isFinite(referredByNum)) fields['Referred By'] = referredByNum;
   await base(tableName).create([{ fields }]);
 }
 
@@ -148,8 +151,9 @@ export async function createRSVP(data: {
     fields['UTM Source'] = data.referralType;
   }
 
-  if (data.referredBy) {
-    fields['Referred By'] = Number(data.referredBy);
+  const referredByNum = Number(data.referredBy);
+  if (data.referredBy && isFinite(referredByNum)) {
+    fields['Referred By'] = referredByNum;
   }
 
   const result = await base(tableName).create([{ fields }]);

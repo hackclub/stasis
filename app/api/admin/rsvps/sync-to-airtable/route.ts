@@ -25,7 +25,7 @@ export async function POST() {
 
     try {
       const exists = await airtableFindByEmail(rsvp.email)
-      const name = [rsvp.firstName, rsvp.lastName].filter(Boolean).join(" ")
+      const name = [rsvp.firstName, rsvp.lastName].filter(Boolean).join(" ").slice(0, 100)
 
       if (exists) {
         if (name && rsvp.finishedAccount) await airtableEnsureRSVPExists(rsvp.email, name)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
+import { Prisma } from '@prisma/client';
 import { createRSVP, findRSVPByEmail } from '@/lib/airtable';
 import { sanitize } from '@/lib/sanitize';
 import { addContactToLoops } from '@/lib/loops';
@@ -56,6 +57,13 @@ export async function POST(request: NextRequest) {
         newReferralCode = rsvpResult.referralCode;
       }
     } catch (error) {
+      // Unique constraint violation — two concurrent requests with the same email
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'This email has already been RSVPed' },
+          { status: 409 }
+        );
+      }
       console.error('RSVP submission error:', error);
       if (isPrelaunch) {
         return NextResponse.json(
