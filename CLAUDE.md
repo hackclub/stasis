@@ -18,6 +18,8 @@ npx prisma generate   # Regenerate Prisma client after schema changes
 npx prisma migrate dev # Create/apply migrations
 ```
 
+Always run `yarn build` after completing any code changes to verify there are no build errors before finishing.
+
 ## Architecture
 
 ### Routing & API
