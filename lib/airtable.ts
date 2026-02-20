@@ -127,7 +127,7 @@ export async function createRSVP(data: {
         email: data.email,
         ip: data.ip || null,
         utmSource: data.referralType || null,
-        referredBy: data.referredBy || null,
+        referredBy: data.referredBy && isFinite(Number(data.referredBy)) ? data.referredBy : null,
       },
     });
     return { referralCode: null };
