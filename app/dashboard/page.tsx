@@ -11,7 +11,7 @@ import { XPDisplay } from '../components/XPDisplay';
 
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
-import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress, calculateProjectProfit } from "@/lib/tiers"
+import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress } from "@/lib/tiers"
 import Link from 'next/link';
 import type { Project } from './types';
 
@@ -22,6 +22,7 @@ export default function ProjectsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [bitsBalance, setBitsBalance] = useState<number | null>(null);
 
   if (!isPending && !session) {
     return (
@@ -40,13 +41,19 @@ export default function ProjectsPage() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await fetch('/api/projects');
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data);
+      const [projectsRes, currencyRes] = await Promise.all([
+        fetch('/api/projects'),
+        fetch('/api/currency'),
+      ]);
+      if (projectsRes.ok) {
+        setProjects(await projectsRes.json());
+      }
+      if (currencyRes.ok) {
+        const { bitsBalance } = await currencyRes.json();
+        setBitsBalance(bitsBalance);
       }
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error('Failed to fetch dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -103,15 +110,9 @@ export default function ProjectsPage() {
   const approvedBadges = allBadges.filter(b => b.grantedAt !== null);
   const pendingBadges = allBadges.filter(b => b.grantedAt === null);
 
-  // Calculate earned profit bits from completed projects using their tier minus BOM costs
-  const estimatedBitsEarned = projects.reduce((sum, p) => {
-    if (!p.tier) return sum;
-    const tierBits = calculateProjectProfit(p.tier);
-    const bomCost = (p.bomItems ?? []).reduce((acc, item) => acc + item.costPerItem * item.quantity, 0);
-    return sum + Math.max(0, tierBits - bomCost);
-  }, 0);
-  const qualified = isQualified(estimatedBitsEarned);
-  const progress = qualificationProgress(estimatedBitsEarned);
+  const actualBits = bitsBalance ?? 0;
+  const qualified = isQualified(actualBits);
+  const progress = qualificationProgress(actualBits);
 
   return (
     <>
@@ -134,7 +135,7 @@ export default function ProjectsPage() {
         {/* Bits Progress */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-cream-700 text-xs uppercase tracking-wide">Bits Earned ({Math.floor(estimatedBitsEarned)}/{QUALIFICATION_BITS_THRESHOLD})</p>
+            <p className="text-cream-700 text-xs uppercase tracking-wide">Bits Earned ({actualBits}/{QUALIFICATION_BITS_THRESHOLD})</p>
             {qualified && <span className="text-green-500 text-xs">✓</span>}
           </div>
           <div className="w-full h-8 bg-cream-200 border-2 border-cream-400 relative overflow-hidden">
@@ -144,7 +145,7 @@ export default function ProjectsPage() {
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className={`text-xs font-medium ${qualified ? 'text-white' : 'text-cream-700'}`}>
-                {Math.floor(estimatedBitsEarned)} / {QUALIFICATION_BITS_THRESHOLD} bits
+                {actualBits} / {QUALIFICATION_BITS_THRESHOLD} bits
               </span>
             </div>
           </div>

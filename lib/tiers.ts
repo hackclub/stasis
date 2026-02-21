@@ -75,23 +75,12 @@ export function getTiersSorted(): readonly Tier[] {
 }
 
 /**
- * Get the bits earned for a project at a given tier.
- * The actual profit per project is tier.bits minus the BOM cost (tracked elsewhere).
+ * Get the fixed bits allocation for a given tier (before BOM deduction).
  */
-export function calculateProjectProfit(tierId: number): number {
+export function getTierBits(tierId: number): number {
   const tier = getTierById(tierId)
   if (!tier) return 0
   return tier.bits
-}
-
-/**
- * Estimate how many projects at a given tier are needed to reach qualification.
- * Based on tier bits directly (actual profit depends on per-project BOM costs).
- */
-export function projectsToQualify(tierId: number): number {
-  const bits = calculateProjectProfit(tierId)
-  if (bits <= 0) return Infinity
-  return Math.ceil(QUALIFICATION_BITS_THRESHOLD / bits)
 }
 
 /**
