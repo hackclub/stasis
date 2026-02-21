@@ -14,8 +14,6 @@
 // bits: fixed allocation per project at this tier
 // minHours / maxHours: hour range for projects at this tier
 // examples: example projects at this tier
-// flightStipend: estimated flight stipend (~$10/hour at midpoint of hour range)
-
 export const TIERS = [
   {
     id: 1,
@@ -24,7 +22,6 @@ export const TIERS = [
     minHours: 20,
     maxHours: 40,
     examples: ["battle bot", "custom robot arm", "FPGA board"],
-    flightStipend: 300,
   },
   {
     id: 2,
@@ -33,7 +30,6 @@ export const TIERS = [
     minHours: 10,
     maxHours: 20,
     examples: ["game console", "devboard", "keyboard"],
-    flightStipend: 150,
   },
   {
     id: 3,
@@ -42,7 +38,6 @@ export const TIERS = [
     minHours: 5,
     maxHours: 10,
     examples: ["drone kit", "LED lamp", "custom macropad"],
-    flightStipend: 75,
   },
   {
     id: 4,
@@ -51,7 +46,6 @@ export const TIERS = [
     minHours: 3,
     maxHours: 5,
     examples: ["phone stand", "3D printed trinket", "PCB fidget toy"],
-    flightStipend: 40,
   },
 ] as const
 
