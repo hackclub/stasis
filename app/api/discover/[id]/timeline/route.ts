@@ -21,6 +21,11 @@ export interface PublicTimelineItem {
       type: "IMAGE" | "VIDEO";
       url: string;
     }[];
+    timelapses: {
+      timelapseId: string;
+      name: string | null;
+      thumbnailUrl: string | null;
+    }[];
   };
 }
 
@@ -58,6 +63,7 @@ export async function GET(
     orderBy: { createdAt: "desc" },
     include: {
       media: true,
+      timelapses: true,
     },
   });
 
@@ -78,6 +84,11 @@ export async function GET(
         id: m.id,
         type: m.type,
         url: m.url,
+      })),
+      timelapses: ws.timelapses.map((t) => ({
+        timelapseId: t.timelapseId,
+        name: t.name,
+        thumbnailUrl: t.thumbnailUrl,
       })),
     },
   }));

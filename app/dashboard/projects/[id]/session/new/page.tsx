@@ -64,7 +64,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
     }
   }, [session, isPending, projectId, router]);
 
-  const handleSubmit = async (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => {
+  const handleSubmit = async (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[]; timelapseIds?: string[] }) => {
     setSubmitting(true);
     setError(null);
 

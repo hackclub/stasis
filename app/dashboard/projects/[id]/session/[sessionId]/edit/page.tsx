@@ -19,6 +19,7 @@ interface WorkSession {
   content: string | null
   categories: SessionCategory[]
   media: { id: string; type: "IMAGE" | "VIDEO"; url: string }[]
+  timelapses?: { timelapseId: string }[]
 }
 
 export default function EditSessionPage({ params }: { params: Promise<{ id: string; sessionId: string }> }) {
@@ -70,6 +71,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
               type: m.type,
               url: m.url
             })) as MediaItem[],
+            selectedTimelapseIds: sessionData.timelapses?.map((t: { timelapseId: string }) => t.timelapseId) ?? [],
           });
         } else if (sessionRes.status === 404) {
           router.push('/dashboard');
@@ -89,7 +91,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
     }
   }, [session, isPending, projectId, sessionId, router]);
 
-  const handleSubmit = async (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => {
+  const handleSubmit = async (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[]; timelapseIds?: string[] }) => {
     setSubmitting(true);
     setError(null);
 

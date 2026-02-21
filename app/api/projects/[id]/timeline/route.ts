@@ -28,6 +28,7 @@ export type TimelineItem =
         content: string | null
         stage: "DESIGN" | "BUILD"
         media: { id: string; type: "IMAGE" | "VIDEO"; url: string }[]
+        timelapses: { timelapseId: string; name: string | null; thumbnailUrl: string | null }[]
       }
     }
   | {
@@ -88,7 +89,7 @@ export async function GET(
   const [workSessions, submissions, reviewActions] = await Promise.all([
     prisma.workSession.findMany({
       where: { projectId: id },
-      include: { media: true },
+      include: { media: true, timelapses: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.projectSubmission.findMany({
@@ -139,6 +140,11 @@ export async function GET(
           id: m.id,
           type: m.type,
           url: m.url,
+        })),
+        timelapses: ws.timelapses.map((t) => ({
+          timelapseId: t.timelapseId,
+          name: t.name,
+          thumbnailUrl: t.thumbnailUrl,
         })),
       },
     })

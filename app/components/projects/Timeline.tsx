@@ -185,8 +185,8 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                   <div className="flex flex-col gap-2 mt-3">
                     {item.session.media.filter(m => m.type === "IMAGE").map((m) => (
                       <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
-                        <img 
-                          src={m.url} 
+                        <img
+                          src={m.url}
                           alt="Session media"
                           className="max-w-full max-h-64 border border-cream-400 hover:border-brand-500 transition-colors"
                         />
@@ -195,6 +195,35 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                     {item.session.media.filter(m => m.type === "VIDEO").map((m) => (
                       <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
                     ))}
+                  </div>
+                )}
+                {item.session.timelapses && item.session.timelapses.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-cream-500 text-xs uppercase mb-2">Lapse Timelapses</p>
+                    <div className="flex flex-wrap gap-2">
+                      {item.session.timelapses.map((t) => (
+                        <a
+                          key={t.timelapseId}
+                          href={`https://lapse.hackclub.com/timelapse/${t.timelapseId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block hover:opacity-80 transition-opacity"
+                        >
+                          {t.thumbnailUrl ? (
+                            <img
+                              src={t.thumbnailUrl}
+                              alt={t.name ?? 'Timelapse'}
+                              className="w-24 h-16 rounded object-cover border border-cream-400"
+                            />
+                          ) : (
+                            <div className="w-24 h-16 rounded bg-cream-300 border border-cream-400 flex items-center justify-center">
+                              <span className="text-cream-600 text-xs">Timelapse</span>
+                            </div>
+                          )}
+                          {t.name && <p className="text-xs text-cream-600 mt-1 w-24 truncate">{t.name}</p>}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

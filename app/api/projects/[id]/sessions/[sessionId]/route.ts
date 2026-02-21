@@ -70,7 +70,7 @@ export async function GET(
 
   const workSession = await prisma.workSession.findUnique({
     where: { id: sessionId, projectId },
-    include: { media: true },
+    include: { media: true, timelapses: true },
   })
 
   if (!workSession) {
@@ -106,6 +106,7 @@ export async function PATCH(
 
   const existingSession = await prisma.workSession.findUnique({
     where: { id: sessionId, projectId },
+    include: { timelapses: true },
   })
 
   if (!existingSession) {
@@ -125,7 +126,7 @@ export async function PATCH(
   }
 
   const body = await request.json()
-  const { title, hoursClaimed, content, categories, media } = body
+  const { title, hoursClaimed, content, categories, media, timelapseIds } = body
 
   if (!title || typeof title !== "string" || title.trim().length === 0) {
     return NextResponse.json(
@@ -191,6 +192,46 @@ export async function PATCH(
     )
   }
 
+  const validatedTimelapseIds: string[] = Array.isArray(timelapseIds)
+    ? timelapseIds.filter((id: unknown): id is string => typeof id === "string" && id.length > 0)
+    : existingSession.timelapses.map((t) => t.timelapseId)
+
+  const existingTimelapseIds = existingSession.timelapses.map((t) => t.timelapseId)
+  const toDelete = existingTimelapseIds.filter((id) => !validatedTimelapseIds.includes(id))
+  const toAdd = validatedTimelapseIds.filter((id) => !existingTimelapseIds.includes(id))
+
+  if (toDelete.length > 0) {
+    await prisma.sessionTimelapse.deleteMany({
+      where: { workSessionId: sessionId, timelapseId: { in: toDelete } },
+    })
+  }
+
+  const timelapseMetas = await Promise.all(
+    toAdd.map(async (timelapseId) => {
+      try {
+        const res = await fetch(
+          `https://lapse.hackclub.com/timelapse/query?id=${encodeURIComponent(timelapseId)}`
+        )
+        if (!res.ok) return { timelapseId, name: null, thumbnailUrl: null, playbackUrl: null, duration: null, workSessionId: sessionId }
+        const data = await res.json()
+        return {
+          timelapseId,
+          workSessionId: sessionId,
+          name: (data.name ?? data.title ?? null) as string | null,
+          thumbnailUrl: (data.thumbnailUrl ?? data.thumbnail ?? null) as string | null,
+          playbackUrl: (data.playbackUrl ?? data.url ?? null) as string | null,
+          duration: typeof data.duration === "number" ? data.duration : null,
+        }
+      } catch {
+        return { timelapseId, name: null, thumbnailUrl: null, playbackUrl: null, duration: null, workSessionId: sessionId }
+      }
+    })
+  )
+
+  if (timelapseMetas.length > 0) {
+    await prisma.sessionTimelapse.createMany({ data: timelapseMetas })
+  }
+
   await prisma.sessionMedia.deleteMany({
     where: { workSessionId: sessionId },
   })
@@ -209,7 +250,7 @@ export async function PATCH(
         })),
       },
     },
-    include: { media: true },
+    include: { media: true, timelapses: true },
   })
 
   return NextResponse.json(workSessionUpdated)

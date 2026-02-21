@@ -547,7 +547,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   >
                     + New Journal Entry
                   </Link>
-                  <button
+                  <a
+                    href="https://lapse.hackclub.com/timelapse/create"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     data-tutorial="timelapse"
                     className="inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-cream-800 font-medium py-3 px-6 text-center uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
                   >
@@ -556,7 +559,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       <polyline points="12 6 12 12 16 14"/>
                     </svg>
                     Start Timelapse
-                  </button>
+                  </a>
                 </div>
                 <p className="text-cream-600 text-xs mt-2">
                   Planning to work 7+ hours? You&apos;ll need to include a timelapse recording of your session.

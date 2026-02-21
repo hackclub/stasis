@@ -242,6 +242,7 @@ model WorkSession {
   projectId      String
   project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   media          SessionMedia[]
+  timelapses     SessionTimelapse[]
 
   @@index([projectId])
   @@map("work_session")
@@ -257,6 +258,21 @@ model SessionMedia {
 
   @@index([workSessionId])
   @@map("session_media")
+}
+
+model SessionTimelapse {
+  id            String      @id @default(cuid())
+  timelapseId   String
+  name          String?
+  thumbnailUrl  String?
+  playbackUrl   String?
+  duration      Int?
+  createdAt     DateTime    @default(now())
+  workSessionId String
+  workSession   WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
+
+  @@index([workSessionId])
+  @@map("session_timelapse")
 }
 
 enum MediaType {

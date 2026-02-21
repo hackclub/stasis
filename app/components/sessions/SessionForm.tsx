@@ -38,6 +38,7 @@ export interface SessionFormData {
     content: string
     categories: SessionCategory[]
     media: MediaItem[]
+    selectedTimelapseIds?: string[]
 }
 
 export interface XPPreviewData {
@@ -47,7 +48,7 @@ export interface XPPreviewData {
 
 interface SessionFormProps {
     initialData?: SessionFormData
-    onSubmit: (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[] }) => Promise<void>
+    onSubmit: (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[]; timelapseIds?: string[] }) => Promise<void>
     submitLabel: string
     submitting: boolean
     error: string | null
@@ -91,6 +92,21 @@ export function SessionForm({
     const [recordingDuration, setRecordingDuration] = useState(0);
     const [uploadingToEditor, setUploadingToEditor] = useState(false);
     const editorRef = useRef<HTMLDivElement>(null);
+
+    const [selectedTimelapseIds, setSelectedTimelapseIds] = useState<string[]>(
+        initialData?.selectedTimelapseIds ?? []
+    );
+    const [timelapseInput, setTimelapseInput] = useState('');
+
+    const handleAddTimelapse = useCallback(() => {
+        const match = timelapseInput.match(/lapse\.hackclub\.com\/timelapse\/([a-zA-Z0-9_-]+)/);
+        if (match && !selectedTimelapseIds.includes(match[1])) {
+            setSelectedTimelapseIds(prev => [...prev, match[1]]);
+            setTimelapseInput('');
+        } else if (!match) {
+            setError('Please paste a valid Lapse timelapse URL');
+        }
+    }, [timelapseInput, selectedTimelapseIds]);
 
     const uploadImageToEditor = useCallback(async (file: File) => {
         const imageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -545,6 +561,11 @@ export function SessionForm({
             return;
         }
 
+        if (hoursNum > 7 && selectedTimelapseIds.length === 0) {
+            setError('Sessions over 7 hours require at least one Lapse timelapse');
+            return;
+        }
+
         const stillUploading = media.some(m => m.uploading);
         if (stillUploading) {
             setError('Please wait for all files to finish uploading');
@@ -562,6 +583,7 @@ export function SessionForm({
             content: content.trim(),
             categories: selectedCategories,
             media: mediaWithUrls,
+            timelapseIds: selectedTimelapseIds,
         });
 
         clearDraft();
@@ -667,7 +689,12 @@ export function SessionForm({
                     )}
                     {hoursNum > 4 && (
                         <p className="text-brand-500 text-sm mt-4">
-                            ⚠ Sessions over 4 hours require {requiredVideos} video clip{requiredVideos > 1 ? 's' : ''} (10-30 seconds each)
+                            Sessions over 4 hours require {requiredVideos} video clip{requiredVideos > 1 ? 's' : ''} (10-30 seconds each)
+                        </p>
+                    )}
+                    {hoursNum > 7 && (
+                        <p className="text-brand-500 text-sm mt-2">
+                            Sessions over 7 hours require a Lapse timelapse
                         </p>
                     )}
 
@@ -918,6 +945,67 @@ export function SessionForm({
                         )}
                     </div>
                 )}
+
+                {/* Lapse Timelapse Links */}
+                <div className="bg-cream-100 border-2 border-cream-400 p-4">
+                    <label className="block text-cream-700 text-sm uppercase mb-2">
+                        Lapse Timelapses (optional)
+                    </label>
+                    <p className="text-cream-600 text-xs mb-3">
+                        Paste a Lapse timelapse URL, or{' '}
+                        <a href="https://lapse.hackclub.com/timelapse/create" target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-400 underline">
+                            create a timelapse
+                        </a>
+                    </p>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={timelapseInput}
+                            onChange={(e) => setTimelapseInput(e.target.value)}
+                            placeholder="https://lapse.hackclub.com/timelapse/..."
+                            className="flex-1 px-3 py-2 bg-cream-200 border-2 border-cream-400 text-cream-800 placeholder-cream-500 text-sm focus:outline-none focus:border-brand-500"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddTimelapse();
+                                }
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleAddTimelapse}
+                            className="bg-cream-300 hover:bg-cream-400 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                        >
+                            Add
+                        </button>
+                    </div>
+                    {selectedTimelapseIds.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            {selectedTimelapseIds.map((id) => (
+                                <a
+                                    key={id}
+                                    href={`https://lapse.hackclub.com/timelapse/${id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group flex items-center gap-1 bg-brand-500/10 border border-brand-500/50 px-2 py-1 text-xs text-brand-500 hover:bg-brand-500/20 transition-colors"
+                                >
+                                    {id}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setSelectedTimelapseIds(prev => prev.filter(i => i !== id));
+                                        }}
+                                        className="text-brand-500 hover:text-red-500 cursor-pointer ml-1"
+                                    >
+                                        ×
+                                    </button>
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 {error && (
                     <div className="bg-red-600/20 border-2 border-red-600/50 p-4">

@@ -73,7 +73,7 @@ export async function GET(
 
   const workSessions = await prisma.workSession.findMany({
     where: { projectId },
-    include: { media: true },
+    include: { media: true, timelapses: true },
     orderBy: { createdAt: "desc" },
   })
 
@@ -122,7 +122,7 @@ export async function POST(
     )
   }
 
-  const { title, hoursClaimed, content, categories, media, stage: rawStage } = body
+  const { title, hoursClaimed, content, categories, media, stage: rawStage, timelapseIds } = body
   
   // Determine stage - default to BUILD if design is approved, otherwise DESIGN
   const stage: ProjectStage = VALID_STAGES.includes(rawStage) 
@@ -206,6 +206,42 @@ export async function POST(
     )
   }
 
+  const validatedTimelapseIds: string[] = Array.isArray(timelapseIds)
+    ? timelapseIds.filter((id: unknown): id is string => typeof id === "string" && id.length > 0)
+    : []
+
+  if (hoursClaimed > 7 && validatedTimelapseIds.length === 0) {
+    return NextResponse.json(
+      { error: "Sessions over 7 hours require at least one timelapse" },
+      { status: 400 }
+    )
+  }
+
+  const timelapseMetas = await Promise.all(
+    validatedTimelapseIds.map(async (timelapseId) => {
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 5000)
+        const res = await fetch(
+          `https://lapse.hackclub.com/timelapse/query?id=${encodeURIComponent(timelapseId)}`,
+          { signal: controller.signal }
+        )
+        clearTimeout(timeout)
+        if (!res.ok) return { timelapseId, name: null, thumbnailUrl: null, playbackUrl: null, duration: null }
+        const data = await res.json()
+        return {
+          timelapseId,
+          name: (data.name ?? data.title ?? null) as string | null,
+          thumbnailUrl: (data.thumbnailUrl ?? data.thumbnail ?? null) as string | null,
+          playbackUrl: (data.playbackUrl ?? data.url ?? null) as string | null,
+          duration: typeof data.duration === "number" ? data.duration : null,
+        }
+      } catch {
+        return { timelapseId, name: null, thumbnailUrl: null, playbackUrl: null, duration: null }
+      }
+    })
+  )
+
   const result = await prisma.$transaction(async (tx) => {
     const workSession = await tx.workSession.create({
       data: {
@@ -221,8 +257,13 @@ export async function POST(
             url: m.url,
           })),
         },
+        ...(timelapseMetas.length > 0 && {
+          timelapses: {
+            create: timelapseMetas,
+          },
+        }),
       },
-      include: { media: true },
+      include: { media: true, timelapses: true },
     })
 
     const now = new Date()
