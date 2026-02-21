@@ -29,10 +29,10 @@ enum XPTransactionType {
 }
 
 enum CurrencyTransactionType {
-  BUILD_HOURS_CONVERSION    // Hours converted to currency after 10hr threshold
-  SHOP_PURCHASE             // Spending in shop
-  ADMIN_ADJUSTMENT          // Manual adjustment by admin
-  REFUND                    // Refund from cancelled purchase
+  PROJECT_APPROVED  // Bits credited when a project build is approved
+  ADMIN_GRANT       // Reviewer manually credits bits
+  ADMIN_DEDUCTION   // Reviewer manually debits bits (correction, etc.)
+  SHOP_PURCHASE     // User spends bits on a shop item
 }
 
 enum ReviewDecision {
@@ -64,7 +64,6 @@ model User {
   xpTransactions         XPTransaction[]
   prizeClaims            PrizeClaim[]
   roles                  UserRole[]
-  currencyBalance        UserCurrencyBalance?
   currencyTransactions   CurrencyTransaction[]
   kudosGiven             Kudos[]
 
@@ -157,6 +156,7 @@ enum BadgeType {
   MCU_INTEGRATION
   FOUR_LAYER_PCB
   SOLDERING
+  WOODWORKING
 }
 
 model Project {
@@ -169,7 +169,9 @@ model Project {
   githubRepo       String?
   coverImage       String?
   noBomNeeded      Boolean       @default(false)
-  
+  tier             Int?
+  bitsAwarded      Int?          // Set atomically at build approval; null until then
+
   // Stage-based status tracking
   designStatus          ProjectStatus @default(draft)
   designSubmissionNotes String?
@@ -427,45 +429,24 @@ model PrizeClaim {
   @@map("prize_claim")
 }
 
-// Currency System - earned from build hours after 10hr threshold
-
-model UserCurrencyBalance {
-  id                    String   @id @default(cuid())
-  userId                String   @unique
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance               Int      @default(0)  // Current spendable balance
-  totalEarned           Int      @default(0)  // Lifetime earnings (for audit)
-  totalSpent            Int      @default(0)  // Lifetime spending (for audit)
-  totalBuildHoursEarned Float    @default(0)  // Total approved build hours that counted toward currency
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  @@index([userId])
-  @@map("user_currency_balance")
-}
+// Bits currency ledger — immutable append-only transaction log
 
 model CurrencyTransaction {
-  id                  String                  @id @default(cuid())
-  userId              String
-  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount              Int                     // Positive = credit, negative = debit
-  type                CurrencyTransactionType
-  balanceBefore       Int                     // Balance before this transaction (for audit trail)
-  balanceAfter        Int                     // Balance after this transaction
-  description         String?
-  // Reference fields for traceability
-  workSessionId       String?                 // If from build hours conversion
-  projectId           String?                 // Associated project
-  shopItemId          String?                 // If shop purchase (for future)
-  hoursConverted      Float?                  // How many hours were converted (if applicable)
-  // Admin adjustment fields
-  adjustedByUserId    String?                 // Admin who made adjustment (if applicable)
-  createdAt           DateTime                @default(now())
+  id            String                  @id @default(cuid())
+  userId        String
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String?                 // Associated project (for PROJECT_APPROVED entries)
+  amount        Int                     // Positive = credit, negative = debit (bits)
+  type          CurrencyTransactionType
+  note          String?
+  shopItemId    String?                 // Shop item ID for SHOP_PURCHASE transactions
+  balanceBefore Int                     // Balance before this entry (audit trail)
+  balanceAfter  Int                     // Balance after this entry
+  createdBy     String?                 // Admin user ID; null if system-generated
+  createdAt     DateTime                @default(now())
 
   @@index([userId])
-  @@index([type])
-  @@index([workSessionId])
-  @@index([projectId])
+  @@index([userId, shopItemId])
   @@index([createdAt])
   @@map("currency_transaction")
 }

@@ -6,6 +6,7 @@ import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { VALID_BADGE_TYPES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
+import { TIERS } from "@/lib/tiers"
 
 const VALID_TAGS: ProjectTag[] = ["PCB", "ROBOT", "CAD", "ARDUINO", "RASPBERRY_PI"]
 
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
 
   const projects = await prisma.project.findMany({
     where: whereClause,
-    include: { workSessions: true, badges: true },
+    include: { workSessions: true, badges: true, bomItems: true },
     orderBy: { createdAt: "desc" },
   })
 
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     } else if (project.designStatus === "approved") {
       // Design approved, build not started or in draft
       if (project.buildStatus === "draft") {
-        status = "in_review"
+        status = "approved"
       } else if (project.buildStatus === "update_requested") {
         status = "rejected" // Show as rejected for card display
       } else {
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { title, description, tags, badges, isStarter, starterProjectId } = body
+  const { title, description, tags, badges, isStarter, starterProjectId, tier } = body
 
   if (!title || typeof title !== "string" || title.trim().length === 0) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 })
@@ -106,6 +107,13 @@ export async function POST(request: NextRequest) {
 
   if (description && typeof description === "string" && description.length > 2000) {
     return NextResponse.json({ error: "Description too long" }, { status: 400 })
+  }
+
+  const validTierIds = TIERS.map(t => t.id)
+  if (tier !== undefined && tier !== null) {
+    if (!Number.isInteger(tier) || !validTierIds.includes(tier)) {
+      return NextResponse.json({ error: "Invalid tier" }, { status: 400 })
+    }
   }
 
   const validatedBadges = validateBadges(badges)
@@ -134,6 +142,7 @@ export async function POST(request: NextRequest) {
       tags: validateTags(tags),
       isStarter: Boolean(isStarter),
       starterProjectId: typeof starterProjectId === "string" ? sanitize(starterProjectId) : null,
+      tier: tier ?? null,
       userId: session.user.id,
       badges: {
         create: validatedBadges.map(badge => ({

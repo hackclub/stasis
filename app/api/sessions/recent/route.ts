@@ -26,6 +26,7 @@ export async function GET() {
       id: true,
       title: true,
       hoursClaimed: true,
+      hoursApproved: true,
       stage: true,
       createdAt: true,
       project: {

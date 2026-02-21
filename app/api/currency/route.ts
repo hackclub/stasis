@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
-import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import {
-  CURRENCY_NAME,
-  CURRENCY_PER_HOUR,
-  BUILD_HOURS_THRESHOLD,
-  getTotalApprovedBuildHours,
-} from "@/lib/currency"
+import { auth } from "@/lib/auth"
+import prisma from "@/lib/prisma"
 
+/**
+ * GET /api/currency
+ *
+ * Returns the authenticated user's bits balance from the immutable ledger,
+ * plus BOM costs for display purposes.
+ *
+ *   bitsEarned  = sum of positive ledger entries (PROJECT_APPROVED + ADMIN_GRANT)
+ *   bitsDeducted = absolute sum of negative ledger entries (ADMIN_DEDUCTION)
+ *   bitsBalance = sum of all ledger entries (authoritative)
+ *   bomCost     = sum of approved BOM item costs (informational; shown separately)
+ */
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
@@ -17,33 +22,28 @@ export async function GET() {
 
   const userId = session.user.id
 
-  const balanceRecord = await prisma.userCurrencyBalance.findUnique({
-    where: { userId },
-  })
+  const [earned, deducted, bomResult] = await Promise.all([
+    prisma.currencyTransaction.aggregate({
+      where: { userId, amount: { gt: 0 } },
+      _sum: { amount: true },
+    }),
+    prisma.currencyTransaction.aggregate({
+      where: { userId, amount: { lt: 0 } },
+      _sum: { amount: true },
+    }),
+    prisma.bOMItem.findMany({
+      where: {
+        status: "approved",
+        project: { userId },
+      },
+      select: { costPerItem: true, quantity: true },
+    }),
+  ])
 
-  const recentTransactions = await prisma.currencyTransaction.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  })
+  const bitsEarned = earned._sum.amount ?? 0
+  const bitsDeducted = Math.abs(deducted._sum.amount ?? 0)
+  const bitsBalance = bitsEarned - bitsDeducted
+  const bomCost = bomResult.reduce((acc, item) => acc + item.costPerItem * item.quantity, 0)
 
-  const totalApprovedBuildHours = await getTotalApprovedBuildHours(userId)
-
-  return NextResponse.json({
-    currencyName: CURRENCY_NAME,
-    balance: balanceRecord?.balance ?? 0,
-    totalEarned: balanceRecord?.totalEarned ?? 0,
-    totalSpent: balanceRecord?.totalSpent ?? 0,
-    totalBuildHoursEarned: balanceRecord?.totalBuildHoursEarned ?? 0,
-    totalApprovedBuildHours,
-    buildHoursThreshold: BUILD_HOURS_THRESHOLD,
-    currencyPerHour: CURRENCY_PER_HOUR,
-    recentTransactions: recentTransactions.map((t) => ({
-      id: t.id,
-      amount: t.amount,
-      type: t.type,
-      description: t.description,
-      createdAt: t.createdAt.toISOString(),
-    })),
-  })
+  return NextResponse.json({ bitsEarned, bitsDeducted, bitsBalance, bomCost })
 }

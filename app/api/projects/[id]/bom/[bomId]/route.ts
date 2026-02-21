@@ -79,14 +79,14 @@ export async function PATCH(
     updateData.purpose = body.purpose ? sanitize(body.purpose) : null
   }
   if (body.costPerItem !== undefined) {
-    if (typeof body.costPerItem !== "number") {
-      return NextResponse.json({ error: "costPerItem must be a number" }, { status: 400 })
+    if (typeof body.costPerItem !== "number" || body.costPerItem < 0) {
+      return NextResponse.json({ error: "costPerItem must be a non-negative number" }, { status: 400 })
     }
     updateData.costPerItem = body.costPerItem
   }
   if (body.quantity !== undefined) {
-    if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity)) {
-      return NextResponse.json({ error: "quantity must be an integer" }, { status: 400 })
+    if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity) || body.quantity < 1) {
+      return NextResponse.json({ error: "quantity must be a positive integer" }, { status: 400 })
     }
     updateData.quantity = body.quantity
   }

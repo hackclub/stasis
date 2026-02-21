@@ -12,6 +12,7 @@ const MDPreview = dynamic(
 );
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
+import { getTierById, TIERS } from "@/lib/tiers";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -64,6 +65,14 @@ interface ProjectUser {
   email: string;
 }
 
+interface ReviewAction {
+  id: string;
+  stage: "DESIGN" | "BUILD";
+  decision: "APPROVED" | "CHANGE_REQUESTED" | "REJECTED";
+  grantAmount: number | null;
+  createdAt: string;
+}
+
 interface AdminProject {
   id: string;
   title: string;
@@ -83,12 +92,14 @@ interface AdminProject {
   buildReviewedBy: string | null;
   isStarter: boolean;
   starterProjectId: string | null;
+  tier: number | null;
   createdAt: string;
   submittedAt: string | null;
   user: ProjectUser;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
   bomItems: BOMItem[];
+  reviewActions: ReviewAction[];
 }
 
 const TAG_LABELS: Record<ProjectTag, string> = {
@@ -134,7 +145,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [sessionReviews, setSessionReviews] = useState<Record<string, SessionReviewState>>({});
   const [designComments, setDesignComments] = useState('');
   const [buildComments, setBuildComments] = useState('');
-  const [designGrantAmount, setDesignGrantAmount] = useState('');
+  const [designTier, setDesignTier] = useState<number | null>(null);
+  const [designBomGrant, setDesignBomGrant] = useState('');
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
@@ -146,7 +158,22 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
         if (res.ok) {
           const data: AdminProject = await res.json();
           setProject(data);
-          
+          setDesignTier(data.tier ?? null);
+
+          // Pre-fill BOM grant from the latest approved design review action,
+          // or fall back to total BOM cost as a starting suggestion
+          const designApprovedAction = data.reviewActions.find(
+            (a) => a.stage === "DESIGN" && a.decision === "APPROVED"
+          );
+          if (designApprovedAction?.grantAmount != null) {
+            setDesignBomGrant(String(designApprovedAction.grantAmount));
+          } else {
+            const totalBomCost = data.bomItems.reduce(
+              (sum, item) => sum + item.costPerItem * item.quantity, 0
+            );
+            if (totalBomCost > 0) setDesignBomGrant(String(Math.round(totalBomCost)));
+          }
+
           const initialReviews: Record<string, SessionReviewState> = {};
           data.workSessions.forEach((session) => {
             initialReviews[session.id] = {
@@ -214,18 +241,26 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
     setSubmitting(true);
     try {
       const reviewComments = stage === 'design' ? designComments : buildComments;
-      const grantAmountStr = stage === 'design' ? designGrantAmount : buildGrantAmount;
-      const grantAmount = grantAmountStr ? parseFloat(grantAmountStr) : null;
-      
+
+      const requestBody: Record<string, unknown> = {
+        stage,
+        decision,
+        reviewComments: reviewComments || null,
+      };
+
+      if (stage === 'design') {
+        requestBody.tier = decision === 'approved' ? designTier : undefined;
+        const bomGrant = designBomGrant ? parseInt(designBomGrant, 10) : null;
+        requestBody.grantAmount = decision === 'approved' ? bomGrant : null;
+      } else {
+        const grantAmount = buildGrantAmount ? parseInt(buildGrantAmount, 10) : null;
+        requestBody.grantAmount = decision === 'approved' ? grantAmount : null;
+      }
+
       const res = await fetch(`/api/admin/projects/${projectId}/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stage,
-          decision,
-          reviewComments: reviewComments || null,
-          grantAmount: decision === 'approved' ? grantAmount : null,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (res.ok) {
@@ -312,7 +347,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
           {/* Project Details */}
           <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <div>
                 <p className="text-cream-700 text-xs uppercase mb-1">Total Hours Claimed</p>
                 <p className="text-cream-800 text-xl">{totalHoursClaimed.toFixed(1)}h</p>
@@ -320,6 +355,22 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               <div>
                 <p className="text-cream-700 text-xs uppercase mb-1">Sessions</p>
                 <p className="text-cream-800 text-xl">{project.workSessions.length}</p>
+              </div>
+              <div>
+                <p className="text-cream-700 text-xs uppercase mb-1">Tier</p>
+                {project.tier ? (() => {
+                  const tier = getTierById(project.tier);
+                  return tier ? (
+                    <div>
+                      <p className="text-cream-800 text-xl">{tier.name}</p>
+                      <p className="text-cream-600 text-xs">{tier.bits} bits · {tier.minHours}–{tier.maxHours}h</p>
+                    </div>
+                  ) : (
+                    <p className="text-cream-800 text-xl">Tier {project.tier}</p>
+                  );
+                })() : (
+                  <p className="text-cream-600 text-xl">—</p>
+                )}
               </div>
               <div>
                 <p className="text-cream-700 text-xs uppercase mb-1">Design Status</p>
@@ -708,19 +759,57 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
               <div className="mb-4">
                 <label className="text-cream-700 text-xs uppercase block mb-2">
-                  Grant Amount (optional)
+                  Project Tier <span className="text-cream-600 normal-case">(sets bits awarded on build completion)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {TIERS.map((tier) => (
+                    <button
+                      key={tier.id}
+                      type="button"
+                      onClick={() => setDesignTier(designTier === tier.id ? null : tier.id)}
+                      className={`px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                        designTier === tier.id
+                          ? 'bg-purple-600 text-white border-purple-500'
+                          : 'bg-cream-100 text-cream-700 hover:bg-cream-200 border-cream-400'
+                      }`}
+                    >
+                      <span className="uppercase font-medium">{tier.name}</span>
+                      <span className="block text-xs mt-0.5 opacity-80">
+                        {tier.bits} bits · {tier.minHours}–{tier.maxHours}h
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {designTier === null && (
+                  <p className="text-cream-600 text-xs mt-2">No tier selected — 0 bits will be awarded on build completion.</p>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label className="text-cream-700 text-xs uppercase block mb-2">
+                  Approved BOM Grant <span className="text-cream-600 normal-case">(bits, 1 bit = $1 — deducted from tier at build)</span>
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-cream-800">$</span>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
-                    value={designGrantAmount}
-                    onChange={(e) => setDesignGrantAmount(e.target.value)}
+                    value={designBomGrant}
+                    onChange={(e) => setDesignBomGrant(e.target.value)}
                     className="w-32 bg-cream-100 border border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                    placeholder="0.00"
+                    placeholder="0"
                   />
+                  <span className="text-cream-700 text-sm">bits</span>
+                  {designTier !== null && (() => {
+                    const tier = getTierById(designTier);
+                    const grant = parseInt(designBomGrant || '0', 10) || 0;
+                    const net = tier ? Math.max(0, tier.bits - grant) : 0;
+                    return tier ? (
+                      <span className="text-cream-600 text-xs">
+                        → {tier.bits} − {grant} = <strong className="text-cream-800">{net} bits net</strong>
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
               </div>
 
@@ -780,21 +869,46 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   </p>
                 )}
 
+                {/* Bits preview */}
+                <div className="mb-4 bg-cream-200 border border-cream-400 p-3">
+                  <p className="text-cream-700 text-xs uppercase mb-1">Bits to be awarded</p>
+                  {project.tier ? (() => {
+                    const tier = getTierById(project.tier!);
+                    const designAction = project.reviewActions.find(
+                      (a) => a.stage === "DESIGN" && a.decision === "APPROVED"
+                    );
+                    const bomDeduction = Math.round(designAction?.grantAmount ?? 0);
+                    const netBits = tier ? Math.max(0, tier.bits - bomDeduction) : 0;
+                    return tier ? (
+                      <div>
+                        <p className="text-cream-800 font-medium">{netBits} bits</p>
+                        <p className="text-cream-600 text-xs mt-0.5">
+                          {tier.bits} ({tier.name}) − {bomDeduction} BOM grant = {netBits} bits net
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-cream-600">Unknown tier</p>
+                    );
+                  })() : (
+                    <p className="text-cream-600">— (no tier set; 0 bits will be awarded)</p>
+                  )}
+                </div>
+
                 <div className="mb-4">
                   <label className="text-cream-700 text-xs uppercase block mb-2">
-                    Grant Amount (optional)
+                    Additional bits grant (optional)
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-cream-800">$</span>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
                       value={buildGrantAmount}
                       onChange={(e) => setBuildGrantAmount(e.target.value)}
                       className="w-32 bg-cream-100 border border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                      placeholder="0.00"
+                      placeholder="0"
                     />
+                    <span className="text-cream-700 text-sm">bits</span>
                   </div>
                 </div>
 

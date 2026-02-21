@@ -194,7 +194,7 @@ export default function GuidesContent() {
               <p className="text-cream-800 italic text-sm mt-4">There is no magic bullet, but as long as you put an honest effort forward you will almost certainly be approved.</p>
 
               <h3 className="text-cream-800 text-lg mt-6 mb-3">4. Your project is cost optimized!</h3>
-              <p className="text-cream-700">You should always aim to make your project as cheap as possible!</p>
+              <p className="text-cream-700">Your project&apos;s tier determines its bit allocation (1 bit = $1), so keep costs within your tier&apos;s budget!</p>
               <ul className="list-disc list-inside text-cream-700 space-y-1">
                 <li>Always get the minimum quantity of your project. We are funding your project to learn not to mass-produce things like merch. On JLCPCB for example, this means only 5 PCB&apos;s, or 2 PCBA&apos;s.</li>
                 <li>JLCPCB Specific: Always choose parts for your PCB which allow you to use economic assembly rather than standard. Try and keep your PCB under 100x100mm if possible and choose Global Standard Direct (or Air Registered Mail if it is cheaper) shipping when you can.</li>

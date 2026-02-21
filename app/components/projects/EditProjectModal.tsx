@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
+import { TIERS } from "@/lib/tiers"
 
 interface ProjectBadge {
   id: string
@@ -20,6 +21,7 @@ interface Project {
   isStarter: boolean
   starterProjectId: string | null
   githubRepo: string | null
+  tier: number | null
 }
 
 interface Props {
@@ -33,6 +35,7 @@ interface Props {
     isStarter: boolean
     starterProjectId: string | null
     githubRepo: string
+    tier: number | null
   }) => void
   onDelete?: (id: string) => void
 }
@@ -52,6 +55,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
   const [isStarter, setIsStarter] = useState(false)
   const [starterProjectId, setStarterProjectId] = useState('')
   const [githubRepo, setGithubRepo] = useState('')
+  const [selectedTier, setSelectedTier] = useState<number | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   
@@ -83,6 +87,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
       setIsStarter(project.isStarter)
       setStarterProjectId(project.starterProjectId || '')
       setGithubRepo(project.githubRepo || '')
+      setSelectedTier(project.tier)
       setShowDeleteConfirm(false)
       setDeleteConfirmText('')
       fetchBadges()
@@ -147,6 +152,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
       isStarter,
       starterProjectId: isStarter ? starterProjectId : null,
       githubRepo: githubRepo.trim(),
+      tier: selectedTier,
     })
   }
 
@@ -251,6 +257,31 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
               className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
               placeholder="https://github.com/user/repo"
             />
+          </div>
+
+          <div>
+            <label className="block text-cream-700 text-sm uppercase mb-2">
+              Project Tier
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {TIERS.map((tier) => (
+                <button
+                  key={tier.id}
+                  type="button"
+                  onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
+                  className={`px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                    selectedTier === tier.id
+                      ? 'bg-brand-500 text-white border-brand-400'
+                      : 'bg-cream-200 text-cream-700 hover:bg-cream-300 border-cream-400'
+                  }`}
+                >
+                  <span className="uppercase font-medium">{tier.name}</span>
+                  <span className="block text-xs mt-0.5 opacity-80">
+                    {tier.bits} bits · {tier.minHours}–{tier.maxHours}h
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Badges section */}

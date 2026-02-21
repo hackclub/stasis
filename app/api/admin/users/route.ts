@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
+import { SHOP_ITEM_IDS } from "@/lib/shop"
 
 export async function GET() {
   const authCheck = await requirePermission(Permission.MANAGE_USERS)
@@ -35,6 +36,10 @@ export async function GET() {
       roles: {
         select: { id: true, role: true, grantedAt: true },
       },
+      currencyTransactions: {
+        where: { type: "SHOP_PURCHASE", shopItemId: { not: null } },
+        select: { amount: true, shopItemId: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   })
@@ -52,6 +57,13 @@ export async function GET() {
       0
     ),
     badges: user.projects.flatMap((p) => p.badges),
+    hasEventInvite: user.currencyTransactions.some(
+      (t) => t.shopItemId === SHOP_ITEM_IDS.STASIS_EVENT_INVITE
+    ),
+    flightStipend: user.currencyTransactions
+      .filter((t) => t.shopItemId === SHOP_ITEM_IDS.FLIGHT_STIPEND)
+      .reduce((acc, t) => acc + Math.abs(t.amount), 0),
+    currencyTransactions: undefined,
   }))
 
   return NextResponse.json(usersWithStats)

@@ -31,6 +31,9 @@ export async function GET(
       bomItems: {
         orderBy: { createdAt: "desc" },
       },
+      reviewActions: {
+        orderBy: { createdAt: "desc" },
+      },
     },
   })
 

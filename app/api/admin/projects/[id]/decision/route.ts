@@ -4,7 +4,8 @@ import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
 import { logAdminAction, AuditAction } from "@/lib/audit"
-import { awardCurrencyForBuildHoursInTx } from "@/lib/currency"
+import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
+import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 
 export async function POST(
   request: NextRequest,
@@ -28,7 +29,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const { stage, decision, reviewComments, grantAmount } = body
+  const { stage, decision, reviewComments, grantAmount, tier } = body
 
   if (stage !== "design" && stage !== "build") {
     return NextResponse.json(
@@ -47,7 +48,32 @@ export async function POST(
   const adminUserId = authCheck.session.user.id
   const now = new Date()
   const sanitizedComments = typeof reviewComments === "string" ? sanitize(reviewComments) : null
+
+  // grantAmount: additional bits, only applicable to build stage approvals
+  if (grantAmount !== undefined && grantAmount !== null) {
+    if (typeof grantAmount !== "number" || !Number.isInteger(grantAmount) || grantAmount < 0 || grantAmount > 10000) {
+      return NextResponse.json(
+        { error: "grantAmount must be a non-negative integer no greater than 10 000" },
+        { status: 400 }
+      )
+    }
+  }
   const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0 ? grantAmount : null
+
+  // tier: set at design approval to lock in the bit grant for build completion
+  let parsedTier: number | null | undefined = undefined
+  if (stage === "design") {
+    if (tier === null || tier === undefined) {
+      parsedTier = null
+    } else if (typeof tier === "number" && Number.isInteger(tier) && TIERS.some(t => t.id === tier)) {
+      parsedTier = tier
+    } else {
+      return NextResponse.json(
+        { error: "tier must be 1, 2, 3, or 4" },
+        { status: 400 }
+      )
+    }
+  }
 
   if (stage === "design") {
     // Design stage review
@@ -94,7 +120,7 @@ export async function POST(
         },
       })
 
-      // Update project status
+      // Update project status (and lock in tier on approval)
       return tx.project.update({
         where: { id },
         data: {
@@ -102,6 +128,7 @@ export async function POST(
           designReviewComments: sanitizedComments,
           designReviewedAt: now,
           designReviewedBy: adminUserId,
+          ...(decision === "approved" && parsedTier !== undefined ? { tier: parsedTier } : {}),
         },
         include: {
           user: {
@@ -152,13 +179,8 @@ export async function POST(
     
     // Use a transaction for build approval to ensure atomicity
     if (decision === "approved") {
-      // Calculate hours to approve before transaction (for currency award later)
       const buildSessionsToApprove = project.workSessions.filter(
         (s) => s.stage === "BUILD" && s.hoursApproved === null
-      )
-      const totalHoursBeingApproved = buildSessionsToApprove.reduce(
-        (sum, s) => sum + s.hoursClaimed,
-        0
       )
 
       const updatedProject = await prisma.$transaction(async (tx) => {
@@ -187,14 +209,40 @@ export async function POST(
           },
         })
 
-        // Award currency for build hours (if user is past 10hr threshold)
-        if (totalHoursBeingApproved > 0) {
-          await awardCurrencyForBuildHoursInTx(
-            tx,
-            project.userId,
-            undefined,
-            id
-          )
+        // Award bits based on the project's tier (locked in at design approval),
+        // minus the approved BOM grant set during design review
+        const tierBits = project.tier ? getTierBits(project.tier) : 0
+        const designAction = await tx.projectReviewAction.findFirst({
+          where: { projectId: id, stage: "DESIGN", decision: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          select: { grantAmount: true },
+        })
+        const bomDeduction = Math.round(designAction?.grantAmount ?? 0)
+        const bitsAwarded = tierBits > 0 ? Math.max(0, tierBits - bomDeduction) : null
+
+        // Write ledger entry atomically with the project update
+        if (bitsAwarded !== null && bitsAwarded > 0) {
+          const tierName = getTierById(project.tier!)!.name
+          await appendLedgerEntry(tx, {
+            userId: project.userId,
+            projectId: id,
+            amount: bitsAwarded,
+            type: CurrencyTransactionType.PROJECT_APPROVED,
+            note: `Build approved — ${tierName} (${tierBits} − ${bomDeduction} BOM = ${bitsAwarded} bits)`,
+            createdBy: adminUserId,
+          })
+        }
+
+        // If reviewer specified an additional grant, credit that too
+        if (parsedGrantAmount !== null && parsedGrantAmount > 0) {
+          await appendLedgerEntry(tx, {
+            userId: project.userId,
+            projectId: id,
+            amount: parsedGrantAmount,
+            type: CurrencyTransactionType.ADMIN_GRANT,
+            note: `Additional grant on build approval (${parsedGrantAmount} bits)`,
+            createdBy: adminUserId,
+          })
         }
 
         // Update project build status
@@ -205,6 +253,7 @@ export async function POST(
             buildReviewComments: sanitizedComments,
             buildReviewedAt: now,
             buildReviewedBy: adminUserId,
+            bitsAwarded,
           },
           include: {
             user: {

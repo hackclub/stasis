@@ -7,8 +7,9 @@ import { ProjectTag } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
+import { TIERS } from "@/lib/tiers"
 
-const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded"] as const
+const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "tier"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
 
@@ -23,11 +24,20 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   githubRepo: string | null
   coverImage: string | null
   noBomNeeded: boolean
+  tier: number | null
 }> {
   const result: Record<string, unknown> = {}
   for (const field of ALLOWED_UPDATE_FIELDS) {
     if (field in body) {
       const value = body[field]
+      if (field === "tier") {
+        if (value === null) {
+          result[field] = null
+        } else if (typeof value === "number" && Number.isInteger(value) && TIERS.some(t => t.id === value)) {
+          result[field] = value
+        }
+        continue
+      }
       if (typeof value === "string") {
         if (URL_FIELDS.has(field)) {
           if (!isValidUrl(value)) continue
@@ -126,6 +136,11 @@ export async function PATCH(
 
   const body = await request.json()
   const allowedData = pickAllowedFields(body)
+
+  // Tier is locked once design is approved — only admins can change it after that point
+  if (existingProject.designStatus === "approved" && !isAdmin && "tier" in allowedData) {
+    delete (allowedData as Record<string, unknown>).tier
+  }
 
   if (Object.keys(allowedData).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })

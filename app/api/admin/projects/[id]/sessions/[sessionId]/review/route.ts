@@ -4,7 +4,6 @@ import { sanitize } from "@/lib/sanitize"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { logAdminAction, AuditAction } from "@/lib/audit"
-import { awardCurrencyForBuildHoursInTx } from "@/lib/currency"
 
 export async function POST(
   request: NextRequest,
@@ -60,20 +59,6 @@ export async function POST(
       },
       include: { media: true },
     })
-
-    // Award currency for build hours (if design is approved and session is BUILD stage)
-    if (
-      project.designStatus === "approved" &&
-      workSession.stage === "BUILD" &&
-      hoursApproved > 0
-    ) {
-      await awardCurrencyForBuildHoursInTx(
-        tx,
-        project.userId,
-        sessionId,
-        projectId
-      )
-    }
 
     return session
   })

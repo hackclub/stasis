@@ -8,9 +8,10 @@ import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial, TutorialHelpButton } from '../components/OnboardingTutorial';
 import { XPDisplay } from '../components/XPDisplay';
-import { CurrencyDisplay } from '../components/CurrencyDisplay';
+
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
+import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress } from "@/lib/tiers"
 import Link from 'next/link';
 import type { Project } from './types';
 
@@ -21,6 +22,7 @@ export default function ProjectsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [bitsBalance, setBitsBalance] = useState<number | null>(null);
 
   if (!isPending && !session) {
     return (
@@ -39,13 +41,19 @@ export default function ProjectsPage() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await fetch('/api/projects');
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data);
+      const [projectsRes, currencyRes] = await Promise.all([
+        fetch('/api/projects'),
+        fetch('/api/currency'),
+      ]);
+      if (projectsRes.ok) {
+        setProjects(await projectsRes.json());
+      }
+      if (currencyRes.ok) {
+        const { bitsBalance } = await currencyRes.json();
+        setBitsBalance(bitsBalance);
       }
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error('Failed to fetch dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -66,6 +74,7 @@ export default function ProjectsPage() {
     badges: BadgeType[]
     isStarter: boolean
     starterProjectId: string | null
+    tier: number | null
   }) => {
     setModalError(null);
     try {
@@ -100,10 +109,10 @@ export default function ProjectsPage() {
   const allBadges = projects.flatMap(p => p.badges);
   const approvedBadges = allBadges.filter(b => b.grantedAt !== null);
   const pendingBadges = allBadges.filter(b => b.grantedAt === null);
-  const BADGES_REQUIRED = 5;
-  const HOURS_REQUIRED = 10;
-  const badgesComplete = approvedBadges.length >= BADGES_REQUIRED;
-  const hoursComplete = totalHoursApproved >= HOURS_REQUIRED;
+
+  const actualBits = bitsBalance ?? 0;
+  const qualified = isQualified(actualBits);
+  const progress = qualificationProgress(actualBits);
 
   return (
     <>
@@ -116,65 +125,27 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-brand-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
-            <p className="text-cream-800 text-sm">Earn {BADGES_REQUIRED} approved badges AND spend {HOURS_REQUIRED} hours building projects to qualify for Stasis!</p>
+            <p className="text-cream-800 text-sm">Earn {QUALIFICATION_BITS_THRESHOLD} bits from hardware project profits to qualify for Stasis!</p>
           </div>
-          {badgesComplete && hoursComplete && (
+          {qualified && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
           )}
         </div>
         
-        {/* Badge Progress */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-cream-700 text-xs uppercase tracking-wide">Badges ({approvedBadges.length}/{BADGES_REQUIRED})</p>
-            {badgesComplete && <span className="text-green-500 text-xs">✓</span>}
-          </div>
-          <div className="flex gap-2">
-            {Array.from({ length: BADGES_REQUIRED }).map((_, i) => {
-              const isApproved = i < approvedBadges.length;
-              const isPending = !isApproved && i < approvedBadges.length + pendingBadges.length;
-              return (
-                <div
-                  key={i}
-                  className={`flex-1 h-8 border-2 transition-all duration-300 flex items-center justify-center ${
-                    isApproved
-                      ? 'bg-brand-500 border-brand-400'
-                      : isPending
-                      ? 'bg-brand-500/20 border-brand-500/50 border-dashed'
-                      : 'bg-cream-200 border-cream-400'
-                  }`}
-                >
-                  {isApproved && (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                  {isPending && (
-                    <span className="text-brand-500 text-xs uppercase">?</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {pendingBadges.length > 0 && (
-            <p className="text-cream-800 text-xs mt-1">{pendingBadges.length} badge{pendingBadges.length > 1 ? 's' : ''} pending approval</p>
-          )}
-        </div>
-
-        {/* Hours Progress */}
+        {/* Bits Progress */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-cream-700 text-xs uppercase tracking-wide">Build Hours ({totalHoursApproved.toFixed(1)}/{HOURS_REQUIRED}h)</p>
-            {hoursComplete && <span className="text-green-500 text-xs">✓</span>}
+            <p className="text-cream-700 text-xs uppercase tracking-wide">Bits Earned ({actualBits}/{QUALIFICATION_BITS_THRESHOLD})</p>
+            {qualified && <span className="text-green-500 text-xs">✓</span>}
           </div>
           <div className="w-full h-8 bg-cream-200 border-2 border-cream-400 relative overflow-hidden">
             <div 
               className="h-full bg-brand-500 transition-all duration-500"
-              style={{ width: `${Math.min(100, (totalHoursApproved / HOURS_REQUIRED) * 100)}%` }}
+              style={{ width: `${progress * 100}%` }}
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-xs font-medium ${hoursComplete ? 'text-white' : 'text-cream-700'}`}>
-                {totalHoursApproved.toFixed(1)}h / {HOURS_REQUIRED}h
+              <span className={`text-xs font-medium ${qualified ? 'text-white' : 'text-cream-700'}`}>
+                {actualBits} / {QUALIFICATION_BITS_THRESHOLD} bits
               </span>
             </div>
           </div>
@@ -186,10 +157,6 @@ export default function ProjectsPage() {
         <XPDisplay />
       </div>
 
-      {/* Currency Balance */}
-      <div className="mb-6">
-        <CurrencyDisplay />
-      </div>
 
       {/* Recent Journal Entries */}
       <div className="mb-6">
