@@ -131,7 +131,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
         <div className="text-center">
           {designStatus === 'draft' && (
             <p className="text-cream-700 text-sm">
-              Design your project and log your time. Upload all design files to your GitHub repo. Once your project is submitted and approved, you&apos;ll get money to build your project!
+              Design your project and log your time. Upload all design files to your GitHub repo. Once your design is approved, you&apos;ll receive a grant card to purchase your parts!
             </p>
           )}
           {designStatus === 'in_review' && (
@@ -146,12 +146,12 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
           )}
           {isDesignComplete && buildStatus === 'draft' && (
             <p className="text-green-600 text-sm">
-              Design approved and badges granted! Start building and log your work sessions. Check your email for a grant card from HCB.
+              Design approved and badges granted! Start building and log your work sessions. Check your email for a grant card from HCB to buy your parts.
             </p>
           )}
           {isDesignComplete && buildStatus === 'in_review' && (
             <p className="text-yellow-600 text-sm">
-              Your build is being reviewed. Build hours will be finalized upon approval.
+              Your build is being reviewed. You&apos;ll earn your tier&apos;s bits upon approval!
             </p>
           )}
           {isDesignComplete && buildStatus === 'rejected' && (

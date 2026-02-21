@@ -10,6 +10,7 @@ export enum Permission {
   MANAGE_USERS = "MANAGE_USERS",
   VIEW_AUDIT_LOG = "VIEW_AUDIT_LOG",
   FLAG_FRAUD = "FLAG_FRAUD",
+  MANAGE_CURRENCY = "MANAGE_CURRENCY",
 }
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {

@@ -22,13 +22,13 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Stasis!',
-    content: 'Stasis is where you design and build hardware projects, earn skill badges, and get funding for parts. Let\'s get you started!',
+    content: 'Stasis is where you design and build hardware projects, earn bits, and qualify for the event. Each project has a tier that determines how many bits you earn. Let\'s get you started!',
     position: 'center',
   },
   {
     id: 'badge-progress',
     title: 'Your Goal: Qualify for Stasis',
-    content: 'To attend the event, you need to earn 5 approved skill badges AND spend 10 hours building projects. Badges are granted when your design is approved.',
+    content: 'To qualify, you need to earn enough bits from completing hardware projects. Each project has a tier with a fixed bit reward—your profit is the tier\'s bits minus the build cost. Accumulate enough profit bits and you\'re in!',
     targetSelector: '[data-tutorial="badge-progress"]',
     position: 'bottom',
   },
@@ -42,7 +42,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'stats',
     title: 'Track Your Hours',
-    content: 'You earn $5/hour to buy materials to build your projects. Log your hours designing your project by writing detailed journal entries.',
+    content: 'Log your hours by writing detailed journal entries. Each tier has an expected hour range—higher tiers mean bigger projects and more bits.',
     targetSelector: '[data-tutorial="stats"]',
     position: 'bottom',
   },
@@ -56,7 +56,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'new-project',
     title: 'Create Your First Project',
-    content: 'Click here to start a new project. Give it a name, add a description, and select the technologies you\'ll use.',
+    content: 'Click here to start a new project. Give it a name, pick a tier, add badges, and choose the technologies you\'ll use.',
     targetSelector: '[data-tutorial="new-project"]',
     position: 'right',
   },
@@ -99,7 +99,7 @@ const PROJECT_STEPS: TutorialStep[] = [
   {
     id: 'bom',
     title: 'Bill of Materials',
-    content: 'List every part you need with costs and links. Once approved, you\'ll get a grant card to purchase these materials.',
+    content: 'List every part you need with costs and links. Your project\'s tier determines its bit allocation (1 bit = $1). Once your design is approved, you\'ll receive a grant card to purchase materials.',
     targetSelector: '[data-tutorial="bom"]',
     position: 'top',
   },

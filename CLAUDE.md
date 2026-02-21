@@ -60,6 +60,10 @@ When `NEXT_PUBLIC_PRELAUNCH_MODE=true`, the site shows RSVP-only mode with refer
 
 Copy `.env.example` for required variables. Key ones: `DATABASE_URL`, `BETTER_AUTH_SECRET`, OAuth client IDs/secrets (HCA, Hackatime, GitHub), `AIRTABLE_API_KEY`, S3 credentials, `SLACK_BOT_TOKEN`.
 
+## Database Migrations
+
+Never AI-generate migration files. Always use `npx prisma migrate dev` to create migrations — this requires a running database. If the database is not available, instruct the user to run the migration themselves.
+
 ## TypeScript
 
 Strict mode enabled. Path alias `@/*` maps to project root.

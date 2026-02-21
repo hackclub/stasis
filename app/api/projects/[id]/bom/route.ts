@@ -79,11 +79,11 @@ export async function POST(
   if (!body.name || typeof body.name !== "string") {
     return NextResponse.json({ error: "name is required" }, { status: 400 })
   }
-  if (typeof body.costPerItem !== "number") {
-    return NextResponse.json({ error: "costPerItem is required" }, { status: 400 })
+  if (typeof body.costPerItem !== "number" || body.costPerItem < 0) {
+    return NextResponse.json({ error: "costPerItem must be a non-negative number" }, { status: 400 })
   }
-  if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity)) {
-    return NextResponse.json({ error: "quantity must be an integer" }, { status: 400 })
+  if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity) || body.quantity < 1) {
+    return NextResponse.json({ error: "quantity must be a positive integer" }, { status: 400 })
   }
 
   const bomItem = await prisma.bOMItem.create({

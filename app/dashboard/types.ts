@@ -21,6 +21,13 @@ export interface ProjectBadge {
   grantedAt: string | null
 }
 
+export interface BomItem {
+  id: string
+  name: string
+  costPerItem: number
+  quantity: number
+}
+
 export interface Project {
   id: string
   title: string
@@ -31,8 +38,10 @@ export interface Project {
   isStarter: boolean
   starterProjectId: string | null
   coverImage: string | null
+  tier: number | null
   status: "draft" | "in_review" | "approved" | "rejected"
   createdAt: string
   workSessions: WorkSession[]
   badges: ProjectBadge[]
+  bomItems: BomItem[]
 }

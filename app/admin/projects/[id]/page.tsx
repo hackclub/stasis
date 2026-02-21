@@ -12,6 +12,7 @@ const MDPreview = dynamic(
 );
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
+import { getTierById } from "@/lib/tiers";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -83,6 +84,7 @@ interface AdminProject {
   buildReviewedBy: string | null;
   isStarter: boolean;
   starterProjectId: string | null;
+  tier: number | null;
   createdAt: string;
   submittedAt: string | null;
   user: ProjectUser;
@@ -215,7 +217,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
     try {
       const reviewComments = stage === 'design' ? designComments : buildComments;
       const grantAmountStr = stage === 'design' ? designGrantAmount : buildGrantAmount;
-      const grantAmount = grantAmountStr ? parseFloat(grantAmountStr) : null;
+      const grantAmount = grantAmountStr ? parseInt(grantAmountStr, 10) : null;
       
       const res = await fetch(`/api/admin/projects/${projectId}/decision`, {
         method: 'POST',
@@ -312,7 +314,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
           {/* Project Details */}
           <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <div>
                 <p className="text-cream-700 text-xs uppercase mb-1">Total Hours Claimed</p>
                 <p className="text-cream-800 text-xl">{totalHoursClaimed.toFixed(1)}h</p>
@@ -320,6 +322,22 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               <div>
                 <p className="text-cream-700 text-xs uppercase mb-1">Sessions</p>
                 <p className="text-cream-800 text-xl">{project.workSessions.length}</p>
+              </div>
+              <div>
+                <p className="text-cream-700 text-xs uppercase mb-1">Tier</p>
+                {project.tier ? (() => {
+                  const tier = getTierById(project.tier);
+                  return tier ? (
+                    <div>
+                      <p className="text-cream-800 text-xl">{tier.name}</p>
+                      <p className="text-cream-600 text-xs">{tier.bits} bits · {tier.minHours}–{tier.maxHours}h</p>
+                    </div>
+                  ) : (
+                    <p className="text-cream-800 text-xl">Tier {project.tier}</p>
+                  );
+                })() : (
+                  <p className="text-cream-600 text-xl">—</p>
+                )}
               </div>
               <div>
                 <p className="text-cream-700 text-xs uppercase mb-1">Design Status</p>
@@ -780,21 +798,38 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   </p>
                 )}
 
+                {/* Bits preview */}
+                <div className="mb-4 bg-cream-200 border border-cream-400 p-3">
+                  <p className="text-cream-700 text-xs uppercase mb-1">Bits to be awarded</p>
+                  {project.tier ? (() => {
+                    const tier = getTierById(project.tier!);
+                    return tier ? (
+                      <p className="text-cream-800 font-medium">
+                        {tier.bits} bits <span className="text-cream-600 font-normal text-xs">({tier.name})</span>
+                      </p>
+                    ) : (
+                      <p className="text-cream-600">Unknown tier</p>
+                    );
+                  })() : (
+                    <p className="text-cream-600">— (no tier set; 0 bits will be awarded)</p>
+                  )}
+                </div>
+
                 <div className="mb-4">
                   <label className="text-cream-700 text-xs uppercase block mb-2">
-                    Grant Amount (optional)
+                    Additional bits grant (optional)
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-cream-800">$</span>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
                       value={buildGrantAmount}
                       onChange={(e) => setBuildGrantAmount(e.target.value)}
                       className="w-32 bg-cream-100 border border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                      placeholder="0.00"
+                      placeholder="0"
                     />
+                    <span className="text-cream-700 text-sm">bits</span>
                   </div>
                 </div>
 
