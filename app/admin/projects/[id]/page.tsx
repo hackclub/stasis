@@ -583,34 +583,6 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       <p className="text-cream-700 text-sm italic mb-4">No content recorded</p>
                     )}
 
-                    {session.media.length > 0 && (
-                      <div className="flex flex-col gap-3 mb-4">
-                        {session.media.filter(m => m.type === "IMAGE").map((m) => (
-                          <a 
-                            key={m.id} 
-                            href={m.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="block max-w-full"
-                          >
-                            <img 
-                              src={m.url} 
-                              alt="Session media"
-                              className="max-w-full max-h-64 border border-cream-400 hover:border-brand-500 transition-colors"
-                            />
-                          </a>
-                        ))}
-                        {session.media.filter(m => m.type === "VIDEO").map((m) => (
-                          <video 
-                            key={m.id} 
-                            src={m.url}
-                            controls
-                            className="max-w-full max-h-64 border border-cream-400"
-                          />
-                        ))}
-                      </div>
-                    )}
-
                     {/* Session Review Form - only show if any stage is in review */}
                     {isAnyStageInReview ? (
                       <div className="bg-cream-200 border border-cream-400 p-3 mt-4">
