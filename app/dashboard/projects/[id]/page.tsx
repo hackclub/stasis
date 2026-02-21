@@ -81,6 +81,8 @@ interface Project {
   buildReviewedAt: string | null;
   buildReviewedBy: string | null;
   
+  tier: number | null;
+  bitsAwarded: number | null;
   createdAt: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
@@ -511,6 +513,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <span className="text-cream-700">Hours Approved:</span>{' '}
                   <span className="text-brand-500">{project.totalHoursApproved.toFixed(1)}h</span>
                 </div>
+                {project.bitsAwarded != null && (
+                  <div>
+                    <span className="text-cream-700">Bits Received:</span>{' '}
+                    <span className="text-brand-500">{project.bitsAwarded}</span>
+                  </div>
+                )}
               </div>
 
               {/* GitHub Repo */}
