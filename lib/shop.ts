@@ -1,53 +1,37 @@
 export type ShopItemCategory = 'invite' | 'flight_stipend'
 
+export const SHOP_ITEM_IDS = {
+  STASIS_EVENT_INVITE: 'stasis-event-invite',
+  FLIGHT_STIPEND: 'flight-stipend',
+} as const
+
+export type ShopItemId = (typeof SHOP_ITEM_IDS)[keyof typeof SHOP_ITEM_IDS]
+
 export interface ShopItem {
-  id: string
+  id: ShopItemId
   name: string
   description: string
   bitsCost: number
   category: ShopItemCategory
-  maxPerUser: number
+  maxPerUser: number // 0 = unlimited
 }
+
 
 export const SHOP_ITEMS: readonly ShopItem[] = [
   {
-    id: 'stasis-event-invite',
+    id: SHOP_ITEM_IDS.STASIS_EVENT_INVITE,
     name: 'Stasis Event Invite',
-    description: 'Your ticket to the Stasis hardware event. Requires 350 bits of project profit to qualify.',
+    description: 'Your ticket to Stasis!',
     bitsCost: 350,
     category: 'invite',
     maxPerUser: 1,
   },
   {
-    id: 'flight-stipend-tier-1',
-    name: 'Flight Stipend (Tier 1)',
-    description: 'Flight stipend for Tier 1 project builders (~20-40 hours of work).',
-    bitsCost: 300,
+    id: SHOP_ITEM_IDS.FLIGHT_STIPEND,
+    name: 'Flight Stipend',
+    description: 'Put bits toward your flight to Stasis. Each purchase adds $10 to your flight stipend.',
+    bitsCost: 10,
     category: 'flight_stipend',
-    maxPerUser: 1,
-  },
-  {
-    id: 'flight-stipend-tier-2',
-    name: 'Flight Stipend (Tier 2)',
-    description: 'Flight stipend for Tier 2 project builders (~10-20 hours of work).',
-    bitsCost: 150,
-    category: 'flight_stipend',
-    maxPerUser: 1,
-  },
-  {
-    id: 'flight-stipend-tier-3',
-    name: 'Flight Stipend (Tier 3)',
-    description: 'Flight stipend for Tier 3 project builders (~5-10 hours of work).',
-    bitsCost: 75,
-    category: 'flight_stipend',
-    maxPerUser: 1,
-  },
-  {
-    id: 'flight-stipend-tier-4',
-    name: 'Flight Stipend (Tier 4)',
-    description: 'Flight stipend for Tier 4 project builders (~3-5 hours of work).',
-    bitsCost: 40,
-    category: 'flight_stipend',
-    maxPerUser: 1,
+    maxPerUser: 0,
   },
 ] as const

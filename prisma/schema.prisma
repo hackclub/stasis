@@ -31,7 +31,8 @@ enum XPTransactionType {
 enum CurrencyTransactionType {
   PROJECT_APPROVED  // Bits credited when a project build is approved
   ADMIN_GRANT       // Reviewer manually credits bits
-  ADMIN_DEDUCTION   // Reviewer manually debits bits (shop redemption, correction, etc.)
+  ADMIN_DEDUCTION   // Reviewer manually debits bits (correction, etc.)
+  SHOP_PURCHASE     // User spends bits on a shop item
 }
 
 enum ReviewDecision {
@@ -438,12 +439,14 @@ model CurrencyTransaction {
   amount        Int                     // Positive = credit, negative = debit (bits)
   type          CurrencyTransactionType
   note          String?
+  shopItemId    String?                 // Shop item ID for SHOP_PURCHASE transactions
   balanceBefore Int                     // Balance before this entry (audit trail)
   balanceAfter  Int                     // Balance after this entry
   createdBy     String?                 // Admin user ID; null if system-generated
   createdAt     DateTime                @default(now())
 
   @@index([userId])
+  @@index([userId, shopItemId])
   @@index([createdAt])
   @@map("currency_transaction")
 }

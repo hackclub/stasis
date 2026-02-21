@@ -41,6 +41,8 @@ interface AdminUser {
   totalProjects: number;
   totalHoursClaimed: number;
   totalHoursApproved: number;
+  hasEventInvite: boolean;
+  flightStipend: number;
   projects: Project[];
   badges: ProjectBadge[];
   roles: UserRole[];
@@ -361,6 +363,16 @@ export default function AdminUsersPage() {
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Projects</p>
                           <p className="text-cream-700">{user.totalProjects}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-600 uppercase text-xs mb-1">Event Invite</p>
+                          <p className={user.hasEventInvite ? 'text-green-600' : 'text-cream-700'}>
+                            {user.hasEventInvite ? 'Purchased ✓' : 'No'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-cream-600 uppercase text-xs mb-1">Flight Stipend</p>
+                          <p className="text-cream-700">${user.flightStipend.toLocaleString()}</p>
                         </div>
                       </div>
 
