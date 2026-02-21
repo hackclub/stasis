@@ -4,7 +4,7 @@ import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
 import { logAdminAction, AuditAction } from "@/lib/audit"
-import { getTierById, TIERS } from "@/lib/tiers"
+import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 
 export async function POST(
@@ -211,7 +211,7 @@ export async function POST(
 
         // Award bits based on the project's tier (locked in at design approval),
         // minus the approved BOM grant set during design review
-        const tierBits = project.tier ? (getTierById(project.tier)?.bits ?? 0) : 0
+        const tierBits = project.tier ? getTierBits(project.tier) : 0
         const designAction = await tx.projectReviewAction.findFirst({
           where: { projectId: id, stage: "DESIGN", decision: "APPROVED" },
           orderBy: { createdAt: "desc" },

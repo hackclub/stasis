@@ -38,13 +38,14 @@ Always run `yarn build` after completing any code changes to verify there are no
 ### Database
 
 - **Prisma** with `@prisma/adapter-pg` for connection pooling — singleton client in `lib/prisma.ts`
-- Schema in `prisma/schema.prisma` — key models: User, Project, WorkSession, ProjectSubmission, BOMItem, UserXP, XPTransaction, UserCurrencyBalance, CurrencyTransaction, UserRole, AuditLog
-- Currency operations use Prisma transactions to prevent race conditions (`lib/currency.ts`)
+- Schema in `prisma/schema.prisma` — key models: User, Project, WorkSession, ProjectSubmission, BOMItem, UserXP, XPTransaction, CurrencyTransaction, UserRole, AuditLog
+- Currency ledger is append-only; balance derived from SUM of entries (`lib/currency.ts`)
 
 ### Key Business Logic (in `lib/`)
 
 - `xp.ts` — XP calculation with day/week streak multipliers
-- `currency.ts` — Build hours → currency conversion (10/hr, 10-hour threshold), idempotent awards
+- `currency.ts` — Append-only bits ledger (entries created at build approval based on project tier)
+- `tiers.ts` — Four-tier project system (25–200 bits), 350-bit qualification threshold
 - `badges.ts` — 16 hardware achievement badge definitions (I2C, SPI, WiFi, CAD, etc.)
 - `airtable.ts` — RSVP CRUD and referral tracking
 - `audit.ts` — Audit logging for sensitive actions
