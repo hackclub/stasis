@@ -60,6 +60,7 @@ const BADGE_LABELS: Record<BadgeType, string> = {
   MCU_INTEGRATION: "MCU Integration",
   FOUR_LAYER_PCB: "4-Layer PCB",
   SOLDERING: "Soldering",
+  WOODWORKING: "Woodworking",
 };
 
 function formatRelativeTime(dateStr: string): string {

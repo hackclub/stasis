@@ -16,9 +16,9 @@ export default function ShopPage() {
     try {
       const res = await fetch('/api/currency');
       if (res.ok) {
-        const { bitsEarned, bitsSpent, bitsBalance } = await res.json();
+        const { bitsEarned, bomCost, bitsBalance } = await res.json();
         setBitsEarned(bitsEarned);
-        setBitsSpent(bitsSpent);
+        setBitsSpent(bomCost ?? 0);
         setBitsBalance(bitsBalance);
       }
     } catch (err) {

@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     } else if (project.designStatus === "approved") {
       // Design approved, build not started or in draft
       if (project.buildStatus === "draft") {
-        status = "in_review"
+        status = "approved"
       } else if (project.buildStatus === "update_requested") {
         status = "rejected" // Show as rejected for card display
       } else {

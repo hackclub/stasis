@@ -26,6 +26,7 @@ interface Project {
     starterProjectId: string | null;
     githubRepo: string | null;
     tier: number | null;
+    designStatus: string;
 }
 
 const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
@@ -325,17 +326,25 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     <div>
                         <label className="block text-cream-700 text-sm uppercase mb-2">
                             Project Tier
+                            {project.designStatus === 'approved' && (
+                                <span className="ml-2 text-cream-500 normal-case text-xs">(locked — set by reviewer)</span>
+                            )}
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                             {TIERS.map((tier) => (
                                 <button
                                     key={tier.id}
                                     type="button"
-                                    onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
-                                    className={`px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                                    onClick={() => project.designStatus !== 'approved' && setSelectedTier(selectedTier === tier.id ? null : tier.id)}
+                                    disabled={project.designStatus === 'approved'}
+                                    className={`px-3 py-2 text-sm text-left border ${
                                         selectedTier === tier.id
-                                            ? 'bg-brand-500 text-white border-brand-400'
-                                            : 'bg-cream-300 text-cream-700 hover:bg-cream-400 border-cream-400'
+                                            ? project.designStatus === 'approved'
+                                                ? 'bg-green-600/20 border-green-600 text-green-700 cursor-default'
+                                                : 'bg-brand-500 text-white border-brand-400 cursor-pointer'
+                                            : project.designStatus === 'approved'
+                                                ? 'bg-cream-200 text-cream-400 border-cream-300 cursor-default'
+                                                : 'bg-cream-300 text-cream-700 hover:bg-cream-400 border-cream-400 cursor-pointer transition-colors'
                                     }`}
                                 >
                                     <span className="uppercase font-medium">{tier.name}</span>
