@@ -137,6 +137,11 @@ export async function PATCH(
   const body = await request.json()
   const allowedData = pickAllowedFields(body)
 
+  // Tier is locked once design is approved — only admins can change it after that point
+  if (existingProject.designStatus === "approved" && !isAdmin && "tier" in allowedData) {
+    delete (allowedData as Record<string, unknown>).tier
+  }
+
   if (Object.keys(allowedData).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
   }
