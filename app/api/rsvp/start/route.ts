@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
-import { createRSVP, findRSVPByEmail, getReferrerByNumber } from '@/lib/airtable';
+import { createRSVP, findRSVPByEmail } from '@/lib/airtable';
 import { sanitize } from '@/lib/sanitize';
-import { addContactToLoops, sendReferralNotification } from '@/lib/loops';
+import { addContactToLoops } from '@/lib/loops';
 
 const EMAIL_REGEX = /^[^\s@'"]+@[^\s@'"]+\.[^\s@'"]+$/;
 const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
@@ -55,23 +55,15 @@ export async function POST(request: NextRequest) {
       if (rsvpResult?.referralCode) {
         newReferralCode = rsvpResult.referralCode;
       }
-      if (safeReferredBy) {
-        const referrerNumber = Number(safeReferredBy);
-        if (!isNaN(referrerNumber)) {
-          const referrer = await getReferrerByNumber(referrerNumber);
-          if (referrer) {
-            await sendReferralNotification({
-              referrerEmail: referrer.email,
-              referralLink: `https://stasis.hack.club/${referrerNumber}`,
-              totalReferrals: referrer.totalReferrals + 1,
-            }).catch((err) =>
-              console.error('Referral notification error:', err)
-            );
-          }
-        }
-      }
     } catch (error) {
-      console.error('Airtable submission error:', error);
+      // Unique constraint violation — two concurrent requests with the same email
+      if (typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002') {
+        return NextResponse.json(
+          { error: 'This email has already been RSVPed' },
+          { status: 409 }
+        );
+      }
+      console.error('RSVP submission error:', error);
       if (isPrelaunch) {
         return NextResponse.json(
           { error: 'Failed to save RSVP' },

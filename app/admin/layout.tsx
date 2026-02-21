@@ -108,6 +108,11 @@ export default function AdminLayout({
                   Users
                 </Link>
               )}
+              {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/rsvps" className={getTabClass('/admin/rsvps')}>
+                  RSVPs
+                </Link>
+              )}
               {hasPermission(Permission.VIEW_AUDIT_LOG) && (
                 <Link href="/admin/audit" className={getTabClass('/admin/audit')}>
                   Audit

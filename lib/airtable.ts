@@ -1,7 +1,14 @@
 import Airtable from 'airtable';
+import prisma from './prisma';
+
+function usePostgres(): boolean {
+  return process.env.RSVP_USE_POSTGRES === 'true';
+}
 
 function escapeAirtableValue(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  // Strip control characters, then escape backslashes and single quotes
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\x00-\x1F\x7F]/g, '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 function getAirtableBase() {
@@ -16,7 +23,71 @@ function getAirtableBase() {
   return airtable.base(baseId);
 }
 
+function getAirtableBaseOrThrow() {
+  const apiKey = process.env.AIRTABLE_API_KEY;
+  const baseId = process.env.AIRTABLE_BASE_ID;
+  if (!apiKey || !baseId) throw new Error('Airtable credentials not configured');
+  return new Airtable({ apiKey }).base(baseId);
+}
+
+// Direct Airtable calls that bypass RSVP_USE_POSTGRES — used during sync operations.
+
+export async function airtableFindByEmail(email: string): Promise<boolean> {
+  const base = getAirtableBaseOrThrow();
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+  const records = await base(tableName)
+    .select({ filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`, maxRecords: 1 })
+    .firstPage();
+  return records.length > 0;
+}
+
+export async function airtableCreateRSVP(data: {
+  email: string;
+  ip?: string;
+  referralType?: string | null;
+  referredBy?: string | null;
+}): Promise<void> {
+  const base = getAirtableBaseOrThrow();
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+  const fields: Record<string, string | number> = { Email: data.email, IP: data.ip || '' };
+  if (data.referralType) fields['UTM Source'] = data.referralType;
+  const referredByNum = Number(data.referredBy);
+  if (data.referredBy && isFinite(referredByNum)) fields['Referred By'] = referredByNum;
+  await base(tableName).create([{ fields }]);
+}
+
+export async function airtableEnsureRSVPExists(email: string, name: string): Promise<void> {
+  const base = getAirtableBaseOrThrow();
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+  const nameParts = name.trim().split(/\s+/);
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+
+  const records = await base(tableName)
+    .select({ filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`, maxRecords: 1 })
+    .firstPage();
+
+  if (records.length > 0) {
+    await base(tableName).update(records[0].id, {
+      'First Name': firstName,
+      'Last Name': lastName,
+      'Finished Account Creation': true,
+    });
+  } else {
+    await base(tableName).create([{
+      fields: { Email: email, 'First Name': firstName, 'Last Name': lastName, 'Finished Account Creation': true },
+    }]);
+  }
+}
+
 export async function markAccountCreationFinished(email: string): Promise<boolean> {
+  if (usePostgres()) {
+    const rsvp = await prisma.tempRsvp.findUnique({ where: { email } });
+    if (!rsvp) return false;
+    await prisma.tempRsvp.update({ where: { email }, data: { finishedAccount: true } });
+    return true;
+  }
+
   const base = getAirtableBase();
 
   if (!base) {
@@ -50,6 +121,18 @@ export async function createRSVP(data: {
   referralType?: string | null;
   referredBy?: string | null;
 }) {
+  if (usePostgres()) {
+    await prisma.tempRsvp.create({
+      data: {
+        email: data.email,
+        ip: data.ip || null,
+        utmSource: data.referralType || null,
+        referredBy: data.referredBy && isFinite(Number(data.referredBy)) ? data.referredBy : null,
+      },
+    });
+    return { referralCode: null };
+  }
+
   const base = getAirtableBase();
 
   if (!base) {
@@ -68,8 +151,9 @@ export async function createRSVP(data: {
     fields['UTM Source'] = data.referralType;
   }
 
-  if (data.referredBy) {
-    fields['Referred By'] = Number(data.referredBy);
+  const referredByNum = Number(data.referredBy);
+  if (data.referredBy && isFinite(referredByNum)) {
+    fields['Referred By'] = referredByNum;
   }
 
   const result = await base(tableName).create([{ fields }]);
@@ -79,6 +163,11 @@ export async function createRSVP(data: {
 }
 
 export async function findRSVPByEmail(email: string): Promise<boolean> {
+  if (usePostgres()) {
+    const rsvp = await prisma.tempRsvp.findUnique({ where: { email } });
+    return !!rsvp;
+  }
+
   const base = getAirtableBase();
 
   if (!base) {
@@ -98,6 +187,19 @@ export async function findRSVPByEmail(email: string): Promise<boolean> {
 }
 
 export async function ensureRSVPExists(email: string, name?: string): Promise<void> {
+  if (usePostgres()) {
+    const nameParts = (name || '').trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    await prisma.tempRsvp.upsert({
+      where: { email },
+      update: { firstName, lastName, finishedAccount: true },
+      create: { email, firstName, lastName, finishedAccount: true },
+    });
+    return;
+  }
+
   const base = getAirtableBase();
   if (!base) return;
 
@@ -135,6 +237,17 @@ export async function ensureRSVPExists(email: string, name?: string): Promise<vo
 }
 
 export async function updateRSVPName(email: string, fullName: string): Promise<boolean> {
+  if (usePostgres()) {
+    const rsvp = await prisma.tempRsvp.findUnique({ where: { email } });
+    if (!rsvp) return false;
+    const nameParts = fullName.trim().split(/\s+/);
+    await prisma.tempRsvp.update({
+      where: { email },
+      data: { firstName: nameParts[0] || '', lastName: nameParts.slice(1).join(' ') || '' },
+    });
+    return true;
+  }
+
   const base = getAirtableBase();
 
   if (!base) {
