@@ -136,11 +136,12 @@ export async function reassignAllFromSidekick(sidekickId: string) {
     select: { assigneeId: true },
   });
 
-  const results = await Promise.all(
-    assignments.map(({ assigneeId }) =>
-      reassignSidekick(assigneeId, undefined, sidekickId)
-    )
-  );
+  // Reassign sequentially so each person is independently sorted
+  // to the current least-loaded sidekick (counts update between each)
+  const results = [];
+  for (const { assigneeId } of assignments) {
+    results.push(await reassignSidekick(assigneeId, undefined, sidekickId));
+  }
 
   return results;
 }
