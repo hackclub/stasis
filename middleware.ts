@@ -59,7 +59,7 @@ export function middleware(request: NextRequest) {
     return addSecurityHeaders(NextResponse.next());
   }
 
-  if (isPrelaunch && isDashboard) {
+  if (isPrelaunch && isDashboard && !requireSiteAuth) {
     if (!checkBasicAuth(request)) return requireAuth();
   }
 
