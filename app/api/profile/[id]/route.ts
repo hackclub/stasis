@@ -45,6 +45,11 @@ export async function GET(
     },
   })
 
+  const bitsResult = await prisma.currencyTransaction.aggregate({
+    where: { userId: id },
+    _sum: { amount: true },
+  })
+
   const projects = await prisma.project.findMany({
     where: {
       userId: id,
@@ -66,6 +71,7 @@ export async function GET(
   return NextResponse.json({
     user,
     xp: { totalXP: xpData?.totalXP ?? 0 },
+    bitsBalance: bitsResult._sum.amount ?? 0,
     badges,
     projects,
   })

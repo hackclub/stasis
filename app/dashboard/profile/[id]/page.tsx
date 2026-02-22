@@ -25,6 +25,7 @@ interface ProfileData {
     createdAt: string;
   };
   xp: { totalXP: number };
+  bitsBalance: number;
   badges: { badge: BadgeType; grantedAt: string }[];
   projects: ProfileProject[];
 }
@@ -221,6 +222,12 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                 </div>
               );
             })()}
+
+            {/* Bits */}
+            <div className="mb-4 flex items-baseline justify-center gap-2">
+              <span className="text-brand-500 text-3xl font-bold">{profile.bitsBalance.toLocaleString()}</span>
+              <span className="text-cream-600 text-sm uppercase tracking-wide">Bits</span>
+            </div>
 
             {/* Actions */}
             <div className="flex flex-col gap-2">
