@@ -4,6 +4,12 @@ import { genericOAuth } from "better-auth/plugins";
 import prisma from "./prisma";
 import { ensureRSVPExists } from "./airtable";
 import { getSlackProfilePicture } from "./slack";
+import { encryptPII } from "./pii";
+
+const hcaScopes = ["openid", "profile", "email", "slack_id", "verification_status"];
+if (process.env.PULL_HCA_PII) {
+  hcaScopes.push("address", "birthday");
+}
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
@@ -61,7 +67,7 @@ export const auth = betterAuth({
           discoveryUrl: "https://auth.hackclub.com/.well-known/openid-configuration",
           clientId: process.env.HCA_CLIENT_ID!,
           clientSecret: process.env.HCA_CLIENT_SECRET!,
-          scopes: ["openid", "profile", "email", "slack_id", "verification_status"],
+          scopes: hcaScopes,
           authorizationUrlParams: (ctx): Record<string, string> => {
             if (!ctx.request) return {};
             const cookieHeader = ctx.request.headers.get('cookie') || '';
@@ -75,13 +81,29 @@ export const auth = betterAuth({
             return loginHint ? { login_hint: decodeURIComponent(loginHint) } : {};
           },
           mapProfileToUser: (profile) => {
-            return {
+            const user: Record<string, unknown> = {
               email: profile.email,
               name: profile.name,
               image: profile.picture,
               slackId: profile.slack_id,
               verificationStatus: profile.verification_status,
             };
+
+            if (process.env.PULL_HCA_PII) {
+              const addr = profile.address;
+              if (addr) {
+                if (addr.street_address) user.encryptedAddressStreet = encryptPII(addr.street_address);
+                if (addr.locality) user.encryptedAddressCity = encryptPII(addr.locality);
+                if (addr.region) user.encryptedAddressState = encryptPII(addr.region);
+                if (addr.postal_code) user.encryptedAddressZip = encryptPII(addr.postal_code);
+                if (addr.country) user.encryptedAddressCountry = encryptPII(addr.country);
+              }
+              if (profile.birthday) {
+                user.encryptedBirthday = encryptPII(profile.birthday);
+              }
+            }
+
+            return user;
           },
         },
         {

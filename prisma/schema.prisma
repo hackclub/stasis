@@ -57,6 +57,15 @@ model User {
   fraudConvicted     Boolean   @default(false)
   tutorialDashboard  Boolean   @default(false)
   tutorialProject    Boolean   @default(false)
+
+  // Encrypted PII fields (AES-256-GCM) — only populated when PULL_HCA_PII is set
+  encryptedAddressStreet  String?
+  encryptedAddressCity    String?
+  encryptedAddressState   String?
+  encryptedAddressZip     String?
+  encryptedAddressCountry String?
+  encryptedBirthday       String?
+
   sessions           Session[]
   accounts           Account[]
   projects           Project[]
