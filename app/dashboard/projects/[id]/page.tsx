@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
 import { getBadgeImage } from "@/lib/badges";
+import { formatPrice } from "@/lib/format";
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
@@ -749,9 +750,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       <tr key={item.id} className="border-b border-cream-300">
                         <td className="text-brown-800 py-2 pr-3">{item.name}</td>
                         <td className="text-brown-800 py-2 pr-3">{item.purpose || '-'}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">${item.costPerItem.toFixed(2)}</td>
+                        <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.costPerItem)}</td>
                         <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">${(item.costPerItem * item.quantity).toFixed(2)}</td>
+                        <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.costPerItem * item.quantity)}</td>
                         <td className="py-2 pr-3">
                           {item.link ? (
                             <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
@@ -780,7 +781,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <div className="flex items-center">
                     <span className="text-brown-800 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
                     <span className="text-brown-800 font-medium">
-                      ${(project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0).toFixed(2)}
+                      ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -825,7 +826,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     <label className="text-brown-800 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       value={bomForm.costPerItem}
                       onChange={(e) => setBomForm({ ...bomForm, costPerItem: e.target.value })}

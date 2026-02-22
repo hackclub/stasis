@@ -14,6 +14,7 @@ import { ProjectTag } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
 import { getTierById, TIERS } from "@/lib/tiers";
 import { getBadgeImage } from "@/lib/badges";
+import { formatPrice } from "@/lib/format";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -666,11 +667,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     <div className="flex gap-6">
                       <div>
                         <p className="text-brown-800 text-xs uppercase mb-1">Total Estimated</p>
-                        <p className="text-brown-800 text-lg">${totalCost.toFixed(2)}</p>
+                        <p className="text-brown-800 text-lg">${formatPrice(totalCost)}</p>
                       </div>
                       <div>
                         <p className="text-brown-800 text-xs uppercase mb-1">Approved</p>
-                        <p className="text-green-600 text-lg">${approvedCost.toFixed(2)}</p>
+                        <p className="text-green-600 text-lg">${formatPrice(approvedCost)}</p>
                       </div>
                     </div>
                   </div>
@@ -696,9 +697,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       <tr key={item.id} className="border-b border-cream-400 last:border-b-0">
                         <td className="text-brown-800 px-4 py-3">{item.name}</td>
                         <td className="text-brown-800 px-4 py-3">{item.purpose}</td>
-                        <td className="text-brown-800 text-right px-4 py-3">${item.costPerItem.toFixed(2)}</td>
+                        <td className="text-brown-800 text-right px-4 py-3">${formatPrice(item.costPerItem)}</td>
                         <td className="text-brown-800 text-right px-4 py-3">{item.quantity}</td>
-                        <td className="text-brown-800 text-right px-4 py-3">${(item.costPerItem * item.quantity).toFixed(2)}</td>
+                        <td className="text-brown-800 text-right px-4 py-3">${formatPrice(item.costPerItem * item.quantity)}</td>
                         <td className="px-4 py-3">
                           <a
                             href={item.link}
