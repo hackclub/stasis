@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
+import { getTierById } from '@/lib/tiers';
 
 const MDPreview = dynamic(
   () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
@@ -274,6 +275,23 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                     Grant approved: ${item.grantAmount.toFixed(2)}
                   </p>
                 )}
+                {item.tier !== null && item.tierBefore !== null && item.tier !== item.tierBefore && (() => {
+                  const oldTier = getTierById(item.tierBefore!);
+                  const newTier = getTierById(item.tier!);
+                  return oldTier && newTier ? (
+                    <p className="text-orange-600 text-sm font-bold">
+                      Tier changed: {oldTier.name} ({oldTier.bits} bits) &rarr; {newTier.name} ({newTier.bits} bits)
+                    </p>
+                  ) : null;
+                })()}
+                {item.tier !== null && (item.tierBefore === null || item.tier === item.tierBefore) && (() => {
+                  const tierInfo = getTierById(item.tier!);
+                  return tierInfo ? (
+                    <p className="text-brown-800 text-sm">
+                      Tier: {tierInfo.name} ({tierInfo.bits} bits)
+                    </p>
+                  ) : null;
+                })()}
                 {item.comments && (
                   <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
                     <MDPreview source={item.comments} />

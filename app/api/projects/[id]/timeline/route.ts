@@ -45,6 +45,8 @@ export type TimelineItem =
       decision: "APPROVED" | "CHANGE_REQUESTED" | "REJECTED"
       comments: string | null
       grantAmount: number | null
+      tier: number | null
+      tierBefore: number | null
       reviewerName: string | null
       reviewerImage: string | null
     }
@@ -169,6 +171,8 @@ export async function GET(
       decision: ra.decision,
       comments: ra.comments,
       grantAmount: ra.grantAmount,
+      tier: ra.tier,
+      tierBefore: ra.tierBefore,
       reviewerName: reviewer?.name ?? null,
       reviewerImage: reviewer?.image ?? null,
     })

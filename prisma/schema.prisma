@@ -231,6 +231,8 @@ model ProjectReviewAction {
   decision    ReviewDecision
   comments    String?
   grantAmount Float?
+  tier        Int?
+  tierBefore  Int?
   reviewerId  String?
   createdAt   DateTime       @default(now())
 

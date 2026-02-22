@@ -6,6 +6,7 @@ import { sanitize } from "@/lib/sanitize"
 import { logAdminAction, AuditAction } from "@/lib/audit"
 import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
+import { sendSlackDM } from "@/lib/slack"
 
 export async function POST(
   request: NextRequest,
@@ -116,6 +117,8 @@ export async function POST(
           decision: reviewDecision,
           comments: sanitizedComments,
           grantAmount: parsedGrantAmount,
+          tier: decision === "approved" && parsedTier !== undefined ? parsedTier : null,
+          tierBefore: decision === "approved" ? project.tier ?? null : null,
           reviewerId: adminUserId,
         },
       })
@@ -137,6 +140,7 @@ export async function POST(
               name: true,
               email: true,
               image: true,
+              slackId: true,
             },
           },
           workSessions: {
@@ -157,6 +161,37 @@ export async function POST(
       id,
       { decision, grantAmount: parsedGrantAmount, comments: sanitizedComments }
     )
+
+    if (updatedProject.user.slackId) {
+      const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${id}`
+      const lines: string[] = []
+      if (decision === "approved") {
+        lines.push(`Your *${updatedProject.title}* design has been approved! 🎉`)
+        const designHours = project.workSessions
+          .filter((s) => s.stage === "DESIGN")
+          .reduce((sum, s) => sum + s.hoursClaimed, 0)
+        if (designHours > 0) lines.push(`Hours approved: *${designHours}h*`)
+        if (parsedTier !== undefined && parsedTier !== null) {
+          const tierInfo = getTierById(parsedTier)
+          const oldTierInfo = project.tier !== null ? getTierById(project.tier) : null
+          if (tierInfo && oldTierInfo && project.tier !== parsedTier) {
+            lines.push(`⚠️ Tier changed: ${oldTierInfo.name} (${oldTierInfo.bits} bits) → *${tierInfo.name}* (${tierInfo.bits} bits)`)
+          } else if (tierInfo) {
+            lines.push(`Tier: *${tierInfo.name}* (${tierInfo.bits} bits)`)
+          }
+        }
+        if (parsedGrantAmount) lines.push(`BOM grant: *$${parsedGrantAmount}*`)
+        if (sanitizedComments) lines.push(`\`\`\`${sanitizedComments}\`\`\``)
+        lines.push(`<${projectUrl}|View project>`)
+      } else {
+        lines.push(`Your design for *${updatedProject.title}* needs changes to be approved. :rotating_light:`)
+        if (sanitizedComments) lines.push(`\`\`\`${sanitizedComments}\`\`\``)
+        lines.push(`<${projectUrl}|View project>`)
+      }
+      sendSlackDM(updatedProject.user.slackId, lines.join("\n")).catch((err) =>
+        console.error("Failed to send Slack DM for design review:", err)
+      )
+    }
 
     return NextResponse.json(updatedProject)
   } else {
@@ -262,6 +297,7 @@ export async function POST(
                 name: true,
                 email: true,
                 image: true,
+                slackId: true,
               },
             },
             workSessions: {
@@ -283,6 +319,20 @@ export async function POST(
         { decision, grantAmount: parsedGrantAmount, comments: sanitizedComments }
       )
 
+      if (updatedProject.user.slackId) {
+        const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${id}`
+        const lines: string[] = [`Your *${updatedProject.title}* build has been approved! 🎉`]
+        const buildHours = buildSessionsToApprove.reduce((sum, s) => sum + s.hoursClaimed, 0)
+        if (buildHours > 0) lines.push(`Hours approved: *${buildHours}h*`)
+        if (updatedProject.bitsAwarded) lines.push(`You earned *${updatedProject.bitsAwarded} bits*!`)
+        if (parsedGrantAmount) lines.push(`Additional grant: *${parsedGrantAmount} bits*`)
+        if (sanitizedComments) lines.push(`\`\`\`${sanitizedComments}\`\`\``)
+        lines.push(`<${projectUrl}|View project>`)
+        sendSlackDM(updatedProject.user.slackId, lines.join("\n")).catch((err) =>
+          console.error("Failed to send Slack DM for build approval:", err)
+        )
+      }
+
       return NextResponse.json(updatedProject)
     } else {
       // Rejection
@@ -302,6 +352,7 @@ export async function POST(
                 name: true,
                 email: true,
                 image: true,
+                slackId: true,
               },
             },
             workSessions: {
@@ -332,6 +383,16 @@ export async function POST(
         id,
         { decision, comments: sanitizedComments }
       )
+
+      if (updatedProject.user.slackId) {
+        const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${id}`
+        const lines: string[] = [`Your build for *${updatedProject.title}* needs changes to be approved. :rotating_light:`]
+        if (sanitizedComments) lines.push(`\`\`\`${sanitizedComments}\`\`\``)
+        lines.push(`<${projectUrl}|View project>`)
+        sendSlackDM(updatedProject.user.slackId, lines.join("\n")).catch((err) =>
+          console.error("Failed to send Slack DM for build rejection:", err)
+        )
+      }
 
       return NextResponse.json(updatedProject)
     }
