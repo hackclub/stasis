@@ -432,7 +432,7 @@ const AsteroidCat = forwardRef<AsteroidCatRef>((_, ref) => {
       )}
 
       {isLandingFlash && (
-        <div className="fixed inset-0 bg-cream-800 pointer-events-none flash-landing-overlay" style={{ zIndex: 2147483647 }} />
+        <div className="fixed inset-0 bg-brown-800 pointer-events-none flash-landing-overlay" style={{ zIndex: 2147483647 }} />
       )}
 
       {showAsteroid && asteroidPosition && (

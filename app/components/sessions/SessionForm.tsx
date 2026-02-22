@@ -593,21 +593,21 @@ export function SessionForm({
         <>
             {/* Journal Entry Guidelines */}
             <div className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
-                <h2 className="text-brand-500 text-sm uppercase tracking-wide mb-3">Journal Entry Guidelines</h2>
-                <ul className="list-disc list-inside text-cream-700 text-sm space-y-1">
+                <h2 className="text-orange-500 text-sm uppercase tracking-wide mb-3">Journal Entry Guidelines</h2>
+                <ul className="list-disc list-inside text-brown-800 text-sm space-y-1">
                     <li>Try to keep each entry under 5 hours</li>
                     <li>Include your thoughts, failures, and rabbit holes—not just final steps</li>
                     <li>Be detailed and thorough with your journal entries.</li>
                     <li>100-200~ words is recommended</li>
-                    <li><strong className="text-cream-800">Images are required</strong> for every journal entry</li>
-                    <li><strong className="text-cream-800">Sessions over 7 hours require a timelapse</strong></li>
+                    <li><strong className="text-brown-800">Images are required</strong> for every journal entry</li>
+                    <li><strong className="text-brown-800">Sessions over 7 hours require a timelapse</strong></li>
                 </ul>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Title */}
                 <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                    <label htmlFor="session-title" className="block text-cream-700 text-sm uppercase mb-2">
+                    <label htmlFor="session-title" className="block text-brown-800 text-sm uppercase mb-2">
                         Title
                     </label>
                     <input
@@ -616,21 +616,21 @@ export function SessionForm({
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="What did you work on?"
-                        className="w-full px-4 py-2 bg-cream-200 border-2 border-cream-400 text-cream-800 placeholder-cream-500 focus:outline-none focus:border-brand-500"
+                        className="w-full px-4 py-2 bg-cream-200 border-2 border-cream-400 text-brown-800 placeholder-cream-500 focus:outline-none focus:border-orange-500"
                         maxLength={200}
                     />
                 </div>
 
                 {/* Hours & Minutes */}
                 <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                    <label className="block text-cream-700 text-sm uppercase mb-3">
+                    <label className="block text-brown-800 text-sm uppercase mb-3">
                         Time Spent This Session
                     </label>
                     <div className="flex items-center gap-1.5">
                         {/* Hours */}
                         <div className="flex border-2 border-cream-400 bg-cream-200">
                             <div className="flex flex-col items-center justify-center px-4 py-1.5">
-                                <span className="text-xl text-cream-800 font-bold tabular-nums leading-tight">
+                                <span className="text-xl text-brown-800 font-bold tabular-nums leading-tight">
                                     {hoursValue}
                                 </span>
                                 <span className="text-cream-600 text-[10px] uppercase tracking-wider">hrs</span>
@@ -639,14 +639,14 @@ export function SessionForm({
                                 <button
                                     type="button"
                                     onClick={() => setHoursValue(Math.min(24, hoursValue + 1))}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
                                 >
                                     +
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setHoursValue(Math.max(0, hoursValue - 1))}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
                                 >
                                     −
                                 </button>
@@ -658,7 +658,7 @@ export function SessionForm({
                         {/* Minutes */}
                         <div className="flex border-2 border-cream-400 bg-cream-200">
                             <div className="flex flex-col items-center justify-center px-4 py-1.5">
-                                <span className="text-xl text-cream-800 font-bold tabular-nums leading-tight">
+                                <span className="text-xl text-brown-800 font-bold tabular-nums leading-tight">
                                     {String(minutesValue).padStart(2, '0')}
                                 </span>
                                 <span className="text-cream-600 text-[10px] uppercase tracking-wider">min</span>
@@ -667,14 +667,14 @@ export function SessionForm({
                                 <button
                                     type="button"
                                     onClick={() => setMinutesValue(minutesValue === 45 ? 0 : minutesValue + 15)}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
                                 >
                                     +
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setMinutesValue(minutesValue === 0 ? 45 : minutesValue - 15)}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-cream-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
+                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
                                 >
                                     −
                                 </button>
@@ -688,12 +688,12 @@ export function SessionForm({
                         </p>
                     )}
                     {hoursNum > 4 && (
-                        <p className="text-brand-500 text-sm mt-4">
+                        <p className="text-orange-500 text-sm mt-4">
                             Sessions over 4 hours require {requiredVideos} video clip{requiredVideos > 1 ? 's' : ''} (10-30 seconds each)
                         </p>
                     )}
                     {hoursNum > 7 && (
-                        <p className="text-brand-500 text-sm mt-2">
+                        <p className="text-orange-500 text-sm mt-2">
                             Sessions over 7 hours require a Lapse timelapse
                         </p>
                     )}
@@ -702,7 +702,7 @@ export function SessionForm({
                         <div className="mt-4 pt-4 border-t border-cream-400">
                             <div className="flex items-center gap-3">
                                 <span className="text-cream-600 text-sm uppercase">XP if approved:</span>
-                                <span className="text-brand-500 font-bold text-lg">+{xpPreview.xp} XP</span>
+                                <span className="text-orange-500 font-bold text-lg">+{xpPreview.xp} XP</span>
                                 {xpPreview.multiplier > 1 && (
                                     <span className="text-cream-600 text-sm">({xpPreview.multiplier}x multiplier)</span>
                                 )}
@@ -713,7 +713,7 @@ export function SessionForm({
 
                 {/* Categories */}
                 <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                    <label className="block text-cream-700 text-sm uppercase mb-3">
+                    <label className="block text-brown-800 text-sm uppercase mb-3">
                         Categories (select all that apply)
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -723,8 +723,8 @@ export function SessionForm({
                                 type="button"
                                 onClick={() => handleCategoryToggle(cat.value)}
                                 className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${selectedCategories.includes(cat.value)
-                                        ? 'bg-brand-500 text-white font-medium'
-                                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                                        ? 'bg-orange-500 text-white font-medium'
+                                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                                     }`}
                             >
                                 {cat.label}
@@ -735,13 +735,13 @@ export function SessionForm({
 
                 {/* Journal Content */}
                 <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                    <label className="block text-cream-700 text-sm uppercase mb-2">
+                    <label className="block text-brown-800 text-sm uppercase mb-2">
                         What Did You Work On?
                     </label>
                     <div className="flex items-center justify-between mb-3">
                         <p className="text-cream-600 text-xs">
-                            Write in Markdown. <span className="text-cream-700">At least 2 images required</span> — drag, drop, or paste directly into the editor.
-                            {uploadingToEditor && <span className="text-brand-500 ml-2">Uploading image...</span>}
+                            Write in Markdown. <span className="text-brown-800">At least 2 images required</span> — drag, drop, or paste directly into the editor.
+                            {uploadingToEditor && <span className="text-orange-500 ml-2">Uploading image...</span>}
                         </p>
                         {autosaveKey && lastSaved && (
                             <span className="text-cream-500 text-xs">
@@ -779,7 +779,7 @@ export function SessionForm({
                 {/* Videos (conditional) */}
                 {requiredVideos > 0 && (
                     <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                        <label className="block text-cream-700 text-sm uppercase mb-2">
+                        <label className="block text-brown-800 text-sm uppercase mb-2">
                             Video Clips <span className="text-red-500">*</span>
                         </label>
                         <p className="text-cream-600 text-xs mb-3">
@@ -805,7 +805,7 @@ export function SessionForm({
                                         >
                                             ×
                                         </button>
-                                        <div className="absolute bottom-1 left-1 bg-cream-200/80 px-1 text-xs text-cream-700">
+                                        <div className="absolute bottom-1 left-1 bg-cream-200/80 px-1 text-xs text-brown-800">
                                             {item.uploading ? 'Uploading...' : 'Video'}
                                         </div>
                                     </div>
@@ -825,17 +825,17 @@ export function SessionForm({
                                         className="w-full h-full object-cover"
                                     />
                                     <div className="absolute top-2 left-2 bg-cream-200/80 px-2 py-1">
-                                        <span className="text-cream-700 text-xs uppercase">Preview</span>
+                                        <span className="text-brown-800 text-xs uppercase">Preview</span>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3 mb-3">
                                     <div>
-                                        <label className="block text-cream-700 text-xs uppercase mb-1">Camera</label>
+                                        <label className="block text-brown-800 text-xs uppercase mb-1">Camera</label>
                                         <select
                                             value={selectedVideoDevice}
                                             onChange={(e) => setSelectedVideoDevice(e.target.value)}
-                                            className="w-full bg-cream-100 border border-cream-400 text-cream-800 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                                            className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
                                         >
                                             {videoDevices.map((device) => (
                                                 <option key={device.deviceId} value={device.deviceId}>
@@ -845,11 +845,11 @@ export function SessionForm({
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-cream-700 text-xs uppercase mb-1">Microphone</label>
+                                        <label className="block text-brown-800 text-xs uppercase mb-1">Microphone</label>
                                         <select
                                             value={selectedAudioDevice}
                                             onChange={(e) => setSelectedAudioDevice(e.target.value)}
-                                            className="w-full bg-cream-100 border border-cream-400 text-cream-800 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                                            className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-2 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
                                         >
                                             {audioDevices.map((device) => (
                                                 <option key={device.deviceId} value={device.deviceId}>
@@ -871,7 +871,7 @@ export function SessionForm({
                                     <button
                                         type="button"
                                         onClick={closeDeviceSelector}
-                                        className="bg-cream-400 hover:bg-cream-500 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                                        className="bg-cream-400 hover:bg-cream-500 text-brown-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -895,7 +895,7 @@ export function SessionForm({
                                         <span className="text-red-500 text-xs uppercase font-medium">Recording</span>
                                     </div>
                                     <div className="absolute top-2 right-2 bg-cream-200/80 px-2 py-1">
-                                        <span className="text-cream-800 text-sm font-mono">{formatDuration(recordingDuration)}</span>
+                                        <span className="text-brown-800 text-sm font-mono">{formatDuration(recordingDuration)}</span>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -909,7 +909,7 @@ export function SessionForm({
                                     <button
                                         type="button"
                                         onClick={cancelRecording}
-                                        className="bg-cream-400 hover:bg-cream-500 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                                        className="bg-cream-400 hover:bg-cream-500 text-brown-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -925,7 +925,7 @@ export function SessionForm({
                                     <span className="w-2 h-2 bg-white rounded-full" />
                                     Record with Webcam
                                 </button>
-                                <label className="inline-block bg-cream-300 hover:bg-cream-400 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors">
+                                <label className="inline-block bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors">
                                     <input
                                         type="file"
                                         accept="video/*"
@@ -948,12 +948,12 @@ export function SessionForm({
 
                 {/* Lapse Timelapse Links */}
                 <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                    <label className="block text-cream-700 text-sm uppercase mb-2">
+                    <label className="block text-brown-800 text-sm uppercase mb-2">
                         Lapse Timelapses (optional)
                     </label>
                     <p className="text-cream-600 text-xs mb-3">
                         Paste a Lapse timelapse URL, or{' '}
-                        <a href="https://lapse.hackclub.com/timelapse/create" target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-400 underline">
+                        <a href="https://lapse.hackclub.com/timelapse/create" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
                             create a timelapse
                         </a>
                     </p>
@@ -963,7 +963,7 @@ export function SessionForm({
                             value={timelapseInput}
                             onChange={(e) => setTimelapseInput(e.target.value)}
                             placeholder="https://lapse.hackclub.com/timelapse/..."
-                            className="flex-1 px-3 py-2 bg-cream-200 border-2 border-cream-400 text-cream-800 placeholder-cream-500 text-sm focus:outline-none focus:border-brand-500"
+                            className="flex-1 px-3 py-2 bg-cream-200 border-2 border-cream-400 text-brown-800 placeholder-cream-500 text-sm focus:outline-none focus:border-orange-500"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     e.preventDefault();
@@ -974,7 +974,7 @@ export function SessionForm({
                         <button
                             type="button"
                             onClick={handleAddTimelapse}
-                            className="bg-cream-300 hover:bg-cream-400 text-cream-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                            className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                         >
                             Add
                         </button>
@@ -987,7 +987,7 @@ export function SessionForm({
                                     href={`https://lapse.hackclub.com/timelapse/${id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="group flex items-center gap-1 bg-brand-500/10 border border-brand-500/50 px-2 py-1 text-xs text-brand-500 hover:bg-brand-500/20 transition-colors"
+                                    className="group flex items-center gap-1 bg-orange-500/10 border border-orange-500/50 px-2 py-1 text-xs text-orange-500 hover:bg-orange-500/20 transition-colors"
                                 >
                                     {id}
                                     <button
@@ -997,7 +997,7 @@ export function SessionForm({
                                             e.stopPropagation();
                                             setSelectedTimelapseIds(prev => prev.filter(i => i !== id));
                                         }}
-                                        className="text-brand-500 hover:text-red-500 cursor-pointer ml-1"
+                                        className="text-orange-500 hover:text-red-500 cursor-pointer ml-1"
                                     >
                                         ×
                                     </button>
@@ -1017,7 +1017,7 @@ export function SessionForm({
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:text-cream-600 disabled:cursor-not-allowed text-white font-medium py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                    className="w-full bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:text-cream-600 disabled:cursor-not-allowed text-white font-medium py-4 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                     {submitting ? 'Saving...' : submitLabel}
                 </button>

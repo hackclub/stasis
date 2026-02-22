@@ -332,7 +332,7 @@ export default function StarterProjectsPage() {
     <>
       <style jsx global>{`
         body {
-          background-color: var(--color-cream-850);
+          background-color: var(--color-brown-900);
         }
 
         @keyframes slide-right {
@@ -349,7 +349,7 @@ export default function StarterProjectsPage() {
         }
       `}</style>
 
-      <div className="bg-[linear-gradient(var(--color-cream-850)/0.6,var(--color-cream-850)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
+      <div className="bg-[linear-gradient(var(--color-brown-900)/0.6,var(--color-brown-900)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
         <div 
           className="absolute inset-0 opacity-40 -z-1000 pointer-none"
           style={{
@@ -363,7 +363,7 @@ export default function StarterProjectsPage() {
         <div className="mb-20 ml-16 mt-16">
           <Link href="/">
             <MagneticCorners activationDistance={35} deactivationDistance={45}>
-              <button className="block bg-brand-500 p-6 font-mono relative cursor-pointer hover:bg-brand-400">
+              <button className="block bg-orange-500 p-6 font-mono relative cursor-pointer hover:bg-orange-400">
                 <img src="/home-light.svg" alt="Home" className="w-8 h-8" />
               </button>
             </MagneticCorners>
@@ -373,10 +373,10 @@ export default function StarterProjectsPage() {
         <img src="/stasis-logo-white-center.svg" alt="" className="absolute -z-1 w-full mx-auto scale-110 translate-x-3 -translate-y-[calc(100%-2vw)] md:-translate-y-[calc(100%-4vw)] opacity-10" />
 
         <div className="flex flex-col max-w-6xl mx-auto font-mono mb-8">
-          <div className="bg-brand-500 text-cream-100 text-xl w-max px-4 py-2 relative after:bg-brand-500 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
+          <div className="bg-orange-500 text-cream-100 text-xl w-max px-4 py-2 relative after:bg-orange-500 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
             STARTER PROJECTS
           </div>
-          <div className="bg-cream-950 w-full h-max border-2 border-brand-500 flex flex-col relative after:absolute after:left-full after:w-8 after:h-[calc(100%+4px-32px)] after:-top-0.5 after:bg-brand-500 before:absolute before:bg-brand-500 before:-bottom-0.5 before:left-full before:w-8 before:h-8 before:[clip-path:polygon(0_0,0_100%,100%_0)]">
+          <div className="bg-brown-800 w-full h-max border-2 border-orange-500 flex flex-col relative after:absolute after:left-full after:w-8 after:h-[calc(100%+4px-32px)] after:-top-0.5 after:bg-orange-500 before:absolute before:bg-orange-500 before:-bottom-0.5 before:left-full before:w-8 before:h-8 before:[clip-path:polygon(0_0,0_100%,100%_0)]">
             {/* top stuff */}
             <div className="flex flex-row">
               {/* preview */}
@@ -385,7 +385,7 @@ export default function StarterProjectsPage() {
                 <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
                   {/* Concentric circles */}
                   {circles.map((diameter) => (
-                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="var(--color-cream-700)" strokeWidth="2" />
+                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="var(--color-brown-800)" strokeWidth="2" />
                   ))}
                   
                   {/* Rotating lines with squares */}
@@ -394,28 +394,28 @@ export default function StarterProjectsPage() {
                       {/* First line */}
                       <g data-line-group={`${i}-1`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="var(--color-cream-700)" strokeWidth="2" />
+                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="var(--color-brown-800)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-1a`}>
-                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="var(--color-cream-700)" />
+                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="var(--color-brown-800)" />
                         </g>
                         <g data-square={`${i}-1b`}>
-                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="var(--color-cream-700)" />
+                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="var(--color-brown-800)" />
                         </g>
                       </g>
                       
                       {/* Second line (opposite side) */}
                       <g data-line-group={`${i}-2`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="var(--color-cream-700)" strokeWidth="2" />
+                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="var(--color-brown-800)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-2a`}>
-                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="var(--color-cream-700)" />
+                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="var(--color-brown-800)" />
                         </g>
                         <g data-square={`${i}-2b`}>
-                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="var(--color-cream-700)" />
+                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="var(--color-brown-800)" />
                         </g>
                       </g>
                     </g>
@@ -457,7 +457,7 @@ export default function StarterProjectsPage() {
                     ref={el => { measureRefs.current[i] = el; }}
                     className="flex flex-col space-y-3 px-4 py-12 absolute opacity-0 pointer-events-none"
                   >
-                    <h2 className="text-brand-500 text-5xl mx-8">{project.name.toUpperCase()}</h2>
+                    <h2 className="text-orange-500 text-5xl mx-8">{project.name.toUpperCase()}</h2>
                     <p className="text-cream-50 text-2xl mx-8">{project.hours} hours</p>
                     <p className="text-cream-50 text-lg mx-8">{project.short_description}</p>
                   </div>
@@ -468,7 +468,7 @@ export default function StarterProjectsPage() {
                   className="flex flex-col space-y-3 px-4 py-12"
                   style={{ minHeight: maxHeight }}
                 >
-                  <h2 className="text-brand-500 text-5xl mx-8">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
+                  <h2 className="text-orange-500 text-5xl mx-8">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
                   <p className="text-cream-50 text-2xl mx-8">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
                   <p className="text-cream-50 text-lg mx-8">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
@@ -483,8 +483,8 @@ export default function StarterProjectsPage() {
                     <p className="text-cream-300 absolute top-2 right-4">3</p>
                   </div>
                 </div>
-                <button className="text-white text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-brand-500 border-brand-500/20 border-r-3">
-                  <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, var(--color-brand-500-25) 0%, var(--color-brand-500-25) 12.5%, transparent 12.5%, transparent 37.5%, var(--color-brand-500-25) 37.5%, var(--color-brand-500-25) 62.5%, transparent 62.5%, transparent 87.5%, var(--color-brand-500-25) 87.5%, var(--color-brand-500-25) 100%)' }} />
+                <button className="text-white text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter] duration-50 bg-orange-500 border-orange-500/20 border-r-3">
+                  <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, var(--color-orange-500 / 25%) 0%, var(--color-orange-500 / 25%) 12.5%, transparent 12.5%, transparent 37.5%, var(--color-orange-500 / 25%) 37.5%, var(--color-orange-500 / 25%) 62.5%, transparent 62.5%, transparent 87.5%, var(--color-orange-500 / 25%) 87.5%, var(--color-orange-500 / 25%) 100%)' }} />
                   <div className="z-1 absolute w-full h-full inset-0 bg-linear-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="block overflow-hidden absolute w-full">
                     <span className="block group-hover:translate-y-full transition-all ease-out group-hover:opacity-70">
@@ -523,21 +523,23 @@ export default function StarterProjectsPage() {
 
         <footer className="pt-20 pb-24 relative px-4">
           <div className="mx-auto max-w-md w-max font-mono">
-            <p className="text-xs md:text-sm text-cream-300 text-center">Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
+            <p className="text-xs md:text-sm text-cream-300 text-center">Made with <span className="bg-orange-500 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
             <div className="mt-2 text-cream-300 text-center">
-              <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hack Club</a>
+              <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Hack Club</a>
               <span>・</span>
-              <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Slack</a>
+              <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Slack</a>
               <span>・</span>
-              <a href="https://hackclub.com/clubs" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Clubs</a>
+              <a href="https://hackclub.com/clubs" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Clubs</a>
               <span>・</span>
-              <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hackathons</a>
+              <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Hackathons</a>
             </div>
           </div>
         </footer>
 
-        {/* footer darkening background */}
-        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(var(--color-cream-800-0),var(--color-cream-900))] -z-2" />
+        {/* footer darkening background TOFIX*/}
+
+
+        <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(var(--color-brown-800 / 0%),var(--color-brown-800))] -z-2" />
       </div>
 
       <NoiseOverlay />

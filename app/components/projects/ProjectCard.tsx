@@ -87,7 +87,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
         ) : (
           <>
             <div className="absolute inset-0 bg-gradient-to-br from-cream-300/30 to-cream-400/60" />
-            <span className="text-cream-700 text-xs uppercase z-10">Missing screenshot, add one?</span>
+            <span className="text-brown-800 text-xs uppercase z-10">Missing screenshot, add one?</span>
           </>
         )}
         
@@ -106,7 +106,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
               Rejected
             </span>
           ) : (
-            <span className="text-[10px] bg-cream-400 text-cream-800 font-medium px-1.5 py-0.5 uppercase">
+            <span className="text-[10px] bg-cream-400 text-brown-800 font-medium px-1.5 py-0.5 uppercase">
               Draft
             </span>
           )}
@@ -114,7 +114,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
 
         {project.isStarter && (
           <div className="absolute top-2 right-2 z-10">
-            <span className="text-[10px] bg-brand-500 text-white font-medium px-1.5 py-0.5 uppercase">
+            <span className="text-[10px] bg-orange-500 text-white font-medium px-1.5 py-0.5 uppercase">
               {project.starterProjectId ? STARTER_PROJECT_NAMES[project.starterProjectId] ?? 'Starter' : 'Starter'}
             </span>
           </div>
@@ -123,10 +123,10 @@ export function ProjectCard({ project }: Readonly<Props>) {
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-brand-500 font-bold text-lg font-mono uppercase tracking-wide truncate group-hover:text-brand-400 transition-colors">
+        <h3 className="text-orange-500 font-bold text-lg font-mono uppercase tracking-wide truncate group-hover:text-orange-400 transition-colors">
           {project.title}
         </h3>
-        <p className="text-cream-700 text-sm mt-1">
+        <p className="text-brown-800 text-sm mt-1">
           ~{project.totalHoursClaimed.toFixed(1)}h claimed
         </p>
         {project.description && (
@@ -140,7 +140,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
           {project.tags.slice(0, 3).map((tag) => (
             <span 
               key={tag} 
-              className="text-[10px] bg-cream-300 text-cream-700 px-1.5 py-0.5 uppercase"
+              className="text-[10px] bg-cream-300 text-brown-800 px-1.5 py-0.5 uppercase"
             >
               {TAG_LABELS[tag]}
             </span>
@@ -163,14 +163,14 @@ export function ProjectCard({ project }: Readonly<Props>) {
               {pendingBadges.slice(0, 4 - approvedBadges.length).map((badge) => (
                 <span 
                   key={badge.id}
-                  className="text-[10px] bg-cream-200 border border-cream-400 text-cream-700 px-1.5 py-0.5 uppercase"
+                  className="text-[10px] bg-cream-200 border border-cream-400 text-brown-800 px-1.5 py-0.5 uppercase"
                   title={`${BADGE_LABELS[badge.badge]} (Pending)`}
                 >
                   {BADGE_LABELS[badge.badge]}
                 </span>
               ))}
               {(approvedBadges.length + pendingBadges.length) > 4 && (
-                <span className="text-[10px] text-cream-700 px-1">
+                <span className="text-[10px] text-brown-800 px-1">
                   +{(approvedBadges.length + pendingBadges.length) - 4}
                 </span>
               )}

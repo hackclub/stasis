@@ -97,7 +97,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
   if (isPending || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-100 font-mono">
-        <p className="text-cream-700">Loading...</p>
+        <p className="text-brown-800">Loading...</p>
       </div>
     );
   }
@@ -111,7 +111,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
       <div className="min-h-screen bg-cream-100 font-mono">
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
-          <Link href="/dashboard" className="text-cream-700 hover:text-brand-500 transition-colors flex items-center gap-2">
+          <Link href="/dashboard" className="text-brown-800 hover:text-orange-500 transition-colors flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -121,13 +121,13 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
 
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="mb-6">
-            <h1 className="text-brand-500 text-2xl uppercase tracking-wide">New Journal Entry</h1>
-            <p className="text-cream-700 text-sm mt-1">Project: {project.title}</p>
+            <h1 className="text-orange-500 text-2xl uppercase tracking-wide">New Journal Entry</h1>
+            <p className="text-brown-800 text-sm mt-1">Project: {project.title}</p>
             <div className="mt-3">
               <span className={`px-3 py-1 text-sm uppercase ${
                 project.designStatus === "approved" 
                   ? 'bg-blue-600/30 border border-blue-600 text-blue-600' 
-                  : 'bg-purple-600/30 border border-purple-600 text-purple-600'
+                  : 'bg-yellow-500/30 border border-yellow-500 text-yellow-500'
               }`}>
                 {project.designStatus === "approved" ? 'Build Stage Session' : 'Design Stage Session'}
               </span>

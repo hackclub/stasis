@@ -197,7 +197,7 @@ export function HoverScramble({
           const char = newChars[i];
 
           if (char.animating || char.original === ' ' || /[^\w]/.test(char.original)) continue;
-          if (char.segmentClass.includes('text-cream-800')) continue;
+          if (char.segmentClass.includes('text-brown-800')) continue;
 
           if (Math.random() < 0.3) {
             newChars[i] = { ...char, current: getRandomChar(continuousCharset) };

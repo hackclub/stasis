@@ -13,7 +13,7 @@ export function LoginButton({ className }: Readonly<{ className?: string }>) {
   return (
     <button
       onClick={handleLogin}
-      className={className ?? "text-lg bg-brand-500/20 border border-brand-500 px-3 py-1 hover:bg-brand-500/30 cursor-pointer transition-colors"}
+      className={className ?? "text-lg bg-orange-500/20 border border-orange-500 px-3 py-1 hover:bg-orange-500/30 cursor-pointer transition-colors"}
     >
       Log In
     </button>

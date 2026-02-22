@@ -11,7 +11,7 @@ export default function PublicGuidesPage() {
         <Link href="/" className="hover:opacity-80 transition-opacity">
           <img src="/stasis-logo.svg" alt="Stasis" className="h-10 w-auto" />
         </Link>
-        <Link href="/dashboard" className="text-brand-500 hover:text-brand-400 text-sm uppercase tracking-wide">
+        <Link href="/dashboard" className="text-orange-500 hover:text-orange-400 text-sm uppercase tracking-wide">
           Dashboard &rarr;
         </Link>
       </div>

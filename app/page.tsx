@@ -209,7 +209,7 @@ function HomeContent() {
   }
 
   return (
-    <div ref={pageWrapperRef} className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-cream-800 bg-container overflow-x-hidden">
+    <div ref={pageWrapperRef} className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-brown-800 bg-container overflow-x-hidden">
       <style jsx>{`
         .bg-container::before {
           content: '';
@@ -224,10 +224,10 @@ function HomeContent() {
         }
         .faq :global(a) {
           text-decoration: underline;
-          color: var(--color-brand-500);
+          color: var(--color-orange-500);
         }
         .faq :global(a:hover) {
-          background-color: var(--color-brand-500);
+          background-color: var(--color-orange-500);
           color: var(--color-cream-100);
         }
         .faq :global(mark) {
@@ -278,18 +278,18 @@ function HomeContent() {
               <HoverScramble
               segments={[
                 { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU XR" },
-                { text: "HARDWARE HACKATHON", class: "text-cream-800" },
+                { text: "HARDWARE HACKATHON", class: "text-brown-800" },
                 { text: "QJ EMD\n" },
                 { text: "AE" },
-                { text: "MAY 15-18", class: "text-cream-800" },
+                { text: "MAY 15-18", class: "text-brown-800" },
                 { text: "JRG HGG" },
-                { text: "AUSTIN, TX", class: "text-cream-800" },
+                { text: "AUSTIN, TX", class: "text-brown-800" },
                 { text: "PA\nFCX XW VQQET S" },
-                { text: "COMPLETELY FREE", class: "text-cream-800" },
+                { text: "COMPLETELY FREE", class: "text-brown-800" },
                 { text: "M\nC LQW" },
-                { text: "FLIGHT STIPENDS AVAILABLE", class: "text-cream-800" },
+                { text: "FLIGHT STIPENDS AVAILABLE", class: "text-brown-800" },
                 { text: "\nC" },
-                { text: "HIGH SCHOOLERS ONLY", class: "text-cream-800" },
+                { text: "HIGH SCHOOLERS ONLY", class: "text-brown-800" },
                 { text: "MEXDLB LEZ\nYRE VJ URVSP LWOSH JWPOX I SFF" }
               ]}
               srLabel="A hardware hackathon happening May 15 to 18, in Austin, Texas. The event is completely free with flight stipends available. For high schoolers only."
@@ -299,7 +299,7 @@ function HomeContent() {
               initialDelay={0.8}
               continuousScramble={false}
               continuousSpeed={25}
-              className="font-mono text-[0.95rem] sm:text-[1.1rem] md:text-[1.4rem] text-cream-800-20 leading-tight w-full origin-center block whitespace-nowrap overflow-hidden bg-[#DAD2BF50] py-1"
+              className="font-mono text-[0.95rem] sm:text-[1.1rem] md:text-[1.4rem] text-brown-800/20 leading-tight w-full origin-center block whitespace-nowrap overflow-hidden bg-[#DAD2BF50] py-1"
               />
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -314,12 +314,12 @@ function HomeContent() {
             {/* Prelaunch Progress Section */}
             {PRELAUNCH_MODE && (
               <div className="flex flex-col items-center py-2 mb-0 z-1 relative w-full gap-1">
-                <p className="text-[14px] md:text-[18px] text-cream-800 -mt-1">
+                <p className="text-[14px] md:text-[18px] text-brown-800 -mt-1">
                   STASIS LAUNCHES AT {SIGNUP_GOAL.toLocaleString()} SIGNUPS!
                 </p>
                 <div className="w-full md:px-5 -mt-2">
                   <div className="text-center whitespace-nowrap text-[40px]">
-                    <span className="text-[#d95d39]">{displayCount.toLocaleString()}</span> <span className="text-cream-800">/ {SIGNUP_GOAL.toLocaleString()}</span>
+                    <span className="text-[#d95d39]">{displayCount.toLocaleString()}</span> <span className="text-brown-800">/ {SIGNUP_GOAL.toLocaleString()}</span>
                   </div>
                   
                   {/* Progress Bar */}
@@ -329,7 +329,7 @@ function HomeContent() {
                           style={{ width: `${Math.max(Math.min(((signupCount - recentCount) / SIGNUP_GOAL) * 100, 100), 0)}%` }}
                         />
                         <div 
-                          className="h-4 bg-gold-500 transition-all duration-500 ease-out"
+                          className="h-4 bg-yellow-500 transition-all duration-500 ease-out"
                           style={{ width: `${Math.max(Math.min((recentCount / SIGNUP_GOAL) * 100, 100), 0)}%` }}
                         />
                       </div>
@@ -337,7 +337,7 @@ function HomeContent() {
 
                     {/* is this doing anything?? */}
                     {recentCount > 0 && (
-                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-cream-800 whitespace-nowrap pointer-events-none">
+                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-brown-800 whitespace-nowrap pointer-events-none">
                         +{recentCount} in the last 24h
                       </div>
                     )}
@@ -355,10 +355,10 @@ function HomeContent() {
             <div className="flex flex-col items-center !pt-0 pb-1.5 mb-0 z-1 relative gap-[3px] mt-4 md:mt-6">
               {PRELAUNCH_MODE && success ? (
                 <div className="text-center py-4">
-                  <p className="text-brand-500 font-medium">
+                  <p className="text-orange-500 font-medium">
                     <ScrambleText>You&apos;re on the list!</ScrambleText>
                   </p>
-                  <p className="text-sm text-cream-800 mt-2">
+                  <p className="text-sm text-brown-800 mt-2">
                     <ScrambleText>Check your email for more information.</ScrambleText>
                   </p>
                 </div>
@@ -371,7 +371,7 @@ function HomeContent() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
-                        className="w-full h-[47px] px-3 bg-[#e9e3d6] border border-cream-800 text-cream-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-brand-500 text-[14px] md:text-[18px]"
+                        className="w-full h-[47px] px-3 bg-[#e9e3d6] border border-brown-800 text-brown-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-orange-500 text-[14px] md:text-[18px]"
                         placeholder="example@email.com"
                       />
                       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]" />
@@ -382,7 +382,7 @@ function HomeContent() {
                         <button
                           onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
                           disabled={isSubmitting}
-                          className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors box-border"
+                          className="relative bg-orange-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors box-border"
                         >
                           <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
                           <span className={`text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
@@ -397,13 +397,13 @@ function HomeContent() {
                   </p>
 
                   {error && (
-                    <p className="text-brand-500 text-sm">{error}</p>
+                    <p className="text-orange-500 text-sm">{error}</p>
                   )}
 
                   {!PRELAUNCH_MODE && (
                     <button
                       onClick={handleLogin}
-                      className="text-sm text-cream-800 hover:text-brand-500 underline cursor-pointer transition-colors"
+                      className="text-sm text-brown-800 hover:text-orange-500 underline cursor-pointer transition-colors"
                     >
                       Already have an account? Log in
                     </button>
@@ -424,10 +424,10 @@ function HomeContent() {
 
             {/* How You Qualify */}
             <section className="space-y-3 md:space-y-4 md:px-5 py-1">
-              <h2 className="text-[24px] uppercase text-cream-800">
+              <h2 className="text-[24px] uppercase text-brown-800">
                 <ScrambleText>{">>: How You Qualify"}</ScrambleText>
               </h2>
-              <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-cream-800">
+              <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-brown-800">
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>Make 3 hardware projects (~45 hrs)</ScrambleText></span></li>
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>Fly to Austin, TX! (travel stipends available)</ScrambleText></span></li>
               </ul>
@@ -484,11 +484,11 @@ function HomeContent() {
             <ASCIIArt art={asciiArt.donut} horizontalPosition={12} verticalOffset="48rem" />
 
             {/* FAQ */}
-            <section className="text-cream-800 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12 text-[14px] md:text-[18px] ">
+            <section className="text-brown-800 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12 text-[14px] md:text-[18px] ">
               <h2 className="text-[24px] uppercase leading-normal mb-0 md:mb-2 "><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
               <div>
                 {faqs.map((faq, i) => (
-                  <div key={i} className={`border-b-[1.5] border-cream-800 transition-colors duration-300 ${openIndex === i ? 'bg-cream-300/25' : ''}`}>
+                  <div key={i} className={`border-b-[1.5] border-brown-800 transition-colors duration-300 ${openIndex === i ? 'bg-cream-300/25' : ''}`}>
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}
                       className="w-full text-left cursor-pointer"
@@ -509,7 +509,7 @@ function HomeContent() {
                     >
                       <div className="overflow-hidden">
                         <div
-                          className="pb-4 px-4 text-cream-800 faq leading-snug"
+                          className="pb-4 px-4 text-brown-800 faq leading-snug"
                           dangerouslySetInnerHTML={{ __html: faq.answer }}
                         />
                       </div>
@@ -521,14 +521,14 @@ function HomeContent() {
 
             {/* Not a hacker CTA */}
             <section className="flex flex-col items-center py-1 md:px-5 mb-8 md:mb-12 gap-3">
-              <p className="text-[14px] md:text-[18px] text-cream-800 uppercase mb-2 md:mb-4">
+              <p className="text-[14px] md:text-[18px] text-brown-800 uppercase mb-2 md:mb-4">
                 <ScrambleText>Not a hacker but want to come?</ScrambleText>
               </p>
               <MagneticCorners offset={12}>
                 <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                   <a
                     href="mailto:meghana@hackclub.com"
-                    className="relative bg-brand-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-8 h-[45px] flex items-center justify-center cursor-pointer transition-colors box-border no-underline"
+                    className="relative bg-orange-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-8 h-[45px] flex items-center justify-center cursor-pointer transition-colors box-border no-underline"
                   >
                     <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
                     <span className="text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap">Email Us</span>

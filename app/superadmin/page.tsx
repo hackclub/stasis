@@ -29,17 +29,17 @@ export default function SuperAdminPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)]">
-      <div className="bg-cream-100 p-8 rounded border border-brand-500">
-        <h1 className="text-brand-500 text-xl uppercase tracking-wide mb-4">Superadmin Access</h1>
+      <div className="bg-cream-100 p-8 rounded border border-orange-500">
+        <h1 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Superadmin Access</h1>
         {status === 'idle' && (
           <button
             onClick={grantAdmin}
-            className="bg-brand-500 text-cream-100 px-4 py-2 uppercase tracking-wide hover:bg-brand-600"
+            className="bg-orange-500 text-cream-100 px-4 py-2 uppercase tracking-wide hover:bg-orange-600"
           >
             Grant Admin Access
           </button>
         )}
-        {status === 'loading' && <p className="text-cream-700">Granting access...</p>}
+        {status === 'loading' && <p className="text-brown-800">Granting access...</p>}
         {status === 'success' && <p className="text-green-500">{message}</p>}
         {status === 'error' && <p className="text-red-600">{message}</p>}
       </div>

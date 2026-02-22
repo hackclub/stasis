@@ -60,13 +60,13 @@ export default function AdminRsvps() {
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-cream-700 text-sm uppercase">
+        <p className="text-brown-800 text-sm uppercase">
           {rsvps.length} temp rsvp{rsvps.length !== 1 ? 's' : ''} (not yet synced to airtable)
         </p>
         <button
           onClick={handleSyncToAirtable}
           disabled={rsvps.length === 0 || syncing}
-          className="px-4 py-2 bg-brand-500 text-cream-100 text-sm uppercase tracking-wider hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="px-4 py-2 bg-orange-500 text-cream-100 text-sm uppercase tracking-wider hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {syncing ? 'Syncing...' : 'Sync to Airtable'}
         </button>
@@ -74,17 +74,17 @@ export default function AdminRsvps() {
 
       {loading ? (
         <div className="text-center py-8">
-          <p className="text-cream-700">Loading RSVPs...</p>
+          <p className="text-brown-800">Loading RSVPs...</p>
         </div>
       ) : rsvps.length === 0 ? (
         <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-          <p className="text-cream-700">No unsynced temp RSVPs</p>
+          <p className="text-brown-800">No unsynced temp RSVPs</p>
         </div>
       ) : (
         <div className="bg-cream-100 border-2 border-cream-400 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-cream-400 text-left text-cream-700 uppercase text-xs">
+              <tr className="border-b border-cream-400 text-left text-brown-800 uppercase text-xs">
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Account</th>
@@ -96,8 +96,8 @@ export default function AdminRsvps() {
             <tbody>
               {rsvps.map((rsvp) => (
                 <tr key={rsvp.id} className="border-b border-cream-300 last:border-0">
-                  <td className="px-4 py-3 text-cream-800">{rsvp.email}</td>
-                  <td className="px-4 py-3 text-cream-700">
+                  <td className="px-4 py-3 text-brown-800">{rsvp.email}</td>
+                  <td className="px-4 py-3 text-brown-800">
                     {[rsvp.firstName, rsvp.lastName].filter(Boolean).join(' ') || '—'}
                   </td>
                   <td className="px-4 py-3">

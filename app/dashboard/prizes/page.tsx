@@ -122,12 +122,12 @@ export default function PrizesPage() {
       <div className="bg-cream-100 border-2 border-cream-400 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-brand-500 text-lg uppercase tracking-wide">Your XP Balance</h2>
-            <p className="text-cream-800 text-4xl font-bold">{xpBalance.toLocaleString()} XP</p>
+            <h2 className="text-orange-500 text-lg uppercase tracking-wide">Your XP Balance</h2>
+            <p className="text-brown-800 text-4xl font-bold">{xpBalance.toLocaleString()} XP</p>
           </div>
           <div className="text-right">
-            <p className="text-cream-700 text-xs uppercase tracking-wide">Current Week</p>
-            <p className="text-cream-800 text-lg">{weekRange.display}</p>
+            <p className="text-brown-800 text-xs uppercase tracking-wide">Current Week</p>
+            <p className="text-brown-800 text-lg">{weekRange.display}</p>
           </div>
         </div>
       </div>
@@ -140,15 +140,15 @@ export default function PrizesPage() {
 
       {/* Available Prizes */}
       <div>
-        <h2 className="text-brand-500 text-xl uppercase tracking-wide mb-4">Available Prizes</h2>
+        <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Available Prizes</h2>
         
         {loading ? (
           <div className="p-8 text-center">
-            <p className="text-cream-700">Loading prizes...</p>
+            <p className="text-brown-800">Loading prizes...</p>
           </div>
         ) : prizes.length === 0 ? (
           <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-            <p className="text-cream-700">No prizes available this week.</p>
+            <p className="text-brown-800">No prizes available this week.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -163,16 +163,16 @@ export default function PrizesPage() {
                   key={prize.id}
                   className={`bg-cream-100 border-2 p-4 flex flex-col ${
                     prize.userClaimed
-                      ? 'border-brand-500/50'
+                      ? 'border-orange-500/50'
                       : 'border-cream-400'
                   }`}
                 >
                   <div className="flex-1">
-                    <h3 className="text-cream-800 text-lg font-medium mb-1">{prize.name}</h3>
-                    <p className="text-cream-700 text-sm mb-3">{prize.description}</p>
+                    <h3 className="text-brown-800 text-lg font-medium mb-1">{prize.name}</h3>
+                    <p className="text-brown-800 text-sm mb-3">{prize.description}</p>
                     
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-brand-400 font-bold">{prize.xpCost.toLocaleString()} XP</p>
+                      <p className="text-orange-400 font-bold">{prize.xpCost.toLocaleString()} XP</p>
                       {remaining !== null && (
                         <p className="text-cream-600 text-xs uppercase">
                           {remaining > 0 ? `${remaining} left` : 'Sold out'}
@@ -182,8 +182,8 @@ export default function PrizesPage() {
                   </div>
 
                   {prize.userClaimed ? (
-                    <div className="bg-brand-500/20 border border-brand-500/50 px-4 py-2 text-center">
-                      <span className="text-brand-400 uppercase tracking-wide text-sm">Claimed ✓</span>
+                    <div className="bg-orange-500/20 border border-orange-500/50 px-4 py-2 text-center">
+                      <span className="text-orange-400 uppercase tracking-wide text-sm">Claimed ✓</span>
                     </div>
                   ) : (
                     <button
@@ -191,7 +191,7 @@ export default function PrizesPage() {
                       disabled={!canClaim || claiming === prize.id}
                       className={`px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer ${
                         canClaim
-                          ? 'bg-brand-500 hover:bg-brand-400 text-white'
+                          ? 'bg-orange-500 hover:bg-orange-400 text-white'
                           : 'bg-cream-300 text-cream-600 cursor-not-allowed'
                       }`}
                     >
@@ -214,16 +214,16 @@ export default function PrizesPage() {
       {/* Claimed Prizes History */}
       {claimedPrizes.length > 0 && (
         <div>
-          <h2 className="text-brand-500 text-xl uppercase tracking-wide mb-4">Your Claimed Prizes</h2>
+          <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Your Claimed Prizes</h2>
           <div className="bg-cream-100 border-2 border-cream-400 divide-y divide-cream-400">
             {claimedPrizes.map((claim) => (
               <div key={claim.id} className="p-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-cream-800 font-medium">{claim.prize.name}</h3>
+                  <h3 className="text-brown-800 font-medium">{claim.prize.name}</h3>
                   <p className="text-cream-600 text-sm">{claim.prize.description}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-brand-400 text-sm">{claim.prize.xpCost.toLocaleString()} XP</p>
+                  <p className="text-orange-400 text-sm">{claim.prize.xpCost.toLocaleString()} XP</p>
                   <p className="text-cream-600 text-xs">
                     {new Date(claim.claimedAt).toLocaleDateString()}
                   </p>

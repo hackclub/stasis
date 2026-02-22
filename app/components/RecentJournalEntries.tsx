@@ -70,7 +70,7 @@ export function RecentJournalEntries() {
   if (loading) {
     return (
       <div className="bg-cream-100 border-2 border-cream-400 p-4">
-        <h2 className="text-brand-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
+        <h2 className="text-orange-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
         <p className="text-cream-600 text-sm">Loading...</p>
       </div>
     );
@@ -79,7 +79,7 @@ export function RecentJournalEntries() {
   if (sessions.length === 0) {
     return (
       <div className="bg-cream-100 border-2 border-cream-400 p-4">
-        <h2 className="text-brand-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
+        <h2 className="text-orange-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
         <p className="text-cream-600 text-sm">No journal entries yet. Log your first work session!</p>
       </div>
     );
@@ -87,7 +87,7 @@ export function RecentJournalEntries() {
 
   return (
     <div className="bg-cream-100 border-2 border-cream-400 p-4">
-      <h2 className="text-brand-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
+      <h2 className="text-orange-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
       <div className="space-y-3">
         {sessions.map((session) => (
           <Link
@@ -109,7 +109,7 @@ export function RecentJournalEntries() {
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-cream-800 text-base truncate group-hover:text-brand-500 transition-colors">
+                  <p className="text-brown-800 text-base truncate group-hover:text-orange-500 transition-colors">
                     {session.project.title}
                   </p>
                   <span className="text-cream-500 text-xs flex-shrink-0">
@@ -127,7 +127,7 @@ export function RecentJournalEntries() {
                     : `${session.hoursClaimed}h logged`}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`text-xs ${session.hoursApproved !== null ? 'text-brand-500' : 'text-cream-500'}`}>
+                  <span className={`text-xs ${session.hoursApproved !== null ? 'text-orange-500' : 'text-cream-500'}`}>
                     {session.hoursApproved !== null ? `${session.hoursApproved}h approved` : `${session.hoursClaimed}h pending`}
                   </span>
                 </div>

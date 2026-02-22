@@ -32,11 +32,11 @@ export function ASCIIArt({ art, horizontalPosition, verticalOffset = '0' }: Prop
       style={{ left: `${horizontalPosition}%`, top: verticalOffset, transform: 'translateX(-50%)' }}
       aria-hidden="true"
     >
-      <pre className="text-cream-800/12 text-[0.7rem] leading-[1.2] whitespace-pre font-mono text-left">
+      <pre className="text-brown-800/12 text-[0.7rem] leading-[1.2] whitespace-pre font-mono text-left">
         {art}
       </pre>
       <pre
-        className="absolute top-0 left-0 text-cream-800/25 text-[0.7rem] leading-[1.2] whitespace-pre font-mono text-left"
+        className="absolute top-0 left-0 text-brown-800/25 text-[0.7rem] leading-[1.2] whitespace-pre font-mono text-left"
         style={{
           maskImage: `radial-gradient(circle 150px at ${mouseX}px ${mouseY}px, black 0%, transparent 100%)`,
           WebkitMaskImage: `radial-gradient(circle 150px at ${mouseX}px ${mouseY}px, black 0%, transparent 100%)`,

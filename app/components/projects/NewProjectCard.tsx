@@ -8,10 +8,10 @@ export function NewProjectCard({ onClick }: Readonly<Props>) {
   return (
     <button 
       data-tutorial="new-project"
-      className="bg-cream-100 relative select-none w-full cursor-pointer overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-cream-400 hover:border-brand-500 hover:bg-cream-200 transition-colors group min-h-[120px] sm:min-h-[280px]"
+      className="bg-cream-100 relative select-none w-full cursor-pointer overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 transition-colors group min-h-[120px] sm:min-h-[280px]"
       onClick={onClick}
     >
-      <div className="text-cream-600 group-hover:text-brand-500 transition-colors">
+      <div className="text-cream-600 group-hover:text-orange-500 transition-colors">
         <svg 
           xmlns="http://www.w3.org/2000/svg" 
           width="48" 
@@ -25,7 +25,7 @@ export function NewProjectCard({ onClick }: Readonly<Props>) {
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </div>
-      <p className="text-cream-600 group-hover:text-brand-500 text-sm font-mono uppercase mt-1 transition-colors">
+      <p className="text-cream-600 group-hover:text-orange-500 text-sm font-mono uppercase mt-1 transition-colors">
         New Project
       </p>
     </button>

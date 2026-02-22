@@ -31,16 +31,16 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
       >
         <div className="mx-auto w-full text-center">
           <p className="font-mono text-xs md:text-sm">
-            Made with <span className="bg-brand-500 text-cream-100">&lt;3</span> by teenagers, for teenagers
+            Made with <span className="bg-orange-500 text-cream-100">&lt;3</span> by teenagers, for teenagers
           </p>
           <div className="mt-2 mx-auto">
-            <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hack Club</a>
+            <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Hack Club</a>
             <span>・</span>
-            <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Slack</a>
+            <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Slack</a>
             <span>・</span>
-            <a href="https://hackclub.com/clubs" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Clubs</a>
+            <a href="https://hackclub.com/clubs" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Clubs</a>
             <span>・</span>
-            <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-brand-500 hover:text-cream-100">Hackathons</a>
+            <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Hackathons</a>
           </div>
         </div>
       </div>
@@ -58,7 +58,7 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
           }}
         />
       </div>
-      <div className="md:hidden w-full h-12 bg-cream-800"></div>
+      <div className="md:hidden w-full h-12 bg-brown-800"></div>
     </footer>
   );
 }

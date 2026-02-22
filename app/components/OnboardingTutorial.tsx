@@ -403,7 +403,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
       {/* Highlight border */}
       {highlightRect && (
         <div
-          className="absolute border-2 border-brand-400 rounded pointer-events-none animate-pulse"
+          className="absolute border-2 border-orange-400 rounded pointer-events-none animate-pulse"
           style={{
             top: highlightRect.top - 8,
             left: highlightRect.left - 8,
@@ -415,7 +415,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
 
       {/* Tooltip */}
       <div
-        className="absolute bg-cream-100 border-2 border-brand-500 p-6 max-w-[360px] w-full shadow-2xl"
+        className="absolute bg-cream-100 border-2 border-orange-500 p-6 max-w-[360px] w-full shadow-2xl"
         style={tooltipPosition}
       >
         {/* Progress indicator */}
@@ -424,7 +424,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
             <div
               key={index}
               className={`h-1 flex-1 rounded-full transition-colors ${
-                index <= currentStep ? 'bg-brand-500' : 'bg-cream-400'
+                index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
               }`}
             />
           ))}
@@ -436,12 +436,12 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
         </p>
 
         {/* Title */}
-        <h3 className="text-cream-800 text-lg font-medium mb-3">
+        <h3 className="text-brown-800 text-lg font-medium mb-3">
           {step.title}
         </h3>
 
         {/* Content */}
-        <p className="text-cream-700 text-sm leading-relaxed mb-6">
+        <p className="text-brown-800 text-sm leading-relaxed mb-6">
           {step.content}
         </p>
 
@@ -449,7 +449,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
         <div className="flex items-center justify-between">
           <button
             onClick={handleSkip}
-            className="text-cream-500 text-sm hover:text-cream-700 transition-colors cursor-pointer"
+            className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
           >
             Skip tutorial
           </button>
@@ -458,14 +458,14 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
             {currentStep > 0 && (
               <button
                 onClick={handlePrev}
-                className="bg-cream-300 hover:bg-cream-400 text-cream-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Back
               </button>
             )}
             <button
               onClick={handleNext}
-              className="bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+              className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
             >
               {currentStep === TUTORIAL_STEPS.length - 1 ? 'Get Started' : 'Next'}
             </button>
@@ -485,7 +485,7 @@ export function TutorialHelpButton({ onClick }: Readonly<{ onClick: () => void }
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-50 bg-brand-500 hover:bg-brand-400 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+      className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-400 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
       title="Show tutorial"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -82,7 +82,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
                     ? 'border-red-500 bg-red-100 text-red-600'
                     : step.active
                     ? 'border-yellow-500 bg-yellow-100 text-yellow-600'
-                    : 'border-cream-400 bg-cream-200 text-cream-700'
+                    : 'border-cream-400 bg-cream-200 text-brown-800'
                 }`}
               >
                 {step.completed ? (
@@ -107,7 +107,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
                     ? 'text-red-600'
                     : step.active
                     ? 'text-yellow-600'
-                    : 'text-cream-700'
+                    : 'text-brown-800'
                 }`}
               >
                 {step.label}
@@ -130,7 +130,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
       {showMessages && (
         <div className="text-center">
           {designStatus === 'draft' && (
-            <p className="text-cream-700 text-sm">
+            <p className="text-brown-800 text-sm">
               Design your project and log your time. Upload all design files to your GitHub repo. Once your design is approved, you&apos;ll receive a grant card to purchase your parts!
             </p>
           )}

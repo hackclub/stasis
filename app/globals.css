@@ -2,7 +2,7 @@
 @import "highlight.js/styles/github-dark.css";
 
 @theme {
-	/* Cream palette - based on #D5CCB7 */
+	/* Cream - LIGHT NEUTRAL */
 	--color-cream-50: #F5F3EF;
 	--color-cream-100: #EBE8E0;
 	--color-cream-200: #D5CCB7;
@@ -10,34 +10,25 @@
 	--color-cream-400: #A89D88;
 	--color-cream-500: #8C826F;
 	--color-cream-600: #706858;
-	--color-cream-700: #544E42;
-	--color-cream-800: #44382C;
-	--color-cream-800-0: rgba(61, 58, 50, 0);
-	--color-cream-800-20: rgba(61, 58, 50, 0.2);
-	--color-cream-850: #332F29;
-	--color-cream-900: #2A1E37;
-	--color-cream-950: #1F1629;
 
-	/* Brand orange - #E86A3A */
-	--color-brand-300: #F4A57A;
-	--color-brand-400: #F08A5D;
-	--color-brand-500: #E86A3A;
-	--color-brand-500-25: rgba(232, 106, 58, 0.15);
-	--color-brand-600: #C25A30;
-	--color-brand-900: #4A230F;
+	/* Brown - DARK NEUTRAL */
+	--color-brown-800: #44382C;
+	--color-brown-900: #332F29;
 
-	/* Gold accent - #E1AB55 */
-	--color-gold-300: #F0CB8A;
-	--color-gold-400: #E8BC6E;
-	--color-gold-500: #E1AB55;
-	--color-gold-600: #C99544;
+	/* ---- PRIMARY ---- */
 
-	/* Purple accent - #871669 */
-	--color-purple-300: #B44A96;
-	--color-purple-400: #A02E80;
-	--color-purple-500: #871669;
-	--color-purple-600: #6D1155;
-	--color-purple-900: #2A1E37;
+	/* Orange */
+	--color-orange-400: #FC8A58;
+	--color-orange-500: #E86A3A;
+	--color-orange-600: #D95D39;
+
+	/* ---- SECONDARY ---- */
+
+	/* Yellow */
+	--color-yellow-500: #E1AB55;
+
+	/* Taupe */
+	--color-taupe-500: #9C8F88;
 
 	--font-mono: var(--font-mono), monospace;
 	--font-barcode: var(--font-barcode), monospace;
@@ -50,7 +41,7 @@ body {
 }
 
 ::selection {
-	background-color: var(--color-brand-500);
+	background-color: var(--color-orange-500);
 	color: var(--color-cream-100);
 }
 
@@ -95,12 +86,12 @@ body {
 
 /* Focus styles */
 *:focus-visible {
-	outline: 2px solid var(--color-brand-500);
+	outline: 2px solid var(--color-orange-500);
 	outline-offset: 2px;
 }
 
 button:focus-visible,
 a:focus-visible {
-	outline: 2px solid var(--color-brand-500);
+	outline: 2px solid var(--color-orange-500);
 	outline-offset: 2px;
 }

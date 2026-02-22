@@ -225,7 +225,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     if (isPending || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-cream-100 font-mono">
-                <p className="text-cream-700">Loading...</p>
+                <p className="text-brown-800">Loading...</p>
             </div>
         );
     }
@@ -241,7 +241,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
         <div className="max-w-2xl mx-auto">
             {/* Breadcrumb */}
             <div className="mb-6">
-                <Link href={`/dashboard/projects/${project.id}`} className="text-cream-700 hover:text-brand-400 transition-colors flex items-center gap-2 text-sm">
+                <Link href={`/dashboard/projects/${project.id}`} className="text-brown-800 hover:text-orange-400 transition-colors flex items-center gap-2 text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
@@ -251,12 +251,12 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
             {/* Hero */}
             <div className="relative mb-10">
-                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-brand-500 via-brand-400 to-transparent" />
+                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-500 via-orange-400 to-transparent" />
                 <div className="pl-4">
                     <p className="text-cream-600 text-xs uppercase tracking-widest mb-1">Editing</p>
-                    <h1 className="text-brand-500 text-3xl uppercase tracking-wide font-medium">{project.title}</h1>
+                    <h1 className="text-orange-500 text-3xl uppercase tracking-wide font-medium">{project.title}</h1>
                     {project.description && (
-                        <p className="text-cream-700 mt-2 line-clamp-2">{project.description}</p>
+                        <p className="text-brown-800 mt-2 line-clamp-2">{project.description}</p>
                     )}
                 </div>
             </div>
@@ -264,46 +264,46 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="bg-cream-200 border-2 border-cream-400 p-6 space-y-6">
                     <div>
-                        <label className="block text-cream-700 text-sm uppercase mb-2">
+                        <label className="block text-brown-800 text-sm uppercase mb-2">
                             Title
                         </label>
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                            className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
                             placeholder="My Awesome Project"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-cream-700 text-sm uppercase mb-2">
+                        <label className="block text-brown-800 text-sm uppercase mb-2">
                             Description
                         </label>
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
+                            className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors resize-none h-24"
                             placeholder="What are you building?"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-cream-700 text-sm uppercase mb-2">
-                            GitHub Repo <span className="text-brand-400">(required for submission)</span>
+                        <label className="block text-brown-800 text-sm uppercase mb-2">
+                            GitHub Repo <span className="text-orange-400">(required for submission)</span>
                         </label>
                         <input
                             type="url"
                             value={githubRepo}
                             onChange={(e) => setGithubRepo(e.target.value)}
-                            className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                            className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
                             placeholder="https://github.com/username/repo"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-cream-700 text-sm uppercase mb-2">
+                        <label className="block text-brown-800 text-sm uppercase mb-2">
                             Tags
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -313,8 +313,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                     type="button"
                                     onClick={() => handleTagToggle(tag.value)}
                                     className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${selectedTags.includes(tag.value)
-                                            ? 'bg-brand-500 text-white font-medium'
-                                            : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                                            ? 'bg-orange-500 text-white font-medium'
+                                            : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                                         }`}
                                 >
                                     {tag.label}
@@ -324,7 +324,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     </div>
 
                     <div>
-                        <label className="block text-cream-700 text-sm uppercase mb-2">
+                        <label className="block text-brown-800 text-sm uppercase mb-2">
                             Project Tier
                             {project.designStatus === 'approved' && (
                                 <span className="ml-2 text-cream-500 normal-case text-xs">(locked — set by reviewer)</span>
@@ -341,10 +341,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                         selectedTier === tier.id
                                             ? project.designStatus === 'approved'
                                                 ? 'bg-green-600/20 border-green-600 text-green-700 cursor-default'
-                                                : 'bg-brand-500 text-white border-brand-400 cursor-pointer'
+                                                : 'bg-orange-500 text-white border-orange-400 cursor-pointer'
                                             : project.designStatus === 'approved'
                                                 ? 'bg-cream-200 text-cream-400 border-cream-300 cursor-default'
-                                                : 'bg-cream-300 text-cream-700 hover:bg-cream-400 border-cream-400 cursor-pointer transition-colors'
+                                                : 'bg-cream-300 text-brown-800 hover:bg-cream-400 border-cream-400 cursor-pointer transition-colors'
                                     }`}
                                 >
                                     <span className="uppercase font-medium">{tier.name}</span>
@@ -357,7 +357,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     </div>
 
                     <div>
-                        <label className="block text-cream-700 text-sm uppercase mb-2">
+                        <label className="block text-brown-800 text-sm uppercase mb-2">
                             Project Type
                         </label>
                         <div className="flex gap-2">
@@ -365,8 +365,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                 type="button"
                                 onClick={() => setIsStarter(false)}
                                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${!isStarter
-                                        ? 'bg-brand-500 text-white font-medium'
-                                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                                        ? 'bg-orange-500 text-white font-medium'
+                                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                                     }`}
                             >
                                 Custom
@@ -375,8 +375,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                 type="button"
                                 onClick={() => setIsStarter(true)}
                                 className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${isStarter
-                                        ? 'bg-brand-500 text-white font-medium'
-                                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                                        ? 'bg-orange-500 text-white font-medium'
+                                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                                     }`}
                             >
                                 Starter
@@ -386,13 +386,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
                     {isStarter && (
                         <div>
-                            <label className="block text-cream-700 text-xs uppercase mb-2 mt-4">
+                            <label className="block text-brown-800 text-xs uppercase mb-2 mt-4">
                                 Which Starter Project?
                             </label>
                             <select
                                 value={starterProjectId}
                                 onChange={(e) => setStarterProjectId(e.target.value)}
-                                className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                                className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
                                 required
                             >
                                 <option value="">Select a starter project...</option>
@@ -409,10 +409,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 {/* Badges section */}
                 <div className="bg-cream-200 border-2 border-cream-400 p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-cream-800 text-lg uppercase">
+                        <h2 className="text-brown-800 text-lg uppercase">
                             Skill Badges ({badges.length}/{MAX_BADGES_PER_PROJECT})
                         </h2>
-                        {loadingBadges && <span className="text-cream-700 text-xs">Loading...</span>}
+                        {loadingBadges && <span className="text-brown-800 text-xs">Loading...</span>}
                     </div>
 
                     {badgeError && (
@@ -424,7 +424,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     {/* Claimed badges */}
                     {badges.length > 0 && (
                         <div className="mb-4 space-y-2">
-                            <p className="text-cream-700 text-xs uppercase">Claimed</p>
+                            <p className="text-brown-800 text-xs uppercase">Claimed</p>
                             <div className="flex flex-wrap gap-2">
                                 {badges.map((badge) => {
                                     const badgeInfo = AVAILABLE_BADGES.find(b => b.value === badge.badge);
@@ -433,7 +433,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                             key={badge.id}
                                             className={`flex items-center gap-2 px-3 py-1.5 text-sm ${badge.grantedAt
                                                     ? 'bg-green-600/40 border border-green-500 text-green-600'
-                                                    : 'bg-brand-500/30 border border-brand-400 text-brand-500'
+                                                    : 'bg-orange-500/30 border border-orange-400 text-orange-500'
                                                 }`}
                                         >
                                             <span>{badgeInfo?.label || badge.badge}</span>
@@ -458,7 +458,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     {/* Available badges */}
                     {badges.length < MAX_BADGES_PER_PROJECT && (
                         <div>
-                            <p className="text-cream-700 text-xs uppercase mb-2">Available to claim</p>
+                            <p className="text-brown-800 text-xs uppercase mb-2">Available to claim</p>
                             <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                                 {AVAILABLE_BADGES.filter(b => !claimedBadgeTypes.includes(b.value)).map((badge) => {
                                     const isClaimedElsewhere = allClaimedBadges.includes(badge.value)
@@ -472,7 +472,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                             className={`text-left px-3 py-2 border text-sm transition-colors ${
                                                 isClaimedElsewhere
                                                     ? 'bg-cream-200 border-cream-300 text-cream-400 cursor-not-allowed line-through'
-                                                    : 'bg-white border-cream-400 hover:border-brand-400 text-cream-800 cursor-pointer disabled:opacity-50'
+                                                    : 'bg-white border-cream-400 hover:border-orange-400 text-brown-800 cursor-pointer disabled:opacity-50'
                                             }`}
                                         >
                                             {badge.label}
@@ -487,7 +487,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <button
                     type="submit"
                     disabled={!title.trim() || saving}
-                    className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white font-medium py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                    className="w-full bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white font-medium py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                     {saving ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -505,14 +505,14 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
                 {showDeleteConfirm && (
                     <div className="mt-4 space-y-3">
-                        <p className="text-cream-700 text-sm">
+                        <p className="text-brown-800 text-sm">
                             Type <span className="text-red-500 font-bold">{project.title}</span> to confirm deletion:
                         </p>
                         <input
                             type="text"
                             value={deleteConfirmText}
                             onChange={(e) => setDeleteConfirmText(e.target.value)}
-                            className="w-full bg-white border-2 border-red-600/50 text-cream-800 px-3 py-2 focus:border-red-500 focus:outline-none transition-colors"
+                            className="w-full bg-white border-2 border-red-600/50 text-brown-800 px-3 py-2 focus:border-red-500 focus:outline-none transition-colors"
                             placeholder="Type project name..."
                         />
                         <button

@@ -43,7 +43,7 @@ function UserAvatar({ name, image }: { name: string | null; image: string | null
   }
   return (
     <div className="w-6 h-6 rounded-full bg-cream-400 flex items-center justify-center flex-shrink-0">
-      <span className="text-cream-800 text-xs">
+      <span className="text-brown-800 text-xs">
         {name?.[0]?.toUpperCase() || '?'}
       </span>
     </div>
@@ -56,8 +56,8 @@ function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision
   switch (type) {
     case 'PROJECT_CREATED':
       return (
-        <div className={`${baseClass} bg-brand-500/20 border border-brand-500`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-400">
+        <div className={`${baseClass} bg-orange-500/20 border border-orange-500`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-orange-400">
             <path d="M12 5v14M5 12h14"/>
           </svg>
         </div>
@@ -75,8 +75,8 @@ function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision
       );
     case 'SUBMISSION':
       return (
-        <div className={`${baseClass} bg-purple-500/20 border border-purple-500`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600">
+        <div className={`${baseClass} bg-yellow-500/20 border border-yellow-500`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-500">
             <polyline points="9 11 12 14 22 4"/>
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
@@ -134,7 +134,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UserAvatar name={item.user.name} image={item.user.image} />
-                    <span className="text-cream-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-brown-800 text-sm font-medium">{item.user.name || 'User'}</span>
                     <span className="text-cream-600 text-sm">started this project</span>
                   </div>
                   <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
@@ -147,16 +147,16 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <UserAvatar name={item.user.name} image={item.user.image} />
-                    <span className="text-cream-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-brown-800 text-sm font-medium">{item.user.name || 'User'}</span>
                     <span className="text-cream-600 text-sm">added to the journal</span>
                     <span className={`px-2 py-0.5 text-xs uppercase ${
                       item.session.stage === "DESIGN" 
-                        ? 'bg-purple-100 border border-purple-500 text-purple-700' 
+                        ? 'bg-purple-100 border border-yellow-500 text-purple-700' 
                         : 'bg-blue-100 border border-blue-500 text-blue-700'
                     }`}>
                       {item.session.stage}
                     </span>
-                    <span className="text-cream-700 text-sm">
+                    <span className="text-brown-800 text-sm">
                       {item.session.hoursApproved !== null 
                         ? `${item.session.hoursApproved}/${item.session.hoursClaimed}h approved`
                         : `${item.session.hoursClaimed}h claimed`}
@@ -166,7 +166,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                     {item.session.hoursApproved === null && (
                       <Link
                         href={`/dashboard/projects/${projectId}/session/${item.session.id}/edit`}
-                        className="text-cream-500 hover:text-brand-500 transition-colors"
+                        className="text-cream-500 hover:text-orange-500 transition-colors"
                         title="Edit journal entry"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -178,7 +178,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                     <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                   </div>
                 </div>
-                <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 [&_.wmde-markdown_h1]:!text-xl [&_.wmde-markdown_h1]:!font-bold [&_.wmde-markdown_h1]:!text-cream-800 [&_.wmde-markdown_h1]:!mb-2" data-color-mode="light">
+                <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 [&_.wmde-markdown_h1]:!text-xl [&_.wmde-markdown_h1]:!font-bold [&_.wmde-markdown_h1]:!text-brown-800 [&_.wmde-markdown_h1]:!mb-2" data-color-mode="light">
                   <MDPreview source={`# ${item.session.title}\n\n${item.session.content || ''}`} />
                 </div>
                 {item.session.media.length > 0 && item.session.media.some(m => !item.session.content?.includes(m.url)) && (
@@ -188,7 +188,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                         <img
                           src={m.url}
                           alt="Session media"
-                          className="max-w-full max-h-64 border border-cream-400 hover:border-brand-500 transition-colors"
+                          className="max-w-full max-h-64 border border-cream-400 hover:border-orange-500 transition-colors"
                         />
                       </a>
                     ))}
@@ -230,19 +230,19 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
             )}
             
             {item.type === 'SUBMISSION' && (
-              <div className="bg-cream-100 border border-purple-600/50 p-4">
+              <div className="bg-cream-100 border border-yellow-500/50 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UserAvatar name={item.user.name} image={item.user.image} />
-                    <span className="text-cream-800 text-sm font-medium">{item.user.name || 'User'}</span>
-                    <span className="text-purple-600 text-sm">
+                    <span className="text-brown-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-yellow-500 text-sm">
                       submitted {item.stage.toLowerCase()} for review
                     </span>
                   </div>
                   <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
                 </div>
                 {item.notes && (
-                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
                     <MDPreview source={item.notes} />
                   </div>
                 )}
@@ -258,7 +258,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <UserAvatar name={item.reviewerName} image={item.reviewerImage} />
-                    <span className="text-cream-800 text-sm font-medium">{item.reviewerName || 'Reviewer'}</span>
+                    <span className="text-brown-800 text-sm font-medium">{item.reviewerName || 'Reviewer'}</span>
                     <span className={`text-sm ${
                       item.decision === 'APPROVED' ? 'text-green-600' : 'text-yellow-600'
                     }`}>
@@ -275,7 +275,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                   </p>
                 )}
                 {item.comments && (
-                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-700 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
                     <MDPreview source={item.comments} />
                   </div>
                 )}

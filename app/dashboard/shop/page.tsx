@@ -91,47 +91,47 @@ export default function ShopPage() {
       <div className="bg-cream-100 border-2 border-cream-400 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-brand-500 text-lg uppercase tracking-wide">Your Bits Balance</h2>
-            <p className="text-cream-800 text-4xl font-bold">{bitsBalance.toLocaleString()} Bits</p>
+            <h2 className="text-orange-500 text-lg uppercase tracking-wide">Your Bits Balance</h2>
+            <p className="text-brown-800 text-4xl font-bold">{bitsBalance.toLocaleString()} Bits</p>
           </div>
           <div className="text-right">
-            <p className="text-cream-700 text-xs uppercase tracking-wide">Earned</p>
-            <p className="text-cream-800 text-lg">{bitsEarned.toLocaleString()} bits</p>
-            <p className="text-cream-700 text-xs uppercase tracking-wide mt-1">Spent on Parts</p>
-            <p className="text-cream-800 text-lg">{bitsSpent.toLocaleString()} bits</p>
+            <p className="text-brown-800 text-xs uppercase tracking-wide">Earned</p>
+            <p className="text-brown-800 text-lg">{bitsEarned.toLocaleString()} bits</p>
+            <p className="text-brown-800 text-xs uppercase tracking-wide mt-1">Spent on Parts</p>
+            <p className="text-brown-800 text-lg">{bitsSpent.toLocaleString()} bits</p>
           </div>
         </div>
       </div>
 
       {loading ? (
         <div className="p-8 text-center">
-          <p className="text-cream-700">Loading shop...</p>
+          <p className="text-brown-800">Loading shop...</p>
         </div>
       ) : (
         <>
           {/* Event Invite */}
           {inviteItem && (
             <div>
-              <h2 className="text-brand-500 text-xl uppercase tracking-wide mb-4">Event Invite</h2>
+              <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Event Invite</h2>
               <div className={`bg-cream-100 border-2 p-6 ${
-                purchasedItems.has(inviteItem.id) || bitsBalance >= inviteItem.bitsCost ? 'border-brand-500' : 'border-cream-400'
+                purchasedItems.has(inviteItem.id) || bitsBalance >= inviteItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
               }`}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="text-cream-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
-                    <p className="text-cream-700 text-sm mb-3">{inviteItem.description}</p>
-                    <p className="text-brand-400 font-bold text-lg">{inviteItem.bitsCost.toLocaleString()} Bits</p>
+                    <h3 className="text-brown-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
+                    <p className="text-brown-800 text-sm mb-3">{inviteItem.description}</p>
+                    <p className="text-orange-400 font-bold text-lg">{inviteItem.bitsCost.toLocaleString()} Bits</p>
                   </div>
                   <div className="sm:text-right">
                     {purchasedItems.has(inviteItem.id) ? (
-                      <div className="bg-brand-500/20 border border-brand-500/50 px-6 py-3 text-center">
-                        <span className="text-brand-400 uppercase tracking-wide text-sm font-bold">Purchased!</span>
+                      <div className="bg-orange-500/20 border border-orange-500/50 px-6 py-3 text-center">
+                        <span className="text-orange-400 uppercase tracking-wide text-sm font-bold">Purchased!</span>
                       </div>
                     ) : bitsBalance >= inviteItem.bitsCost ? (
                       <button
                         onClick={() => handlePurchase(inviteItem.id)}
                         disabled={purchasing === inviteItem.id}
-                        className="bg-brand-500 hover:bg-brand-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
+                        className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
                       >
                         <span className="text-cream-100 uppercase tracking-wide text-sm font-bold">
                           {purchasing === inviteItem.id ? 'Buying...' : 'Buy'}
@@ -153,18 +153,18 @@ export default function ShopPage() {
           {/* Flight Stipend */}
           {flightItem && (
             <div>
-              <h2 className="text-brand-500 text-xl uppercase tracking-wide mb-4">Flight Stipend</h2>
+              <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Flight Stipend</h2>
               <div className={`bg-cream-100 border-2 p-6 ${
-                !hasEventInvite ? 'border-cream-300 opacity-60' : bitsBalance >= flightItem.bitsCost ? 'border-brand-500' : 'border-cream-400'
+                !hasEventInvite ? 'border-cream-300 opacity-60' : bitsBalance >= flightItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
               }`}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="text-cream-800 text-xl font-medium mb-1">{flightItem.name}</h3>
-                    <p className="text-cream-700 text-sm mb-3">{flightItem.description}</p>
-                    <p className="text-brand-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()} Bits per increment</p>
+                    <h3 className="text-brown-800 text-xl font-medium mb-1">{flightItem.name}</h3>
+                    <p className="text-brown-800 text-sm mb-3">{flightItem.description}</p>
+                    <p className="text-orange-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()} Bits per increment</p>
                     {(itemTotals[flightItem.id] ?? 0) > 0 && (
-                      <p className="text-cream-800 text-sm mt-2">
-                        You&apos;ve put <span className="font-bold text-brand-400">${(itemTotals[flightItem.id] ?? 0).toLocaleString()}</span> toward your flight so far
+                      <p className="text-brown-800 text-sm mt-2">
+                        You&apos;ve put <span className="font-bold text-orange-400">${(itemTotals[flightItem.id] ?? 0).toLocaleString()}</span> toward your flight so far
                       </p>
                     )}
                   </div>
@@ -179,7 +179,7 @@ export default function ShopPage() {
                       <button
                         onClick={() => handlePurchase(flightItem.id)}
                         disabled={purchasing === flightItem.id}
-                        className="bg-brand-500 hover:bg-brand-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
+                        className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
                       >
                         <span className="text-cream-100 uppercase tracking-wide text-sm font-bold">
                           {purchasing === flightItem.id ? 'Buying...' : 'Buy +$10'}

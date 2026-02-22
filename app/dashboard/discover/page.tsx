@@ -63,7 +63,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
   return (
     <Link
       href={`/dashboard/discover/${project.id}`}
-      className="block bg-cream-100 border-2 border-cream-400 hover:border-brand-500 transition-colors"
+      className="block bg-cream-100 border-2 border-cream-400 hover:border-orange-500 transition-colors"
     >
       <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-200">
         {thumbnail ? (
@@ -80,7 +80,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="text-cream-800 font-medium text-lg leading-tight">
+          <h3 className="text-brown-800 font-medium text-lg leading-tight">
             {project.title}
           </h3>
           <div className="flex items-center gap-1 text-cream-600 flex-shrink-0">
@@ -101,7 +101,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
         </div>
 
         {project.description && (
-          <p className="text-cream-700 text-sm line-clamp-2 mb-3">
+          <p className="text-brown-800 text-sm line-clamp-2 mb-3">
             {project.description}
           </p>
         )}
@@ -111,7 +111,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
             {project.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 text-xs bg-cream-200 border border-cream-400 text-cream-700"
+                className="px-2 py-0.5 text-xs bg-cream-200 border border-cream-400 text-brown-800"
               >
                 {TAG_LABELS[tag]}
               </span>
@@ -122,7 +122,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
         <div className="flex items-center justify-between text-xs text-cream-600">
           <button
             type="button"
-            className="flex items-center gap-2 hover:text-brand-500 transition-colors cursor-pointer"
+            className="flex items-center gap-2 hover:text-orange-500 transition-colors cursor-pointer"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -137,7 +137,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
               />
             ) : (
               <div className="w-5 h-5 rounded-full bg-cream-400 flex items-center justify-center">
-                <span className="text-cream-800 text-[10px]">
+                <span className="text-brown-800 text-[10px]">
                   {project.user.name?.[0]?.toUpperCase() || '?'}
                 </span>
               </div>
@@ -214,7 +214,7 @@ export default function DiscoverPage() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <p className="text-cream-700">Loading projects...</p>
+        <p className="text-brown-800">Loading projects...</p>
       </div>
     );
   }
@@ -222,17 +222,17 @@ export default function DiscoverPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-cream-800 text-2xl uppercase tracking-wide mb-2">
+        <h1 className="text-brown-800 text-2xl uppercase tracking-wide mb-2">
           Discover
         </h1>
-        <p className="text-cream-700 text-sm">
+        <p className="text-brown-800 text-sm">
           Get inspired by seeing what others are building.
         </p>
       </div>
 
       {projects.length === 0 ? (
         <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-          <p className="text-cream-700">No projects to discover yet.</p>
+          <p className="text-brown-800">No projects to discover yet.</p>
           <p className="text-cream-600 text-sm mt-1">
             Check back later as more projects get approved!
           </p>
@@ -246,7 +246,7 @@ export default function DiscoverPage() {
           </div>
           <div ref={loadMoreRef} className="py-4 text-center">
             {loadingMore && (
-              <p className="text-cream-700 text-sm">Loading more...</p>
+              <p className="text-brown-800 text-sm">Loading more...</p>
             )}
           </div>
         </>

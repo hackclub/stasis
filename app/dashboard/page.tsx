@@ -27,11 +27,11 @@ export default function ProjectsPage() {
   if (!isPending && !session) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-        <h1 className="text-cream-800 text-2xl uppercase tracking-wide mb-4">You&apos;re logged out</h1>
-        <p className="text-cream-700 mb-6">Do you want to log in?</p>
+        <h1 className="text-brown-800 text-2xl uppercase tracking-wide mb-4">You&apos;re logged out</h1>
+        <p className="text-brown-800 mb-6">Do you want to log in?</p>
         <button
           onClick={() => authClient.signIn.oauth2({ providerId: 'hca', callbackURL: '/dashboard' })}
-          className="bg-brand-500 hover:bg-brand-400 text-white px-6 py-3 text-sm uppercase tracking-wide transition-colors"
+          className="bg-orange-500 hover:bg-orange-400 text-white px-6 py-3 text-sm uppercase tracking-wide transition-colors"
         >
           Log in with Hack Club
         </button>
@@ -124,8 +124,8 @@ export default function ProjectsPage() {
       <div data-tutorial="badge-progress" className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-brand-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
-            <p className="text-cream-800 text-sm">Earn {QUALIFICATION_BITS_THRESHOLD} bits from hardware project profits to qualify for Stasis!</p>
+            <h2 className="text-orange-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
+            <p className="text-brown-800 text-sm">Earn {QUALIFICATION_BITS_THRESHOLD} bits from hardware project profits to qualify for Stasis!</p>
           </div>
           {qualified && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
@@ -135,16 +135,16 @@ export default function ProjectsPage() {
         {/* Bits Progress */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-cream-700 text-xs uppercase tracking-wide">Bits Earned ({actualBits}/{QUALIFICATION_BITS_THRESHOLD})</p>
+            <p className="text-brown-800 text-xs uppercase tracking-wide">Bits Earned ({actualBits}/{QUALIFICATION_BITS_THRESHOLD})</p>
             {qualified && <span className="text-green-500 text-xs">✓</span>}
           </div>
           <div className="w-full h-8 bg-cream-200 border-2 border-cream-400 relative overflow-hidden">
             <div 
-              className="h-full bg-brand-500 transition-all duration-500"
+              className="h-full bg-orange-500 transition-all duration-500"
               style={{ width: `${progress * 100}%` }}
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-xs font-medium ${qualified ? 'text-white' : 'text-cream-700'}`}>
+              <span className={`text-xs font-medium ${qualified ? 'text-white' : 'text-brown-800'}`}>
                 {actualBits} / {QUALIFICATION_BITS_THRESHOLD} bits
               </span>
             </div>
@@ -167,22 +167,22 @@ export default function ProjectsPage() {
       <div data-tutorial="stats" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex gap-4 sm:gap-6">
           <div>
-            <p className="text-cream-800 text-xs uppercase">Projects</p>
-            <p className="text-cream-800 text-xl sm:text-2xl">{projects.length}</p>
+            <p className="text-brown-800 text-xs uppercase">Projects</p>
+            <p className="text-brown-800 text-xl sm:text-2xl">{projects.length}</p>
           </div>
           <div>
-            <p className="text-cream-800 text-xs uppercase">Claimed</p>
-            <p className="text-cream-800 text-xl sm:text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
+            <p className="text-brown-800 text-xs uppercase">Claimed</p>
+            <p className="text-brown-800 text-xl sm:text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
           </div>
           <div>
-            <p className="text-cream-800 text-xs uppercase">Approved</p>
-            <p className="text-brand-500 text-xl sm:text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
+            <p className="text-brown-800 text-xs uppercase">Approved</p>
+            <p className="text-orange-500 text-xl sm:text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
           </div>
         </div>
         <Link
           href="/starter-projects"
           data-tutorial="starter-projects"
-          className="bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 text-sm uppercase tracking-wide transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
+          className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wide transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
         >
           Browse Starter Projects
           <svg 
@@ -202,7 +202,7 @@ export default function ProjectsPage() {
       {/* Project Cards Grid */}
       {loading ? (
         <div className="p-8 text-center">
-          <p className="text-cream-800">Loading projects...</p>
+          <p className="text-brown-800">Loading projects...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -219,7 +219,7 @@ export default function ProjectsPage() {
 
       {!loading && projects.length === 0 && (
         <div className="p-8 text-center">
-          <p className="text-cream-800">No projects yet. Create your first one!</p>
+          <p className="text-brown-800">No projects yet. Create your first one!</p>
         </div>
       )}
 

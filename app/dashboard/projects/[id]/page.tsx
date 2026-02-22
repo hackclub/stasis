@@ -400,7 +400,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   if (isPending || loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <p className="text-cream-700">Loading...</p>
+        <p className="text-brown-800">Loading...</p>
       </div>
     );
   }
@@ -421,7 +421,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
       {/* Breadcrumb */}
       <div className="mb-6">
-        <Link href="/dashboard" className="text-cream-700 hover:text-brand-400 transition-colors flex items-center gap-2 text-sm">
+        <Link href="/dashboard" className="text-brown-800 hover:text-orange-400 transition-colors flex items-center gap-2 text-sm">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -434,14 +434,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="mb-8">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h1 className="text-brand-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
+                <h1 className="text-orange-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
                 {project.description && (
-                  <p data-tutorial="description" className="text-cream-800 text-lg">{project.description}</p>
+                  <p data-tutorial="description" className="text-brown-800 text-lg">{project.description}</p>
                 )}
               </div>
               
               {/* Project Image / Upload */}
-              <label className="w-64 h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-brand-500 hover:bg-cream-200 flex flex-col items-center justify-center flex-shrink-0 transition-colors cursor-pointer group relative overflow-hidden">
+              <label className="w-64 h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 flex flex-col items-center justify-center flex-shrink-0 transition-colors cursor-pointer group relative overflow-hidden">
                 {project.coverImage ? (
                   <>
                     <img 
@@ -459,15 +459,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </div>
                   </>
                 ) : uploading ? (
-                  <span className="text-cream-700 text-xs uppercase">Uploading...</span>
+                  <span className="text-brown-800 text-xs uppercase">Uploading...</span>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-700 group-hover:text-brand-500 mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brown-800 group-hover:text-orange-500 mb-1">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                       <circle cx="8.5" cy="8.5" r="1.5"/>
                       <polyline points="21 15 16 10 5 21"/>
                     </svg>
-                    <span className="text-cream-700 group-hover:text-brand-500 text-xs uppercase font-medium">Upload Project Image</span>
+                    <span className="text-brown-800 group-hover:text-orange-500 text-xs uppercase font-medium">Upload Project Image</span>
                     <span className="text-cream-600 text-[10px] mt-1">Required for submission</span>
                   </>
                 )}
@@ -489,14 +489,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   className={`text-xs px-2 py-1 uppercase ${
                     tag === 'CAD' 
                       ? 'bg-orange-500 text-white' 
-                      : 'bg-cream-200 text-cream-700'
+                      : 'bg-cream-200 text-brown-800'
                   }`}
                 >
                   {TAG_LABELS[tag]}
                 </span>
               ))}
               {project.isStarter && (
-                <span className="text-xs bg-brand-500 text-white font-medium px-2 py-1 uppercase">
+                <span className="text-xs bg-orange-500 text-white font-medium px-2 py-1 uppercase">
                   Starter
                 </span>
               )}
@@ -506,37 +506,37 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-fit">
               <div className="flex gap-6 text-sm">
                 <div>
-                  <span className="text-cream-700">Hours Claimed:</span>{' '}
-                  <span className="text-cream-800">{project.totalHoursClaimed.toFixed(1)}h</span>
+                  <span className="text-brown-800">Hours Claimed:</span>{' '}
+                  <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
                 </div>
                 <div>
-                  <span className="text-cream-700">Hours Approved:</span>{' '}
-                  <span className="text-brand-500">{project.totalHoursApproved.toFixed(1)}h</span>
+                  <span className="text-brown-800">Hours Approved:</span>{' '}
+                  <span className="text-orange-500">{project.totalHoursApproved.toFixed(1)}h</span>
                 </div>
                 {project.bitsAwarded != null && (
                   <div>
-                    <span className="text-cream-700">Bits Received:</span>{' '}
-                    <span className="text-brand-500">{project.bitsAwarded}</span>
+                    <span className="text-brown-800">Bits Received:</span>{' '}
+                    <span className="text-orange-500">{project.bitsAwarded}</span>
                   </div>
                 )}
               </div>
 
               {/* GitHub Repo */}
               <div data-tutorial="github" className="mt-3 text-sm">
-                <span className="text-cream-700">GitHub Repo:</span>{' '}
+                <span className="text-brown-800">GitHub Repo:</span>{' '}
                 {project.githubRepo ? (
                   <a 
                     href={project.githubRepo} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-brand-500 hover:text-brand-400 underline"
+                    className="text-orange-500 hover:text-orange-400 underline"
                   >
                     {project.githubRepo}
                   </a>
                 ) : (
-                  <span className="text-cream-700">
+                  <span className="text-brown-800">
                     Not set.{' '}
-                    <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
+                    <Link href={`/dashboard/projects/${project.id}/edit`} className="text-orange-500 hover:text-orange-400 underline">
                       Add one
                     </Link>
                   </span>
@@ -551,7 +551,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <Link
                     href={`/dashboard/projects/${project.id}/session/new`}
                     data-tutorial="actions"
-                    className="inline-block bg-brand-500 hover:bg-brand-400 text-white font-medium py-3 px-6 text-center uppercase tracking-wider transition-colors"
+                    className="inline-block bg-orange-500 hover:bg-orange-400 text-white font-medium py-3 px-6 text-center uppercase tracking-wider transition-colors"
                   >
                     + New Journal Entry
                   </Link>
@@ -560,7 +560,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     target="_blank"
                     rel="noopener noreferrer"
                     data-tutorial="timelapse"
-                    className="inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-cream-800 font-medium py-3 px-6 text-center uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
+                    className="inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 font-medium py-3 px-6 text-center uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10"/>
@@ -578,12 +578,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* Badges Section */}
           <div data-tutorial="badges" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
-            <h2 className="text-cream-800 text-xl uppercase tracking-wide mb-4">Badges</h2>
+            <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Badges</h2>
             
             {badges.length === 0 ? (
-              <p className="text-cream-700 text-sm">
+              <p className="text-brown-800 text-sm">
                 No badges claimed yet.{' '}
-                <Link href={`/dashboard/projects/${project.id}/edit`} className="text-brand-500 hover:text-brand-400 underline">
+                <Link href={`/dashboard/projects/${project.id}/edit`} className="text-orange-500 hover:text-orange-400 underline">
                   You should claim some
                 </Link>
               </p>
@@ -591,7 +591,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="space-y-4">
                 {approvedBadges.length > 0 && (
                   <div>
-                    <p className="text-cream-700 text-xs uppercase mb-2">Approved</p>
+                    <p className="text-brown-800 text-xs uppercase mb-2">Approved</p>
                     <div className="flex flex-wrap gap-2">
                       {approvedBadges.map((badge) => (
                         <span 
@@ -607,12 +607,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 
                 {pendingBadges.length > 0 && (
                   <div>
-                    <p className="text-cream-700 text-xs uppercase mb-2">Pending</p>
+                    <p className="text-brown-800 text-xs uppercase mb-2">Pending</p>
                     <div className="flex flex-wrap gap-2">
                       {pendingBadges.map((badge) => (
                         <span 
                           key={badge.id}
-                          className="bg-cream-200 border border-cream-500 text-cream-800 px-3 py-1.5 text-sm uppercase"
+                          className="bg-cream-200 border border-cream-500 text-brown-800 px-3 py-1.5 text-sm uppercase"
                         >
                           {BADGE_LABELS[badge.badge]}
                         </span>
@@ -651,9 +651,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           {/* Stage Requirements */}
           {project.designStatus !== "approved" && (
             <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
-              <p className="text-cream-700 text-xs uppercase mb-3">Design Stage Requirements</p>
+              <p className="text-brown-800 text-xs uppercase mb-3">Design Stage Requirements</p>
               <div className="space-y-2">
-                <div className={`flex items-center gap-2 text-sm ${project.description?.trim() ? 'text-green-500' : 'text-cream-700'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.description?.trim() ? 'text-green-500' : 'text-brown-800'}`}>
                   {project.description?.trim() ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -663,7 +663,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Project description
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${(project.bomItems.length > 0 || project.noBomNeeded) ? 'text-green-500' : 'text-cream-700'}`}>
+                <div className={`flex items-center gap-2 text-sm ${(project.bomItems.length > 0 || project.noBomNeeded) ? 'text-green-500' : 'text-brown-800'}`}>
                   {(project.bomItems.length > 0 || project.noBomNeeded) ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -673,7 +673,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   {project.noBomNeeded ? 'No parts needed' : `At least 1 BOM item (${project.bomItems.length} added)`}
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${designSessions.length > 0 ? 'text-green-500' : 'text-cream-700'}`}>
+                <div className={`flex items-center gap-2 text-sm ${designSessions.length > 0 ? 'text-green-500' : 'text-brown-800'}`}>
                   {designSessions.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -683,7 +683,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   At least 1 work session ({designSessions.length} logged)
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.githubRepo ? 'text-green-500' : 'text-cream-700'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.githubRepo ? 'text-green-500' : 'text-brown-800'}`}>
                   {project.githubRepo ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -693,7 +693,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   GitHub repo linked
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.badges.length > 0 ? 'text-green-500' : 'text-cream-700'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.badges.length > 0 ? 'text-green-500' : 'text-brown-800'}`}>
                   {project.badges.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -703,7 +703,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   At least 1 badge claimed ({project.badges.length} claimed)
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.coverImage ? 'text-green-500' : 'text-cream-700'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.coverImage ? 'text-green-500' : 'text-brown-800'}`}>
                   {project.coverImage ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -719,9 +719,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {project.designStatus === "approved" && project.buildStatus !== "approved" && (
             <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
-              <p className="text-cream-700 text-xs uppercase mb-3">Build Stage Requirements</p>
+              <p className="text-brown-800 text-xs uppercase mb-3">Build Stage Requirements</p>
               <div className="space-y-2">
-                <div className={`flex items-center gap-2 text-sm ${totalBuildHours >= MIN_HOURS_REQUIRED ? 'text-green-500' : 'text-cream-700'}`}>
+                <div className={`flex items-center gap-2 text-sm ${totalBuildHours >= MIN_HOURS_REQUIRED ? 'text-green-500' : 'text-brown-800'}`}>
                   {totalBuildHours >= MIN_HOURS_REQUIRED ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -737,7 +737,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* Bill of Materials */}
           <div data-tutorial="bom" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
-            <h2 className="text-cream-800 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
+            <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
             
             <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
               <p className="text-blue-600 text-sm">
@@ -750,34 +750,34 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-cream-400">
-                      <th className="text-left text-cream-700 uppercase text-xs py-2 pr-3">Name</th>
-                      <th className="text-left text-cream-700 uppercase text-xs py-2 pr-3">Purpose</th>
-                      <th className="text-right text-cream-700 uppercase text-xs py-2 pr-3">Cost (USD)</th>
-                      <th className="text-right text-cream-700 uppercase text-xs py-2 pr-3">Qty</th>
-                      <th className="text-right text-cream-700 uppercase text-xs py-2 pr-3">Total (USD)</th>
-                      <th className="text-left text-cream-700 uppercase text-xs py-2 pr-3">Link</th>
-                      <th className="text-left text-cream-700 uppercase text-xs py-2 pr-3">Distributor</th>
+                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Name</th>
+                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Purpose</th>
+                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Cost (USD)</th>
+                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Qty</th>
+                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Total (USD)</th>
+                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Link</th>
+                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Distributor</th>
                       {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
-                        <th className="text-center text-cream-700 uppercase text-xs py-2"></th>
+                        <th className="text-center text-brown-800 uppercase text-xs py-2"></th>
                       )}
                     </tr>
                   </thead>
                   <tbody>
                     {(project.bomItems ?? []).map((item) => (
                       <tr key={item.id} className="border-b border-cream-300">
-                        <td className="text-cream-800 py-2 pr-3">{item.name}</td>
-                        <td className="text-cream-800 py-2 pr-3">{item.purpose || '-'}</td>
-                        <td className="text-cream-800 py-2 pr-3 text-right">${item.costPerItem.toFixed(2)}</td>
-                        <td className="text-cream-800 py-2 pr-3 text-right">{item.quantity}</td>
-                        <td className="text-cream-800 py-2 pr-3 text-right">${(item.costPerItem * item.quantity).toFixed(2)}</td>
+                        <td className="text-brown-800 py-2 pr-3">{item.name}</td>
+                        <td className="text-brown-800 py-2 pr-3">{item.purpose || '-'}</td>
+                        <td className="text-brown-800 py-2 pr-3 text-right">${item.costPerItem.toFixed(2)}</td>
+                        <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity}</td>
+                        <td className="text-brown-800 py-2 pr-3 text-right">${(item.costPerItem * item.quantity).toFixed(2)}</td>
                         <td className="py-2 pr-3">
                           {item.link ? (
-                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-400 underline">
+                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
                               Link to Listing
                             </a>
                           ) : '-'}
                         </td>
-                        <td className="text-cream-800 py-2 pr-3">{item.distributor || '-'}</td>
+                        <td className="text-brown-800 py-2 pr-3">{item.distributor || '-'}</td>
                         {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
                           <td className="py-2 text-center">
                             <button
@@ -796,51 +796,51 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 
                 <div className="flex flex-col items-end gap-1 mt-3 pt-3 border-t border-cream-400">
                   <div className="flex items-center">
-                    <span className="text-cream-700 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
-                    <span className="text-cream-800 font-medium">
+                    <span className="text-brown-800 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
+                    <span className="text-brown-800 font-medium">
                       ${(project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <span className="text-cream-700 text-xs mr-3">Estimated cost in bits:</span>
-                    <span className="text-cream-700 text-sm">
+                    <span className="text-brown-800 text-xs mr-3">Estimated cost in bits:</span>
+                    <span className="text-brown-800 text-sm">
                       {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))} bits
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-cream-700 text-sm mb-4">No items added yet.</p>
+              <p className="text-brown-800 text-sm mb-4">No items added yet.</p>
             )}
 
             {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
               <form onSubmit={handleAddBomItem} className="border-t border-cream-400 pt-4">
-                <p className="text-cream-700 text-xs uppercase mb-3">Add New Item</p>
+                <p className="text-brown-800 text-xs uppercase mb-3">Add New Item</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                   <div>
-                    <label className="text-cream-700 text-xs uppercase block mb-1">Name *</label>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Name *</label>
                     <input
                       type="text"
                       value={bomForm.name}
                       onChange={(e) => setBomForm({ ...bomForm, name: e.target.value })}
                       required
-                      className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="Component name"
                     />
                   </div>
                   <div>
-                    <label className="text-cream-700 text-xs uppercase block mb-1">Purpose *</label>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Purpose *</label>
                     <input
                       type="text"
                       value={bomForm.purpose}
                       onChange={(e) => setBomForm({ ...bomForm, purpose: e.target.value })}
                       required
-                      className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="What is it for?"
                     />
                   </div>
                   <div>
-                    <label className="text-cream-700 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -848,40 +848,40 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       value={bomForm.costPerItem}
                       onChange={(e) => setBomForm({ ...bomForm, costPerItem: e.target.value })}
                       required
-                      className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="0.00"
                     />
                   </div>
                   <div>
-                    <label className="text-cream-700 text-xs uppercase block mb-1">Quantity *</label>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Quantity *</label>
                     <input
                       type="number"
                       min="1"
                       value={bomForm.quantity}
                       onChange={(e) => setBomForm({ ...bomForm, quantity: e.target.value })}
                       required
-                      className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="1"
                     />
                   </div>
                   <div>
-                    <label className="text-cream-700 text-xs uppercase block mb-1">Link</label>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Link</label>
                     <input
                       type="url"
                       value={bomForm.link}
                       onChange={(e) => setBomForm({ ...bomForm, link: e.target.value })}
-                      className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="https://..."
                     />
                   </div>
                   <div>
-                    <label className="text-cream-700 text-xs uppercase block mb-1">Distributor *</label>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Distributor *</label>
                     <input
                       type="text"
                       value={bomForm.distributor}
                       onChange={(e) => setBomForm({ ...bomForm, distributor: e.target.value })}
                       required
-                      className="w-full bg-white border-2 border-cream-400 text-cream-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="e.g. Digikey, Amazon"
                     />
                   </div>
@@ -889,7 +889,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <button
                   type="submit"
                   disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.costPerItem || !bomForm.quantity || !bomForm.distributor}
-                  className="bg-brand-500 hover:bg-brand-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                  className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
                 >
                   {addingBom ? 'Adding...' : '+ Add Item'}
                 </button>
@@ -927,7 +927,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
               <Link
                 href={`/dashboard/projects/${project.id}/edit`}
-                className="flex-1 min-w-[200px] border-2 border-cream-500 bg-cream-100 hover:bg-cream-200 text-cream-900 py-3 text-center uppercase tracking-wider transition-colors font-medium"
+                className="flex-1 min-w-[200px] border-2 border-cream-500 bg-cream-100 hover:bg-cream-200 text-brown-800 py-3 text-center uppercase tracking-wider transition-colors font-medium"
               >
                 Edit Project
               </Link>
@@ -962,8 +962,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           {showDesignSubmitDialog && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
-                <h3 className="text-cream-800 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
-                <p className="text-cream-700 text-sm leading-relaxed mb-4">
+                <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
+                <p className="text-brown-800 text-sm leading-relaxed mb-4">
                   Your design, BOM, and tier selection will be reviewed. Once approved, your badges will be granted and you&apos;ll receive a grant card to purchase materials!
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
@@ -976,7 +976,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDesignSubmitDialog(false)}
-                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-cream-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -995,8 +995,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           {showBuildSubmitDialog && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
-                <h3 className="text-cream-800 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
-                <p className="text-cream-700 text-sm leading-relaxed mb-4">
+                <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
+                <p className="text-brown-800 text-sm leading-relaxed mb-4">
                   Your build work will be reviewed. Once approved, you&apos;ll earn the bits for this project&apos;s tier!
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
@@ -1009,7 +1009,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowBuildSubmitDialog(false)}
-                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-cream-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1027,7 +1027,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         {/* Timeline */}
         <div data-tutorial="timeline" className="bg-cream-100 border-2 border-cream-400 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-cream-800 text-xl uppercase tracking-wide">Timeline</h2>
+            <h2 className="text-brown-800 text-xl uppercase tracking-wide">Timeline</h2>
           </div>
           <Timeline items={timelineItems} projectId={projectId} />
         </div>

@@ -22,7 +22,7 @@ export function MagneticCorners({
   cornerSize = 20,
   borderWidth = 3,
   offset = 6,
-  color = 'color-mix(in srgb, var(--color-brand-500) 56%, transparent)',
+  color = 'color-mix(in srgb, var(--color-orange-500) 56%, transparent)',
   hoverColor,
   magnetStrength = 0.1,
   activationDistance = 50,
@@ -94,10 +94,10 @@ export function MagneticCorners({
     <>
       <style jsx global>{`
         .magnetic-corners-wrapper.active button {
-          background-color: var(--color-brand-500) !important;
+          background-color: var(--color-orange-500) !important;
         }
         .magnetic-corners-wrapper.active button::before {
-          border-color: var(--color-brand-400) !important;
+          border-color: var(--color-orange-400) !important;
           inset: -0.5rem !important;
         }
       `}</style>

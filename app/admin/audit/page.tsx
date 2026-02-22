@@ -96,14 +96,14 @@ export default function AdminAuditPage() {
           {/* Filters */}
           <div className="mb-6 space-y-4">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-              <p className="text-cream-700 text-sm uppercase">
+              <p className="text-brown-800 text-sm uppercase">
                 {pagination?.total ?? 0} log{(pagination?.total ?? 0) !== 1 ? 's' : ''}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                 <select
                   value={actionFilter}
                   onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-cream-800 focus:border-brand-500 focus:outline-none"
+                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none"
                 >
                   <option value="">All Actions</option>
                   {AUDIT_ACTIONS.map((action) => (
@@ -117,19 +117,19 @@ export default function AdminAuditPage() {
                   value={startDate}
                   onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
                   placeholder="Start Date"
-                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-cream-800 focus:border-brand-500 focus:outline-none"
+                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none"
                 />
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
                   placeholder="End Date"
-                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-cream-800 focus:border-brand-500 focus:outline-none"
+                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none"
                 />
                 {(actionFilter || startDate || endDate) && (
                   <button
                     onClick={() => { setActionFilter(''); setStartDate(''); setEndDate(''); setPage(1); }}
-                    className="px-4 py-2 text-sm uppercase text-cream-700 hover:text-brand-500 transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm uppercase text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
                   >
                     Clear
                   </button>
@@ -141,11 +141,11 @@ export default function AdminAuditPage() {
           {/* Logs Table */}
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-cream-700">Loading audit logs...</p>
+              <p className="text-brown-800">Loading audit logs...</p>
             </div>
           ) : logs.length === 0 ? (
             <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-              <p className="text-cream-700">No audit logs found</p>
+              <p className="text-brown-800">No audit logs found</p>
             </div>
           ) : (
             <>
@@ -163,7 +163,7 @@ export default function AdminAuditPage() {
                   <tbody>
                     {logs.map((log) => (
                       <tr key={log.id} className="border-b border-cream-400 hover:bg-cream-200 transition-colors">
-                        <td className="py-3 px-3 text-cream-700 text-sm whitespace-nowrap">
+                        <td className="py-3 px-3 text-brown-800 text-sm whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -173,17 +173,17 @@ export default function AdminAuditPage() {
                           })}
                         </td>
                         <td className="py-3 px-3">
-                          <span className="text-brand-500 text-sm">
+                          <span className="text-orange-500 text-sm">
                             {log.action.replace(/_/g, ' ')}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-cream-800 text-sm">
+                        <td className="py-3 px-3 text-brown-800 text-sm">
                           {formatActor(log)}
                         </td>
-                        <td className="py-3 px-3 text-cream-700 text-sm max-w-xs truncate">
+                        <td className="py-3 px-3 text-brown-800 text-sm max-w-xs truncate">
                           {formatTarget(log)}
                         </td>
-                        <td className="py-3 px-3 text-cream-700 text-sm">
+                        <td className="py-3 px-3 text-brown-800 text-sm">
                           {log.actorIp || '—'}
                         </td>
                       </tr>
@@ -195,21 +195,21 @@ export default function AdminAuditPage() {
               {/* Pagination */}
               {pagination && pagination.totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-between">
-                  <p className="text-cream-700 text-sm">
+                  <p className="text-brown-800 text-sm">
                     Page {pagination.page} of {pagination.totalPages}
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page <= 1}
-                      className="px-4 py-2 bg-cream-100 border border-cream-400 text-cream-800 text-sm uppercase hover:border-brand-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="px-4 py-2 bg-cream-100 border border-cream-400 text-brown-800 text-sm uppercase hover:border-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= pagination.totalPages}
-                      className="px-4 py-2 bg-cream-100 border border-cream-400 text-cream-800 text-sm uppercase hover:border-brand-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="px-4 py-2 bg-cream-100 border border-cream-400 text-brown-800 text-sm uppercase hover:border-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Next
                     </button>

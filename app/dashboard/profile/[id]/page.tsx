@@ -112,7 +112,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   if (loading) {
     return (
       <div className="text-center py-12">
-        <p className="text-cream-700">Loading profile...</p>
+        <p className="text-brown-800">Loading profile...</p>
       </div>
     );
   }
@@ -120,8 +120,8 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-cream-700">Profile not found</p>
-        <Link href="/dashboard" className="text-brand-500 hover:text-brand-400 mt-2 inline-block">
+        <p className="text-brown-800">Profile not found</p>
+        <Link href="/dashboard" className="text-orange-500 hover:text-orange-400 mt-2 inline-block">
           ← Back to Dashboard
         </Link>
       </div>
@@ -132,7 +132,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     <div>
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-1 text-cream-700 hover:text-brand-500 text-sm mb-4 transition-colors"
+        className="inline-flex items-center gap-1 text-brown-800 hover:text-orange-500 text-sm mb-4 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -150,14 +150,14 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                 <Image src={profile.user.image} alt="" width={160} height={160} className="w-40 h-40 rounded-full" />
               ) : (
                 <div className="w-40 h-40 rounded-full bg-cream-400 flex items-center justify-center">
-                  <span className="text-cream-800 text-5xl">
+                  <span className="text-brown-800 text-5xl">
                     {profile.user.name?.[0]?.toUpperCase() || '?'}
                   </span>
                 </div>
               )}
             </div>
 
-            <h1 className="text-brand-500 text-xl uppercase tracking-wide text-center mb-3 font-bold">
+            <h1 className="text-orange-500 text-xl uppercase tracking-wide text-center mb-3 font-bold">
               {profile.user.name || 'Anonymous'}
             </h1>
 
@@ -169,21 +169,21 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                   onChange={(e) => setBioValue(e.target.value.slice(0, 160))}
                   maxLength={160}
                   rows={3}
-                  className="w-full bg-cream-200 border border-cream-400 text-cream-800 text-sm p-2 resize-none focus:outline-none focus:border-brand-500"
+                  className="w-full bg-cream-200 border border-cream-400 text-brown-800 text-sm p-2 resize-none focus:outline-none focus:border-orange-500"
                 />
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-cream-600 text-xs">{bioValue.length}/160</span>
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setEditingBio(false); setBioValue(profile.user.bio || ''); }}
-                      className="text-cream-700 hover:text-cream-800 px-3 py-1 text-xs uppercase tracking-wide transition-colors cursor-pointer"
+                      className="text-brown-800 hover:text-brown-800 px-3 py-1 text-xs uppercase tracking-wide transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveBio}
                       disabled={bioSaving}
-                      className="bg-brand-500 hover:bg-brand-400 text-white px-4 py-1 text-xs uppercase tracking-wide transition-colors cursor-pointer disabled:opacity-50"
+                      className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-1 text-xs uppercase tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {bioSaving ? 'Saving...' : 'Save'}
                     </button>
@@ -192,7 +192,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               </div>
             ) : (
               profile.user.bio && (
-                <p className="text-cream-700 text-sm mb-4 text-center">{profile.user.bio}</p>
+                <p className="text-brown-800 text-sm mb-4 text-center">{profile.user.bio}</p>
               )
             )}
 
@@ -209,12 +209,12 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               return (
                 <div className="mb-4">
                   <div className="flex items-baseline justify-center gap-2 mb-1">
-                    <span className="text-brand-500 text-3xl font-bold">{xp.toLocaleString()}</span>
+                    <span className="text-orange-500 text-3xl font-bold">{xp.toLocaleString()}</span>
                     <span className="text-cream-600 text-sm uppercase tracking-wide">XP</span>
                   </div>
                   <div className="w-full h-3 bg-cream-300 border border-cream-400">
                     <div
-                      className="h-full bg-brand-500 transition-all"
+                      className="h-full bg-orange-500 transition-all"
                       style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                   </div>
@@ -225,7 +225,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
             {/* Bits */}
             <div className="mb-4 flex items-baseline justify-center gap-2">
-              <span className="text-brand-500 text-3xl font-bold">{profile.bitsBalance.toLocaleString()}</span>
+              <span className="text-orange-500 text-3xl font-bold">{profile.bitsBalance.toLocaleString()}</span>
               <span className="text-cream-600 text-sm uppercase tracking-wide">Bits</span>
             </div>
 
@@ -234,14 +234,14 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               {isOwnProfile && !editingBio && (
                 <button
                   onClick={() => setEditingBio(true)}
-                  className="w-full bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 text-sm uppercase tracking-wide transition-colors cursor-pointer"
+                  className="w-full bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wide transition-colors cursor-pointer"
                 >
                   Edit Bio
                 </button>
               )}
               <button
                 onClick={handleShare}
-                className="w-full bg-cream-200 hover:bg-cream-300 text-cream-700 px-4 py-2 text-sm uppercase tracking-wide transition-colors cursor-pointer border border-cream-400"
+                className="w-full bg-cream-200 hover:bg-cream-300 text-brown-800 px-4 py-2 text-sm uppercase tracking-wide transition-colors cursor-pointer border border-cream-400"
               >
                 {copied ? 'Copied!' : 'Share'}
               </button>
@@ -253,13 +253,13 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         <div className="flex-1 min-w-0 flex flex-col gap-12">
           {/* Badges */}
           <div className="bg-cream-100 border-2 border-cream-400 p-6">
-            <h2 className="text-brand-500 text-2xl uppercase tracking-wide mb-4 font-bold">Badges</h2>
+            <h2 className="text-orange-500 text-2xl uppercase tracking-wide mb-4 font-bold">Badges</h2>
             {profile.badges.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-4">
                 {profile.badges.map((b) => (
                   <div key={b.badge} className="flex flex-col items-center gap-2 bg-cream-200 border-2 border-cream-400 p-3">
                     <img src="/badge-placeholder.png" alt={BADGE_LABELS[b.badge] || b.badge} className="w-full max-w-[120px] aspect-square object-contain" />
-                    <span className="text-sm uppercase tracking-wide text-brand-500 font-bold text-center">
+                    <span className="text-sm uppercase tracking-wide text-orange-500 font-bold text-center">
                       {BADGE_LABELS[b.badge] || b.badge}
                     </span>
                   </div>
@@ -272,14 +272,14 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
           {/* Projects */}
           <div className="bg-cream-100 border-2 border-cream-400 p-6">
-            <h2 className="text-brand-500 text-2xl uppercase tracking-wide mb-4 font-bold">Projects</h2>
+            <h2 className="text-orange-500 text-2xl uppercase tracking-wide mb-4 font-bold">Projects</h2>
             {profile.projects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {profile.projects.map((project) => (
                   <Link
                     key={project.id}
                     href={`/dashboard/discover/${project.id}`}
-                    className="block bg-cream-200 border border-cream-400 hover:border-brand-500 transition-colors"
+                    className="block bg-cream-200 border border-cream-400 hover:border-orange-500 transition-colors"
                   >
                     {project.coverImage ? (
                       <div className="aspect-video overflow-hidden">
@@ -291,14 +291,14 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                       </div>
                     )}
                     <div className="p-4">
-                      <h3 className="text-brand-500 text-sm uppercase tracking-wide mb-2 font-bold">{project.title}</h3>
+                      <h3 className="text-orange-500 text-sm uppercase tracking-wide mb-2 font-bold">{project.title}</h3>
                       {project.description && (
-                        <p className="text-cream-700 text-sm">{project.description}</p>
+                        <p className="text-brown-800 text-sm">{project.description}</p>
                       )}
                       {project.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-3">
                           {project.tags.map((tag) => (
-                            <span key={tag} className="px-2 py-1 text-xs bg-cream-100 border border-cream-400 text-cream-700 uppercase">
+                            <span key={tag} className="px-2 py-1 text-xs bg-cream-100 border border-cream-400 text-brown-800 uppercase">
                               {TAG_LABELS[tag] || tag}
                             </span>
                           ))}

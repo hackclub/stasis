@@ -26,15 +26,15 @@ export default function DashboardLayout({
     
     return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
       isActive
-        ? 'text-brand-500 border-brand-500 font-bold'
-        : 'text-cream-800 border-transparent hover:text-cream-900'
+        ? 'text-orange-500 border-orange-500 font-bold'
+        : 'text-brown-800 border-transparent hover:text-brown-800'
     }`;
   };
 
   if (isPending) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
-        <p className="text-cream-800">Loading...</p>
+        <p className="text-brown-800">Loading...</p>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function DashboardLayout({
           <div className="bg-cream-200 border-2 border-cream-400 p-8 max-w-md w-full mx-4">
             <div className="space-y-6">
               <div className="text-center">
-                <h1 className="text-2xl uppercase tracking-wide text-brand-500 mb-2">
+                <h1 className="text-2xl uppercase tracking-wide text-orange-500 mb-2">
                   You need to be logged in to view this page
                 </h1>
               </div>
@@ -57,7 +57,7 @@ export default function DashboardLayout({
                     callbackURL: "/dashboard",
                   })
                 }
-                className="w-full bg-brand-500 hover:bg-brand-400 px-6 py-3 text-lg uppercase tracking-wider text-white font-medium transition-colors cursor-pointer"
+                className="w-full bg-orange-500 hover:bg-orange-400 px-6 py-3 text-lg uppercase tracking-wider text-white font-medium transition-colors cursor-pointer"
               >
                 Sign In with Hack Club
               </button>
@@ -88,26 +88,26 @@ export default function DashboardLayout({
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-cream-400 flex items-center justify-center">
-                  <span className="text-cream-800 text-sm">
+                  <span className="text-brown-800 text-sm">
                     {(session.user.name || session.user.email)?.[0]?.toUpperCase()}
                   </span>
                 </div>
               )}
-              <span className="text-brand-500 font-bold text-sm hidden sm:block">
+              <span className="text-orange-500 font-bold text-sm hidden sm:block">
                 {session.user.name || session.user.email}
               </span>
             </Link>
             {hasRole(Role.ADMIN) && (
               <Link
                 href="/admin"
-                className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors flex items-center"
+                className="text-brown-800 hover:text-orange-500 text-sm uppercase transition-colors flex items-center"
               >
                 Admin
               </Link>
             )}
             <button
               onClick={() => signOut()}
-              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer flex items-center"
+              className="text-brown-800 hover:text-orange-500 text-sm uppercase transition-colors cursor-pointer flex items-center"
             >
               Sign Out
             </button>

@@ -34,15 +34,15 @@ export default function AdminLayout({
     
     return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
       isActive
-        ? 'text-brand-500 border-brand-500'
-        : 'text-cream-800 border-transparent hover:text-cream-900'
+        ? 'text-orange-500 border-orange-500'
+        : 'text-brown-800 border-transparent hover:text-brown-800'
     }`;
   };
 
   if (isLoading || !isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
-        <p className="text-cream-700">Loading...</p>
+        <p className="text-brown-800">Loading...</p>
       </div>
     );
   }
@@ -53,7 +53,7 @@ export default function AdminLayout({
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-cream-700 hover:text-brand-500 transition-colors">
+            <Link href="/dashboard" className="text-brown-800 hover:text-orange-500 transition-colors">
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 width="24" 
@@ -66,7 +66,7 @@ export default function AdminLayout({
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               </svg>
             </Link>
-            <h1 className="text-brand-500 text-xl uppercase tracking-wide">Admin</h1>
+            <h1 className="text-orange-500 text-xl uppercase tracking-wide">Admin</h1>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
@@ -78,18 +78,18 @@ export default function AdminLayout({
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-cream-400 flex items-center justify-center">
-                  <span className="text-cream-800 text-sm">
+                  <span className="text-brown-800 text-sm">
                     {(session?.user.name || session?.user.email)?.[0]?.toUpperCase()}
                   </span>
                 </div>
               )}
-              <span className="text-cream-700 text-sm hidden sm:block">
+              <span className="text-brown-800 text-sm hidden sm:block">
                 {session?.user.name || session?.user.email}
               </span>
             </div>
             <button
               onClick={() => signOut()}
-              className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
+              className="text-brown-800 hover:text-orange-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out
             </button>

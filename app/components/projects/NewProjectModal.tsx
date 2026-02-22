@@ -111,7 +111,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
         onClick={onClose}
       />
       <div className="relative bg-cream-100 border-2 border-cream-400 max-w-lg w-full mx-4 font-mono">
-        <div className="bg-brand-500 px-4 py-2 flex items-center justify-between">
+        <div className="bg-orange-500 px-4 py-2 flex items-center justify-between">
           <h2 className="text-white text-lg uppercase tracking-wide">
             New Project
           </h2>
@@ -147,8 +147,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               }}
               className={`flex-1 px-3 py-2 text-xs uppercase tracking-wide transition-colors cursor-pointer ${
                 step === i
-                  ? 'bg-cream-200 text-brand-500 border-b-2 border-brand-500 -mb-[2px]'
-                  : 'text-cream-600 hover:text-cream-800'
+                  ? 'bg-cream-200 text-orange-500 border-b-2 border-orange-500 -mb-[2px]'
+                  : 'text-cream-600 hover:text-brown-800'
               }`}
             >
               <span className="mr-1">{i + 1}.</span>{label}
@@ -167,27 +167,27 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
           {step === 0 && (
             <>
               <div>
-                <label className="block text-cream-700 text-sm uppercase mb-2">
+                <label className="block text-brown-800 text-sm uppercase mb-2">
                   Title
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                  className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
                   placeholder="My Awesome Project"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-cream-700 text-sm uppercase mb-2">
+                <label className="block text-brown-800 text-sm uppercase mb-2">
                   Description
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors resize-none h-24"
+                  className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors resize-none h-24"
                   placeholder="What are you building?"
                 />
               </div>
@@ -196,7 +196,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 type="button"
                 onClick={() => setStep(1)}
                 disabled={!canProceedFromStep0}
-                className="w-full bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                className="w-full bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Next →
               </button>
@@ -207,7 +207,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
           {step === 1 && (
             <>
               <div>
-                <label className="block text-cream-700 text-sm uppercase mb-2">
+                <label className="block text-brown-800 text-sm uppercase mb-2">
                   Tags
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -218,8 +218,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                       onClick={() => handleTagToggle(tag.value)}
                       className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
                         selectedTags.includes(tag.value)
-                          ? 'bg-brand-500 text-white'
-                          : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                       }`}
                     >
                       {tag.label}
@@ -229,7 +229,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               </div>
 
               <div>
-                <label className="block text-cream-700 text-sm uppercase mb-2">
+                <label className="block text-brown-800 text-sm uppercase mb-2">
                   Skill Badges <span className="text-cream-500">({selectedBadges.length}/{MAX_BADGES_PER_PROJECT})</span>
                 </label>
                 <p className="text-cream-600 text-xs mb-2">
@@ -249,12 +249,12 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                         title={isClaimed ? "Already claimed on another project" : undefined}
                         className={`px-3 py-1.5 text-sm uppercase transition-colors ${
                           isSelected
-                            ? 'bg-brand-500 text-white cursor-pointer'
+                            ? 'bg-orange-500 text-white cursor-pointer'
                             : isClaimed
                               ? 'bg-cream-200 text-cream-400 cursor-not-allowed line-through'
                               : selectedBadges.length >= MAX_BADGES_PER_PROJECT
                                 ? 'bg-cream-300 text-cream-500 cursor-not-allowed'
-                                : 'bg-cream-300 text-cream-700 hover:bg-cream-400 cursor-pointer'
+                                : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
                         }`}
                       >
                         {badge.label}
@@ -268,7 +268,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 <button
                   type="button"
                   onClick={() => setStep(0)}
-                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-cream-700 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   ← Back
                 </button>
@@ -276,7 +276,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   type="button"
                   onClick={() => setStep(2)}
                   disabled={!canProceedFromStep1}
-                  className="flex-1 bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Next →
                 </button>
@@ -288,7 +288,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
           {step === 2 && (
             <>
               <div>
-                <label className="block text-cream-700 text-sm uppercase mb-2">
+                <label className="block text-brown-800 text-sm uppercase mb-2">
                   Project Tier
                 </label>
                 <p className="text-cream-600 text-xs mb-2">
@@ -302,8 +302,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                       onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
                       className={`px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
                         selectedTier === tier.id
-                          ? 'bg-brand-500 text-white border-brand-400'
-                          : 'bg-cream-200 text-cream-700 hover:bg-cream-300 border-cream-400'
+                          ? 'bg-orange-500 text-white border-orange-400'
+                          : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
                       }`}
                     >
                       <span className="uppercase font-medium">{tier.name}</span>
@@ -316,7 +316,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               </div>
 
               <div>
-                <label className="block text-cream-700 text-sm uppercase mb-2">
+                <label className="block text-brown-800 text-sm uppercase mb-2">
                   Project Type
                 </label>
                 <div className="flex gap-2">
@@ -325,8 +325,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                     onClick={() => setIsStarter(false)}
                     className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       !isStarter
-                        ? 'bg-brand-500 text-white'
-                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                     }`}
                   >
                     Custom
@@ -336,8 +336,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                     onClick={() => setIsStarter(true)}
                     className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                       isStarter
-                        ? 'bg-brand-500 text-white'
-                        : 'bg-cream-300 text-cream-700 hover:bg-cream-400'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                     }`}
                   >
                     Starter
@@ -347,13 +347,13 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
 
               {isStarter && (
                 <div>
-                  <label className="block text-cream-700 text-sm uppercase mb-2">
+                  <label className="block text-brown-800 text-sm uppercase mb-2">
                     Which Starter Project?
                   </label>
                   <select
                     value={starterProjectId}
                     onChange={(e) => setStarterProjectId(e.target.value)}
-                    className="w-full bg-cream-200 border-2 border-cream-400 text-cream-800 px-3 py-2 focus:border-brand-500 focus:outline-none transition-colors"
+                    className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
                     required
                   >
                     <option value="">Select a starter project...</option>
@@ -370,14 +370,14 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-cream-700 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   ← Back
                 </button>
                 <button
                   type="submit"
                   disabled={!canSubmit}
-                  className="flex-1 bg-brand-500 hover:bg-brand-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Create Project
                 </button>

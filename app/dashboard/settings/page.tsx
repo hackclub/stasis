@@ -13,23 +13,23 @@ export default function SettingsPage() {
     <div className="max-w-xl mx-auto">
       <div className="bg-cream-100 border-2 border-cream-400 p-6 space-y-6">
         <div>
-          <h2 className="text-brand-500 text-xl uppercase mb-4">Account</h2>
+          <h2 className="text-orange-500 text-xl uppercase mb-4">Account</h2>
           <div className="space-y-3">
             <div>
-              <p className="text-cream-700 text-xs uppercase">Email</p>
-              <p className="text-cream-800">{session.user.email}</p>
+              <p className="text-brown-800 text-xs uppercase">Email</p>
+              <p className="text-brown-800">{session.user.email}</p>
             </div>
             {session.user.name && (
               <div>
-                <p className="text-cream-700 text-xs uppercase">Name</p>
-                <p className="text-cream-800">{session.user.name}</p>
+                <p className="text-brown-800 text-xs uppercase">Name</p>
+                <p className="text-brown-800">{session.user.name}</p>
               </div>
             )}
           </div>
         </div>
 
         <div className="border-t border-cream-400 pt-6">
-          <h2 className="text-brand-500 text-xl uppercase mb-4">Session</h2>
+          <h2 className="text-orange-500 text-xl uppercase mb-4">Session</h2>
           <button
             onClick={() => signOut()}
             className="w-full bg-red-600/20 hover:bg-red-600/30 border-2 border-red-600/50 px-6 py-3 text-lg uppercase tracking-wider text-red-500 transition-colors cursor-pointer"

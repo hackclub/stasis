@@ -38,7 +38,7 @@ export default function StarterProjectPage({
         <div className="max-w-4xl mx-auto px-4 py-8">
           <Link 
             href="/starter-projects" 
-            className="inline-flex items-center text-cream-400 hover:text-brand-500 mb-8 transition-colors"
+            className="inline-flex items-center text-cream-400 hover:text-orange-500 mb-8 transition-colors"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -47,14 +47,14 @@ export default function StarterProjectPage({
           </Link>
           
           <header className="mb-8 pb-6 border-b border-cream-600">
-            <h1 className="text-4xl font-bold text-brand-500 mb-2">{project.name}</h1>
+            <h1 className="text-4xl font-bold text-orange-500 mb-2">{project.name}</h1>
             <p className="text-cream-400 text-lg mb-4">{project.short_description}</p>
             <div className="flex flex-wrap gap-4 text-sm">
               <span className="text-cream-500">~{project.hours} hours</span>
               {project.badges.length > 0 && (
                 <div className="flex gap-2">
                   {project.badges.map((badge) => (
-                    <span key={badge} className="bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded">
+                    <span key={badge} className="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">
                       {badge}
                     </span>
                   ))}
