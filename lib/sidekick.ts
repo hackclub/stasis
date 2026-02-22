@@ -54,7 +54,7 @@ export async function assignSidekick(assigneeId: string) {
   const sidekickName = assignment.sidekick.name ?? "Your sidekick";
   const assigneeName = assignment.assignee.name ?? "a new user";
 
-  const dmPromises: Promise<void>[] = [];
+  const dmPromises: Promise<unknown>[] = [];
 
   if (assignment.sidekick.slackId) {
     dmPromises.push(
@@ -105,7 +105,7 @@ export async function reassignSidekick(assigneeId: string, newSidekickId?: strin
   const sidekickName = assignment.sidekick.name ?? "Your new sidekick";
   const assigneeName = assignment.assignee.name ?? "a user";
 
-  const dmPromises: Promise<void>[] = [];
+  const dmPromises: Promise<unknown>[] = [];
 
   if (assignment.sidekick.slackId) {
     dmPromises.push(
