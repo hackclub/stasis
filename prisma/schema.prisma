@@ -51,6 +51,7 @@ model User {
   emailVerified      Boolean   @default(false)
   image              String?
   slackId            String?   @unique
+  slackDisplayName   String?
   verificationStatus String?
   hackatimeUserId    String?   @unique
   bio                String?

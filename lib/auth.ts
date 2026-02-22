@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
 import prisma from "./prisma";
 import { ensureRSVPExists } from "./airtable";
-import { getSlackProfilePicture } from "./slack";
+import { getSlackProfilePicture, getSlackDisplayName } from "./slack";
 import { encryptPII } from "./pii";
 import { assignSidekick } from "./sidekick";
 
@@ -24,6 +24,10 @@ export const auth = betterAuth({
         type: "string",
         required: false,
       },
+      slackDisplayName: {
+        type: "string",
+        required: false,
+      },
       verificationStatus: {
         type: "string",
         required: false,
@@ -41,19 +45,26 @@ export const auth = betterAuth({
               console.error('Failed to ensure RSVP exists:', error);
             }
           }
-          // Fetch Slack profile picture if user has slackId
+          // Fetch Slack profile picture and display name if user has slackId
           const slackId = user.slackId as string | undefined;
-          if (slackId && !user.image) {
+          if (slackId) {
+            const updates: Record<string, string> = {};
             try {
-              const slackImage = await getSlackProfilePicture(slackId);
-              if (slackImage) {
+              if (!user.image) {
+                const slackImage = await getSlackProfilePicture(slackId);
+                if (slackImage) updates.image = slackImage;
+              }
+              const displayName = await getSlackDisplayName(slackId);
+              if (displayName) updates.slackDisplayName = displayName;
+
+              if (Object.keys(updates).length > 0) {
                 await prisma.user.update({
                   where: { id: user.id },
-                  data: { image: slackImage },
+                  data: updates,
                 });
               }
             } catch (error) {
-              console.error('Failed to fetch Slack profile picture:', error);
+              console.error('Failed to fetch Slack profile data:', error);
             }
           }
           // Auto-assign a sidekick mentor
@@ -61,6 +72,28 @@ export const auth = betterAuth({
             await assignSidekick(user.id);
           } catch (error) {
             console.error('Failed to assign sidekick:', error);
+          }
+        },
+      },
+    },
+    session: {
+      create: {
+        after: async (session) => {
+          // Refresh Slack display name in the background on each login
+          const userId = session.userId;
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { slackId: true },
+          });
+          if (user?.slackId) {
+            getSlackDisplayName(user.slackId).then(async (displayName) => {
+              if (displayName) {
+                await prisma.user.update({
+                  where: { id: userId },
+                  data: { slackDisplayName: displayName },
+                }).catch((err) => console.error('Failed to update Slack display name:', err));
+              }
+            }).catch((err) => console.error('Failed to fetch Slack display name:', err));
           }
         },
       },

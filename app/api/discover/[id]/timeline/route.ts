@@ -47,6 +47,7 @@ export async function GET(
       user: {
         select: {
           name: true,
+          slackDisplayName: true,
           image: true,
         },
       },
@@ -67,11 +68,13 @@ export async function GET(
     },
   });
 
+  const displayName = project.user.slackDisplayName || project.user.name;
+
   const timeline: PublicTimelineItem[] = workSessions.map((ws) => ({
     type: "WORK_SESSION",
     at: ws.createdAt.toISOString(),
     user: {
-      name: project.user.name,
+      name: displayName,
       image: project.user.image,
     },
     session: {

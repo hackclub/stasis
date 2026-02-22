@@ -71,6 +71,7 @@ export async function GET(
       user: {
         select: {
           name: true,
+          slackDisplayName: true,
           image: true,
         },
       },
@@ -83,9 +84,16 @@ export async function GET(
 
   const roles = await getUserRoles(session.user.id)
   const isAdmin = hasRole(roles, Role.ADMIN)
+  const isReviewer = hasRole(roles, Role.REVIEWER)
+  const isPrivileged = isAdmin || isReviewer
 
   if (project.userId !== session.user.id && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const projectUser: { name: string | null; image: string | null } = {
+    name: project.user.slackDisplayName || project.user.name,
+    image: project.user.image,
   }
 
   const [workSessions, submissions, reviewActions] = await Promise.all([
@@ -107,15 +115,24 @@ export async function GET(
   const reviewerIds = reviewActions
     .map((r) => r.reviewerId)
     .filter((id): id is string => id !== null)
-  
+
   const reviewers = reviewerIds.length > 0
     ? await prisma.user.findMany({
         where: { id: { in: reviewerIds } },
-        select: { id: true, name: true, image: true },
+        select: { id: true, name: true, image: true, slackDisplayName: true },
       })
     : []
-  
-  const reviewerMap = new Map(reviewers.map((r) => [r.id, { name: r.name, image: r.image }]))
+
+  let reviewerMap: Map<string, { name: string | null; image: string | null }>
+
+  if (isPrivileged) {
+    reviewerMap = new Map(reviewers.map((r) => [r.id, { name: r.name, image: r.image }]))
+  } else {
+    // For non-admin/non-reviewer users, show Slack display name only for privacy
+    reviewerMap = new Map(
+      reviewers.map((r) => [r.id, { name: r.slackDisplayName || "Reviewer", image: null }])
+    )
+  }
 
   const items: TimelineItem[] = []
 
@@ -123,14 +140,14 @@ export async function GET(
     type: "PROJECT_CREATED",
     at: project.createdAt.toISOString(),
     projectId: project.id,
-    user: { name: project.user.name, image: project.user.image },
+    user: projectUser,
   })
 
   for (const ws of workSessions) {
     items.push({
       type: "WORK_SESSION",
       at: ws.createdAt.toISOString(),
-      user: { name: project.user.name, image: project.user.image },
+      user: projectUser,
       session: {
         id: ws.id,
         title: ws.title,
@@ -158,7 +175,7 @@ export async function GET(
       at: sub.createdAt.toISOString(),
       stage: sub.stage,
       notes: sub.notes,
-      user: { name: project.user.name, image: project.user.image },
+      user: projectUser,
     })
   }
 

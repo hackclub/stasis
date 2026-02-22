@@ -23,6 +23,7 @@ export async function GET(
         select: {
           id: true,
           name: true,
+          slackDisplayName: true,
           image: true,
         },
       },
@@ -49,6 +50,12 @@ export async function GET(
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
+  const { slackDisplayName, ...userRest } = project.user;
+  const displayUser = {
+    ...userRest,
+    name: slackDisplayName || project.user.name,
+  };
+
   return NextResponse.json({
     id: project.id,
     title: project.title,
@@ -59,7 +66,7 @@ export async function GET(
     designStatus: project.designStatus,
     buildStatus: project.buildStatus,
     createdAt: project.createdAt,
-    user: project.user,
+    user: displayUser,
     badges: project.badges,
     kudosCount: project._count.kudos,
     sessionCount: project._count.workSessions,

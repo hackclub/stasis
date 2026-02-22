@@ -19,6 +19,7 @@ export async function GET(
     select: {
       id: true,
       name: true,
+      slackDisplayName: true,
       image: true,
       bio: true,
       createdAt: true,
@@ -68,8 +69,11 @@ export async function GET(
     orderBy: { createdAt: "desc" },
   })
 
+  const { slackDisplayName, ...userRest } = user;
+  const displayUser = { ...userRest, name: slackDisplayName || user.name };
+
   return NextResponse.json({
-    user,
+    user: displayUser,
     xp: { totalXP: xpData?.totalXP ?? 0 },
     bitsBalance: bitsResult._sum.amount ?? 0,
     badges,

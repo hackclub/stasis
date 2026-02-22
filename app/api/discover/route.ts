@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           name: true,
+          slackDisplayName: true,
           image: true,
         },
       },
@@ -76,6 +77,12 @@ export async function GET(request: NextRequest) {
       }
     }
     
+    const { slackDisplayName, ...userRest } = p.user;
+    const displayUser = {
+      ...userRest,
+      name: slackDisplayName || p.user.name,
+    };
+
     return {
       id: p.id,
       title: p.title,
@@ -83,7 +90,7 @@ export async function GET(request: NextRequest) {
       coverImage: p.coverImage,
       images: allImages,
       tags: p.tags,
-      user: p.user,
+      user: displayUser,
       kudosCount: p._count.kudos,
       sessionCount: p._count.workSessions,
       lastActivity: p.workSessions[0]?.createdAt ?? p.updatedAt,

@@ -16,6 +16,7 @@ export async function GET() {
         select: {
           id: true,
           name: true,
+          slackDisplayName: true,
           image: true,
           slackId: true,
           createdAt: true,
@@ -43,7 +44,7 @@ export async function GET() {
     const allSessions = a.assignee.projects.flatMap((p) => p.workSessions);
     return {
       id: a.assignee.id,
-      name: a.assignee.name,
+      name: a.assignee.slackDisplayName || a.assignee.name,
       image: a.assignee.image,
       slackId: a.assignee.slackId,
       createdAt: a.assignee.createdAt,
