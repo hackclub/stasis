@@ -5,9 +5,10 @@ import prisma from "./prisma";
 import { ensureRSVPExists } from "./airtable";
 import { getSlackProfilePicture } from "./slack";
 import { encryptPII } from "./pii";
+import { assignSidekick } from "./sidekick";
 
 const hcaScopes = ["openid", "profile", "email", "slack_id", "verification_status"];
-if (process.env.PULL_HCA_PII) {
+if (process.env.PULL_HCA_PII === "true") {
   hcaScopes.push("address", "birthday");
 }
 
@@ -55,6 +56,12 @@ export const auth = betterAuth({
               console.error('Failed to fetch Slack profile picture:', error);
             }
           }
+          // Auto-assign a sidekick mentor
+          try {
+            await assignSidekick(user.id);
+          } catch (error) {
+            console.error('Failed to assign sidekick:', error);
+          }
         },
       },
     },
@@ -89,7 +96,7 @@ export const auth = betterAuth({
               verificationStatus: profile.verification_status,
             };
 
-            if (process.env.PULL_HCA_PII) {
+            if (process.env.PULL_HCA_PII === "true") {
               const addr = profile.address;
               if (addr) {
                 if (addr.street_address) user.encryptedAddressStreet = encryptPII(addr.street_address);

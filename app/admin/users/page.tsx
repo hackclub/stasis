@@ -26,7 +26,7 @@ interface Project {
 
 interface UserRole {
   id: string;
-  role: 'ADMIN' | 'REVIEWER';
+  role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK';
   grantedAt: string;
 }
 
@@ -48,7 +48,7 @@ interface AdminUser {
   roles: UserRole[];
 }
 
-const AVAILABLE_ROLES: Array<'ADMIN' | 'REVIEWER'> = ['ADMIN', 'REVIEWER'];
+const AVAILABLE_ROLES: Array<'ADMIN' | 'REVIEWER' | 'SIDEKICK'> = ['ADMIN', 'REVIEWER', 'SIDEKICK'];
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -57,7 +57,8 @@ export default function AdminUsersPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterFraud, setFilterFraud] = useState<boolean | null>(null);
-  const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | null>(null);
+  const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | null>(null);
+  const [reassigning, setReassigning] = useState<string | null>(null);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
@@ -111,10 +112,10 @@ export default function AdminUsersPage() {
     return matchesSearch && matchesFraud && matchesRole;
   });
 
-  const hasRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER') => 
+  const hasRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') =>
     user.roles?.some(r => r.role === role) ?? false;
 
-  const getRoleInfo = (user: AdminUser, role: 'ADMIN' | 'REVIEWER') =>
+  const getRoleInfo = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') =>
     user.roles?.find(r => r.role === role);
 
   const getPendingRoles = (user: AdminUser): string[] => {
@@ -128,7 +129,29 @@ export default function AdminUsersPage() {
     return getPendingRoles(user).includes(role);
   };
 
-  const togglePendingRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER') => {
+  async function reassignAll(sidekickId: string) {
+    setReassigning(sidekickId);
+    try {
+      const res = await fetch('/api/admin/sidekick/reassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sidekickId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Reassigned ${data.reassigned} assignee(s) to other sidekicks.`);
+      } else {
+        const data = await res.json();
+        alert(`Failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to reassign:', error);
+    } finally {
+      setReassigning(null);
+    }
+  }
+
+  const togglePendingRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') => {
     setPendingRoles(prev => {
       const currentPending = prev[user.id];
       const current = currentPending !== undefined 
@@ -235,6 +258,16 @@ export default function AdminUsersPage() {
               >
                 Reviewer Role
               </button>
+              <button
+                onClick={() => setFilterRole(filterRole === 'SIDEKICK' ? null : 'SIDEKICK')}
+                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                  filterRole === 'SIDEKICK'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
+                }`}
+              >
+                Sidekick Role
+              </button>
               {(filterFraud !== null || filterRole !== null) && (
                 <button
                   onClick={() => { setFilterFraud(null); setFilterRole(null); }}
@@ -295,6 +328,11 @@ export default function AdminUsersPage() {
                             {hasRole(user, 'REVIEWER') && (
                               <span className="text-xs bg-blue-600 text-white px-2 py-0.5 uppercase">
                                 Reviewer
+                              </span>
+                            )}
+                            {hasRole(user, 'SIDEKICK') && (
+                              <span className="text-xs bg-purple-600 text-white px-2 py-0.5 uppercase">
+                                Sidekick
                               </span>
                             )}
                             {user.fraudConvicted && (
@@ -488,7 +526,7 @@ export default function AdminUsersPage() {
                                 />
                                 <div>
                                   <span className={`text-sm ${
-                                    role === 'ADMIN' ? 'text-orange-500' : 'text-blue-600'
+                                    role === 'ADMIN' ? 'text-orange-500' : role === 'SIDEKICK' ? 'text-purple-600' : 'text-blue-600'
                                   }`}>
                                     {role}
                                   </span>
@@ -551,6 +589,20 @@ export default function AdminUsersPage() {
                         >
                           {updating === user.id ? '...' : user.fraudConvicted ? 'Clear Fraud Flag' : 'Mark as Fraud'}
                         </button>
+                        {hasRole(user, 'SIDEKICK') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Reassign all of ${user.name || user.email}'s sidekick assignees to other sidekicks?`)) {
+                                reassignAll(user.id);
+                              }
+                            }}
+                            disabled={reassigning === user.id}
+                            className="px-4 py-2 text-sm uppercase bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {reassigning === user.id ? 'Reassigning...' : 'Reassign All'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}

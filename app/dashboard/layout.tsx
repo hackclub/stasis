@@ -97,6 +97,14 @@ export default function DashboardLayout({
                 {session.user.name || session.user.email}
               </span>
             </Link>
+            {hasRole(Role.SIDEKICK) && (
+              <Link
+                href="/sidekick"
+                className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors flex items-center"
+              >
+                Sidekick
+              </Link>
+            )}
             {hasRole(Role.ADMIN) && (
               <Link
                 href="/admin"

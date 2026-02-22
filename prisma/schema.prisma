@@ -75,6 +75,8 @@ model User {
   roles                  UserRole[]
   currencyTransactions   CurrencyTransaction[]
   kudosGiven             Kudos[]
+  sidekickAssignments    SidekickAssignment[] @relation("SidekickAssignments")
+  assignedSidekick       SidekickAssignment?  @relation("AssignedSidekick")
 
   @@map("user")
 }
@@ -332,6 +334,7 @@ model ProjectBadge {
 enum Role {
   ADMIN
   REVIEWER
+  SIDEKICK
 }
 
 model UserRole {
@@ -492,6 +495,19 @@ model TempRsvp {
 
   @@index([syncedToAirtable])
   @@map("temp_rsvp")
+}
+
+// Sidekick mentorship assignments
+model SidekickAssignment {
+  id         String   @id @default(cuid())
+  sidekickId String
+  assigneeId String   @unique
+  assignedAt DateTime @default(now())
+  sidekick   User     @relation("SidekickAssignments", fields: [sidekickId], references: [id])
+  assignee   User     @relation("AssignedSidekick", fields: [assigneeId], references: [id])
+
+  @@index([sidekickId])
+  @@map("sidekick_assignment")
 }
 
 // Kudos - social appreciation for projects

@@ -11,11 +11,13 @@ export enum Permission {
   VIEW_AUDIT_LOG = "VIEW_AUDIT_LOG",
   FLAG_FRAUD = "FLAG_FRAUD",
   MANAGE_CURRENCY = "MANAGE_CURRENCY",
+  VIEW_SIDEKICK_DASHBOARD = "VIEW_SIDEKICK_DASHBOARD",
 }
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   [Role.ADMIN]: Object.values(Permission),
   [Role.REVIEWER]: [Permission.REVIEW_PROJECTS, Permission.REVIEW_SESSIONS],
+  [Role.SIDEKICK]: [Permission.VIEW_SIDEKICK_DASHBOARD],
 }
 
 export function hasPermission(userRoles: Role[], permission: Permission): boolean {
