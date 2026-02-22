@@ -17,7 +17,6 @@ export async function GET() {
       name: true,
       image: true,
       slackId: true,
-      hackatimeUserId: true,
     },
   })
 
