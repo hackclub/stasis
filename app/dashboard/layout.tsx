@@ -89,12 +89,12 @@ export default function DashboardLayout({
               ) : (
                 <div className="w-8 h-8 rounded-full bg-cream-400 flex items-center justify-center">
                   <span className="text-brown-800 text-sm">
-                    {(session.user.name || session.user.email)?.[0]?.toUpperCase()}
+                    {((session.user as any).slackDisplayName || session.user.name || session.user.email)?.[0]?.toUpperCase()}
                   </span>
                 </div>
               )}
               <span className="text-orange-500 font-bold text-sm hidden sm:block">
-                {session.user.name || session.user.email}
+                {(session.user as any).slackDisplayName || session.user.name || session.user.email}
               </span>
             </Link>
             {hasRole(Role.SIDEKICK) && (
