@@ -147,22 +147,26 @@ function PublicTimeline({ items }: Readonly<{ items: PublicTimelineItem[] }>) {
                   <MDPreview source={item.session.content} />
                 </div>
               )}
-              {item.session.media.length > 0 && item.session.media.some(m => !item.session.content?.includes(m.url)) && (
-                <div className="flex flex-col gap-2 mt-3">
-                  {item.session.media.filter(m => m.type === "IMAGE").map((m) => (
-                    <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={m.url}
-                        alt="Session media"
-                        className="max-w-full max-h-64 border border-cream-400 hover:border-orange-500 transition-colors"
-                      />
-                    </a>
-                  ))}
-                  {item.session.media.filter(m => m.type === "VIDEO").map((m) => (
-                    <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
-                  ))}
-                </div>
-              )}
+              {(() => {
+                const extraMedia = item.session.media.filter(m => !item.session.content?.includes(m.url));
+                if (extraMedia.length === 0) return null;
+                return (
+                  <div className="flex flex-col gap-2 mt-3">
+                    {extraMedia.filter(m => m.type === "IMAGE").map((m) => (
+                      <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={m.url}
+                          alt="Session media"
+                          className="max-w-full max-h-64 border border-cream-400 hover:border-orange-500 transition-colors"
+                        />
+                      </a>
+                    ))}
+                    {extraMedia.filter(m => m.type === "VIDEO").map((m) => (
+                      <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         ))}

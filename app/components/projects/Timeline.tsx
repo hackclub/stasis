@@ -182,22 +182,26 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                 <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 [&_.wmde-markdown_h1]:!text-xl [&_.wmde-markdown_h1]:!font-bold [&_.wmde-markdown_h1]:!text-brown-800 [&_.wmde-markdown_h1]:!mb-2" data-color-mode="light">
                   <MDPreview source={`# ${item.session.title}\n\n${item.session.content || ''}`} />
                 </div>
-                {item.session.media.length > 0 && item.session.media.some(m => !item.session.content?.includes(m.url)) && (
-                  <div className="flex flex-col gap-2 mt-3">
-                    {item.session.media.filter(m => m.type === "IMAGE").map((m) => (
-                      <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
-                        <img
-                          src={m.url}
-                          alt="Session media"
-                          className="max-w-full max-h-64 border border-cream-400 hover:border-orange-500 transition-colors"
-                        />
-                      </a>
-                    ))}
-                    {item.session.media.filter(m => m.type === "VIDEO").map((m) => (
-                      <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
-                    ))}
-                  </div>
-                )}
+                {(() => {
+                  const extraMedia = item.session.media.filter(m => !item.session.content?.includes(m.url));
+                  if (extraMedia.length === 0) return null;
+                  return (
+                    <div className="flex flex-col gap-2 mt-3">
+                      {extraMedia.filter(m => m.type === "IMAGE").map((m) => (
+                        <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={m.url}
+                            alt="Session media"
+                            className="max-w-full max-h-64 border border-cream-400 hover:border-orange-500 transition-colors"
+                          />
+                        </a>
+                      ))}
+                      {extraMedia.filter(m => m.type === "VIDEO").map((m) => (
+                        <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
+                      ))}
+                    </div>
+                  );
+                })()}
                 {item.session.timelapses && item.session.timelapses.length > 0 && (
                   <div className="mt-3">
                     <p className="text-cream-500 text-xs uppercase mb-2">Lapse Timelapses</p>

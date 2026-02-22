@@ -193,6 +193,16 @@ export function SessionForm({
                     if (draft.hoursValue !== undefined) setHoursValue(draft.hoursValue);
                     if (draft.minutesValue !== undefined) setMinutesValue(draft.minutesValue);
                     if (draft.categories) setSelectedCategories(draft.categories);
+                    if (Array.isArray(draft.videos) && draft.videos.length > 0) {
+                        setMedia(draft.videos.map((url: string) => ({
+                            type: "VIDEO" as const,
+                            url,
+                            uploading: false,
+                        })));
+                    }
+                    if (Array.isArray(draft.timelapseIds)) {
+                        setSelectedTimelapseIds(draft.timelapseIds);
+                    }
                     setLastSaved(new Date(draft.savedAt));
                 }
             }
@@ -219,12 +229,17 @@ export function SessionForm({
         if (!content.trim() && hoursValue === 0 && minutesValue === 0) return;
 
         const timeoutId = setTimeout(() => {
+            const videos = media
+                .filter(m => m.type === "VIDEO" && !m.uploading && !m.url.startsWith('blob:'))
+                .map(m => m.url);
             const draft = {
                 title,
                 content,
                 hoursValue,
                 minutesValue,
                 categories: selectedCategories,
+                videos,
+                timelapseIds: selectedTimelapseIds,
                 savedAt: new Date().toISOString(),
             };
             try {
@@ -236,7 +251,7 @@ export function SessionForm({
         }, 1000); // 1 second debounce
 
         return () => clearTimeout(timeoutId);
-    }, [autosaveKey, title, content, hoursValue, minutesValue, selectedCategories, hasRestoredDraft]);
+    }, [autosaveKey, title, content, hoursValue, minutesValue, selectedCategories, media, selectedTimelapseIds, hasRestoredDraft]);
 
     // Clear draft on successful submit
     const clearDraft = useCallback(() => {
@@ -271,7 +286,22 @@ export function SessionForm({
 
     const hoursNum = hoursValue + minutesValue / 60;
     const requiredVideos = Math.floor(hoursNum / 4);
-    const imageCount = media.filter(m => m.type === "IMAGE").length;
+
+    // Extract image URLs from markdown content as the source of truth
+    const contentImageUrls = useMemo(() => {
+        const urls: string[] = [];
+        const regex = /!\[[^\]]*\]\(([^)]+)\)/g;
+        let match;
+        while ((match = regex.exec(content)) !== null) {
+            const url = match[1];
+            if (url && !url.startsWith('data:')) {
+                urls.push(url);
+            }
+        }
+        return urls;
+    }, [content]);
+
+    const imageCount = contentImageUrls.length;
     const videoCount = media.filter(m => m.type === "VIDEO").length;
 
     const xpPreview = useMemo(() => {
@@ -572,10 +602,10 @@ export function SessionForm({
             return;
         }
 
-        const mediaWithUrls = media.map(m => ({
-            type: m.type,
-            url: m.url,
-        }));
+        // Build media array: images from markdown content + videos from media state
+        const imageMedia = contentImageUrls.map(url => ({ type: "IMAGE" as const, url }));
+        const videoMedia = media.filter(m => m.type === "VIDEO").map(m => ({ type: "VIDEO" as const, url: m.url }));
+        const mediaWithUrls = [...imageMedia, ...videoMedia];
 
         await onSubmit({
             title: title.trim(),
