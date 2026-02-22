@@ -109,6 +109,11 @@ export default function AdminLayout({
                 </Link>
               )}
               {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/sidekicks" className={getTabClass('/admin/sidekicks')}>
+                  Sidekicks
+                </Link>
+              )}
+              {hasPermission(Permission.MANAGE_USERS) && (
                 <Link href="/admin/rsvps" className={getTabClass('/admin/rsvps')}>
                   RSVPs
                 </Link>

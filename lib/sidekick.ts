@@ -120,7 +120,7 @@ export async function reassignSidekick(assigneeId: string, newSidekickId?: strin
     dmPromises.push(
       sendSlackDM(
         assignment.assignee.slackId,
-        `Your sidekick has been updated! ${assignment.sidekick.slackId ? `<@${assignment.sidekick.slackId}>` : sidekickName} will now help you on Stasis.`
+        `Your sidekick has been updated to ${assignment.sidekick.slackId ? `<@${assignment.sidekick.slackId}>` : sidekickName}, they will now be helping you with all things Stasis!`
       ).catch((err) => console.error("Failed to DM assignee:", err))
     );
   }

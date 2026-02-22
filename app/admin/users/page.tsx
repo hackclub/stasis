@@ -58,7 +58,6 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterFraud, setFilterFraud] = useState<boolean | null>(null);
   const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | null>(null);
-  const [reassigning, setReassigning] = useState<string | null>(null);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
@@ -128,28 +127,6 @@ export default function AdminUsersPage() {
   const hasPendingRole = (user: AdminUser, role: string): boolean => {
     return getPendingRoles(user).includes(role);
   };
-
-  async function reassignAll(sidekickId: string) {
-    setReassigning(sidekickId);
-    try {
-      const res = await fetch('/api/admin/sidekick/reassign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sidekickId }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        alert(`Reassigned ${data.reassigned} assignee(s) to other sidekicks.`);
-      } else {
-        const data = await res.json();
-        alert(`Failed: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Failed to reassign:', error);
-    } finally {
-      setReassigning(null);
-    }
-  }
 
   const togglePendingRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') => {
     setPendingRoles(prev => {
@@ -589,20 +566,6 @@ export default function AdminUsersPage() {
                         >
                           {updating === user.id ? '...' : user.fraudConvicted ? 'Clear Fraud Flag' : 'Mark as Fraud'}
                         </button>
-                        {hasRole(user, 'SIDEKICK') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm(`Reassign all of ${user.name || user.email}'s sidekick assignees to other sidekicks?`)) {
-                                reassignAll(user.id);
-                              }
-                            }}
-                            disabled={reassigning === user.id}
-                            className="px-4 py-2 text-sm uppercase bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer disabled:opacity-50"
-                          >
-                            {reassigning === user.id ? 'Reassigning...' : 'Reassign All'}
-                          </button>
-                        )}
                       </div>
                     </div>
                   )}
