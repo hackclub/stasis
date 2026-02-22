@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects"
+import { getBadgeImage } from "@/lib/badges";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -154,18 +155,20 @@ export function ProjectCard({ project }: Readonly<Props>) {
               {approvedBadges.slice(0, 4).map((badge) => (
                 <span 
                   key={badge.id}
-                  className="text-[10px] bg-green-100 border border-green-500 text-green-700 px-1.5 py-0.5 uppercase"
+                  className="text-[10px] bg-green-100 border border-green-500 text-green-700 px-1.5 py-0.5 uppercase flex items-center gap-1"
                   title={`${BADGE_LABELS[badge.badge]} (Approved)`}
                 >
-                  ✓ {BADGE_LABELS[badge.badge]}
+                  <img src={getBadgeImage(badge.badge)} alt="" className="w-4 h-4 object-contain" />
+                      ✓ {BADGE_LABELS[badge.badge]}
                 </span>
               ))}
               {pendingBadges.slice(0, 4 - approvedBadges.length).map((badge) => (
                 <span 
                   key={badge.id}
-                  className="text-[10px] bg-cream-200 border border-cream-400 text-brown-800 px-1.5 py-0.5 uppercase"
+                  className="text-[10px] bg-cream-200 border border-cream-400 text-brown-800 px-1.5 py-0.5 uppercase flex items-center gap-1"
                   title={`${BADGE_LABELS[badge.badge]} (Pending)`}
                 >
+                  <img src={getBadgeImage(badge.badge)} alt="" className="w-4 h-4 object-contain grayscale" />
                   {BADGE_LABELS[badge.badge]}
                 </span>
               ))}

@@ -13,6 +13,7 @@ const MDPreview = dynamic(
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
 import { getTierById, TIERS } from "@/lib/tiers";
+import { getBadgeImage } from "@/lib/badges";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -454,12 +455,13 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   {project.badges.map((badge) => (
                     <span 
                       key={badge.id}
-                      className={`px-2 py-1 text-xs uppercase ${
+                      className={`px-2 py-1 text-xs uppercase flex items-center gap-1.5 ${
                         badge.grantedAt 
                           ? 'bg-green-600/30 border border-green-600 text-green-600' 
                           : 'bg-cream-200 border border-cream-400 text-brown-800'
                       }`}
                     >
+                      <img src={getBadgeImage(badge.badge)} alt="" className="w-6 h-6 object-contain" />
                       {BADGE_LABELS[badge.badge]}
                     </span>
                   ))}

@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
+import { getBadgeImage } from "@/lib/badges";
 
 interface ProfileProject {
   id: string;
@@ -258,7 +259,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               <div className="flex flex-wrap justify-center gap-4">
                 {profile.badges.map((b) => (
                   <div key={b.badge} className="flex flex-col items-center gap-2 bg-cream-200 border-2 border-cream-400 p-3">
-                    <img src="/badge-placeholder.png" alt={BADGE_LABELS[b.badge] || b.badge} className="w-full max-w-[120px] aspect-square object-contain" />
+                    <img src={getBadgeImage(b.badge)} alt={BADGE_LABELS[b.badge] || b.badge} className="w-full max-w-[120px] aspect-square object-contain" />
                     <span className="text-sm uppercase tracking-wide text-orange-500 font-bold text-center">
                       {BADGE_LABELS[b.badge] || b.badge}
                     </span>

@@ -10,6 +10,7 @@ import { OnboardingTutorial, TutorialHelpButton } from '@/app/components/Onboard
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
+import { getBadgeImage } from "@/lib/badges";
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
@@ -588,38 +589,19 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </Link>
               </p>
             ) : (
-              <div className="space-y-4">
-                {approvedBadges.length > 0 && (
-                  <div>
-                    <p className="text-brown-800 text-xs uppercase mb-2">Approved</p>
-                    <div className="flex flex-wrap gap-2">
-                      {approvedBadges.map((badge) => (
-                        <span 
-                          key={badge.id}
-                          className="bg-green-100 border border-green-500 text-green-700 px-3 py-1.5 text-sm uppercase"
-                        >
-                          {BADGE_LABELS[badge.badge]}
-                        </span>
-                      ))}
-                    </div>
+              <div className="flex flex-wrap gap-4">
+                {badges.map((badge) => (
+                  <div key={badge.id} className="flex flex-col items-center gap-1">
+                    <img 
+                      src={getBadgeImage(badge.badge)} 
+                      alt={BADGE_LABELS[badge.badge]} 
+                      className={`w-16 h-16 object-contain ${!badge.grantedAt ? 'grayscale opacity-60' : ''}`}
+                    />
+                    <span className="text-xs uppercase text-brown-800">
+                      {BADGE_LABELS[badge.badge]}
+                    </span>
                   </div>
-                )}
-                
-                {pendingBadges.length > 0 && (
-                  <div>
-                    <p className="text-brown-800 text-xs uppercase mb-2">Pending</p>
-                    <div className="flex flex-wrap gap-2">
-                      {pendingBadges.map((badge) => (
-                        <span 
-                          key={badge.id}
-                          className="bg-cream-200 border border-cream-500 text-brown-800 px-3 py-1.5 text-sm uppercase"
-                        >
-                          {BADGE_LABELS[badge.badge]}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>

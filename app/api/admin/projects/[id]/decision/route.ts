@@ -88,7 +88,7 @@ export async function POST(
     const reviewDecision = decision === "approved" ? "APPROVED" : "REJECTED"
     
     const updatedProject = await prisma.$transaction(async (tx) => {
-      // If approving design, also approve pending BOM items and grant badges
+      // If approving design, also approve pending BOM items
       if (decision === "approved") {
         await tx.bOMItem.updateMany({
           where: { projectId: id, status: "pending" },
@@ -96,15 +96,6 @@ export async function POST(
             status: "approved",
             reviewedAt: now,
             reviewedBy: adminUserId,
-          },
-        })
-        
-        // Grant badges on design approval
-        await tx.projectBadge.updateMany({
-          where: { projectId: id, grantedAt: null },
-          data: {
-            grantedAt: now,
-            grantedBy: adminUserId,
           },
         })
       }
@@ -231,6 +222,15 @@ export async function POST(
             },
           })
         }
+
+        // Grant badges on build approval
+        await tx.projectBadge.updateMany({
+          where: { projectId: id, grantedAt: null },
+          data: {
+            grantedAt: now,
+            grantedBy: adminUserId,
+          },
+        })
 
         // Create review action record
         await tx.projectReviewAction.create({

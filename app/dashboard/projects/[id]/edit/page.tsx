@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECTS } from "@/lib/starter-projects";
-import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges";
+import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
 
 interface ProjectBadge {
@@ -436,6 +436,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                                     : 'bg-orange-500/30 border border-orange-400 text-orange-500'
                                                 }`}
                                         >
+                                            <img src={getBadgeImage(badge.badge)} alt="" className={`w-8 h-8 object-contain ${!badge.grantedAt ? 'grayscale opacity-60' : ''}`} />
                                             <span>{badgeInfo?.label || badge.badge}</span>
                                             {badge.grantedAt ? (
                                                 <span className="text-xs opacity-70">✓ Granted</span>
@@ -475,7 +476,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                                     : 'bg-white border-cream-400 hover:border-orange-400 text-brown-800 cursor-pointer disabled:opacity-50'
                                             }`}
                                         >
-                                            {badge.label}
+                                            <div className="flex items-center gap-2">
+                                                <img src={getBadgeImage(badge.value)} alt="" className="w-8 h-8 object-contain" />
+                                                <span>{badge.label}</span>
+                                            </div>
                                         </button>
                                     )
                                 })}

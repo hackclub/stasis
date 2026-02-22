@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
-import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
+import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges"
 import { TIERS } from "@/lib/tiers"
 
 interface Props {
@@ -29,8 +29,8 @@ const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
   { value: "RASPBERRY_PI", label: "Raspberry Pi" },
 ]
 
-const STEPS = ['Details', 'Tags & Badges', 'Configuration'] as const
-type Step = 0 | 1 | 2
+const STEPS = ['Details', 'Tags', 'Badges', 'Configuration'] as const
+type Step = 0 | 1 | 2 | 3
 
 export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<Props>) {
   const [step, setStep] = useState<Step>(0)
@@ -101,8 +101,9 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   }
 
   const canProceedFromStep0 = title.trim().length > 0
-  const canProceedFromStep1 = selectedBadges.length > 0
-  const canSubmit = canProceedFromStep0 && canProceedFromStep1 && (!isStarter || starterProjectId)
+  const canProceedFromStep1 = true
+  const canProceedFromStep2 = selectedBadges.length > 0
+  const canSubmit = canProceedFromStep0 && canProceedFromStep2 && (!isStarter || starterProjectId)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -144,6 +145,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 if (i === 0) setStep(0)
                 else if (i === 1 && canProceedFromStep0) setStep(1)
                 else if (i === 2 && canProceedFromStep0 && canProceedFromStep1) setStep(2)
+                else if (i === 3 && canProceedFromStep0 && canProceedFromStep1 && canProceedFromStep2) setStep(3)
               }}
               className={`flex-1 px-3 py-2 text-xs uppercase tracking-wide transition-colors cursor-pointer ${
                 step === i
@@ -203,7 +205,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
             </>
           )}
 
-          {/* Step 2: Tags & Badges */}
+          {/* Step 2: Tags */}
           {step === 1 && (
             <>
               <div>
@@ -228,42 +230,6 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 </div>
               </div>
 
-              <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Skill Badges <span className="text-cream-500">({selectedBadges.length}/{MAX_BADGES_PER_PROJECT})</span>
-                </label>
-                <p className="text-cream-600 text-xs mb-2">
-                  Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll demonstrate in this project.
-                </p>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                  {AVAILABLE_BADGES.map((badge) => {
-                    const isClaimed = claimedBadges.includes(badge.value)
-                    const isSelected = selectedBadges.includes(badge.value)
-                    const isDisabled = isClaimed || (!isSelected && selectedBadges.length >= MAX_BADGES_PER_PROJECT)
-                    return (
-                      <button
-                        key={badge.value}
-                        type="button"
-                        onClick={() => !isClaimed && handleBadgeToggle(badge.value)}
-                        disabled={isDisabled}
-                        title={isClaimed ? "Already claimed on another project" : undefined}
-                        className={`px-3 py-1.5 text-sm uppercase transition-colors ${
-                          isSelected
-                            ? 'bg-orange-500 text-white cursor-pointer'
-                            : isClaimed
-                              ? 'bg-cream-200 text-cream-400 cursor-not-allowed line-through'
-                              : selectedBadges.length >= MAX_BADGES_PER_PROJECT
-                                ? 'bg-cream-300 text-cream-500 cursor-not-allowed'
-                                : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
-                        }`}
-                      >
-                        {badge.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -275,7 +241,66 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  disabled={!canProceedFromStep1}
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Next →
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Step 3: Badges */}
+          {step === 2 && (
+            <>
+              <div>
+                <label className="block text-brown-800 text-sm uppercase mb-2">
+                  Skill Badges <span className="text-cream-500">({selectedBadges.length}/{MAX_BADGES_PER_PROJECT})</span>
+                </label>
+                <p className="text-cream-600 text-xs mb-2">
+                  Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll demonstrate in this project.
+                </p>
+                <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
+                  {AVAILABLE_BADGES.map((badge) => {
+                    const isClaimed = claimedBadges.includes(badge.value)
+                    const isSelected = selectedBadges.includes(badge.value)
+                    const isDisabled = isClaimed || (!isSelected && selectedBadges.length >= MAX_BADGES_PER_PROJECT)
+                    return (
+                      <button
+                        key={badge.value}
+                        type="button"
+                        onClick={() => !isClaimed && handleBadgeToggle(badge.value)}
+                        disabled={isDisabled}
+                        title={isClaimed ? "Already claimed on another project" : undefined}
+                        className={`flex flex-col items-center gap-1 p-2 border-2 transition-colors ${
+                          isSelected
+                            ? 'border-orange-500 bg-orange-500/10 cursor-pointer'
+                            : isClaimed
+                              ? 'border-cream-300 bg-cream-200 opacity-50 cursor-not-allowed'
+                              : selectedBadges.length >= MAX_BADGES_PER_PROJECT
+                                ? 'border-cream-300 bg-cream-200 opacity-50 cursor-not-allowed'
+                                : 'border-cream-400 bg-cream-200 hover:border-cream-500 cursor-pointer'
+                        }`}
+                      >
+                        <img src={getBadgeImage(badge.value)} alt={badge.label} className="w-full aspect-square object-contain" />
+                        <span className={`text-xs uppercase ${isClaimed ? 'line-through text-cream-400' : 'text-brown-800'}`}>{badge.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  disabled={!canProceedFromStep2}
                   className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Next →
@@ -284,8 +309,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
             </>
           )}
 
-          {/* Step 3: Configuration */}
-          {step === 2 && (
+          {/* Step 4: Configuration */}
+          {step === 3 && (
             <>
               <div>
                 <label className="block text-brown-800 text-sm uppercase mb-2">
@@ -369,7 +394,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   ← Back
