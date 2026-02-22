@@ -125,7 +125,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-orange-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
-            <p className="text-brown-800 text-sm">Earn {QUALIFICATION_BITS_THRESHOLD} bits from hardware project profits to qualify for Stasis!</p>
+            <p className="text-brown-800 text-sm">Earn {QUALIFICATION_BITS_THRESHOLD} bits from building hardware projects to qualify for Stasis!</p>
           </div>
           {qualified && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
