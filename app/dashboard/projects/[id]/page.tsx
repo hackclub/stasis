@@ -592,13 +592,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             ) : (
               <div className="flex flex-wrap gap-4">
                 {badges.map((badge) => (
-                  <div key={badge.id} className="flex flex-col items-center gap-1">
-                    <img 
-                      src={getBadgeImage(badge.badge)} 
-                      alt={BADGE_LABELS[badge.badge]} 
-                      className={`w-16 h-16 object-contain ${!badge.grantedAt ? 'grayscale opacity-60' : ''}`}
+                  <div key={badge.id} className="flex flex-col items-center gap-1 w-24">
+                    <img
+                      src={getBadgeImage(badge.badge)}
+                      alt={BADGE_LABELS[badge.badge]}
+                      className={`w-20 h-20 object-contain ${!badge.grantedAt ? 'grayscale opacity-60' : ''}`}
                     />
-                    <span className="text-xs uppercase text-brown-800">
+                    <span className="text-xs uppercase text-brown-800 text-center">
                       {BADGE_LABELS[badge.badge]}
                     </span>
                   </div>
