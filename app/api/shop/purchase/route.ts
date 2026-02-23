@@ -12,12 +12,16 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { itemId } = body as { itemId: string }
+  const { itemId, quantity: rawQuantity } = body as { itemId: string; quantity?: number }
+
+  const quantity = Math.max(1, Math.floor(rawQuantity ?? 1))
 
   const item = SHOP_ITEMS.find((i) => i.id === itemId)
   if (!item) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 })
   }
+
+  const totalCost = item.bitsCost * quantity
 
   const userId = session.user.id
 
@@ -50,6 +54,10 @@ export async function POST(request: NextRequest) {
         if (existingPurchases >= item.maxPerUser) {
           throw new Error("ALREADY_PURCHASED")
         }
+
+        if (existingPurchases + quantity > item.maxPerUser) {
+          throw new Error("EXCEEDS_MAX")
+        }
       }
 
       // Calculate current balance from ledger
@@ -66,24 +74,30 @@ export async function POST(request: NextRequest) {
 
       const balance = (earned._sum.amount ?? 0) + (deducted._sum.amount ?? 0)
 
-      if (balance < item.bitsCost) {
+      if (balance < totalCost) {
         throw new Error("INSUFFICIENT_BITS")
       }
 
-      // Create the purchase transaction
-      const transaction = await tx.currencyTransaction.create({
-        data: {
-          userId,
-          amount: -item.bitsCost,
-          type: "SHOP_PURCHASE",
-          shopItemId: itemId,
-          note: `Purchased: ${item.name}`,
-          balanceBefore: balance,
-          balanceAfter: balance - item.bitsCost,
-        },
-      })
+      // Create purchase transactions (one per unit for ledger consistency)
+      let currentBalance = balance
+      let lastTransactionId = ''
+      for (let i = 0; i < quantity; i++) {
+        const transaction = await tx.currencyTransaction.create({
+          data: {
+            userId,
+            amount: -item.bitsCost,
+            type: "SHOP_PURCHASE",
+            shopItemId: itemId,
+            note: `Purchased: ${item.name}`,
+            balanceBefore: currentBalance,
+            balanceAfter: currentBalance - item.bitsCost,
+          },
+        })
+        lastTransactionId = transaction.id
+        currentBalance -= item.bitsCost
+      }
 
-      return { id: transaction.id, item: item.name, bitsSpent: item.bitsCost, newBalance: balance - item.bitsCost }
+      return { id: lastTransactionId, item: item.name, bitsSpent: totalCost, newBalance: currentBalance }
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
@@ -99,6 +113,9 @@ export async function POST(request: NextRequest) {
       }
       if (error.message === "INSUFFICIENT_BITS") {
         return NextResponse.json({ error: "Not enough bits" }, { status: 400 })
+      }
+      if (error.message === "EXCEEDS_MAX") {
+        return NextResponse.json({ error: "Quantity exceeds maximum allowed" }, { status: 400 })
       }
     }
     throw error
