@@ -5,7 +5,7 @@ import { logAudit, AuditAction } from "@/lib/audit"
 import { headers } from "next/headers"
 import { ProjectTag } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
-import { isValidUrl } from "@/lib/url"
+import { isValidUrl, normalizeUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { TIERS } from "@/lib/tiers"
 
@@ -40,7 +40,10 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
       }
       if (typeof value === "string") {
         if (URL_FIELDS.has(field)) {
-          if (!isValidUrl(value)) continue
+          const normalized = normalizeUrl(value)
+          if (!isValidUrl(normalized)) continue
+          result[field] = sanitize(normalized)
+          continue
         }
         result[field] = sanitize(value)
       } else {

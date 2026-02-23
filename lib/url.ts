@@ -1,5 +1,14 @@
 const ALLOWED_URL_SCHEMES = ["https:", "http:"]
 
+export function normalizeUrl(url: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) return trimmed
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return `https://${trimmed}`
+  }
+  return trimmed
+}
+
 export function isValidUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
