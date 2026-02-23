@@ -40,6 +40,10 @@ const faqs = [
     answer: "To be eligible for Stasis, you must be between the ages of <mark>13 and 18</mark> (inclusive)."
   },
   {
+    question: "What if I can't come?",
+    answer: "We'll have a <mark>shop</mark> where you can buy alternative prizes!"
+  },
+  {
     question: "I have more questions!",
     answer: "Join the <a href='https://hackclub.com/slack'>Hack Club Slack</a> and head to the <a href='https://hackclub.slack.com/archives/C09HSQM550A'>#stasis</a> channel! You can also email us at <a href='mailto:stasis@hackclub.com'>stasis@hackclub.com</a>."
   }
