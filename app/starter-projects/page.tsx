@@ -19,67 +19,69 @@ const projects = [
   },
   {
     id: 'spotify-thing',
-    name: 'LED Cube',
+    name: 'Spotify Display',
     hours: 8,
     short_description: 'A 3D LED display controlled by Arduino.',
     badges: []
   },
   {
     id: 'hackpad',
-    name: 'Synth Kit',
+    name: 'Eink Camera',
     hours: 10,
     short_description: 'Build a DIY analog synthesizer from scratch.',
     badges: []
   },
   {
     id: 'hackpad',
-    name: 'Smart Mirror',
+    name: 'Blinky',
     hours: 12,
     short_description: 'A Raspberry Pi powered two-way mirror.',
     badges: []
   },
   {
     id: 'hackpad',
-    name: 'Bot Arm',
+    name: 'Devboard',
     hours: 15,
     short_description: 'A 3D printed robotic arm with servo control.',
     badges: []
   },
   {
     id: 'hackpad',
-    name: 'Mini Drone',
+    name: 'Split Keyboard',
     hours: 20,
     short_description: 'A custom quadcopter with FPV camera.',
     badges: []
   },
   {
     id: 'hackpad',
-    name: 'GamePad',
+    name: 'Bluetooth Display',
     hours: 7,
     short_description: 'A wireless controller for retro gaming.',
     badges: []
   },
-  {
-    id: 'hackpad',
-    name: 'VU Meter',
-    hours: 5,
-    short_description: 'An audio visualizer with RGB LEDs.',
-    badges: []
-  },
-  {
-    id: 'hackpad',
-    name: 'Weather Station',
-    hours: 9,
-    short_description: 'Track temperature, humidity, and pressure.',
-    badges: []
-  },
-  {
-    id: 'hackpad',
-    name: 'Badge PCB',
-    hours: 4,
-    short_description: 'A wearable LED badge with animations.',
-    badges: []
-  }
+  // For future projects:
+
+  // {
+  //   id: 'hackpad',
+  //   name: 'VU Meter',
+  //   hours: 5,
+  //   short_description: 'An audio visualizer with RGB LEDs.',
+  //   badges: []
+  // },
+  // {
+  //   id: 'hackpad',
+  //   name: 'Weather Station',
+  //   hours: 9,
+  //   short_description: 'Track temperature, humidity, and pressure.',
+  //   badges: []
+  // },
+  // {
+  //   id: 'hackpad',
+  //   name: 'Badge PCB',
+  //   hours: 4,
+  //   short_description: 'A wearable LED badge with animations.',
+  //   badges: []
+  // }
 ];
 
 export default function StarterProjectsPage() {
@@ -152,8 +154,15 @@ export default function StarterProjectsPage() {
 
   const updatePlaceholders = useCallback(() => {
     if (!gridEl) return;
+    
     const gridWidth = gridEl.offsetWidth;
-    const cols = Math.floor(gridWidth / 176);
+    const gap = 2; 
+    
+    // TODO: fix placeholder
+    const itemWidth = gridWidth < 768 ? 100 : 176;
+    const itemWithGap = itemWidth + gap;
+    
+    const cols = Math.max(1, Math.floor((gridWidth + gap) / itemWithGap));
     const itemsInLastRow = actualProjects % cols;
     
     if (itemsInLastRow === 0 || cols === 0) {
@@ -293,9 +302,9 @@ export default function StarterProjectsPage() {
       }
     });
 
-    return () => {
-      gsap.killTweensOf('*');
-    };
+    // return () => {
+    //   gsap.killTweensOf('*');
+    // };
   }, []);
 
   useEffect(() => {
@@ -349,7 +358,7 @@ export default function StarterProjectsPage() {
         }
       `}</style>
 
-      <div className="bg-[linear-gradient(var(--color-brown-900)/0.6,var(--color-brown-900)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 px-2">
+      <div className="bg-[linear-gradient(var(--color-brown-900)/0.6,var(--color-brown-900)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 p-4 sm:px-6">
         <div 
           className="absolute inset-0 opacity-40 -z-1000 pointer-none"
           style={{
@@ -359,33 +368,36 @@ export default function StarterProjectsPage() {
             imageRendering: 'pixelated'
           }}
         />
-
-        <div className="absolute mb-20 ml-16 mt-16">
+        {/* back to home */}
+        <div className="pt-4 2xl:absolute  2xl:ml-16 2xl:mt-16">
           <Link href="/dashboard">
             <MagneticCorners activationDistance={35} deactivationDistance={45}>
-              <button className="block bg-orange-600 p-6 font-mono relative cursor-pointer hover:bg-orange-400">
+              <button className="block bg-orange-600 p-2 md:p-4 2xl:p-6 font-mono relative cursor-pointer hover:bg-orange-400">
                 <img src="/home-light.svg" alt="Home" className="w-8 h-8" />
               </button>
             </MagneticCorners>
           </Link>
         </div>
+        {/* apologies for the code below, temporarily removed as it was too annoying to make reponsive, will fix, sometime... */}
 
-        <img src="/stasis-logo-white-center.svg" alt="" className="absolute -z-1 w-full mx-auto scale-100 translate-x-3 -translate-y-[calc(100%-2vw)] md:-translate-y-[calc(100%-18vw)] opacity-8" />
-
-        <div className="flex flex-col max-w-6xl mx-auto font-mono mb-8 mt-16">
+        {/* <img src="/stasis-logo-white-center.svg" alt="" className="absolute -z-1 w-full mx-auto scale-120 md:scale-120 xl:scale-100 -translate-x-3 lg:-translate-x-6 -translate-y-[calc(100%-2vw)] md:-translate-y-[calc(100%-6vw)] lg:-translate-y-[calc(100%-8vw)] xl:-translate-y-[calc(100%-16vw)]  opacity-8" /> */}
+       
+        <div className="flex flex-col max-w-6xl mx-auto font-mono mb-8 mt-10 lg:mt-16 2xl:mt-24">
           <div className="bg-orange-600 text-cream-200 text-xl w-max px-4 py-2 relative after:bg-orange-600 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
             STARTER PROJECTS
           </div>
-          <div className="bg-brown-900 w-full h-max border-2 border-orange-600 flex flex-col relative after:absolute after:left-full after:w-8 after:h-[calc(100%+4px-32px)] after:-top-0.5 after:bg-orange-600 before:absolute before:bg-orange-600 before:-bottom-0.5 before:left-full before:w-8 before:h-8 before:[clip-path:polygon(0_0,0_100%,100%_0)]">
-            {/* top stuff */}
-            <div className="flex flex-row min-h-[300px]">
+          {/* TODO: make the before/after decor fully in frame on md, currently only on xl< */}
+          <div className="bg-brown-900 w-full h-max border-2 border-orange-600 flex flex-col relative after:hidden xl:after:block after:absolute after:left-full after:w-8 after:h-[calc(100%+4px-32px)] after:-top-0.5 after:bg-orange-600 before:opacity-0 xl:before:opacity-100 before:absolute before:bg-orange-600 before:-bottom-0.5 before:left-full before:w-8 before:h-8 before:[clip-path:polygon(0_0,0_100%,100%_0)]">
+            {/* preview and details */}
+            <div className="flex flex-col-reverse sm:flex-row min-h-[300px]">
               {/* preview */}
-              <div ref={previewContainerRef} className="border-cream-500 border-r-2 flex-3/5 relative overflow-clip">
-                <p className="text-cream-500/20 absolute top-1 right-2 z-10">PREVIEW</p>
-                <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
+              {/* <div className="bg-blue-500 w-full min-h-60 "></div> */}
+              <div ref={previewContainerRef} className="w-full min-h-60 border-cream-500 border-r-0 sm:border-r-2 border-t-2 sm:border-t-0 md:flex-3/5 relative overflow-clip" style={{ minHeight: maxHeight  }}>
+                <p className="text-cream-600/40 absolute top-1 right-2 z-10">PREVIEW</p>
+                <svg ref={svgContainerRef} className="w-full h-full absolute inset-0 z-0 opacity-30" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
                   {/* Concentric circles */}
                   {circles.map((diameter) => (
-                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="var(--color-cream-600)" strokeOpacity={0.4} strokeWidth="2" />
+                    <circle key={diameter} cx="1100" cy="650" r={diameter / 2} fill="none" stroke="var(--color-cream-600)" strokeWidth="2" />
                   ))}
                   
                   {/* Rotating lines with squares */}
@@ -394,28 +406,28 @@ export default function StarterProjectsPage() {
                       {/* First line */}
                       <g data-line-group={`${i}-1`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="var(--color-cream-500)" strokeOpacity={0.4} strokeWidth="2" />
+                        <line x1="1100" y1={650 - line.from} x2="1100" y2={650 - line.to} stroke="var(--color-cream-500)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-1a`}>
-                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="var(--color-cream-500)" strokeOpacity={0.4} />
+                          <rect x={1100 - 4} y={650 - line.from - 4} width="8" height="8" fill="var(--color-cream-500)" />
                         </g>
                         <g data-square={`${i}-1b`}>
-                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="var(--color-cream-500)" strokeOpacity={0.4} />
+                          <rect x={1100 - 4} y={650 - line.to - 4} width="8" height="8" fill="var(--color-cream-500)" />
                         </g>
                       </g>
                       
                       {/* Second line (opposite side) */}
                       <g data-line-group={`${i}-2`}>
                         {/* Line connecting circles */}
-                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="var(--color-cream-500)" strokeOpacity={0.4} strokeWidth="2" />
+                        <line x1="1100" y1={650 + line.from} x2="1100" y2={650 + line.to} stroke="var(--color-cream-500)" strokeWidth="2" />
                         
                         {/* Squares at intersection points (counter-rotated) */}
                         <g data-square={`${i}-2a`}>
-                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="var(--color-cream-500)" fillOpacity={0.4} />
+                          <rect x={1100 - 4} y={650 + line.from - 4} width="8" height="8" fill="var(--color-cream-500)" />
                         </g>
                         <g data-square={`${i}-2b`}>
-                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="var(--color-cream-500)" fillOpacity={0.4} />
+                          <rect x={1100 - 4} y={650 + line.to - 4} width="8" height="8" fill="var(--color-cream-500)" />
                         </g>
                       </g>
                     </g>
@@ -428,7 +440,7 @@ export default function StarterProjectsPage() {
                     style={{ opacity: initialMessageOpacity }}
                   >
                     <p 
-                      className="text-cream-500/50 text-2xl font-mono"
+                      className="text-cream-600/40 text-2xl font-mono text-center px-4"
                       style={{ transform: `scale(${initialMessageScale})` }}
                     >
                       Select a project to see details
@@ -447,66 +459,56 @@ export default function StarterProjectsPage() {
                 />
               </div>
               {/* details */}
-              <div className="flex-2/5 flex flex-col relative">
-                <p className="text-cream-500/20 absolute top-1 right-2">DETAILS</p>
+              <div className="md:flex-2/5 flex flex-col relative ">
+                <p className="text-cream-600/40 absolute top-1 right-2">DETAILS</p>
                 
                 {/* Hidden measurement divs for all projects */}
                 {projects.map((project, i) => (
                   <div 
                     key={i}
                     ref={el => { measureRefs.current[i] = el; }}
-                    className="flex flex-col space-y-3 px-4 py-12 absolute opacity-0 pointer-events-none"
+                    className="flex flex-col space-y-3 px-4 py-12 absolute opacity-0 pointer-events-none  mx-8"
                   >
-                    <h2 className="text-orange-600 text-5xl mx-8">{project.name.toUpperCase()}</h2>
-                    <p className="text-cream-50 text-2xl mx-8">{project.hours} hours</p>
-                    <p className="text-cream-50 text-lg mx-8">{project.short_description}</p>
+                    <h2 className="text-orange-600 text-5xl">{project.name.toUpperCase()}</h2>
+                    <p className="text-cream-50 text-2xl">{project.hours} hours</p>
+                    <p className="text-cream-50 text-lg">{project.short_description}</p>
                   </div>
                 ))}
                 
                 {/* Visible project details */}
                 <div 
-                  className="flex flex-col space-y-3 px-4 py-12"
-                  style={{ minHeight: maxHeight  }}
-                >
-                  <h2 className="text-orange-600 text-5xl mx-8">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
-                  <p className="text-cream-300 text-2xl mx-8">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
-                  <p className="text-cream-300 text-lg mx-8">{projects[selectedProjectIndex ?? 0].short_description}</p>
+                  className="space-y-3 px-6 md:px-8 lg:mx-6 py-6 sm:py-10">
+                  <h2 className="text-orange-600 text-5xl">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
+                  <p className="text-cream-300 text-2xl">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
+                  <p className="text-cream-300 text-lg">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
-
-                <div className="flex flex-row border-cream-500 border-y-2 relative z-10">
-                  <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
-                    <p className="text-cream-300 absolute top-2 right-4">1</p>
+                <div className="w-full">
+                  <div className="flex flex-row border-cream-500 border-y-2 relative z-10 min-h-18">
+                    <div className="flex-1/3 sm:min-h-24 border-cream-500 border-r-2 relative">
+                      <p className="text-cream-300 absolute top-2 right-4">1</p>
+                    </div>
+                    <div className="flex-1/3 sm:min-h-24 border-cream-500 border-r-2 relative">
+                      <p className="text-cream-300 absolute top-2 right-4">2</p>
+                    </div>
+                    <div className="flex-1/3 sm:min-h-24 border-cream-500 relative">
+                      <p className="text-cream-300 absolute top-2 right-4">3</p>
+                    </div>
                   </div>
-                  <div className="flex-1/3 min-h-24 border-cream-500 border-r-2 relative">
-                    <p className="text-cream-300 absolute top-2 right-4">2</p>
+                  {/* TODO: add back hover effect using GSAP instead */}
+                  <button className="w-full h-fit text-cream-300 text-2xl hover:bg-orange-600 hover:text-cream-100 py-6 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter]duration-50 border-orange-600/20 border-r-3">
+                      <span className=" w-full h-full block ">
+                        GUIDE
+                      </span>                  
+                  </button>
                   </div>
-                  <div className="flex-1/3 min-h-24 border-cream-500 relative">
-                    <p className="text-cream-300 absolute top-2 right-4">3</p>
-                  </div>
-                </div>
-                {/* TODO: fix gradient on hover */}
-                <button className="text-cream-300 text-2xl w-full py-8 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter]duration-50 border-orange-600/20 border-r-3">
-                  <div className="-z-1 absolute w-full h-full inset-0 bg-size-[3rem_3rem] animate-slide" style={{ backgroundImage: 'linear-gradient(135deg, var(--color-orange-600 / 25%) 0%, var(--color-orange-600 / 25%) 12.5%, transparent 12.5%, transparent 37.5%, var(--color-orange-600 / 25%) 37.5%, var(--color-orange-600 / 25%) 62.5%, transparent 62.5%, transparent 87.5%, var(--color-orange-600 / 25%) 87.5%, var(--color-orange-600 / 25%) 100%)' }} />
-                  <div className="z-1 absolute w-full h-full inset-0 bg-linear-to-b from-cream-100/10 to-cream-100/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="block overflow-hidden absolute w-full">
-                    <span className="block group-hover:translate-y-full transition-all ease-out group-hover:opacity-70">
-                      GUIDE
-                    </span>
-                  </span>
-                  <span className="block overflow-hidden">
-                    <span className="block group-[:not(:hover)]:-translate-y-full transition-all ease-out group-[:not(:hover)]:opacity-70">
-                      GUIDE
-                    </span>
-                  </span>
-                </button>
               </div>
             </div>
             {/* grid of projects */}
             <div 
               ref={setGridEl}
-              className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-0.5 bg-cream-500 relative overflow-hidden cursor-pointer pt-0.5"
+              className="grid grid-cols-[repeat(auto-fit,minmax(7rem,1fr))]  md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-0.5 bg-cream-500 relative overflow-hidden cursor-pointer pt-0.5"
             >
-              <p className="text-cream-500/20 absolute top-1 right-2 z-2">PROJECTS</p>
+              <p className="text-cream-600/40 absolute top-1 right-2 z-2">PROJECTS</p>
               <ProjectGridHoverCorners gridEl={gridEl} selectedIndex={selectedProjectIndex} />
               {projects.map((project, i) => (
                 <ProjectPreview 
