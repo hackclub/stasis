@@ -696,14 +696,30 @@ export function SessionForm({
                             <div className="flex flex-col border-l-2 border-cream-400">
                                 <button
                                     type="button"
-                                    onClick={() => setMinutesValue(minutesValue === 45 ? 0 : minutesValue + 15)}
+                                    onClick={() => {
+                                        if (minutesValue === 45) {
+                                            setMinutesValue(0);
+                                            setHoursValue(Math.min(24, hoursValue + 1));
+                                        } else {
+                                            setMinutesValue(minutesValue + 15);
+                                        }
+                                    }}
                                     className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
                                 >
                                     +
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setMinutesValue(minutesValue === 0 ? 45 : minutesValue - 15)}
+                                    onClick={() => {
+                                        if (minutesValue === 0) {
+                                            if (hoursValue > 0) {
+                                                setMinutesValue(45);
+                                                setHoursValue(hoursValue - 1);
+                                            }
+                                        } else {
+                                            setMinutesValue(minutesValue - 15);
+                                        }
+                                    }}
                                     className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
                                 >
                                     −
