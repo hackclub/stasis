@@ -294,11 +294,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                             GitHub Repo <span className="text-orange-400">(required for submission)</span>
                         </label>
                         <input
-                            type="url"
+                            type="text"
                             value={githubRepo}
                             onChange={(e) => setGithubRepo(e.target.value)}
                             className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
-                            placeholder="https://github.com/username/repo"
+                            placeholder="github.com/username/repo"
                         />
                     </div>
 
