@@ -132,6 +132,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [uploading, setUploading] = useState(false);
   const [showDesignSubmitDialog, setShowDesignSubmitDialog] = useState(false);
   const [showBuildSubmitDialog, setShowBuildSubmitDialog] = useState(false);
+  const [showDesignUnsubmitDialog, setShowDesignUnsubmitDialog] = useState(false);
+  const [showBuildUnsubmitDialog, setShowBuildUnsubmitDialog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   
   const [bomForm, setBomForm] = useState({
@@ -222,6 +224,43 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const handleSubmitDesign = () => handleSubmitStage("design");
   const handleSubmitBuild = () => handleSubmitStage("build");
+
+  const handleUnsubmitStage = async (stage: "design" | "build") => {
+    if (!project) return;
+    if (stage === "design") {
+      setShowDesignUnsubmitDialog(false);
+    } else {
+      setShowBuildUnsubmitDialog(false);
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/unsubmit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage }),
+      });
+
+      if (res.ok) {
+        const [updatedRes, timelineRes] = await Promise.all([
+          fetch(`/api/projects/${projectId}`),
+          fetch(`/api/projects/${projectId}/timeline`),
+        ]);
+        if (updatedRes.ok) {
+          setProject(await updatedRes.json());
+        }
+        if (timelineRes.ok) {
+          setTimelineItems(await timelineRes.json());
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || `Failed to unsubmit ${stage}`);
+      }
+    } catch (error) {
+      console.error(`Failed to unsubmit ${stage}:`, error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Computed values for stage requirements
   const designSessions = project?.workSessions.filter(s => s.stage === "DESIGN") ?? [];
@@ -916,7 +955,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </Link>
             )}
             
-            {/* Design Stage Submit Button */}
+            {/* Design Stage: Submit or Unsubmit */}
             {(project.designStatus === "draft" || project.designStatus === "rejected") && (
               <button
                 data-tutorial="submit"
@@ -927,8 +966,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 {submitting ? 'Submitting...' : (project.designStatus === "rejected" ? 'Resubmit Design' : 'Submit Design for Review')}
               </button>
             )}
-            
-            {/* Build Stage Submit Button */}
+            {project.designStatus === "in_review" && (
+              <button
+                onClick={() => setShowDesignUnsubmitDialog(true)}
+                disabled={submitting}
+                className="flex-1 min-w-[200px] border-2 border-red-400 bg-cream-100 hover:bg-red-50 text-red-600 py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Unsubmitting...' : 'Unsubmit Design'}
+              </button>
+            )}
+
+            {/* Build Stage: Submit or Unsubmit */}
             {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") && (
               <button
                 data-tutorial="submit"
@@ -937,6 +985,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
                 {submitting ? 'Submitting...' : (project.buildStatus === "draft" ? 'Submit Build for Review' : 'Resubmit Build')}
+              </button>
+            )}
+            {project.buildStatus === "in_review" && (
+              <button
+                onClick={() => setShowBuildUnsubmitDialog(true)}
+                disabled={submitting}
+                className="flex-1 min-w-[200px] border-2 border-red-400 bg-cream-100 hover:bg-red-50 text-red-600 py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Unsubmitting...' : 'Unsubmit Build'}
               </button>
             )}
           </div>
@@ -1001,6 +1058,58 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Submit Build
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Design Unsubmit Confirmation Dialog */}
+          {showDesignUnsubmitDialog && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
+                <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Unsubmit Design?</h3>
+                <p className="text-brown-800 text-sm leading-relaxed mb-6">
+                  This will pull your design back from review and return it to draft status. You can make changes and resubmit when ready.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDesignUnsubmitDialog(false)}
+                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleUnsubmitStage("design")}
+                    className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Unsubmit Design
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Build Unsubmit Confirmation Dialog */}
+          {showBuildUnsubmitDialog && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
+                <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Unsubmit Build?</h3>
+                <p className="text-brown-800 text-sm leading-relaxed mb-6">
+                  This will pull your build back from review and return it to draft status. You can make changes and resubmit when ready.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowBuildUnsubmitDialog(false)}
+                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleUnsubmitStage("build")}
+                    className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Unsubmit Build
                   </button>
                 </div>
               </div>

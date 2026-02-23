@@ -374,6 +374,7 @@ enum AuditAction {
   // User actions on sensitive data
   USER_DELETE_PROJECT
   USER_SUBMIT_PROJECT
+  USER_UNSUBMIT_PROJECT
 }
 
 model AuditLog {
