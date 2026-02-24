@@ -78,6 +78,13 @@ export async function POST(
       )
     }
 
+    if (project.bomItems.length > 0 && project.cartScreenshots.length === 0) {
+      return NextResponse.json(
+        { error: "At least one cart screenshot is required when you have BOM items" },
+        { status: 400 }
+      )
+    }
+
     if (!project.githubRepo) {
       return NextResponse.json(
         { error: "GitHub repository is required for design review" },

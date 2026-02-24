@@ -9,7 +9,7 @@ import { isValidUrl, normalizeUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { TIERS } from "@/lib/tiers"
 
-const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "tier"] as const
+const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "cartScreenshots", "tier"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
 
@@ -24,6 +24,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   githubRepo: string | null
   coverImage: string | null
   noBomNeeded: boolean
+  cartScreenshots: string[]
   tier: number | null
 }> {
   const result: Record<string, unknown> = {}
@@ -35,6 +36,12 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
           result[field] = null
         } else if (typeof value === "number" && Number.isInteger(value) && TIERS.some(t => t.id === value)) {
           result[field] = value
+        }
+        continue
+      }
+      if (field === "cartScreenshots") {
+        if (Array.isArray(value) && value.every((v: unknown) => typeof v === "string")) {
+          result[field] = value.map((v: string) => sanitize(v))
         }
         continue
       }

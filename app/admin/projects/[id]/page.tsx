@@ -95,6 +95,7 @@ interface AdminProject {
   isStarter: boolean;
   starterProjectId: string | null;
   tier: number | null;
+  cartScreenshots: string[];
   createdAt: string;
   submittedAt: string | null;
   user: ProjectUser;
@@ -152,6 +153,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
+  const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProject() {
@@ -717,6 +719,19 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 </table>
               </div>
 
+              {/* Cart Screenshots */}
+              {project.cartScreenshots && project.cartScreenshots.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-brown-800 text-xs uppercase mb-2">Cart Screenshots</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {project.cartScreenshots.map((url, i) => (
+                      <button key={i} type="button" onClick={() => setExpandedScreenshot(url)} className="block cursor-pointer">
+                        <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-40 object-cover border-2 border-cream-400 hover:border-orange-500 transition-colors" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
           )}
@@ -932,6 +947,13 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             )
           )}
       </div>
+
+      {/* Expanded Screenshot Overlay */}
+      {expandedScreenshot && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 cursor-pointer" onClick={() => setExpandedScreenshot(null)}>
+          <img src={expandedScreenshot} alt="Cart screenshot" className="max-w-full max-h-full object-contain" />
+        </div>
+      )}
     </>
   );
 }

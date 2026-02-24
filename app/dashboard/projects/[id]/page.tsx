@@ -85,6 +85,7 @@ interface Project {
   
   tier: number | null;
   bitsAwarded: number | null;
+  cartScreenshots: string[];
   createdAt: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
@@ -147,6 +148,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [addingBom, setAddingBom] = useState(false);
   const [deletingBomId, setDeletingBomId] = useState<string | null>(null);
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+  const [showCartScreenshots, setShowCartScreenshots] = useState(false);
+  const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
+  const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProject() {
@@ -267,10 +271,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const buildSessions = project?.workSessions.filter(s => s.stage === "BUILD") ?? [];
   const totalBuildHours = buildSessions.reduce((acc, s) => acc + s.hoursClaimed, 0);
   
-  const canSubmitDesign = project && 
+  const canSubmitDesign = project &&
     (project.designStatus === "draft" || project.designStatus === "rejected") &&
     project.description?.trim() &&
     (project.bomItems.length > 0 || project.noBomNeeded) &&
+    (project.bomItems.length === 0 || project.cartScreenshots.length > 0) &&
     designSessions.length > 0 &&
     project.githubRepo &&
     project.badges.length > 0 &&
@@ -435,6 +440,65 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     } catch (error) {
       console.error('Failed to update project:', error);
       alert('Failed to update project');
+    }
+  };
+
+  const handleCartScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !project) return;
+
+    setUploadingCartScreenshot(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        const data = await uploadRes.json();
+        alert(data.error || 'Failed to upload image');
+        return;
+      }
+
+      const { url } = await uploadRes.json();
+      const newScreenshots = [...project.cartScreenshots, url];
+
+      const updateRes = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartScreenshots: newScreenshots }),
+      });
+
+      if (updateRes.ok) {
+        setProject({ ...project, cartScreenshots: newScreenshots });
+      }
+    } catch (error) {
+      console.error('Failed to upload cart screenshot:', error);
+      alert('Failed to upload cart screenshot');
+    } finally {
+      setUploadingCartScreenshot(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteCartScreenshot = async (url: string) => {
+    if (!project) return;
+    const newScreenshots = project.cartScreenshots.filter(s => s !== url);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartScreenshots: newScreenshots }),
+      });
+      if (res.ok) {
+        setProject({ ...project, cartScreenshots: newScreenshots });
+      }
+    } catch (error) {
+      console.error('Failed to delete cart screenshot:', error);
+      alert('Failed to delete cart screenshot');
     }
   };
 
@@ -695,6 +759,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   {project.noBomNeeded ? 'No parts needed' : `At least 1 BOM item (${project.bomItems.length} added)`}
                 </div>
+                {!project.noBomNeeded && project.bomItems.length > 0 && (
+                  <div className={`flex items-center gap-2 text-sm ${project.cartScreenshots.length > 0 ? 'text-green-500' : 'text-brown-800'}`}>
+                    {project.cartScreenshots.length > 0 ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                    )}
+                    Cart screenshot ({project.cartScreenshots.length} uploaded)
+                  </div>
+                )}
                 <div className={`flex items-center gap-2 text-sm ${designSessions.length > 0 ? 'text-green-500' : 'text-brown-800'}`}>
                   {designSessions.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -833,6 +909,67 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </div>
             ) : (
               <p className="text-brown-800 text-sm mb-4">No items added yet.</p>
+            )}
+
+            {/* Cart Screenshots */}
+            {!project.noBomNeeded && (project.bomItems ?? []).length > 0 && (
+              <div className="border-t border-cream-400 pt-4 mb-4">
+                <p className="text-brown-800 text-xs uppercase mb-3">Cart Screenshots</p>
+                {project.cartScreenshots.length === 0 ? (
+                  <div className="flex items-center gap-3">
+                    <p className="text-cream-600 text-sm">Upload screenshots of your cart with the items you plan to buy.</p>
+                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                      <label className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
+                        {uploadingCartScreenshot ? 'Uploading...' : 'Upload'}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={handleCartScreenshotUpload}
+                          disabled={uploadingCartScreenshot}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex gap-2 flex-wrap">
+                    {project.cartScreenshots.map((url, i) => (
+                      <div key={i} className="relative group w-20 h-20">
+                        <button type="button" onClick={() => setExpandedScreenshot(url)} className="block w-full h-full border border-cream-400 hover:border-orange-500 transition-colors overflow-hidden cursor-pointer">
+                          <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCartScreenshot(url)}
+                            className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                      <label className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
+                        {uploadingCartScreenshot ? (
+                          <span className="text-cream-600 text-[10px] uppercase">Uploading</span>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-500 group-hover:text-orange-500 transition-colors">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={handleCartScreenshotUpload}
+                          disabled={uploadingCartScreenshot}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
@@ -1113,6 +1250,74 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Cart Screenshots Modal */}
+          {showCartScreenshots && project && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-brown-800 text-xl uppercase tracking-wide">Cart Screenshots</h3>
+                  <button
+                    onClick={() => setShowCartScreenshots(false)}
+                    className="text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+                {project.cartScreenshots.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {project.cartScreenshots.map((url, i) => (
+                      <div key={i} className="relative group">
+                        <button type="button" onClick={() => setExpandedScreenshot(url)} className="w-full cursor-pointer">
+                          <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-40 object-cover border border-cream-400 hover:border-orange-500 transition-colors" />
+                        </button>
+                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                          <button
+                            onClick={() => handleDeleteCartScreenshot(url)}
+                            className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                  <div className="flex gap-3">
+                    <label className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-2 text-center uppercase text-sm tracking-wider transition-colors cursor-pointer">
+                      {uploadingCartScreenshot ? 'Uploading...' : '+ Upload Screenshot'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleCartScreenshotUpload}
+                        disabled={uploadingCartScreenshot}
+                        className="hidden"
+                      />
+                    </label>
+                    {project.cartScreenshots.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCartScreenshots(false)}
+                        className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                      >
+                        Done
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Expanded Screenshot Overlay */}
+          {expandedScreenshot && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 cursor-pointer" onClick={() => setExpandedScreenshot(null)}>
+              <img src={expandedScreenshot} alt="Cart screenshot" className="max-w-full max-h-full object-contain" />
             </div>
           )}
 
