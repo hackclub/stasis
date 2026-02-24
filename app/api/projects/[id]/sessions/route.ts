@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { SessionCategory, MediaType, ProjectStage, XPTransactionType } from "@/app/generated/prisma/enums"
+import { SessionCategory, MediaType, ProjectStage } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { isValidUrl } from "@/lib/url"
-import { calculateJournalXP, getWeekNumber, isConsecutiveDay, isSameDay } from "@/lib/xp"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
 const VALID_STAGES: ProjectStage[] = ["DESIGN", "BUILD"]
@@ -242,104 +241,28 @@ export async function POST(
     })
   )
 
-  const result = await prisma.$transaction(async (tx) => {
-    const workSession = await tx.workSession.create({
-      data: {
-        title: sanitize(title.trim()),
-        hoursClaimed,
-        content: sanitize(content.trim()),
-        categories: validatedCategories,
-        stage,
-        projectId,
-        media: {
-          create: validatedMedia.map((m) => ({
-            type: m.type as MediaType,
-            url: m.url,
-          })),
-        },
-        ...(timelapseMetas.length > 0 && {
-          timelapses: {
-            create: timelapseMetas,
-          },
-        }),
+  const workSession = await prisma.workSession.create({
+    data: {
+      title: sanitize(title.trim()),
+      hoursClaimed,
+      content: sanitize(content.trim()),
+      categories: validatedCategories,
+      stage,
+      projectId,
+      media: {
+        create: validatedMedia.map((m) => ({
+          type: m.type as MediaType,
+          url: m.url,
+        })),
       },
-      include: { media: true, timelapses: true },
-    })
-
-    const now = new Date()
-    const currentWeek = getWeekNumber(now)
-
-    const userXP = await tx.userXP.findUnique({
-      where: { userId: session.user.id },
-    })
-
-    let newDayStreak = 1
-    let newWeekStreak = 1
-
-    if (userXP) {
-      const lastDate = userXP.lastJournalDate
-      const lastWeek = userXP.lastJournalWeek
-
-      if (lastDate) {
-        if (isSameDay(lastDate, now)) {
-          newDayStreak = userXP.currentDayStreak
-          newWeekStreak = userXP.currentWeekStreak
-        } else if (isConsecutiveDay(lastDate, now)) {
-          newDayStreak = userXP.currentDayStreak + 1
-          if (lastWeek !== null && currentWeek === lastWeek) {
-            newWeekStreak = userXP.currentWeekStreak
-          } else if (lastWeek !== null && currentWeek === lastWeek + 1) {
-            newWeekStreak = userXP.currentWeekStreak + 1
-          }
-        } else {
-          if (lastWeek !== null && currentWeek === lastWeek) {
-            newWeekStreak = userXP.currentWeekStreak
-          } else if (lastWeek !== null && currentWeek === lastWeek + 1) {
-            newWeekStreak = userXP.currentWeekStreak + 1
-          }
-        }
-      }
-    }
-
-    const { xp: earnedXP, multiplier } = calculateJournalXP(newDayStreak, newWeekStreak, hoursClaimed)
-
-    await tx.xPTransaction.create({
-      data: {
-        userId: session.user.id,
-        amount: earnedXP,
-        type: XPTransactionType.JOURNAL_ENTRY,
-        multiplier,
-        description: `Journal entry for project session`,
-        workSessionId: workSession.id,
-      },
-    })
-
-    if (userXP) {
-      await tx.userXP.update({
-        where: { userId: session.user.id },
-        data: {
-          totalXP: userXP.totalXP + earnedXP,
-          currentDayStreak: newDayStreak,
-          currentWeekStreak: newWeekStreak,
-          lastJournalDate: now,
-          lastJournalWeek: currentWeek,
+      ...(timelapseMetas.length > 0 && {
+        timelapses: {
+          create: timelapseMetas,
         },
-      })
-    } else {
-      await tx.userXP.create({
-        data: {
-          userId: session.user.id,
-          totalXP: earnedXP,
-          currentDayStreak: newDayStreak,
-          currentWeekStreak: newWeekStreak,
-          lastJournalDate: now,
-          lastJournalWeek: currentWeek,
-        },
-      })
-    }
-
-    return { workSession, xpEarned: earnedXP, multiplier }
+      }),
+    },
+    include: { media: true, timelapses: true },
   })
 
-  return NextResponse.json(result)
+  return NextResponse.json(workSession)
 }

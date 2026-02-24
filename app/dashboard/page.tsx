@@ -7,8 +7,6 @@ import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial, TutorialHelpButton } from '../components/OnboardingTutorial';
-import { XPDisplay } from '../components/XPDisplay';
-
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress } from "@/lib/tiers"
@@ -151,12 +149,6 @@ export default function ProjectsPage() {
           </div>
         </div>
       </div>
-
-      {/* XP Progress */}
-      <div data-tutorial="xp-progress" className="mb-6">
-        <XPDisplay />
-      </div>
-
 
       {/* Recent Journal Entries */}
       <div className="mb-6">

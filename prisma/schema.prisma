@@ -21,13 +21,6 @@ enum ProjectStage {
   BUILD
 }
 
-enum XPTransactionType {
-  JOURNAL_ENTRY
-  STREAK_BONUS
-  EVENT_BONUS
-  PRIZE_PURCHASE
-}
-
 enum CurrencyTransactionType {
   PROJECT_APPROVED  // Bits credited when a project build is approved
   ADMIN_GRANT       // Reviewer manually credits bits
@@ -70,9 +63,6 @@ model User {
   sessions           Session[]
   accounts           Account[]
   projects           Project[]
-  xpData                 UserXP?
-  xpTransactions         XPTransaction[]
-  prizeClaims            PrizeClaim[]
   roles                  UserRole[]
   currencyTransactions   CurrencyTransaction[]
   kudosGiven             Kudos[]
@@ -394,71 +384,6 @@ model AuditLog {
   @@index([targetId])
   @@index([createdAt])
   @@map("audit_log")
-}
-
-// XP/Multiplier System Models
-
-model UserXP {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  totalXP           Int       @default(0)
-  currentDayStreak  Int       @default(0)
-  currentWeekStreak Int       @default(0)
-  lastJournalDate   DateTime?
-  lastJournalWeek   Int?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  @@index([userId])
-  @@map("user_xp")
-}
-
-model XPTransaction {
-  id            String            @id @default(cuid())
-  userId        String
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount        Int
-  type          XPTransactionType
-  multiplier    Float             @default(1.0)
-  description   String?
-  workSessionId String?
-  createdAt     DateTime          @default(now())
-
-  @@index([userId])
-  @@index([type])
-  @@map("xp_transaction")
-}
-
-model WeeklyPrize {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  xpCost      Int
-  weekStart   DateTime
-  weekEnd     DateTime
-  imageUrl    String?
-  maxQuantity Int?
-  createdAt   DateTime     @default(now())
-  claims      PrizeClaim[]
-
-  @@index([weekStart, weekEnd])
-  @@map("weekly_prize")
-}
-
-model PrizeClaim {
-  id        String      @id @default(cuid())
-  userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prizeId   String
-  prize     WeeklyPrize @relation(fields: [prizeId], references: [id], onDelete: Cascade)
-  xpSpent   Int
-  claimedAt DateTime    @default(now())
-
-  @@unique([userId, prizeId])
-  @@index([userId])
-  @@index([prizeId])
-  @@map("prize_claim")
 }
 
 // Bits currency ledger — immutable append-only transaction log

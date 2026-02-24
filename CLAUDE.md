@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Stasis is a hackathon platform (Hack Club) built with Next.js 16 (App Router) + React 19, Prisma 7 + PostgreSQL, Better Auth for OAuth (Hack Club Auth, GitHub, Hackatime), and Tailwind CSS 4. It features project management with design/build review workflows, gamification (XP streaks, badges, currency economy), and integrations with Airtable (RSVPs), AWS S3 (uploads), Slack (profile pictures), and Loops (email).
+Stasis is a hackathon platform (Hack Club) built with Next.js 16 (App Router) + React 19, Prisma 7 + PostgreSQL, Better Auth for OAuth (Hack Club Auth, GitHub, Hackatime), and Tailwind CSS 4. It features project management with design/build review workflows, gamification (badges, currency economy), and integrations with Airtable (RSVPs), AWS S3 (uploads), Slack (profile pictures), and Loops (email).
 
 ## Commands
 
@@ -25,7 +25,7 @@ Always run `yarn build` after completing any code changes to verify there are no
 ### Routing & API
 
 - **App Router**: All pages under `app/` using Next.js App Router conventions
-- **API routes**: RESTful under `app/api/` — key domains: `projects`, `discover`, `user`, `admin`, `xp`, `currency`, `upload`, `rsvp`, `badges`
+- **API routes**: RESTful under `app/api/` — key domains: `projects`, `discover`, `user`, `admin`, `currency`, `upload`, `rsvp`, `badges`
 - **Middleware** (`middleware.ts`): Adds security headers (CSP, X-Frame-Options) and optional basic auth for staging
 
 ### Auth & Permissions
@@ -38,12 +38,11 @@ Always run `yarn build` after completing any code changes to verify there are no
 ### Database
 
 - **Prisma** with `@prisma/adapter-pg` for connection pooling — singleton client in `lib/prisma.ts`
-- Schema in `prisma/schema.prisma` — key models: User, Project, WorkSession, ProjectSubmission, BOMItem, UserXP, XPTransaction, CurrencyTransaction, UserRole, AuditLog
+- Schema in `prisma/schema.prisma` — key models: User, Project, WorkSession, ProjectSubmission, BOMItem, CurrencyTransaction, UserRole, AuditLog
 - Currency ledger is append-only; balance derived from SUM of entries (`lib/currency.ts`)
 
 ### Key Business Logic (in `lib/`)
 
-- `xp.ts` — XP calculation with day/week streak multipliers
 - `currency.ts` — Append-only bits ledger (entries created at build approval based on project tier)
 - `tiers.ts` — Four-tier project system (25–200 bits), 350-bit qualification threshold
 - `badges.ts` — 16 hardware achievement badge definitions (I2C, SPI, WiFi, CAD, etc.)

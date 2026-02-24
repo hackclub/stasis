@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { calculateJournalXP } from '@/lib/xp';
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 
@@ -41,11 +40,6 @@ export interface SessionFormData {
     selectedTimelapseIds?: string[]
 }
 
-export interface XPPreviewData {
-    dayStreak: number
-    weekStreak: number
-}
-
 interface SessionFormProps {
     initialData?: SessionFormData
     onSubmit: (data: { title: string; hoursClaimed: number; content: string; categories: SessionCategory[]; media: { type: "IMAGE" | "VIDEO"; url: string }[]; timelapseIds?: string[] }) => Promise<void>
@@ -55,7 +49,6 @@ interface SessionFormProps {
     setError: (error: string | null) => void
     children?: React.ReactNode
     autosaveKey?: string // Unique key for localStorage autosave (e.g., "session-new-{projectId}" or "session-edit-{sessionId}")
-    xpPreviewData?: XPPreviewData // Current streak data for XP preview
 }
 
 export function SessionForm({
@@ -67,7 +60,6 @@ export function SessionForm({
     setError,
     children,
     autosaveKey,
-    xpPreviewData
 }: Readonly<SessionFormProps>) {
     const [title, setTitle] = useState(initialData?.title ?? '');
     const [hoursValue, setHoursValue] = useState(initialData?.hoursValue ?? 0);
@@ -303,13 +295,6 @@ export function SessionForm({
 
     const imageCount = contentImageUrls.length;
     const videoCount = media.filter(m => m.type === "VIDEO").length;
-
-    const xpPreview = useMemo(() => {
-        if (!xpPreviewData || hoursNum <= 0) return null;
-        const nextDayStreak = xpPreviewData.dayStreak + 1;
-        const nextWeekStreak = xpPreviewData.weekStreak;
-        return calculateJournalXP(nextDayStreak, nextWeekStreak, hoursNum);
-    }, [xpPreviewData, hoursNum]);
 
     const handleCategoryToggle = (cat: SessionCategory) => {
         setSelectedCategories(prev =>
@@ -744,17 +729,6 @@ export function SessionForm({
                         </p>
                     )}
 
-                    {xpPreview && (
-                        <div className="mt-4 pt-4 border-t border-cream-400">
-                            <div className="flex items-center gap-3">
-                                <span className="text-cream-600 text-sm uppercase">XP if approved:</span>
-                                <span className="text-orange-500 font-bold text-lg">+{xpPreview.xp} XP</span>
-                                {xpPreview.multiplier > 1 && (
-                                    <span className="text-cream-600 text-sm">({xpPreview.multiplier}x multiplier)</span>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Categories */}

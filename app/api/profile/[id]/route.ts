@@ -30,11 +30,6 @@ export async function GET(
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
-  const xpData = await prisma.userXP.findUnique({
-    where: { userId: id },
-    select: { totalXP: true },
-  })
-
   const badges = await prisma.projectBadge.findMany({
     where: {
       project: { userId: id },
@@ -74,7 +69,6 @@ export async function GET(
 
   return NextResponse.json({
     user: displayUser,
-    xp: { totalXP: xpData?.totalXP ?? 0 },
     bitsBalance: bitsResult._sum.amount ?? 0,
     badges,
     projects,
