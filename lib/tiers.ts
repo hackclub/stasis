@@ -10,7 +10,7 @@
 // ============================================================
 
 // --- Tier Definitions ---
-// Tiers are ordered from highest (Tier 1) to lowest (Tier 4).
+// Tiers are ordered from highest (Tier 1) to lowest (Tier 5).
 // bits: fixed allocation per project at this tier
 // minHours / maxHours: hour range for projects at this tier
 // examples: example projects at this tier
@@ -18,34 +18,42 @@ export const TIERS = [
   {
     id: 1,
     name: "Tier 1",
-    bits: 200,
-    minHours: 20,
-    maxHours: 40,
-    examples: ["battle bot", "custom robot arm", "FPGA board"],
+    bits: 400,
+    minHours: 40,
+    maxHours: Infinity,
+    examples: ["VVVF Inverter", "Custom CNC Machine", "Satellite Ground Station"],
   },
   {
     id: 2,
     name: "Tier 2",
-    bits: 100,
-    minHours: 10,
-    maxHours: 20,
-    examples: ["game console", "devboard", "keyboard"],
+    bits: 200,
+    minHours: 20,
+    maxHours: 40,
+    examples: ["Battle Bot", "Custom Robot Arm", "FPGA Board"],
   },
   {
     id: 3,
     name: "Tier 3",
-    bits: 50,
-    minHours: 5,
-    maxHours: 10,
-    examples: ["drone kit", "LED lamp", "custom macropad"],
+    bits: 100,
+    minHours: 10,
+    maxHours: 20,
+    examples: ["Game Console", "Devboard", "Keyboard"],
   },
   {
     id: 4,
     name: "Tier 4",
+    bits: 50,
+    minHours: 5,
+    maxHours: 10,
+    examples: ["Drone Kit", "LED Lamp", "Custom Macropad"],
+  },
+  {
+    id: 5,
+    name: "Tier 5",
     bits: 25,
     minHours: 3,
     maxHours: 5,
-    examples: ["phone stand", "3D printed trinket", "PCB fidget toy"],
+    examples: ["Phone Stand", "3D Printed Trinket", "PCB Fidget Toy"],
   },
 ] as const
 

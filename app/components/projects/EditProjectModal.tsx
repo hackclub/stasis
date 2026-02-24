@@ -277,7 +277,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                 >
                   <span className="uppercase font-medium">{tier.name}</span>
                   <span className="block text-xs mt-0.5 opacity-80">
-                    {tier.bits} bits · {tier.minHours}–{tier.maxHours}h
+                    {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
                   </span>
                 </button>
               ))}

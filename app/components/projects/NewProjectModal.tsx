@@ -319,21 +319,26 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 <p className="text-cream-600 text-xs mb-2">
                   Select the complexity tier for this project.
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-2">
                   {TIERS.map((tier) => (
                     <button
                       key={tier.id}
                       type="button"
                       onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
-                      className={`px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                      className={`w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
                         selectedTier === tier.id
                           ? 'bg-orange-500 text-white border-orange-400'
                           : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
                       }`}
                     >
-                      <span className="uppercase font-medium">{tier.name}</span>
-                      <span className="block text-xs mt-0.5 opacity-80">
-                        {tier.bits} bits · {tier.minHours}–{tier.maxHours}h
+                      <div className="flex items-center justify-between">
+                        <span className="uppercase font-medium">{tier.name}</span>
+                        <span className="text-xs opacity-80">
+                          {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                        </span>
+                      </div>
+                      <span className={`block text-xs mt-1 ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
+                        e.g. {tier.examples.join(', ')}
                       </span>
                     </button>
                   ))}

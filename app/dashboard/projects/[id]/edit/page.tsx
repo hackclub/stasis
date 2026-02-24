@@ -349,7 +349,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                 >
                                     <span className="uppercase font-medium">{tier.name}</span>
                                     <span className="block text-xs mt-0.5 opacity-80">
-                                        {tier.bits} bits · {tier.minHours}–{tier.maxHours}h
+                                        {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
                                     </span>
                                 </button>
                             ))}

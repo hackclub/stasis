@@ -367,7 +367,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   return tier ? (
                     <div>
                       <p className="text-brown-800 text-xl">{tier.name}</p>
-                      <p className="text-cream-600 text-xs">{tier.bits} bits · {tier.minHours}–{tier.maxHours}h</p>
+                      <p className="text-cream-600 text-xs">{tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h</p>
                     </div>
                   ) : (
                     <p className="text-brown-800 text-xl">Tier {project.tier}</p>
@@ -765,7 +765,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     >
                       <span className="uppercase font-medium">{tier.name}</span>
                       <span className="block text-xs mt-0.5 opacity-80">
-                        {tier.bits} bits · {tier.minHours}–{tier.maxHours}h
+                        {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
                       </span>
                     </button>
                   ))}
