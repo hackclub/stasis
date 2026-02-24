@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ProjectTag } from "@/app/generated/prisma/enums";
+import { TAG_LABELS } from "@/lib/tags";
 
 interface DiscoverProject {
   id: string;
@@ -26,13 +27,6 @@ interface DiscoverProject {
   hasGivenKudos: boolean;
 }
 
-const TAG_LABELS: Record<ProjectTag, string> = {
-  PCB: "PCB",
-  ROBOT: "Robot",
-  CAD: "CAD",
-  ARDUINO: "Arduino",
-  RASPBERRY_PI: "Raspberry Pi",
-};
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);

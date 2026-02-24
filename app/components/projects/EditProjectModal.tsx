@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
+import { AVAILABLE_TAGS } from "@/lib/tags"
 import { TIERS } from "@/lib/tiers"
 
 interface ProjectBadge {
@@ -39,14 +40,6 @@ interface Props {
   }) => void
   onDelete?: (id: string) => void
 }
-
-const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
-  { value: "PCB", label: "PCB" },
-  { value: "ROBOT", label: "Robot" },
-  { value: "CAD", label: "CAD" },
-  { value: "ARDUINO", label: "Arduino" },
-  { value: "RASPBERRY_PI", label: "Raspberry Pi" },
-]
 
 export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete }: Readonly<Props>) {
   const [title, setTitle] = useState('')

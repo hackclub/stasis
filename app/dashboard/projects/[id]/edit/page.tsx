@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECTS } from "@/lib/starter-projects";
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges";
+import { AVAILABLE_TAGS } from "@/lib/tags";
 import { TIERS } from "@/lib/tiers";
 
 interface ProjectBadge {
@@ -28,14 +29,6 @@ interface Project {
     tier: number | null;
     designStatus: string;
 }
-
-const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
-    { value: "PCB", label: "PCB" },
-    { value: "ROBOT", label: "Robot" },
-    { value: "CAD", label: "CAD" },
-    { value: "ARDUINO", label: "Arduino" },
-    { value: "RASPBERRY_PI", label: "Raspberry Pi" },
-];
 
 export default function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: projectId } = use(params);

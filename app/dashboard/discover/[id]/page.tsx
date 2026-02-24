@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
+import { TAG_LABELS } from "@/lib/tags";
 import type { PublicTimelineItem } from '@/app/api/discover/[id]/timeline/route';
 
 const MDPreview = dynamic(
@@ -34,13 +35,6 @@ interface DiscoverProjectDetail {
   isOwner: boolean;
 }
 
-const TAG_LABELS: Record<ProjectTag, string> = {
-  PCB: "PCB",
-  ROBOT: "Robot",
-  CAD: "CAD",
-  ARDUINO: "Arduino",
-  RASPBERRY_PI: "Raspberry Pi",
-};
 
 const BADGE_LABELS: Record<BadgeType, string> = {
   I2C: "I2C",

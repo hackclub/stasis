@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges"
+import { AVAILABLE_TAGS } from "@/lib/tags"
 import { TIERS } from "@/lib/tiers"
 
 interface Props {
@@ -21,16 +22,8 @@ interface Props {
   error?: string | null
 }
 
-const AVAILABLE_TAGS: { value: ProjectTag; label: string }[] = [
-  { value: "PCB", label: "PCB" },
-  { value: "ROBOT", label: "Robot" },
-  { value: "CAD", label: "CAD" },
-  { value: "ARDUINO", label: "Arduino" },
-  { value: "RASPBERRY_PI", label: "Raspberry Pi" },
-]
-
-const STEPS = ['Details', 'Tags', 'Badges', 'Configuration'] as const
-type Step = 0 | 1 | 2 | 3
+const STEPS = ['Details', 'Badges', 'Tier'] as const
+type Step = 0 | 1 | 2
 
 export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<Props>) {
   const [step, setStep] = useState<Step>(0)
@@ -41,7 +34,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [isStarter, setIsStarter] = useState(false)
   const [starterProjectId, setStarterProjectId] = useState('')
   const [claimedBadges, setClaimedBadges] = useState<BadgeType[]>([])
-  const [selectedTier, setSelectedTier] = useState<number | null>(null)
+  const [selectedTier, setSelectedTier] = useState<number | null>(5)
 
   useEffect(() => {
     if (isOpen) {
@@ -77,7 +70,6 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    if (selectedBadges.length === 0) return
     if (isStarter && !starterProjectId) return
     
     onSubmit({
@@ -96,14 +88,17 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
     setSelectedBadges([])
     setIsStarter(false)
     setStarterProjectId('')
-    setSelectedTier(null)
+    setSelectedTier(5)
     setStep(0)
   }
 
-  const canProceedFromStep0 = title.trim().length > 0
+  const starterProject = isStarter && starterProjectId
+    ? STARTER_PROJECTS.find(p => p.id === starterProjectId)
+    : null
+
+  const canProceedFromStep0 = title.trim().length > 0 && (!isStarter || starterProjectId !== '')
   const canProceedFromStep1 = true
-  const canProceedFromStep2 = selectedBadges.length > 0
-  const canSubmit = canProceedFromStep0 && canProceedFromStep2 && (!isStarter || starterProjectId)
+  const canSubmit = canProceedFromStep0 && (!isStarter || starterProjectId) && selectedTier !== null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -145,7 +140,6 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 if (i === 0) setStep(0)
                 else if (i === 1 && canProceedFromStep0) setStep(1)
                 else if (i === 2 && canProceedFromStep0 && canProceedFromStep1) setStep(2)
-                else if (i === 3 && canProceedFromStep0 && canProceedFromStep1 && canProceedFromStep2) setStep(3)
               }}
               className={`flex-1 px-3 py-2 text-xs uppercase tracking-wide transition-colors cursor-pointer ${
                 step === i
@@ -194,20 +188,60 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                disabled={!canProceedFromStep0}
-                className="w-full bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Next →
-              </button>
-            </>
-          )}
+              <div>
+                <label className="block text-brown-800 text-sm uppercase mb-2">
+                  Project Type
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setIsStarter(false); setStarterProjectId(''); setSelectedTier(5); }}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                      !isStarter
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    }`}
+                  >
+                    Custom
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsStarter(true)}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                      isStarter
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    }`}
+                  >
+                    Starter
+                  </button>
+                </div>
+              </div>
 
-          {/* Step 2: Tags */}
-          {step === 1 && (
-            <>
+              {isStarter && (
+                <div>
+                  <label className="block text-brown-800 text-sm uppercase mb-2">
+                    Which Starter Project?
+                  </label>
+                  <select
+                    value={starterProjectId}
+                    onChange={(e) => {
+                      setStarterProjectId(e.target.value)
+                      const sp = STARTER_PROJECTS.find(p => p.id === e.target.value)
+                      if (sp) setSelectedTier(sp.tier)
+                    }}
+                    className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
+                  >
+                    <option value="">Select a starter project...</option>
+                    {STARTER_PROJECTS.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-brown-800 text-sm uppercase mb-2">
                   Tags
@@ -218,7 +252,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                       key={tag.value}
                       type="button"
                       onClick={() => handleTagToggle(tag.value)}
-                      className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
                         selectedTags.includes(tag.value)
                           ? 'bg-orange-500 text-white'
                           : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
@@ -230,27 +264,19 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(0)}
-                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  ← Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Next →
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                disabled={!canProceedFromStep0}
+                className="w-full bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Next →
+              </button>
             </>
           )}
 
-          {/* Step 3: Badges */}
-          {step === 2 && (
+          {/* Step 2: Badges */}
+          {step === 1 && (
             <>
               <div>
                 <label className="block text-brown-800 text-sm uppercase mb-2">
@@ -258,6 +284,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 </label>
                 <p className="text-cream-600 text-xs mb-2">
                   Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll demonstrate in this project.
+                  If you&apos;re unsure what skills you plan to use, you can skip this step and choose your badges later.
                 </p>
                 <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
                   {AVAILABLE_BADGES.map((badge) => {
@@ -292,15 +319,15 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(0)}
                   className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   ← Back
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
-                  disabled={!canProceedFromStep2}
+                  onClick={() => setStep(2)}
+                  disabled={!canProceedFromStep1}
                   className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Next →
@@ -309,97 +336,61 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
             </>
           )}
 
-          {/* Step 4: Configuration */}
-          {step === 3 && (
+          {/* Step 3: Tier */}
+          {step === 2 && (
             <>
               <div>
                 <label className="block text-brown-800 text-sm uppercase mb-2">
                   Project Tier
                 </label>
-                <p className="text-cream-600 text-xs mb-2">
-                  Select the complexity tier for this project.
-                </p>
+                {starterProject ? (
+                  <p className="text-cream-600 text-xs mb-2">
+                    Since you&apos;re using a starter project, the tier is predetermined. You can still change it if needed.
+                  </p>
+                ) : (
+                  <p className="text-cream-600 text-xs mb-2">
+                    Select the complexity tier for this project. (You can change this later)
+                  </p>
+                )}
                 <div className="flex flex-col gap-2">
-                  {TIERS.map((tier) => (
-                    <button
-                      key={tier.id}
-                      type="button"
-                      onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
-                      className={`w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
-                        selectedTier === tier.id
-                          ? 'bg-orange-500 text-white border-orange-400'
-                          : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="uppercase font-medium">{tier.name}</span>
-                        <span className="text-xs opacity-80">
-                          {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                  {TIERS.map((tier) => {
+                    const isRecommended = starterProject && tier.id === starterProject.tier
+                    const isGreyed = starterProject && tier.id !== starterProject.tier && selectedTier !== tier.id
+                    return (
+                      <button
+                        key={tier.id}
+                        type="button"
+                        onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
+                        className={`w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                          selectedTier === tier.id
+                            ? 'bg-orange-500 text-white border-orange-400'
+                            : isGreyed
+                              ? 'bg-cream-200 text-cream-500 border-cream-300 opacity-60'
+                              : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="uppercase font-medium">
+                            {tier.name}
+                            {isRecommended && selectedTier === tier.id && <span className="ml-2 text-xs font-normal opacity-80">(recommended)</span>}
+                          </span>
+                          <span className="text-xs opacity-80">
+                            {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                          </span>
+                        </div>
+                        <span className={`block text-xs mt-1 ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
+                          e.g. {tier.examples.join(', ')}
                         </span>
-                      </div>
-                      <span className={`block text-xs mt-1 ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
-                        e.g. {tier.examples.join(', ')}
-                      </span>
-                    </button>
-                  ))}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-
-              <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Project Type
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsStarter(false)}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      !isStarter
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
-                    }`}
-                  >
-                    Custom
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsStarter(true)}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      isStarter
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
-                    }`}
-                  >
-                    Starter
-                  </button>
-                </div>
-              </div>
-
-              {isStarter && (
-                <div>
-                  <label className="block text-brown-800 text-sm uppercase mb-2">
-                    Which Starter Project?
-                  </label>
-                  <select
-                    value={starterProjectId}
-                    onChange={(e) => setStarterProjectId(e.target.value)}
-                    className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
-                    required
-                  >
-                    <option value="">Select a starter project...</option>
-                    {STARTER_PROJECTS.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(1)}
                   className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   ← Back

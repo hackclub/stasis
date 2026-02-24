@@ -9,6 +9,7 @@ import { Timeline } from '@/app/components/projects/Timeline';
 import { OnboardingTutorial, TutorialHelpButton } from '@/app/components/OnboardingTutorial';
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
+import { TAG_LABELS } from "@/lib/tags";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
 import { getBadgeImage } from "@/lib/badges";
 import { formatPrice } from "@/lib/format";
@@ -92,13 +93,6 @@ interface Project {
   bomItems: BOMItem[];
 }
 
-const TAG_LABELS: Record<ProjectTag, string> = {
-  PCB: "PCB",
-  ROBOT: "Robot",
-  CAD: "CAD",
-  ARDUINO: "Arduino",
-  RASPBERRY_PI: "Raspberry Pi",
-};
 
 const BADGE_LABELS: Record<BadgeType, string> = {
   I2C: "I2C",

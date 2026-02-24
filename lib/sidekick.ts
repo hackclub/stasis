@@ -69,7 +69,7 @@ export async function assignSidekick(assigneeId: string) {
     dmPromises.push(
       sendSlackDM(
         assignment.assignee.slackId,
-        `Thanks for signing up for Stasis! Your Stasis Sidekick is ${assignment.sidekick.slackId ? `<@${assignment.sidekick.slackId}>` : sidekickName}. They're your go-to person if you need any help with building and shipping your hardware projects. Go DM them and say hi!`
+        `Thanks for signing up for Stasis! Your Stasis Sidekick is ${assignment.sidekick.slackId ? `<@${assignment.sidekick.slackId}>` : sidekickName}. They're your go-to person if you need any help with building and shipping your hardware projects. Whenever you need help, just send them a message. Go DM them and say hi!`
       ).catch((err) => console.error("Failed to DM assignee:", err))
     );
   }

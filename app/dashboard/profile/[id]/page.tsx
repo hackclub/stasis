@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import { getBadgeImage } from "@/lib/badges";
+import { TAG_LABELS } from "@/lib/tags";
 
 interface ProfileProject {
   id: string;
@@ -41,9 +42,6 @@ const BADGE_LABELS: Record<string, string> = {
   SOLDERING: "Soldering",
 };
 
-const TAG_LABELS: Record<string, string> = {
-  PCB: "PCB", ROBOT: "Robot", CAD: "CAD", ARDUINO: "Arduino", RASPBERRY_PI: "Raspberry Pi",
-};
 
 const PRIZES = [
   { name: 'Sticker', xpRequired: 50 },

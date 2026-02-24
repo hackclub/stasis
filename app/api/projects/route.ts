@@ -5,10 +5,9 @@ import { headers } from "next/headers"
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { VALID_BADGE_TYPES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
+import { VALID_TAGS } from "@/lib/tags"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { TIERS } from "@/lib/tiers"
-
-const VALID_TAGS: ProjectTag[] = ["PCB", "ROBOT", "CAD", "ARDUINO", "RASPBERRY_PI"]
 
 function validateTags(tags: unknown): ProjectTag[] {
   if (!Array.isArray(tags)) return []

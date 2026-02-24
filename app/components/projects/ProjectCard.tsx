@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ProjectTag } from "@/app/generated/prisma/enums"
+import { TAG_LABELS } from "@/lib/tags"
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects"
 import { getBadgeImage } from "@/lib/badges";
 
@@ -36,13 +37,6 @@ interface Props {
   project: Project
 }
 
-const TAG_LABELS: Record<ProjectTag, string> = {
-  PCB: "PCB",
-  ROBOT: "Robot",
-  CAD: "CAD",
-  ARDUINO: "Arduino",
-  RASPBERRY_PI: "Raspberry Pi",
-}
 
 const BADGE_LABELS: Record<BadgeType, string> = {
   I2C: "I2C",

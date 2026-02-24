@@ -11,6 +11,7 @@ const MDPreview = dynamic(
   { ssr: false }
 );
 import { ProjectTag } from "@/app/generated/prisma/enums";
+import { TAG_LABELS } from "@/lib/tags";
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
 import { getTierById, TIERS } from "@/lib/tiers";
 import { getBadgeImage } from "@/lib/badges";
@@ -104,14 +105,6 @@ interface AdminProject {
   bomItems: BOMItem[];
   reviewActions: ReviewAction[];
 }
-
-const TAG_LABELS: Record<ProjectTag, string> = {
-  PCB: "PCB",
-  ROBOT: "Robot",
-  CAD: "CAD",
-  ARDUINO: "Arduino",
-  RASPBERRY_PI: "Raspberry Pi",
-};
 
 const BADGE_LABELS: Record<BadgeType, string> = {
   I2C: "I2C",
