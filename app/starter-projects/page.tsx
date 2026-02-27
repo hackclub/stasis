@@ -11,13 +11,6 @@ import Link from 'next/link';
 
 const projects = [
   {
-    id: 'hackpad',
-    name: 'Hackpad',
-    hours: 6,
-    short_description: 'A PCB and a case for a custom macropad.',
-    badges: []
-  },
-  {
     id: 'spotify-thing',
     name: 'Spotify Display',
     hours: 8,

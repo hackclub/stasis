@@ -17,13 +17,6 @@ export const projects: StarterProject[] = [
     hasTutorial: true,
   },
   {
-    id: 'hackpad',
-    name: 'Hackpad',
-    hours: 6,
-    short_description: 'A PCB and a case for a custom macropad.',
-    badges: [],
-  },
-  {
     id: 'led-cube',
     name: 'LED Cube',
     hours: 8,

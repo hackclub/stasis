@@ -1,5 +1,4 @@
 export const STARTER_PROJECTS = [
-  { id: 'hackpad', name: 'Hackpad', tier: 4 },
   { id: 'led-cube', name: 'LED Cube', tier: 4 },
   { id: 'synth-kit', name: 'Synth Kit', tier: 3 },
   { id: 'smart-mirror', name: 'Smart Mirror', tier: 3 },
