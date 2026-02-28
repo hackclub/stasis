@@ -5,12 +5,12 @@ import { useState, useEffect } from 'react';
 type GuidePage = 'submission-guidelines' | 'faq'
 
 const GUIDE_PAGES: { id: GuidePage; label: string; section: 'guides' | 'faq' }[] = [
-  { id: 'submission-guidelines', label: 'Submission Guidelines', section: 'guides' },
   { id: 'faq', label: 'General FAQ', section: 'faq' },
+  { id: 'submission-guidelines', label: 'Submission Guidelines', section: 'guides' },
 ];
 
 export default function GuidesContent() {
-  const [activeGuidePage, setActiveGuidePage] = useState<GuidePage>('submission-guidelines');
+  const [activeGuidePage, setActiveGuidePage] = useState<GuidePage>('faq');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -88,18 +88,6 @@ export default function GuidesContent() {
           </div>
           {/* Desktop: vertical sidebar */}
           <div className="hidden md:block space-y-1">
-            <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">Guides</p>
-            <button
-              onClick={() => setActiveGuidePage('submission-guidelines')}
-              className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer ${
-                activeGuidePage === 'submission-guidelines'
-                  ? 'text-orange-500 bg-cream-200'
-                  : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
-              }`}
-            >
-              Submission Guidelines
-            </button>
-            <div className="border-t border-cream-400 my-3" />
             <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">FAQ</p>
             <button
               onClick={() => setActiveGuidePage('faq')}
@@ -110,6 +98,18 @@ export default function GuidesContent() {
               }`}
             >
               General FAQ
+            </button>
+            <div className="border-t border-cream-400 my-3" />
+            <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">Guides</p>
+            <button
+              onClick={() => setActiveGuidePage('submission-guidelines')}
+              className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer ${
+                activeGuidePage === 'submission-guidelines'
+                  ? 'text-orange-500 bg-cream-200'
+                  : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
+              }`}
+            >
+              Submission Guidelines
             </button>
           </div>
         </nav>

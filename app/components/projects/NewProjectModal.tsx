@@ -67,12 +67,12 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
     if (isStarter && !starterProjectId) return
-    
-    onSubmit({
+
+    const result = await onSubmit({
       title: title.trim(),
       description: description.trim(),
       tags: selectedTags,
@@ -81,6 +81,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
       starterProjectId: isStarter ? starterProjectId : null,
       tier: selectedTier,
     })
+
+    if (result && result.error) return
 
     setTitle('')
     setDescription('')
@@ -106,8 +108,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
         className="absolute inset-0 bg-[#3D3229]/80"
         onClick={onClose}
       />
-      <div className="relative bg-cream-100 border-2 border-cream-400 max-w-lg w-full mx-4 font-mono">
-        <div className="bg-orange-500 px-4 py-2 flex items-center justify-between">
+      <div className="relative bg-cream-100 border-2 border-cream-400 max-w-lg w-full mx-4 font-mono flex flex-col max-h-[90vh]">
+        <div className="bg-orange-500 px-4 py-2 flex items-center justify-between shrink-0">
           <h2 className="text-white text-lg uppercase tracking-wide">
             New Project
           </h2>
@@ -131,7 +133,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
         </div>
 
         {/* Step Tabs */}
-        <div className="flex border-b-2 border-cream-400">
+        <div className="flex border-b-2 border-cream-400 shrink-0">
           {STEPS.map((label, i) => (
             <button
               key={label}
@@ -152,132 +154,124 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Step 1: Details */}
-          {step === 0 && (
-            <>
-              <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
-                  placeholder="My Awesome Project"
-                  required
-                />
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {error && (
+              <div className="bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 text-sm">
+                {error}
               </div>
+            )}
 
-              <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors resize-none h-24"
-                  placeholder="What are you building?"
-                />
-              </div>
-
-              <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Project Type
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setIsStarter(false); setStarterProjectId(''); setSelectedTier(5); }}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      !isStarter
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
-                    }`}
-                  >
-                    Custom
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsStarter(true)}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      isStarter
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
-                    }`}
-                  >
-                    Starter
-                  </button>
-                </div>
-              </div>
-
-              {isStarter && (
+            {/* Step 1: Details */}
+            {step === 0 && (
+              <>
                 <div>
                   <label className="block text-brown-800 text-sm uppercase mb-2">
-                    Which Starter Project?
+                    Title
                   </label>
-                  <select
-                    value={starterProjectId}
-                    onChange={(e) => {
-                      setStarterProjectId(e.target.value)
-                      const sp = STARTER_PROJECTS.find(p => p.id === e.target.value)
-                      if (sp) setSelectedTier(sp.tier)
-                    }}
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                     className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
-                  >
-                    <option value="">Select a starter project...</option>
-                    {STARTER_PROJECTS.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="My Awesome Project"
+                    required
+                  />
                 </div>
-              )}
 
-              <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Tags
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {AVAILABLE_TAGS.map((tag) => (
+                <div>
+                  <label className="block text-brown-800 text-sm uppercase mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors resize-none h-24"
+                    placeholder="What are you building?"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-brown-800 text-sm uppercase mb-2">
+                    Project Type
+                  </label>
+                  <div className="flex gap-2">
                     <button
-                      key={tag.value}
                       type="button"
-                      onClick={() => handleTagToggle(tag.value)}
-                      className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
-                        selectedTags.includes(tag.value)
+                      onClick={() => { setIsStarter(false); setStarterProjectId(''); setSelectedTier(5); }}
+                      className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                        !isStarter
                           ? 'bg-orange-500 text-white'
                           : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                       }`}
                     >
-                      {tag.label}
+                      Custom Design
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setIsStarter(true)}
+                      className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                        isStarter
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                      }`}
+                    >
+                      Starter Project
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                disabled={!canProceedFromStep0}
-                className="w-full bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Next →
-              </button>
-            </>
-          )}
+                {isStarter && (
+                  <div>
+                    <label className="block text-brown-800 text-sm uppercase mb-2">
+                      Which Starter Project?
+                    </label>
+                    <select
+                      value={starterProjectId}
+                      onChange={(e) => {
+                        setStarterProjectId(e.target.value)
+                        const sp = STARTER_PROJECTS.find(p => p.id === e.target.value)
+                        if (sp) setSelectedTier(sp.tier)
+                      }}
+                      className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
+                    >
+                      <option value="">Select a starter project...</option>
+                      {STARTER_PROJECTS.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-          {/* Step 2: Badges */}
-          {step === 1 && (
-            <>
+                <div>
+                  <label className="block text-brown-800 text-sm uppercase mb-2">
+                    Tags
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_TAGS.map((tag) => (
+                      <button
+                        key={tag.value}
+                        type="button"
+                        onClick={() => handleTagToggle(tag.value)}
+                        className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                          selectedTags.includes(tag.value)
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                        }`}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Badges */}
+            {step === 1 && (
               <div>
                 <label className="block text-brown-800 text-sm uppercase mb-2">
                   Skill Badges <span className="text-cream-500">({selectedBadges.length}/{MAX_BADGES_PER_PROJECT})</span>
@@ -286,7 +280,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll demonstrate in this project.
                   If you&apos;re unsure what skills you plan to use, you can skip this step and choose your badges later.
                 </p>
-                <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
+                <div className="grid grid-cols-3 gap-3">
                   {AVAILABLE_BADGES.map((badge) => {
                     const isClaimed = claimedBadges.includes(badge.value)
                     const isSelected = selectedBadges.includes(badge.value)
@@ -300,7 +294,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                         title={isClaimed ? "Already claimed on another project" : undefined}
                         className={`flex flex-col items-center gap-1 p-2 border-2 transition-colors ${
                           isSelected
-                            ? 'border-orange-500 bg-orange-500/10 cursor-pointer'
+                            ? 'border-orange-500 bg-orange-500/25 cursor-pointer'
                             : isClaimed
                               ? 'border-cream-300 bg-cream-200 opacity-50 cursor-not-allowed'
                               : selectedBadges.length >= MAX_BADGES_PER_PROJECT
@@ -309,36 +303,16 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                         }`}
                       >
                         <img src={getBadgeImage(badge.value)} alt={badge.label} className="w-full aspect-square object-contain" />
-                        <span className={`text-xs uppercase ${isClaimed ? 'line-through text-cream-400' : 'text-brown-800'}`}>{badge.label}</span>
+                        <span className={`text-xs uppercase ${isClaimed ? 'line-through text-cream-400' : isSelected ? 'bg-orange-500 text-white px-1' : 'text-brown-800'}`}>{badge.label}</span>
                       </button>
                     )
                   })}
                 </div>
               </div>
+            )}
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(0)}
-                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  ← Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  disabled={!canProceedFromStep1}
-                  className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Next →
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Step 3: Tier */}
-          {step === 2 && (
-            <>
+            {/* Step 3: Tier */}
+            {step === 2 && (
               <div>
                 <label className="block text-brown-800 text-sm uppercase mb-2">
                   Project Tier
@@ -349,11 +323,11 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   </p>
                 ) : (
                   <p className="text-cream-600 text-xs mb-2">
-                    Select the complexity tier for this project. (You can change this later)
+                    How complex is this project? (You can change this later)
                   </p>
                 )}
                 <div className="flex flex-col gap-2">
-                  {TIERS.map((tier) => {
+                  {[...TIERS].slice().reverse().map((tier) => {
                     const isRecommended = starterProject && tier.id === starterProject.tier
                     const isGreyed = starterProject && tier.id !== starterProject.tier && selectedTier !== tier.id
                     return (
@@ -386,7 +360,41 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   })}
                 </div>
               </div>
+            )}
+          </div>
 
+          {/* Fixed navigation */}
+          <div className="shrink-0 px-6 pb-6 pt-4 border-t border-cream-300">
+            {step === 0 && (
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                disabled={!canProceedFromStep0}
+                className="w-full bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Next →
+              </button>
+            )}
+            {step === 1 && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(0)}
+                  className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  disabled={!canProceedFromStep1}
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  {selectedBadges.length === 0 ? 'Skip →' : 'Next →'}
+                </button>
+              </div>
+            )}
+            {step === 2 && (
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -403,8 +411,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   Create Project
                 </button>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </form>
       </div>
     </div>
