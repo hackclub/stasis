@@ -284,7 +284,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                   const newTier = getTierById(item.tier!);
                   return oldTier && newTier ? (
                     <p className="text-orange-600 text-sm font-bold">
-                      Tier changed: {oldTier.name} ({oldTier.bits} bits) &rarr; {newTier.name} ({newTier.bits} bits)
+                      Complexity Level changed: {oldTier.name} (<span className="text-orange-500 font-medium">{oldTier.bits} bits</span>) &rarr; {newTier.name} (<span className="text-orange-500 font-medium">{newTier.bits} bits</span>)
                     </p>
                   ) : null;
                 })()}
@@ -292,7 +292,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                   const tierInfo = getTierById(item.tier!);
                   return tierInfo ? (
                     <p className="text-brown-800 text-sm">
-                      Tier: {tierInfo.name} ({tierInfo.bits} bits)
+                      Complexity Level: {tierInfo.name} (<span className="text-orange-500 font-medium">{tierInfo.bits} bits</span>)
                     </p>
                   ) : null;
                 })()}

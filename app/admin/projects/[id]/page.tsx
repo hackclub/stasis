@@ -354,7 +354,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 <p className="text-brown-800 text-xl">{project.workSessions.length}</p>
               </div>
               <div>
-                <p className="text-brown-800 text-xs uppercase mb-1">Tier</p>
+                <p className="text-brown-800 text-xs uppercase mb-1">Complexity Level</p>
                 {project.tier ? (() => {
                   const tier = getTierById(project.tier);
                   return tier ? (
@@ -742,7 +742,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
               <div className="mb-4">
                 <label className="text-brown-800 text-xs uppercase block mb-2">
-                  Project Tier <span className="text-cream-600 normal-case">(sets bits awarded on build completion)</span>
+                  Complexity Level <span className="text-cream-600 normal-case">(sets bits awarded on build completion)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {TIERS.map((tier) => (
@@ -764,13 +764,13 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   ))}
                 </div>
                 {designTier === null && (
-                  <p className="text-cream-600 text-xs mt-2">No tier selected — 0 bits will be awarded on build completion.</p>
+                  <p className="text-cream-600 text-xs mt-2">No complexity level selected — 0 bits will be awarded on build completion.</p>
                 )}
               </div>
 
               <div className="mb-4">
                 <label className="text-brown-800 text-xs uppercase block mb-2">
-                  Approved BOM Grant <span className="text-cream-600 normal-case">(bits, 1 bit = $1 — deducted from tier at build)</span>
+                  Approved BOM Grant <span className="text-cream-600 normal-case">(bits, 1 bit = $1 — deducted from complexity level at build)</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -870,10 +870,10 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                         </p>
                       </div>
                     ) : (
-                      <p className="text-cream-600">Unknown tier</p>
+                      <p className="text-cream-600">Unknown complexity level</p>
                     );
                   })() : (
-                    <p className="text-cream-600">— (no tier set; 0 bits will be awarded)</p>
+                    <p className="text-cream-600">— (no complexity level set; 0 bits will be awarded)</p>
                   )}
                 </div>
 

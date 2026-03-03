@@ -833,7 +833,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             
             <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
               <p className="text-blue-600 text-sm">
-                Your project&apos;s tier determines its bit allocation (1 bit = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials.
+                Your project&apos;s complexity level determines its <span className="text-orange-500 font-medium">bit</span> allocation (<span className="text-orange-500 font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials.
               </p>
             </div>
 
@@ -1135,7 +1135,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
                 <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
                 <p className="text-brown-800 text-sm leading-relaxed mb-4">
-                  Your design, BOM, and tier selection will be reviewed. Once approved, your badges will be granted and you&apos;ll receive a grant card to purchase materials!
+                  Your design, BOM, and complexity level will be reviewed. Once approved, your badges will be granted and you&apos;ll receive a grant card to purchase materials!
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
                   IMPORTANT: Before submitting, please make sure to read the{' '}
@@ -1168,7 +1168,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
                 <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
                 <p className="text-brown-800 text-sm leading-relaxed mb-4">
-                  Your build work will be reviewed. Once approved, you&apos;ll earn the bits for this project&apos;s tier!
+                  Your build work will be reviewed. Once approved, you&apos;ll earn the bits for this project&apos;s complexity level!
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
                   IMPORTANT: Before submitting, please make sure to read the{' '}

@@ -2,6 +2,7 @@
 
 import { useSession, signIn, signOut } from "@/lib/auth-client";
 import { NoiseOverlay } from '../components/NoiseOverlay';
+import { UserMenu } from '../components/UserMenu';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRoles, Role } from "@/lib/hooks/useRoles";
@@ -79,24 +80,11 @@ export default function DashboardLayout({
             <img src="/stasis-logo.svg" alt="Stasis" className="h-10 w-auto" />
           </Link>
           <div className="flex items-center gap-4 sm:gap-6">
-            <Link href={`/dashboard/profile/${session.user.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              {session.user.image ? (
-                <img 
-                  src={session.user.image} 
-                  alt="" 
-                  className="w-8 h-8 rounded-full"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-cream-400 flex items-center justify-center">
-                  <span className="text-brown-800 text-sm">
-                    {((session.user as any).slackDisplayName || session.user.name || session.user.email)?.[0]?.toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <span className="text-orange-500 font-bold text-sm hidden sm:block">
-                {(session.user as any).slackDisplayName || session.user.name || session.user.email}
-              </span>
-            </Link>
+            <UserMenu
+              userId={session.user.id}
+              name={(session.user as any).slackDisplayName || session.user.name || session.user.email || ''}
+              image={session.user.image}
+            />
             {hasRole(Role.SIDEKICK) && (
               <Link
                 href="/sidekick"
