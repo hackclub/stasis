@@ -1168,7 +1168,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
                 <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
                 <p className="text-brown-800 text-sm leading-relaxed mb-4">
-                  Your build work will be reviewed. Once approved, you&apos;ll earn the bits for this project&apos;s complexity level!
+                  Your build work will be reviewed. Once approved, you&apos;ll earn the <span className="text-orange-500 font-medium">bits</span> for this project&apos;s complexity level!
                 </p>
                 <p className="text-red-500 text-sm font-medium mb-6">
                   IMPORTANT: Before submitting, please make sure to read the{' '}
