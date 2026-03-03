@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { MDXComponents } from 'mdx/types';
-import Parents from '../dashboard/guides/content/parents.mdx';
+import Parents from '../dashboard/help/content/parents.mdx';
 import { NoiseOverlay } from '../components/NoiseOverlay';
 
 const mdxComponents: MDXComponents = {

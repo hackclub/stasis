@@ -22,7 +22,7 @@ interface Props {
   error?: string | null
 }
 
-const STEPS = ['Details', 'Badges', 'Complexity Level'] as const
+const STEPS = ['Details', 'Badges', 'Complexity'] as const
 type Step = 0 | 1 | 2
 
 export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<Props>) {
@@ -305,11 +305,11 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               </div>
             )}
 
-            {/* Step 3: Complexity Level */}
+            {/* Step 3: Complexity */}
             {step === 2 && (
               <div>
                 <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Complexity Level
+                  Complexity
                 </label>
                 {starterProject ? (
                   <p className="text-cream-600 text-xs mb-2">

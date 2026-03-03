@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { MDXComponents } from 'mdx/types';
-import FAQ from '../dashboard/guides/content/faq.mdx';
-import Overview from '../dashboard/guides/content/overview.mdx';
-import AboutCost from '../dashboard/guides/content/about-cost.mdx';
-import SubmissionGuidelines from '../dashboard/guides/content/submission-guidelines.mdx';
-import Parents from '../dashboard/guides/content/parents.mdx';
+import FAQ from '../dashboard/help/content/faq.mdx';
+import Overview from '../dashboard/help/content/overview.mdx';
+import AboutCost from '../dashboard/help/content/about-cost.mdx';
+import SubmissionGuidelines from '../dashboard/help/content/submission-guidelines.mdx';
+import Parents from '../dashboard/help/content/parents.mdx';
 
 type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents';
 
@@ -177,7 +177,7 @@ export default function GuidesContent() {
           </div>
           {/* Desktop: vertical sidebar */}
           <div className="hidden md:block space-y-1">
-            <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">Guides</p>
+            <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">Guidelines</p>
             {guidePages.map((page) => (
               <button
                 key={page.id}
