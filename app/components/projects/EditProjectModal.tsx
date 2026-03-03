@@ -254,7 +254,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
 
           <div>
             <label className="block text-brown-800 text-sm uppercase mb-2">
-              Project Tier
+              Complexity Level
             </label>
             <div className="grid grid-cols-2 gap-2">
               {TIERS.map((tier) => (

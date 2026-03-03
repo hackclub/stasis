@@ -318,7 +318,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
                     <div>
                         <label className="block text-brown-800 text-sm uppercase mb-2">
-                            Project Tier
+                            Complexity Level
                             {project.designStatus === 'approved' && (
                                 <span className="ml-2 text-cream-500 normal-case text-xs">(locked — set by reviewer)</span>
                             )}

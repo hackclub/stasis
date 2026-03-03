@@ -20,6 +20,21 @@ export default function ProjectsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    // Check localStorage for cross-page tutorial replay trigger
+    if (localStorage.getItem('stasis_replay_tutorial')) {
+      localStorage.removeItem('stasis_replay_tutorial');
+      setShowTutorial(true);
+    }
+    // Listen for same-page tutorial replay trigger (user already on /dashboard)
+    const handler = () => {
+      localStorage.removeItem('stasis_replay_tutorial');
+      setShowTutorial(true);
+    };
+    window.addEventListener('stasis:replay-tutorial', handler);
+    return () => window.removeEventListener('stasis:replay-tutorial', handler);
+  }, []);
   const [bitsBalance, setBitsBalance] = useState<number | null>(null);
 
   if (!isPending && !session) {
@@ -123,7 +138,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-orange-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
-            <p className="text-brown-800 text-sm">Earn {QUALIFICATION_BITS_THRESHOLD} bits from building hardware projects to qualify for Stasis!</p>
+            <p className="text-brown-800 text-sm">Earn <span className="text-orange-500 font-medium">{QUALIFICATION_BITS_THRESHOLD} bits</span> from building hardware projects to qualify for Stasis!</p>
           </div>
           {qualified && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>

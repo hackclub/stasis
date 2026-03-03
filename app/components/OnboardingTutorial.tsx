@@ -14,9 +14,9 @@ interface TutorialStep {
 export type TutorialType = 'dashboard' | 'project';
 
 function renderContent(content: string) {
-  const parts = content.split(/\b(bits)\b/gi);
+  const parts = content.split(/(\b\d+\s+bits?\b|\bbits?\b)/gi);
   return parts.map((part, i) =>
-    /^bits$/i.test(part)
+    /^(\d+\s+bits?|bits?)$/i.test(part)
       ? <span key={i} className="text-orange-500 font-medium">{part}</span>
       : part
   );
@@ -31,20 +31,20 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Stasis!',
-    content: 'Stasis is where you design and build hardware projects, earn bits, and qualify for the event. Each project has a tier that determines how many bits you earn. Let\'s get you started!',
+    content: 'Stasis is where you design and build hardware projects, earn bits, and qualify for the event. Each project has a complexity level that determines how many bits you earn. Let\'s get you started!',
     position: 'center',
   },
   {
     id: 'badge-progress',
     title: 'Your Goal: Qualify for Stasis',
-    content: 'To come to Stasis, you need to earn enough bits from completing hardware projects. Each project has a tier with a fixed bit reward—your profit is the tier\'s bits minus the build cost. Accumulate enough profit bits and you\'re in!',
+    content: 'To come to Stasis, you need to earn enough bits from completing hardware projects. Each project has a complexity level with a fixed bit reward—your profit is the complexity level\'s bits minus the build cost. Accumulate enough profit bits and you\'re in!',
     targetSelector: '[data-tutorial="badge-progress"]',
     position: 'bottom',
   },
   {
     id: 'stats',
     title: 'Track Your Hours',
-    content: 'Log your hours by writing detailed journal entries. Each tier has an expected hour range—higher tiers mean bigger projects and more bits.',
+    content: 'Log your hours by writing detailed journal entries. Each complexity level has an expected hour range—higher complexity levels mean bigger projects and more bits.',
     targetSelector: '[data-tutorial="stats"]',
     position: 'bottom',
   },
@@ -58,7 +58,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'new-project',
     title: 'Create Your First Project',
-    content: 'Click here to start a new project. Give it a name, pick a tier, add badges, and choose the technologies you\'ll use. Don\'t worry—you can always delete it later.',
+    content: 'Click here to start a new project. Give it a name, pick a complexity level, add badges, and choose the technologies you\'ll use. Don\'t worry—you can always delete it later.',
     targetSelector: '[data-tutorial="new-project"]',
     position: 'right',
   },
@@ -101,7 +101,7 @@ const PROJECT_STEPS: TutorialStep[] = [
   {
     id: 'bom',
     title: 'Bill of Materials',
-    content: 'List every part you need with costs and links. Your project\'s tier determines its bit allocation (1 bit = $1). Once your design is approved, you\'ll receive a grant card to purchase materials.',
+    content: 'List every part you need with costs and links. Your project\'s complexity level determines its bit allocation (1 bit = $1). Once your design is approved, you\'ll receive a grant card to purchase materials.',
     targetSelector: '[data-tutorial="bom"]',
     position: 'top',
   },
