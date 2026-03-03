@@ -368,7 +368,7 @@ export default function AdminUsersPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Hours Claimed</p>
+                          <p className="text-cream-600 uppercase text-xs mb-1">Hours Logged</p>
                           <p className="text-brown-800">{user.totalHoursClaimed.toFixed(1)}h</p>
                         </div>
                         <div>
@@ -451,7 +451,7 @@ export default function AdminUsersPage() {
                                   <div className="flex items-center gap-3 text-xs text-brown-800">
                                     <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
                                     <span>•</span>
-                                    <span>{hoursClaimed.toFixed(1)}h claimed</span>
+                                    <span>{hoursClaimed.toFixed(1)}h logged</span>
                                     <span>•</span>
                                     <span>{hoursApproved.toFixed(1)}h approved</span>
                                   </div>

@@ -51,21 +51,21 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'stats',
     title: 'Track Your Hours',
-    content: 'Log your hours by writing detailed journal entries. Each complexity level has an expected hour range—higher complexity levels mean bigger projects and more bits.',
+    content: 'Log your hours by writing detailed journal entries. Each complexity level has a rough hour range for how long the project will take — higher complexity levels mean bigger projects and more bits!',
     targetSelector: '[data-tutorial="stats"]',
     position: 'bottom',
   },
   {
     id: 'starter-projects',
     title: 'Need Ideas?',
-    content: 'Browse starter projects for inspiration. These are pre-designed projects you can build, or use them as a starting point for your own ideas.',
+    content: 'Browse starter projects for inspiration. These are project guides written by experts; you can follow them yourself or use them as a starting point for your own ideas.',
     targetSelector: '[data-tutorial="starter-projects"]',
     position: 'bottom',
   },
   {
     id: 'new-project',
     title: 'Create Your First Project',
-    content: 'Click here to start a new project. Give it a name, pick a complexity level, add badges, and choose the technologies you\'ll use. Don\'t worry—you can always delete it later.',
+    content: 'Click here to start a new project. Give it a name, pick a complexity level, add badges, and choose the technologies you\'ll use. Don\'t worry — you can always delete it later.',
     targetSelector: '[data-tutorial="new-project"]',
     position: 'right',
   },
@@ -136,7 +136,7 @@ const PROJECT_STEPS: TutorialStep[] = [
   {
     id: 'timeline',
     title: 'Your Activity Timeline',
-    content: 'Everything you do is tracked here—sessions, reviews, status changes. It\'s your project\'s complete history.',
+    content: 'Everything you do is tracked here — sessions, reviews, status changes. It\'s your project\'s complete history.',
     targetSelector: '[data-tutorial="timeline"]',
     position: 'top',
   },
@@ -330,13 +330,29 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
       )
     );
 
+    if (step.position === 'right') {
+      return {
+        top: `${highlightRect.top + highlightRect.height / 2}px`,
+        left: `${Math.min(highlightRect.right + padding, viewportWidth - tooltipWidth - padding)}px`,
+        transform: 'translateY(-50%)',
+      };
+    }
+
+    if (step.position === 'left') {
+      return {
+        top: `${highlightRect.top + highlightRect.height / 2}px`,
+        left: `${Math.max(padding, highlightRect.left - tooltipWidth - padding)}px`,
+        transform: 'translateY(-50%)',
+      };
+    }
+
     if (step.position === 'top' && spaceAbove >= tooltipHeight + padding) {
       return {
         top: `${highlightRect.top - tooltipHeight - padding - extraOffset}px`,
         left: `${horizontalCenter}px`,
       };
     }
-    
+
     if (step.position === 'bottom' && spaceBelow >= tooltipHeight + padding) {
       return {
         top: `${highlightRect.bottom + padding - extraOffset}px`,
@@ -358,24 +374,11 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
       };
     }
 
-    switch (step.position) {
-      case 'left':
-        return {
-          top: `${Math.max(padding, Math.min(highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2, viewportHeight - tooltipHeight - padding))}px`,
-          left: `${Math.max(padding, highlightRect.left - tooltipWidth - padding)}px`,
-        };
-      case 'right':
-        return {
-          top: `${Math.max(padding, Math.min(highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2, viewportHeight - tooltipHeight - padding))}px`,
-          left: `${Math.min(highlightRect.right + padding, viewportWidth - tooltipWidth - padding)}px`,
-        };
-      default:
-        return {
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-        };
-    }
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+    };
   }, [isCenter, highlightRect, step.id, step.position]);
 
   if (!isVisible) return null;

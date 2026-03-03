@@ -129,9 +129,6 @@ export default function DashboardLayout({
               <Link href="/dashboard/guides" className={getTabClass('/dashboard/guides')}>
                 About
               </Link>
-              <Link href="/dashboard/settings" className={getTabClass('/dashboard/settings')}>
-                Settings
-              </Link>
             </div>
           </div>
         </div>
