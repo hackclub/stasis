@@ -75,7 +75,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
             {/* Step Circle */}
             <div className="flex flex-col items-center">
               <div
-                className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all text-xs font-bold ${
+                className={`w-8 h-8 border-2 flex items-center justify-center transition-all text-xs font-bold ${
                   step.completed
                     ? 'border-green-500 bg-green-500 text-white'
                     : step.rejected
@@ -94,7 +94,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 ) : step.active ? (
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                  <div className="w-2 h-2 bg-yellow-500 animate-pulse" />
                 ) : (
                   idx + 1
                 )}

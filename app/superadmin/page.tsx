@@ -29,7 +29,7 @@ export default function SuperAdminPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)]">
-      <div className="bg-cream-100 p-8 rounded border border-orange-500">
+      <div className="bg-cream-100 p-8 border border-orange-500">
         <h1 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Superadmin Access</h1>
         {status === 'idle' && (
           <button

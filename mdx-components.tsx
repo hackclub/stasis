@@ -42,7 +42,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         return <CodeBlock className={className}>{children as string}</CodeBlock>;
       }
       return (
-        <code className="bg-brown-800 text-orange-400 px-1.5 py-0.5 rounded text-sm font-mono">
+        <code className="bg-brown-800 text-orange-400 px-1.5 py-0.5 text-sm font-mono">
           {children}
         </code>
       );
@@ -52,7 +52,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       <img 
         src={src} 
         alt={alt || ''} 
-        className="max-w-full h-auto rounded my-4 border-4 border-orange-500 mx-auto block"
+        className="max-w-full h-auto my-4 border-4 border-orange-500 mx-auto block"
       />
     ),
     blockquote: ({ children }) => (

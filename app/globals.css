@@ -97,3 +97,30 @@ a:focus-visible {
 	outline: 2px solid var(--color-orange-500);
 	outline-offset: 2px;
 }
+
+/* Page loader */
+.loader {
+	width: 40px;
+	height: 60px;
+	position: relative;
+}
+.loader::before,
+.loader::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--color-orange-500);
+	clip-path: polygon(0 0, 100% 0, 100% 67%, 50% 67%, 50% 34%, 0 34%);
+	animation: sp7 2s infinite;
+}
+.loader::after {
+	--s: -1, -1;
+}
+@keyframes sp7 {
+	0%,
+	10%  { transform: scale(var(--s, 1)) translate(0, 0) rotate(0deg) }
+	33%  { transform: scale(var(--s, 1)) translate(0, -20px) rotate(0deg) }
+	66%  { transform: scale(var(--s, 1)) translate(10px, -20px) rotate(-90deg) }
+	90%,
+	100% { transform: scale(var(--s, 1)) translate(10px, -10px) rotate(-90deg) }
+}

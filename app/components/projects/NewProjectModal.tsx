@@ -34,16 +34,10 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [isStarter, setIsStarter] = useState(false)
   const [starterProjectId, setStarterProjectId] = useState('')
   const [githubRepo, setGithubRepo] = useState('')
-  const [claimedBadges, setClaimedBadges] = useState<BadgeType[]>([])
   const [selectedTier, setSelectedTier] = useState<number | null>(1)
 
   useEffect(() => {
-    if (isOpen) {
-      fetch('/api/badges?allClaimed=true')
-        .then(res => res.ok ? res.json() : [])
-        .then(setClaimedBadges)
-        .catch(() => setClaimedBadges([]))
-    } else {
+    if (!isOpen) {
       setStep(0)
     }
   }, [isOpen])
@@ -276,28 +270,24 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   {AVAILABLE_BADGES.map((badge) => {
-                    const isClaimed = claimedBadges.includes(badge.value)
                     const isSelected = selectedBadges.includes(badge.value)
-                    const isDisabled = isClaimed || (!isSelected && selectedBadges.length >= MAX_BADGES_PER_PROJECT)
+                    const isDisabled = !isSelected && selectedBadges.length >= MAX_BADGES_PER_PROJECT
                     return (
                       <button
                         key={badge.value}
                         type="button"
-                        onClick={() => !isClaimed && handleBadgeToggle(badge.value)}
+                        onClick={() => handleBadgeToggle(badge.value)}
                         disabled={isDisabled}
-                        title={isClaimed ? "Already claimed on another project" : undefined}
                         className={`flex flex-col items-center gap-1 p-2 border-2 transition-colors ${
                           isSelected
                             ? 'border-orange-500 bg-orange-500/25 cursor-pointer'
-                            : isClaimed
+                            : selectedBadges.length >= MAX_BADGES_PER_PROJECT
                               ? 'border-cream-300 bg-cream-200 opacity-50 cursor-not-allowed'
-                              : selectedBadges.length >= MAX_BADGES_PER_PROJECT
-                                ? 'border-cream-300 bg-cream-200 opacity-50 cursor-not-allowed'
-                                : 'border-cream-400 bg-cream-200 hover:border-cream-500 cursor-pointer'
+                              : 'border-cream-400 bg-cream-200 hover:border-cream-500 cursor-pointer'
                         }`}
                       >
                         <img src={getBadgeImage(badge.value)} alt={badge.label} className="w-full aspect-square object-contain" />
-                        <span className={`text-xs uppercase ${isClaimed ? 'line-through text-cream-400' : isSelected ? 'bg-orange-500 text-white px-1' : 'text-brown-800'}`}>{badge.label}</span>
+                        <span className={`text-xs uppercase ${isSelected ? 'bg-orange-500 text-white px-1' : 'text-brown-800'}`}>{badge.label}</span>
                       </button>
                     )
                   })}

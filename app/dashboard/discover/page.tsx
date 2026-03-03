@@ -114,10 +114,10 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
               <img
                 src={project.user.image}
                 alt=""
-                className="w-5 h-5 rounded-full"
+                className="w-5 h-5"
               />
             ) : (
-              <div className="w-5 h-5 rounded-full bg-cream-400 flex items-center justify-center">
+              <div className="w-5 h-5 bg-cream-400 flex items-center justify-center">
                 <span className="text-brown-800 text-[10px]">
                   {project.user.name?.[0]?.toUpperCase() || '?'}
                 </span>

@@ -19,7 +19,7 @@ export function CodeBlock({ children, className }: Readonly<CodeBlockProps>) {
   }, [children]);
 
   return (
-    <pre className="!bg-[#0d1117] rounded overflow-x-auto mb-4 p-4">
+    <pre className="!bg-[#0d1117] overflow-x-auto mb-4 p-4">
       <code ref={codeRef} className={`language-${language} text-sm font-mono`}>
         {children}
       </code>

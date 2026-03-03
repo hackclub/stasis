@@ -61,10 +61,10 @@ export default function SidekickLayout({
                 <img
                   src={session.user.image}
                   alt=""
-                  className="w-8 h-8 rounded-full"
+                  className="w-8 h-8"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-cream-400 flex items-center justify-center">
+                <div className="w-8 h-8 bg-cream-400 flex items-center justify-center">
                   <span className="text-cream-800 text-sm">
                     {(session?.user.name || session?.user.email)?.[0]?.toUpperCase()}
                   </span>

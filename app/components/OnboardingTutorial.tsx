@@ -415,7 +415,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
       {/* Highlight border */}
       {highlightRect && (
         <div
-          className="absolute border-2 border-orange-400 rounded pointer-events-none animate-pulse"
+          className="absolute border-2 border-orange-400 pointer-events-none animate-pulse"
           style={{
             top: highlightRect.top - 8,
             left: highlightRect.left - 8,
@@ -499,7 +499,7 @@ export function TutorialHelpButton({ onClick }: Readonly<{ onClick: () => void }
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-400 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+      className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-400 text-white w-12 h-12 shadow-lg flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
       title="Show tutorial"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

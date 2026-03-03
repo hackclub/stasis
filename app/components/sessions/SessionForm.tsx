@@ -885,7 +885,7 @@ export function SessionForm({
                                         onClick={startRecording}
                                         className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 text-sm uppercase cursor-pointer transition-colors flex items-center gap-2"
                                     >
-                                        <span className="w-2 h-2 bg-white rounded-full" />
+                                        <span className="w-2 h-2 bg-white" />
                                         Start Recording
                                     </button>
                                     <button
@@ -911,7 +911,7 @@ export function SessionForm({
                                         className="w-full h-full object-cover"
                                     />
                                     <div className="absolute top-2 left-2 flex items-center gap-2">
-                                        <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                                        <span className="w-3 h-3 bg-red-500 animate-pulse" />
                                         <span className="text-red-500 text-xs uppercase font-medium">Recording</span>
                                     </div>
                                     <div className="absolute top-2 right-2 bg-cream-200/80 px-2 py-1">
@@ -942,7 +942,7 @@ export function SessionForm({
                                     onClick={enumerateDevices}
                                     className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 text-sm uppercase cursor-pointer transition-colors flex items-center gap-2"
                                 >
-                                    <span className="w-2 h-2 bg-white rounded-full" />
+                                    <span className="w-2 h-2 bg-white" />
                                     Record with Webcam
                                 </button>
                                 <label className="inline-block bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors">

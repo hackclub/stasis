@@ -50,8 +50,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     const [loadingBadges, setLoadingBadges] = useState(false);
     const [claimingBadge, setClaimingBadge] = useState<BadgeType | null>(null);
     const [badgeError, setBadgeError] = useState<string | null>(null);
-    const [allClaimedBadges, setAllClaimedBadges] = useState<BadgeType[]>([]);
-
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
@@ -60,17 +58,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
         if (!projectId) return;
         setLoadingBadges(true);
         try {
-            const [badgesRes, claimedRes] = await Promise.all([
-                fetch(`/api/badges?projectId=${projectId}`),
-                fetch('/api/badges?allClaimed=true'),
-            ]);
+            const badgesRes = await fetch(`/api/badges?projectId=${projectId}`);
             if (badgesRes.ok) {
                 const data = await badgesRes.json();
                 setBadges(data);
-            }
-            if (claimedRes.ok) {
-                const claimed = await claimedRes.json();
-                setAllClaimedBadges(claimed);
             }
         } catch (error) {
             console.error('Failed to fetch badges:', error);
@@ -434,19 +425,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                             <p className="text-brown-800 text-xs uppercase mb-2">Available to claim</p>
                             <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                                 {AVAILABLE_BADGES.filter(b => !claimedBadgeTypes.includes(b.value)).map((badge) => {
-                                    const isClaimedElsewhere = allClaimedBadges.includes(badge.value)
                                     return (
                                         <button
                                             key={badge.value}
                                             type="button"
-                                            onClick={() => !isClaimedElsewhere && handleClaimBadge(badge.value)}
-                                            disabled={claimingBadge === badge.value || isClaimedElsewhere}
-                                            title={isClaimedElsewhere ? "Already claimed on another project" : undefined}
-                                            className={`text-left px-3 py-2 border text-sm transition-colors ${
-                                                isClaimedElsewhere
-                                                    ? 'bg-cream-200 border-cream-300 text-cream-400 cursor-not-allowed line-through'
-                                                    : 'bg-white border-cream-400 hover:border-orange-400 text-brown-800 cursor-pointer disabled:opacity-50'
-                                            }`}
+                                            onClick={() => handleClaimBadge(badge.value)}
+                                            disabled={claimingBadge === badge.value}
+                                            className="text-left px-3 py-2 border text-sm transition-colors bg-white border-cream-400 hover:border-orange-400 text-brown-800 cursor-pointer disabled:opacity-50"
                                         >
                                             <div className="flex items-center gap-2">
                                                 <img src={getBadgeImage(badge.value)} alt="" className="w-8 h-8 object-contain" />

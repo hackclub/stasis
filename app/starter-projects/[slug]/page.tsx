@@ -58,7 +58,7 @@ export default function StarterProjectPage({
               {project.badges.length > 0 && (
                 <div className="flex gap-2">
                   {project.badges.map((badge) => (
-                    <span key={badge} className="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">
+                    <span key={badge} className="bg-orange-500/20 text-orange-400 px-2 py-0.5">
                       {badge}
                     </span>
                   ))}

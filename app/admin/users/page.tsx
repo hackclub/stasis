@@ -283,10 +283,10 @@ export default function AdminUsersPage() {
                           <img 
                             src={user.image} 
                             alt="" 
-                            className="w-10 h-10 rounded-full flex-shrink-0"
+                            className="w-10 h-10 flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-cream-400 flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 bg-cream-400 flex items-center justify-center flex-shrink-0">
                             <span className="text-brown-800 text-sm">
                               {(user.name || user.email)[0].toUpperCase()}
                             </span>

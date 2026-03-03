@@ -922,7 +922,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                           <button
                             type="button"
                             onClick={() => handleDeleteCartScreenshot(url)}
-                            className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                           >
                             ✕
                           </button>

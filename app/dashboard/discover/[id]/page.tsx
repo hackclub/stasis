@@ -80,10 +80,10 @@ function formatRelativeTime(dateStr: string): string {
 
 function UserAvatar({ name, image }: { name: string | null; image: string | null }) {
   if (image) {
-    return <img src={image} alt="" className="w-6 h-6 rounded-full flex-shrink-0" />;
+    return <img src={image} alt="" className="w-6 h-6 flex-shrink-0" />;
   }
   return (
-    <div className="w-6 h-6 rounded-full bg-cream-400 flex items-center justify-center flex-shrink-0">
+    <div className="w-6 h-6 bg-cream-400 flex items-center justify-center flex-shrink-0">
       <span className="text-brown-800 text-xs">{name?.[0]?.toUpperCase() || '?'}</span>
     </div>
   );
@@ -105,7 +105,7 @@ function PublicTimeline({ items }: Readonly<{ items: PublicTimelineItem[] }>) {
         {items.map((item, idx) => (
           <div key={`${item.session.id}-${idx}`} className="relative pl-12">
             <div className="absolute left-0 top-0">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500 flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-500/20 border border-blue-500 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14 2 14 8 20 8"/>
@@ -271,9 +271,9 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
             <div className="flex items-center gap-3 text-sm">
               <Link href={`/dashboard/profile/${project.user.id}`} className="flex items-center gap-2 hover:text-orange-500 transition-colors">
                 {project.user.image ? (
-                  <img src={project.user.image} alt="" className="w-6 h-6 rounded-full" />
+                  <img src={project.user.image} alt="" className="w-6 h-6" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-cream-400 flex items-center justify-center">
+                  <div className="w-6 h-6 bg-cream-400 flex items-center justify-center">
                     <span className="text-brown-800 text-xs">{project.user.name?.[0]?.toUpperCase() || '?'}</span>
                   </div>
                 )}

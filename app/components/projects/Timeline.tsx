@@ -38,12 +38,12 @@ function UserAvatar({ name, image }: { name: string | null; image: string | null
       <img 
         src={image} 
         alt="" 
-        className="w-6 h-6 rounded-full flex-shrink-0"
+        className="w-6 h-6 flex-shrink-0"
       />
     );
   }
   return (
-    <div className="w-6 h-6 rounded-full bg-cream-400 flex items-center justify-center flex-shrink-0">
+    <div className="w-6 h-6 bg-cream-400 flex items-center justify-center flex-shrink-0">
       <span className="text-brown-800 text-xs">
         {name?.[0]?.toUpperCase() || '?'}
       </span>
@@ -52,7 +52,7 @@ function UserAvatar({ name, image }: { name: string | null; image: string | null
 }
 
 function TimelineIcon({ type, decision }: { type: TimelineItem['type']; decision?: string }) {
-  const baseClass = "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0";
+  const baseClass = "w-8 h-8 flex items-center justify-center flex-shrink-0";
   
   switch (type) {
     case 'PROJECT_CREATED':
@@ -218,10 +218,10 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                             <img
                               src={t.thumbnailUrl}
                               alt={t.name ?? 'Timelapse'}
-                              className="w-24 h-16 rounded object-cover border border-cream-400"
+                              className="w-24 h-16 object-cover border border-cream-400"
                             />
                           ) : (
-                            <div className="w-24 h-16 rounded bg-cream-300 border border-cream-400 flex items-center justify-center">
+                            <div className="w-24 h-16 bg-cream-300 border border-cream-400 flex items-center justify-center">
                               <span className="text-cream-600 text-xs">Timelapse</span>
                             </div>
                           )}
