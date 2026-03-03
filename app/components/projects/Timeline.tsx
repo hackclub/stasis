@@ -160,7 +160,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                     <span className="text-brown-800 text-sm">
                       {item.session.hoursApproved !== null 
                         ? `${item.session.hoursApproved}/${item.session.hoursClaimed}h approved`
-                        : `${item.session.hoursClaimed}h claimed`}
+                        : `${item.session.hoursClaimed}h logged`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

@@ -345,7 +345,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <div>
-                <p className="text-brown-800 text-xs uppercase mb-1">Total Hours Claimed</p>
+                <p className="text-brown-800 text-xs uppercase mb-1">Total Hours Logged</p>
                 <p className="text-brown-800 text-xl">{totalHoursClaimed.toFixed(1)}h</p>
               </div>
               <div>
@@ -537,7 +537,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                           })}
                         </span>
                         <span className="bg-cream-200 border border-cream-400 text-brown-800 px-2 py-0.5 text-sm">
-                          {session.hoursClaimed}h claimed
+                          {session.hoursClaimed}h logged
                         </span>
                         {review?.isReviewed && (
                           <span className="bg-green-100 border border-green-600 text-green-600 px-2 py-0.5 text-sm">
@@ -585,7 +585,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                           </div>
                           <div className="flex items-end">
                             <span className="text-brown-800 text-sm pb-2">
-                              of {session.hoursClaimed}h claimed
+                              of {session.hoursClaimed}h logged
                             </span>
                           </div>
                         </div>
