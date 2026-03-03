@@ -47,7 +47,7 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
           </div>
           {isLanding && (
             <p className="mt-4 text-sm opacity-40">
-              Site by <a href="https://github.com/gusruben/" target="_blank" rel="noopener" className="underline">Augie</a>
+              Landing page <a href="https://github.com/gusruben/" target="_blank" rel="noopener" className="underline">Augie</a>
             </p>
           )}
         </div>
