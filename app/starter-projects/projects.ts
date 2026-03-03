@@ -5,6 +5,7 @@ export interface StarterProject {
   short_description: string;
   badges: string[];
   hasTutorial?: boolean;
+  image?: string;
 }
 
 export const projects: StarterProject[] = [
@@ -17,59 +18,38 @@ export const projects: StarterProject[] = [
     hasTutorial: true,
   },
   {
-    id: 'led-cube',
-    name: 'LED Cube',
-    hours: 8,
-    short_description: 'A 3D LED display controlled by Arduino.',
-    badges: [],
-  },
-  {
-    id: 'synth-kit',
-    name: 'Synth Kit',
-    hours: 10,
-    short_description: 'Build a DIY analog synthesizer from scratch.',
-    badges: [],
-  },
-  {
-    id: 'smart-mirror',
-    name: 'Smart Mirror',
-    hours: 12,
-    short_description: 'A Raspberry Pi powered two-way mirror.',
-    badges: [],
-  },
-  {
-    id: 'bot-arm',
-    name: 'Bot Arm',
-    hours: 15,
-    short_description: 'A 3D printed robotic arm with servo control.',
-    badges: [],
-  },
-  {
-    id: 'mini-drone',
-    name: 'Mini Drone',
-    hours: 20,
-    short_description: 'A custom quadcopter with FPV camera.',
-    badges: [],
-  },
-  {
-    id: 'gamepad',
-    name: 'GamePad',
-    hours: 7,
-    short_description: 'A wireless controller for retro gaming.',
-    badges: [],
-  },
-  {
-    id: 'vu-meter',
-    name: 'VU Meter',
+    id: 'blinky',
+    name: 'Blinky Board',
     hours: 5,
-    short_description: 'An audio visualizer with RGB LEDs.',
+    short_description: 'A 555 LED chaser board — a classic beginner PCB project.',
     badges: [],
+    hasTutorial: true,
+    image: 'blinky.webp',
   },
   {
-    id: 'weather-station',
-    name: 'Weather Station',
-    hours: 9,
-    short_description: 'Track temperature, humidity, and pressure.',
-    badges: [],
+    id: 'devboard',
+    name: 'Devboard',
+    hours: 10,
+    short_description: 'Design and build your own RP2040 development board.',
+    badges: ['SPI', 'I2C', 'MCU'],
+    hasTutorial: true,
+    image: 'devboard.webp',
+  },
+  {
+    id: 'split-keyboard',
+    name: 'Split Keyboard',
+    hours: 20,
+    short_description: 'Build a wireless split mechanical keyboard from scratch.',
+    badges: ['Bluetooth', 'MCU'],
+    hasTutorial: true,
+  },
+  {
+    id: 'squeak',
+    name: 'Squeak',
+    hours: 6,
+    short_description: 'Design a custom ergonomic mouse shell in OnShape and get it 3D printed.',
+    badges: ['CAD'],
+    hasTutorial: true,
+    image: 'squeak.webp',
   },
 ];

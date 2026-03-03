@@ -16,6 +16,10 @@ interface ProjectModule {
 
 const projectModules: Record<string, () => Promise<ProjectModule>> = {
   'spotify-display': () => import('../content/spotify-display.mdx') as Promise<ProjectModule>,
+  'blinky': () => import('../content/blinky.mdx') as Promise<ProjectModule>,
+  'devboard': () => import('../content/devboard.mdx') as Promise<ProjectModule>,
+  'split-keyboard': () => import('../content/split-keyboard.mdx') as Promise<ProjectModule>,
+  'squeak': () => import('../content/squeak.mdx') as Promise<ProjectModule>,
 };
 
 export default function StarterProjectPage({
