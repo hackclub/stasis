@@ -105,7 +105,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
         className="absolute inset-0 bg-[#3D3229]/80"
         onClick={onClose}
       />
-      <div className="relative bg-cream-100 border-2 border-cream-400 max-w-lg w-full mx-4 font-mono flex flex-col max-h-[90vh]">
+      <div className="relative bg-cream-100 border-2 border-cream-400 max-w-lg w-full mx-4 font-mono flex flex-col max-h-[75vh]">
         <div className="bg-orange-500 px-4 py-2 flex items-center justify-between shrink-0">
           <h2 className="text-white text-lg uppercase tracking-wide">
             New Project
@@ -264,9 +264,10 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 <label className="block text-brown-800 text-sm uppercase mb-2">
                   Skill Badges <span className="text-cream-500">({selectedBadges.length}/{MAX_BADGES_PER_PROJECT})</span>
                 </label>
-                <p className="text-cream-600 text-xs mb-2">
-                  Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll demonstrate in this project.
-                  If you&apos;re unsure what skills you plan to use, you can skip this step and choose your badges later.
+                <p className="text-cream-600 text-sm py-3">
+                  Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll use in this project.
+                  If you ship a project with these badges, we&apos;ll send you physical stickers for each badge!
+                  You can always edit these, or you can skip this step and choose your badges later.
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   {AVAILABLE_BADGES.map((badge) => {

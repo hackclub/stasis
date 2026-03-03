@@ -26,7 +26,6 @@ interface ProfileData {
     bio: string | null;
     createdAt: string;
   };
-  xp?: { totalXP: number };
   bitsBalance: number;
   badges: { badge: BadgeType; grantedAt: string }[];
   projects: ProfileProject[];
@@ -41,14 +40,6 @@ const BADGE_LABELS: Record<string, string> = {
   MCU_INTEGRATION: "MCU Integration", FOUR_LAYER_PCB: "4-Layer PCB",
   SOLDERING: "Soldering",
 };
-
-
-const PRIZES = [
-  { name: 'Sticker', xpRequired: 50 },
-  { name: 'Bandana', xpRequired: 150 },
-  { name: 'T-Shirt', xpRequired: 300 },
-  { name: 'Hoodie', xpRequired: 500 },
-] as const;
 
 
 
@@ -140,7 +131,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
       </Link>
 
       <div className="flex flex-col lg:flex-row gap-10">
-        {/* Left sidebar - Avatar, Bio, XP */}
+        {/* Left sidebar - Avatar, Bio */}
         <div className="lg:w-80 flex-shrink-0">
           <div className="bg-cream-100 border-2 border-cream-400 p-6">
             {/* Avatar */}
@@ -194,33 +185,6 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                 <p className="text-brown-800 text-sm mb-4 text-center">{profile.user.bio}</p>
               )
             )}
-
-            {/* XP */}
-            {(() => {
-              const xp = profile.xp?.totalXP ?? 0;
-              const nextPrize = PRIZES.find(p => p.xpRequired > xp);
-              const prevThreshold = PRIZES.filter(p => p.xpRequired <= xp).at(-1)?.xpRequired ?? 0;
-              const nextThreshold = nextPrize?.xpRequired ?? PRIZES[PRIZES.length - 1].xpRequired;
-              const progress = nextPrize
-                ? ((xp - prevThreshold) / (nextThreshold - prevThreshold)) * 100
-                : 100;
-
-              return (
-                <div className="mb-4">
-                  <div className="flex items-baseline justify-center gap-2 mb-1">
-                    <span className="text-orange-500 text-3xl font-bold">{xp.toLocaleString()}</span>
-                    <span className="text-cream-600 text-sm uppercase tracking-wide">XP</span>
-                  </div>
-                  <div className="w-full h-3 bg-cream-300 border border-cream-400">
-                    <div
-                      className="h-full bg-orange-500 transition-all"
-                      style={{ width: `${Math.min(progress, 100)}%` }}
-                    />
-                  </div>
-
-                </div>
-              );
-            })()}
 
             {/* Bits */}
             <div className="mb-4 flex items-baseline justify-center gap-2">

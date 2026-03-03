@@ -9,9 +9,11 @@ interface UserMenuProps {
   name: string;
   email?: string | null;
   image?: string | null;
+  isAdmin?: boolean;
+  onSignOut?: () => void;
 }
 
-export function UserMenu({ userId, name, email, image }: UserMenuProps) {
+export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export function UserMenu({ userId, name, email, image }: UserMenuProps) {
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 bg-cream-100 border-2 border-cream-400 min-w-[180px]">
           {email && (
-            <div className="px-4 py-2 text-xs text-cream-600 truncate max-w-[220px]">
+            <div className="px-4 py-2 text-sm text-cream-600 truncate max-w-[220px]">
               {email}
             </div>
           )}
@@ -94,6 +96,29 @@ export function UserMenu({ userId, name, email, image }: UserMenuProps) {
           >
             Replay Tutorial
           </button>
+          {isAdmin && (
+            <>
+              <div className="border-t border-cream-400" />
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 text-sm text-orange-500 hover:bg-cream-200 uppercase tracking-wide transition-colors font-bold"
+              >
+                Admin Dashboard
+              </Link>
+            </>
+          )}
+          {onSignOut && (
+            <>
+              <div className="border-t border-cream-400" />
+              <button
+                onClick={() => { setOpen(false); onSignOut(); }}
+                className="block w-full text-left px-4 py-2 text-sm text-brown-800 hover:bg-cream-200 hover:text-orange-500 uppercase tracking-wide transition-colors cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
