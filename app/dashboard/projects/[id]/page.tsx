@@ -591,7 +591,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-fit">
               <div className="flex gap-6 text-sm">
                 <div>
-                  <span className="text-brown-800">Hours Claimed:</span>{' '}
+                  <span className="text-brown-800">Hours Logged:</span>{' '}
                   <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
                 </div>
                 <div>

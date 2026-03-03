@@ -175,11 +175,7 @@ export default function ProjectsPage() {
       <div data-tutorial="stats" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex gap-4 sm:gap-6">
           <div>
-            <p className="text-brown-800 text-xs uppercase">Projects</p>
-            <p className="text-brown-800 text-xl sm:text-2xl">{projects.length}</p>
-          </div>
-          <div>
-            <p className="text-brown-800 text-xs uppercase">Claimed</p>
+            <p className="text-brown-800 text-xs uppercase">Hours Logged</p>
             <p className="text-brown-800 text-xl sm:text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
           </div>
           <div>

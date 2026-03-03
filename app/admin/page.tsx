@@ -105,7 +105,7 @@ export default function AdminDashboard() {
                       <p className="text-orange-500 text-lg">
                         {getTotalHours(project.workSessions).toFixed(1)}h
                       </p>
-                      <p className="text-brown-800 text-xs uppercase">claimed</p>
+                      <p className="text-brown-800 text-xs uppercase">hours logged</p>
                       {project.submittedAt && (
                         <p className="text-cream-600 text-xs mt-2">
                           {new Date(project.submittedAt).toLocaleDateString('en-US', {

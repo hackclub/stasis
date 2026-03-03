@@ -121,7 +121,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
           {project.title}
         </h3>
         <p className="text-brown-800 text-sm mt-1">
-          ~{project.totalHoursClaimed.toFixed(1)}h claimed
+          ~{project.totalHoursClaimed.toFixed(1)}h logged
         </p>
         {project.description && (
           <p className="text-cream-600 text-xs mt-2 line-clamp-2">

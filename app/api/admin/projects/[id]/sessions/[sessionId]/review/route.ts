@@ -43,7 +43,7 @@ export async function POST(
 
   if (hoursApproved > workSession.hoursClaimed * 2) {
     return NextResponse.json(
-      { error: "hoursApproved cannot exceed twice the claimed hours" },
+      { error: "hoursApproved cannot exceed twice the logged hours" },
       { status: 400 }
     )
   }
