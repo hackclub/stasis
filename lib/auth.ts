@@ -9,7 +9,7 @@ import { assignSidekick } from "./sidekick";
 
 const hcaScopes = ["openid", "profile", "email", "slack_id", "verification_status"];
 if (process.env.PULL_HCA_PII === "true") {
-  hcaScopes.push("address", "birthday");
+  hcaScopes.push("address", "birthdate");
 }
 
 export const auth = betterAuth({
@@ -21,7 +21,7 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       slackId: {
-        type: "string",
+        type: "string", 
         required: false,
       },
       slackDisplayName: {
@@ -138,8 +138,8 @@ export const auth = betterAuth({
                 if (addr.postal_code) user.encryptedAddressZip = encryptPII(addr.postal_code);
                 if (addr.country) user.encryptedAddressCountry = encryptPII(addr.country);
               }
-              if (profile.birthday) {
-                user.encryptedBirthday = encryptPII(profile.birthday);
+              if (profile.birthdate) {
+                user.encryptedBirthday = encryptPII(profile.birthdate);
               }
             }
 
