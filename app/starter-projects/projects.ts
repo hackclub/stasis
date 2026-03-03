@@ -1,3 +1,20 @@
+const BADGE_IMAGE_MAP: Record<string, string> = {
+  'WiFi': '/badges/WiFi.webp',
+  'SPI': '/badges/SPI.webp',
+  'I2C': '/badges/I2C.webp',
+  'CAD': '/badges/CAD.webp',
+  'Bluetooth': '/badges/Bluetooth.webp',
+  'MCU': '/badges/MCU-Integration.webp',
+  'Displays': '/badges/Displays.webp',
+  'Motors': '/badges/Motors.webp',
+  'Analog Sensors': '/badges/Analog-Sensors.webp',
+  'Digital Sensors': '/badges/Digital-Sensors.webp',
+};
+
+export function getBadgeImageUrl(badge: string): string {
+  return BADGE_IMAGE_MAP[badge] ?? '';
+}
+
 export interface StarterProject {
   id: string;
   name: string;

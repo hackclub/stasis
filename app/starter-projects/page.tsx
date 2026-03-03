@@ -8,7 +8,7 @@ import { PlaceholderProjectPreview } from '../components/starter-projects/Placeh
 import { ProjectPreview } from '../components/starter-projects/ProjectPreview';
 import { ProjectGridHoverCorners } from '../components/starter-projects/ProjectGridHoverCorners';
 import Link from 'next/link';
-import { projects, type StarterProject } from './projects';
+import { projects, getBadgeImageUrl, type StarterProject } from './projects';
 
 export default function StarterProjectsPage() {
   const [gridOffset, setGridOffset] = useState(0);
@@ -410,15 +410,18 @@ export default function StarterProjectsPage() {
                 </div>
                 <div className="w-full">
                   <div className="flex flex-row border-cream-500 border-y-2 relative z-10 min-h-18">
-                    <div className="flex-1/3 sm:min-h-24 border-cream-500 border-r-2 relative">
-                      <p className="text-cream-300 absolute top-2 right-4">1</p>
-                    </div>
-                    <div className="flex-1/3 sm:min-h-24 border-cream-500 border-r-2 relative">
-                      <p className="text-cream-300 absolute top-2 right-4">2</p>
-                    </div>
-                    <div className="flex-1/3 sm:min-h-24 border-cream-500 relative">
-                      <p className="text-cream-300 absolute top-2 right-4">3</p>
-                    </div>
+                    {[0, 1, 2].map((i) => {
+                      const badge = projects[selectedProjectIndex ?? 0].badges[i];
+                      const imgUrl = badge ? getBadgeImageUrl(badge) : '';
+                      return (
+                        <div key={i} className={`flex-1/3 sm:min-h-24 border-cream-500 relative flex items-center justify-center${i < 2 ? ' border-r-2' : ''}`}>
+                          <p className="text-cream-300 absolute top-2 right-4">{i + 1}</p>
+                          {imgUrl && (
+                            <img src={imgUrl} alt={badge} className="w-10 h-10 object-contain opacity-80" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   {/* TODO: add back hover effect using GSAP instead */}
                   {projects[selectedProjectIndex ?? 0].hasTutorial ? (
