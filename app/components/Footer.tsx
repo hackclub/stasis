@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface FooterProps {
   inset?: string;
 }
 
 export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
+  const pathname = usePathname();
+  const isLanding = pathname === '/';
   const [mouseX, setMouseX] = useState(-1000);
   const [mouseY, setMouseY] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,6 +45,11 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
             <span>・</span>
             <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Hackathons</a>
           </div>
+          {isLanding && (
+            <p className="mt-4 text-sm opacity-40">
+              Site by <a href="https://github.com/gusruben/" target="_blank" rel="noopener" className="underline">Augie</a>
+            </p>
+          )}
         </div>
       </div>
 
