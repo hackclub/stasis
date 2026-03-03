@@ -88,7 +88,7 @@ export default function AdminLayout({
               </span>
             </div>
             <button
-              onClick={() => signOut()}
+              onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/' } } })}
               className="text-brown-800 hover:text-orange-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out

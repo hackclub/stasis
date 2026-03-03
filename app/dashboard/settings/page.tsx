@@ -31,7 +31,7 @@ export default function SettingsPage() {
         <div className="border-t border-cream-400 pt-6">
           <h2 className="text-orange-500 text-xl uppercase mb-4">Session</h2>
           <button
-            onClick={() => signOut()}
+            onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/' } } })}
             className="w-full bg-red-600/20 hover:bg-red-600/30 border-2 border-red-600/50 px-6 py-3 text-lg uppercase tracking-wider text-red-500 transition-colors cursor-pointer"
           >
             Sign Out
