@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from "react";
 import { useSession, signIn, signOut } from "@/lib/auth-client";
 import { NoiseOverlay } from '../components/NoiseOverlay';
 import { UserMenu } from '../components/UserMenu';
@@ -17,6 +18,12 @@ export default function DashboardLayout({
   const { data: session, isPending } = useSession();
   const { hasRole } = useRoles();
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (session) {
+      localStorage.setItem('has_logged_in', 'true');
+    }
+  }, [session]);
 
 
 
@@ -86,7 +93,7 @@ export default function DashboardLayout({
               email={session.user.email}
               image={session.user.image}
               isAdmin={hasRole(Role.ADMIN)}
-              onSignOut={() => signOut()}
+              onSignOut={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/' } } })}
             />
             {hasRole(Role.SIDEKICK) && (
               <Link

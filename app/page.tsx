@@ -67,6 +67,14 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
     }
   }, [session, router, skipRedirect]);
 
+  const [hasLoggedInBefore, setHasLoggedInBefore] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem('has_logged_in') === 'true') {
+      setHasLoggedInBefore(true);
+    }
+  }, []);
+
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
   const [email, setEmail] = useState('');
@@ -222,6 +230,21 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
 
   return (
     <div ref={pageWrapperRef} className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-brown-800 bg-container overflow-x-hidden">
+      {hasLoggedInBefore && !session && (
+        <div className="fixed top-[calc(1rem+1rem)] right-[calc(1rem+1rem)] md:top-[calc(3rem+3rem)] md:right-[calc(3rem+1.5rem)] z-[60]">
+          <MagneticCorners offset={12}>
+            <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
+              <button
+                onClick={handleLogin}
+                className="relative bg-orange-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer transition-colors box-border"
+              >
+                <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
+                <span className="text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap">Log back in</span>
+              </button>
+            </MagneticCorners>
+          </MagneticCorners>
+        </div>
+      )}
       <style jsx>{`
         .bg-container::before {
           content: '';
