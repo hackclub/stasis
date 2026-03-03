@@ -39,7 +39,7 @@ export const projects: StarterProject[] = [
     name: 'Blinky Board',
     hours: 5,
     short_description: 'A 555 LED chaser board — a classic beginner PCB project.',
-    badges: [],
+    badges: ['Analog Sensors'],
     hasTutorial: true,
     image: 'blinky.png',
   },
