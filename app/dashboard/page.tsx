@@ -179,7 +179,7 @@ export default function ProjectsPage() {
             <p className="text-brown-800 text-xl sm:text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
           </div>
           <div>
-            <p className="text-brown-800 text-xs uppercase">Approved</p>
+            <p className="text-brown-800 text-xs uppercase">Hours Approved</p>
             <p className="text-orange-500 text-xl sm:text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
           </div>
         </div>
