@@ -414,10 +414,13 @@ export default function StarterProjectsPage() {
                       const badge = projects[selectedProjectIndex ?? 0].badges[i];
                       const imgUrl = badge ? getBadgeImageUrl(badge) : '';
                       return (
-                        <div key={i} className={`flex-1/3 sm:min-h-24 border-cream-500 relative flex items-center justify-center${i < 2 ? ' border-r-2' : ''}`}>
+                        <div key={i} className={`flex-1/3 sm:min-h-24 border-cream-500 relative flex flex-col items-center justify-center gap-1${i < 2 ? ' border-r-2' : ''}`}>
                           <p className="text-cream-300 absolute top-2 right-4">{i + 1}</p>
                           {imgUrl && (
                             <img src={imgUrl} alt={badge} className="w-10 h-10 object-contain opacity-80" />
+                          )}
+                          {badge && (
+                            <p className="text-cream-500 text-xs absolute bottom-2 left-0 right-0 text-center px-1 leading-tight">{badge}</p>
                           )}
                         </div>
                       );
