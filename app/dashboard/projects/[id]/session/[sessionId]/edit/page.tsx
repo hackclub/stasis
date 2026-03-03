@@ -3,7 +3,6 @@
 import { useState, useEffect, use } from 'react';
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
-import { NoiseOverlay } from '@/app/components/NoiseOverlay';
 import Link from 'next/link';
 import { SessionForm, type SessionCategory, type MediaItem, type SessionFormData } from '@/app/components/sessions/SessionForm';
 
@@ -139,7 +138,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
 
   if (isPending || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-100 font-mono">
+      <div className="flex items-center justify-center py-12">
         <p className="text-brown-800">Loading...</p>
       </div>
     );
@@ -150,69 +149,60 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-cream-100 font-mono">
-        {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
-          <Link href={`/dashboard/projects/${projectId}`} className="text-brown-800 hover:text-orange-500 transition-colors flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Back to Project
-          </Link>
-        </div>
+    <div className="max-w-3xl mx-auto">
+      <div className="mb-6">
+        <Link href={`/dashboard/projects/${projectId}`} className="text-brown-800 hover:text-orange-500 transition-colors flex items-center gap-2 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Project
+        </Link>
+        <h1 className="text-orange-500 text-2xl uppercase tracking-wide">Edit Journal Entry</h1>
+        <p className="text-brown-800 text-sm mt-1">Project: {project.title}</p>
+      </div>
 
-        <div className="max-w-3xl mx-auto px-4 py-8">
-          <div className="mb-6">
-            <h1 className="text-orange-500 text-2xl uppercase tracking-wide">Edit Journal Entry</h1>
-            <p className="text-brown-800 text-sm mt-1">Project: {project.title}</p>
-          </div>
-
-          <SessionForm
-            initialData={initialData}
-            onSubmit={handleSubmit}
-            submitLabel="Save Changes"
-            submitting={submitting}
-            error={error}
-            setError={setError}
-          >
-            {/* Delete Section */}
-            <div className="mt-8 pt-6 border-t border-cream-400">
-              {!showDeleteConfirm ? (
+      <SessionForm
+        initialData={initialData}
+        onSubmit={handleSubmit}
+        submitLabel="Save Changes"
+        submitting={submitting}
+        error={error}
+        setError={setError}
+      >
+        {/* Delete Section */}
+        <div className="mt-8 pt-6 border-t border-cream-400">
+          {!showDeleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-red-500 hover:text-red-400 text-sm uppercase transition-colors cursor-pointer"
+            >
+              Delete this entry...
+            </button>
+          ) : (
+            <div className="bg-red-600/10 border border-red-600/50 p-4">
+              <p className="text-red-500 text-sm mb-3">Are you sure you want to delete this journal entry? This cannot be undone.</p>
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-500 hover:text-red-400 text-sm uppercase transition-colors cursor-pointer"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="bg-red-600 hover:bg-red-500 disabled:bg-cream-400 text-white px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
                 >
-                  Delete this entry...
+                  {deleting ? 'Deleting...' : 'Yes, Delete'}
                 </button>
-              ) : (
-                <div className="bg-red-600/10 border border-red-600/50 p-4">
-                  <p className="text-red-500 text-sm mb-3">Are you sure you want to delete this journal entry? This cannot be undone.</p>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="bg-red-600 hover:bg-red-500 disabled:bg-cream-400 text-white px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
-                    >
-                      {deleting ? 'Deleting...' : 'Yes, Delete'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="bg-cream-200 hover:bg-cream-300 text-brown-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="bg-cream-200 hover:bg-cream-300 text-brown-800 px-4 py-2 text-sm uppercase cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-          </SessionForm>
+          )}
         </div>
-      </div>
-      <NoiseOverlay />
-    </>
+      </SessionForm>
+    </div>
   );
 }
