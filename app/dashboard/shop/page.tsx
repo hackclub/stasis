@@ -44,7 +44,7 @@ function PurchaseConfirmModal({
         <p className="text-brown-800 mb-6">
           {showQuantity
             ? `Buy ${item.name} to put toward your flight?`
-            : `Spend ${item.bitsCost.toLocaleString()} bits on ${item.name}?`
+            : <>Spend <span className="text-orange-500 font-medium">{item.bitsCost.toLocaleString()} bits</span> on {item.name}?</>
           }
         </p>
 
@@ -252,11 +252,11 @@ export default function ShopPage() {
           {/* Event Invite + Flight Stipend - side by side */}
           {(inviteItem || flightItem) && (
             <div>
+              <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Event Invite</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {inviteItem && (
                   <div>
-                    <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Event Invite</h2>
-                    <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-[calc(100%-3.5rem)] ${
+                    <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-full ${
                       purchasedItems.has(inviteItem.id) || bitsBalance >= inviteItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
                     }`}>
                       <div className="flex-1">
@@ -282,7 +282,7 @@ export default function ShopPage() {
                         ) : (
                           <div className="bg-cream-300 px-6 py-3 text-center">
                             <span className="text-cream-600 uppercase tracking-wide text-sm">
-                              {(inviteItem.bitsCost - bitsBalance).toLocaleString()} bits needed
+                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - bitsBalance).toLocaleString()} bits</span> needed
                             </span>
                           </div>
                         )}
@@ -293,8 +293,7 @@ export default function ShopPage() {
 
                 {flightItem && (
                   <div>
-                    <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Flight Stipend</h2>
-                    <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-[calc(100%-3.5rem)] ${
+                    <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-full ${
                       !hasEventInvite ? 'border-cream-300 opacity-60' : bitsBalance >= flightItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
                     }`}>
                       <div className="flex-1">
@@ -327,7 +326,7 @@ export default function ShopPage() {
                         ) : (
                           <div className="bg-cream-300 px-6 py-3 text-center">
                             <span className="text-cream-600 uppercase tracking-wide text-sm">
-                              {(flightItem.bitsCost - bitsBalance).toLocaleString()} bits needed
+                              <span className="text-orange-500 font-medium">{(flightItem.bitsCost - bitsBalance).toLocaleString()} bits</span> needed
                             </span>
                           </div>
                         )}
@@ -341,9 +340,11 @@ export default function ShopPage() {
 
           {/* Other Items */}
           <div>
-            <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Other Items</h2>
-            <div className="bg-cream-100 border-2 border-cream-400 p-6 text-center">
-              <p className="text-cream-500 uppercase tracking-wide text-sm">Coming soon...</p>
+            <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-20">Other Items</h2>
+            <div className="flex justify-center">
+              <div className="bg-cream-100 border-2 border-cream-400 px-10 py-4">
+                <p className="text-cream-500 uppercase tracking-wide text-sm">Coming soon...</p>
+              </div>
             </div>
           </div>
         </>
