@@ -13,6 +13,15 @@ interface TutorialStep {
 
 export type TutorialType = 'dashboard' | 'project';
 
+function renderContent(content: string) {
+  const parts = content.split(/\b(bits)\b/gi);
+  return parts.map((part, i) =>
+    /^bits$/i.test(part)
+      ? <span key={i} className="text-orange-500 font-medium">{part}</span>
+      : part
+  );
+}
+
 interface TutorialStatus {
   tutorialDashboard: boolean;
   tutorialProject: boolean;
@@ -28,7 +37,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'badge-progress',
     title: 'Your Goal: Qualify for Stasis',
-    content: 'To qualify, you need to earn enough bits from completing hardware projects. Each project has a tier with a fixed bit reward—your profit is the tier\'s bits minus the build cost. Accumulate enough profit bits and you\'re in!',
+    content: 'To come to Stasis, you need to earn enough bits from completing hardware projects. Each project has a tier with a fixed bit reward—your profit is the tier\'s bits minus the build cost. Accumulate enough profit bits and you\'re in!',
     targetSelector: '[data-tutorial="badge-progress"]',
     position: 'bottom',
   },
@@ -49,7 +58,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'new-project',
     title: 'Create Your First Project',
-    content: 'Click here to start a new project. Give it a name, pick a tier, add badges, and choose the technologies you\'ll use.',
+    content: 'Click here to start a new project. Give it a name, pick a tier, add badges, and choose the technologies you\'ll use. Don\'t worry—you can always delete it later.',
     targetSelector: '[data-tutorial="new-project"]',
     position: 'right',
   },
@@ -296,7 +305,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
     }
 
     const padding = 32;
-    const tooltipWidth = 360;
+    const tooltipWidth = 440;
     const tooltipHeight = 240;
     const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
     const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
@@ -408,7 +417,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
 
       {/* Tooltip */}
       <div
-        className="absolute bg-cream-100 border-2 border-orange-500 p-6 max-w-[360px] w-full shadow-2xl"
+        className="absolute bg-cream-100 border-2 border-orange-500 p-6 max-w-110 w-full shadow-2xl"
         style={tooltipPosition}
       >
         {/* Progress indicator */}
@@ -416,7 +425,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
           {TUTORIAL_STEPS.map((_, index) => (
             <div
               key={index}
-              className={`h-1 flex-1 rounded-full transition-colors ${
+              className={`h-1 flex-1 transition-colors ${
                 index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
               }`}
             />
@@ -435,19 +444,18 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
 
         {/* Content */}
         <p className="text-brown-800 text-sm leading-relaxed mb-6">
-          {step.content}
+          {renderContent(step.content)}
         </p>
 
         {/* Navigation */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={handleSkip}
-            className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
-          >
-            Skip tutorial
-          </button>
-          
           <div className="flex gap-2">
+            <button
+              onClick={handleNext}
+              className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              {currentStep === TUTORIAL_STEPS.length - 1 ? 'Get Started' : 'Next'}
+            </button>
             {currentStep > 0 && (
               <button
                 onClick={handlePrev}
@@ -456,13 +464,16 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
                 Back
               </button>
             )}
-            <button
-              onClick={handleNext}
-              className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
-            >
-              {currentStep === TUTORIAL_STEPS.length - 1 ? 'Get Started' : 'Next'}
-            </button>
           </div>
+
+          {currentStep < TUTORIAL_STEPS.length - 1 && (
+            <button
+              onClick={handleSkip}
+              className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
+            >
+              Skip tutorial
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -117,10 +117,6 @@ export async function POST(request: NextRequest) {
 
   const validatedBadges = validateBadges(badges)
 
-  if (validatedBadges.length === 0) {
-    return NextResponse.json({ error: "At least one badge is required" }, { status: 400 })
-  }
-
   const existingBadges = await prisma.projectBadge.findMany({
     where: { 
       badge: { in: validatedBadges },

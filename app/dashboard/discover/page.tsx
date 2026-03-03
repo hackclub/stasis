@@ -228,7 +228,7 @@ export default function DiscoverPage() {
         <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
           <p className="text-brown-800">No projects to discover yet.</p>
           <p className="text-cream-600 text-sm mt-1">
-            Check back later as more projects get approved!
+            Check back later as more and more projects get built!
           </p>
         </div>
       ) : (
