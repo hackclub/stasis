@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
 
     const alreadyRSVPed = await findRSVPByEmail(safeEmail);
     if (alreadyRSVPed) {
+      const cookieStore = await cookies();
+      cookieStore.set('rsvp_login_hint', safeEmail, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 10,
+        path: '/',
+      });
       return NextResponse.json(
         { error: 'This email has already been RSVPed' },
         { status: 409 }
