@@ -87,6 +87,7 @@ export default function ProjectsPage() {
     badges: BadgeType[]
     isStarter: boolean
     starterProjectId: string | null
+    githubRepo: string
     tier: number | null
   }) => {
     setModalError(null);
@@ -138,7 +139,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-orange-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
-            <p className="text-brown-800 text-sm">Earn <span className="text-orange-500 font-medium">{QUALIFICATION_BITS_THRESHOLD} bits</span> from building hardware projects to qualify for Stasis!</p>
+            <p className="text-brown-800 text-sm">Earn <span className="text-orange-500 font-medium">{QUALIFICATION_BITS_THRESHOLD}&nbsp;bits</span> from building hardware projects to qualify for Stasis!</p>
           </div>
           {qualified && (
             <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
@@ -158,7 +159,7 @@ export default function ProjectsPage() {
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className={`text-xs font-medium ${qualified ? 'text-white' : 'text-brown-800'}`}>
-                {actualBits} / {QUALIFICATION_BITS_THRESHOLD} bits
+                {actualBits} / {QUALIFICATION_BITS_THRESHOLD}&nbsp;bits
               </span>
             </div>
           </div>

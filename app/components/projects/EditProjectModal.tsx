@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
-import { AVAILABLE_TAGS } from "@/lib/tags"
 import { TIERS } from "@/lib/tiers"
 
 interface ProjectBadge {
@@ -217,27 +216,6 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
             />
           </div>
 
-          <div>
-            <label className="block text-brown-800 text-sm uppercase mb-2">
-              Tags
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {AVAILABLE_TAGS.map((tag) => (
-                <button
-                  key={tag.value}
-                  type="button"
-                  onClick={() => handleTagToggle(tag.value)}
-                  className={`px-3 py-1.5 text-sm uppercase transition-colors cursor-pointer ${
-                    selectedTags.includes(tag.value)
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
-                  }`}
-                >
-                  {tag.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div>
             <label className="block text-brown-800 text-sm uppercase mb-2">
@@ -270,7 +248,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                 >
                   <span className="uppercase font-medium">{tier.name}</span>
                   <span className="block text-xs mt-0.5 opacity-80">
-                    {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                    {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
                   </span>
                 </button>
               ))}

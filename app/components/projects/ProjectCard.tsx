@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ProjectTag } from "@/app/generated/prisma/enums"
-import { TAG_LABELS } from "@/lib/tags"
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects"
 import { getBadgeImage } from "@/lib/badges";
 
@@ -130,17 +129,6 @@ export function ProjectCard({ project }: Readonly<Props>) {
           </p>
         )}
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1 mt-3">
-          {project.tags.slice(0, 3).map((tag) => (
-            <span 
-              key={tag} 
-              className="text-[10px] bg-cream-300 text-brown-800 px-1.5 py-0.5 uppercase"
-            >
-              {TAG_LABELS[tag]}
-            </span>
-          ))}
-        </div>
 
         {/* Badges */}
         {(approvedBadges.length > 0 || pendingBadges.length > 0) && (

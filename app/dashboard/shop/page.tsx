@@ -44,7 +44,7 @@ function PurchaseConfirmModal({
         <p className="text-brown-800 mb-6">
           {showQuantity
             ? `Buy ${item.name} to put toward your flight?`
-            : <>Spend <span className="text-orange-500 font-medium">{item.bitsCost.toLocaleString()} bits</span> on {item.name}?</>
+            : <>Spend <span className="text-orange-500 font-medium">{item.bitsCost.toLocaleString()}&nbsp;bits</span> on {item.name}?</>
           }
         </p>
 
@@ -87,8 +87,8 @@ function PurchaseConfirmModal({
 
             <div className="bg-cream-200 border border-cream-400 p-4">
               <div className="flex justify-between text-brown-800 text-sm mb-1">
-                <span>{item.bitsCost.toLocaleString()} bits &times; {quantity}</span>
-                <span className="font-bold">{totalCost.toLocaleString()} bits</span>
+                <span>{item.bitsCost.toLocaleString()}&nbsp;bits &times; {quantity}</span>
+                <span className="font-bold">{totalCost.toLocaleString()}&nbsp;bits</span>
               </div>
               <div className="flex justify-between text-brown-800 text-sm">
                 <span>Flight stipend added</span>
@@ -102,7 +102,7 @@ function PurchaseConfirmModal({
           <div className="mb-6 bg-cream-200 border border-cream-400 p-4">
             <div className="flex justify-between text-brown-800 text-sm">
               <span>Cost</span>
-              <span className="font-bold">{totalCost.toLocaleString()} bits</span>
+              <span className="font-bold">{totalCost.toLocaleString()}&nbsp;bits</span>
             </div>
           </div>
         )}
@@ -226,13 +226,13 @@ export default function ShopPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-orange-500 text-lg uppercase tracking-wide">Your Bits Balance</h2>
-            <p className="text-brown-800 text-4xl font-bold">{bitsBalance.toLocaleString()} Bits</p>
+            <p className="text-brown-800 text-4xl font-bold">{bitsBalance.toLocaleString()}&nbsp;Bits</p>
           </div>
           <div className="text-right">
             <p className="text-brown-800 text-xs uppercase tracking-wide">Earned</p>
-            <p className="text-brown-800 text-lg">{bitsEarned.toLocaleString()} bits</p>
+            <p className="text-brown-800 text-lg">{bitsEarned.toLocaleString()}&nbsp;bits</p>
             <p className="text-brown-800 text-xs uppercase tracking-wide mt-1">Spent on Parts</p>
-            <p className="text-brown-800 text-lg">{bitsSpent.toLocaleString()} bits</p>
+            <p className="text-brown-800 text-lg">{bitsSpent.toLocaleString()}&nbsp;bits</p>
           </div>
         </div>
       </div>
@@ -262,7 +262,7 @@ export default function ShopPage() {
                       <div className="flex-1">
                         <h3 className="text-brown-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
                         <p className="text-brown-800 text-sm mb-3">{inviteItem.description}</p>
-                        <p className="text-orange-400 font-bold text-lg">{inviteItem.bitsCost.toLocaleString()} Bits</p>
+                        <p className="text-orange-400 font-bold text-lg">{inviteItem.bitsCost.toLocaleString()}&nbsp;Bits</p>
                       </div>
                       <div>
                         {purchasedItems.has(inviteItem.id) ? (
@@ -282,7 +282,7 @@ export default function ShopPage() {
                         ) : (
                           <div className="bg-cream-300 px-6 py-3 text-center">
                             <span className="text-cream-600 uppercase tracking-wide text-sm">
-                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - bitsBalance).toLocaleString()} bits</span> needed
+                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - bitsBalance).toLocaleString()}&nbsp;bits</span> needed
                             </span>
                           </div>
                         )}
@@ -299,7 +299,7 @@ export default function ShopPage() {
                       <div className="flex-1">
                         <h3 className="text-brown-800 text-xl font-medium mb-1">{flightItem.name}</h3>
                         <p className="text-brown-800 text-sm mb-3">{flightItem.description}</p>
-                        <p className="text-orange-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()} Bits per $10</p>
+                        <p className="text-orange-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()}&nbsp;Bits per $10</p>
                         {(itemTotals[flightItem.id] ?? 0) > 0 && (
                           <p className="text-brown-800 text-sm mt-2">
                             You&apos;ve put <span className="font-bold text-orange-400">${(itemTotals[flightItem.id] ?? 0).toLocaleString()}</span> toward your flight so far
@@ -326,7 +326,7 @@ export default function ShopPage() {
                         ) : (
                           <div className="bg-cream-300 px-6 py-3 text-center">
                             <span className="text-cream-600 uppercase tracking-wide text-sm">
-                              <span className="text-orange-500 font-medium">{(flightItem.bitsCost - bitsBalance).toLocaleString()} bits</span> needed
+                              <span className="text-orange-500 font-medium">{(flightItem.bitsCost - bitsBalance).toLocaleString()}&nbsp;bits</span> needed
                             </span>
                           </div>
                         )}

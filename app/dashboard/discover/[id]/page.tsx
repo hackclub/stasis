@@ -5,7 +5,6 @@ import { useSession } from "@/lib/auth-client";
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
-import { TAG_LABELS } from "@/lib/tags";
 import type { PublicTimelineItem } from '@/app/api/discover/[id]/timeline/route';
 
 const MDPreview = dynamic(
@@ -324,16 +323,6 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
           </div>
         )}
 
-        {/* Tags */}
-        {project.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {project.tags.map((tag) => (
-              <span key={tag} className="px-2 py-1 text-xs bg-cream-200 border border-cream-400 text-brown-800 uppercase">
-                {TAG_LABELS[tag]}
-              </span>
-            ))}
-          </div>
-        )}
 
         {/* Badges */}
         {project.badges.length > 0 && (
