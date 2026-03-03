@@ -1,23 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { MDXComponents } from 'mdx/types';
-import SubmissionGuidelines from '../dashboard/guides/content/submission-guidelines.mdx';
 import FAQ from '../dashboard/guides/content/faq.mdx';
 import Overview from '../dashboard/guides/content/overview.mdx';
-import ProjectGuidelines from '../dashboard/guides/content/project-guidelines.mdx';
-import SubmittingYourProject from '../dashboard/guides/content/submitting-your-project.mdx';
 import AboutCost from '../dashboard/guides/content/about-cost.mdx';
+import SubmissionGuidelines from '../dashboard/guides/content/submission-guidelines.mdx';
+import Parents from '../dashboard/guides/content/parents.mdx';
 
-type GuidePage = 'overview' | 'submission-guidelines' | 'project-guidelines' | 'submitting-your-project' | 'about-cost' | 'faq';
+type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents';
 
 const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; section: 'guides' | 'faq' }[] = [
   { id: 'overview', label: 'Overview', section: 'guides' },
   { id: 'submission-guidelines', label: 'Submission Guidelines', section: 'guides' },
-  { id: 'project-guidelines', label: 'Project Guidelines', section: 'guides' },
-  { id: 'submitting-your-project', label: 'Submitting Your Project', section: 'guides' },
   { id: 'about-cost', label: 'About Cost', section: 'guides' },
   { id: 'faq', label: 'General FAQ', heading: 'Frequently Asked Questions', section: 'faq' },
+  { id: 'parents', label: 'Parent Guide', heading: 'Guide for Parents', section: 'faq' },
+];
+
+const FAQ_SECTIONS = [
+  'General',
+  'Projects & Reviews',
+  'Funding & Parts',
+  'Badges & Hackatime',
+  'Other',
 ];
 
 const mdxComponents: MDXComponents = {
@@ -36,11 +42,29 @@ const mdxComponents: MDXComponents = {
   ul: ({ children }) => (
     <ul className="list-disc list-inside text-brown-800 space-y-1">{children as React.ReactNode}</ul>
   ),
+  ol: ({ children }) => (
+    <ol className="list-decimal list-inside text-brown-800 space-y-1">{children as React.ReactNode}</ol>
+  ),
+  li: ({ children }) => (
+    <li className="text-brown-800">{children as React.ReactNode}</li>
+  ),
   strong: ({ children }) => (
     <strong className="font-bold">{children as React.ReactNode}</strong>
   ),
   em: ({ children }) => (
     <em className="italic">{children as React.ReactNode}</em>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="mt-4 p-4 bg-orange-500/10 border border-orange-500/30 [&_p]:text-orange-600 [&_p]:m-0">{children as React.ReactNode}</blockquote>
+  ),
+  table: ({ children }) => (
+    <table className="w-full text-sm text-brown-800 border-collapse">{children as React.ReactNode}</table>
+  ),
+  th: ({ children }) => (
+    <th className="text-left text-brown-800 font-medium border-b border-cream-400 pb-2 pr-4">{children as React.ReactNode}</th>
+  ),
+  td: ({ children }) => (
+    <td className="text-brown-800 border-b border-cream-400 py-2 pr-4">{children as React.ReactNode}</td>
   ),
 };
 
@@ -48,15 +72,34 @@ const mdxComponents: MDXComponents = {
 const PAGE_CONTENT: Record<GuidePage, React.ComponentType<any>> = {
   'overview': Overview,
   'submission-guidelines': SubmissionGuidelines,
-  'project-guidelines': ProjectGuidelines,
-  'submitting-your-project': SubmittingYourProject,
   'about-cost': AboutCost,
   'faq': FAQ,
+  'parents': Parents,
 };
 
 export default function GuidesContent() {
-  const [activeGuidePage, setActiveGuidePage] = useState<GuidePage>('submission-guidelines');
+  const [activeGuidePage, setActiveGuidePage] = useState<GuidePage>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [faqTab, setFaqTab] = useState(FAQ_SECTIONS[0]);
+
+  const faqComponents = useMemo<MDXComponents>(() => {
+    let currentSection = '';
+    return {
+      h2: ({ children }) => { currentSection = String(children); return null; },
+      h3: ({ children }) => currentSection === faqTab ? (
+        <h3 className="text-brown-800 text-base md:text-lg mb-2 mt-4">{children as React.ReactNode}</h3>
+      ) : null,
+      p: ({ children }) => currentSection === faqTab ? (
+        <p className="text-brown-800 pb-4 border-b border-cream-400 last-of-type:border-0">{children as React.ReactNode}</p>
+      ) : null,
+      a: ({ children, href }) => (
+        <a href={href} className="text-orange-500 underline">{children as React.ReactNode}</a>
+      ),
+      strong: ({ children }) => (
+        <strong className="font-bold">{children as React.ReactNode}</strong>
+      ),
+    };
+  }, [faqTab]);
 
   useEffect(() => {
     const hash = window.location.hash.slice(1) as GuidePage;
@@ -73,7 +116,7 @@ export default function GuidesContent() {
   return (
     <div className="relative flex flex-col md:block">
       {/* Sidebar Navigation - dropdown on mobile, absolutely positioned on desktop */}
-      <div className="w-full md:w-56 md:absolute md:right-[calc(50%+theme(maxWidth.3xl)/2+1.5rem)]">
+      <div className="w-full md:w-56 md:absolute md:right-[calc(50%+(var(--container-3xl))/2+1.5rem)]">
         <nav className="bg-cream-100 border-2 border-cream-400 p-3 md:p-4 md:sticky md:top-8">
           {/* Mobile: dropdown menu */}
           <div className="md:hidden relative">
@@ -174,7 +217,24 @@ export default function GuidesContent() {
             {currentPage?.heading ?? currentPage?.label}
           </h1>
           {activeGuidePage === 'faq' ? (
-            <ActiveContent components={mdxComponents} />
+            <div>
+              <div className="flex flex-wrap gap-x-0.5 border-b border-cream-400 mb-6 -mx-1">
+                {FAQ_SECTIONS.map(section => (
+                  <button
+                    key={section}
+                    onClick={() => setFaqTab(section)}
+                    className={`px-3 py-1.5 text-xs cursor-pointer transition-colors border-b-2 -mb-px ${
+                      faqTab === section
+                        ? 'text-orange-500 border-orange-500'
+                        : 'text-brown-800 border-transparent hover:text-orange-500'
+                    }`}
+                  >
+                    {section}
+                  </button>
+                ))}
+              </div>
+              <ActiveContent components={faqComponents} />
+            </div>
           ) : (
             <div className="prose max-w-none space-y-6 text-brown-800">
               <ActiveContent components={mdxComponents} />
