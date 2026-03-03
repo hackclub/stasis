@@ -11,7 +11,6 @@ const MDPreview = dynamic(
   { ssr: false }
 );
 import { ProjectTag } from "@/app/generated/prisma/enums";
-import { TAG_LABELS } from "@/lib/tags";
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
 import { getTierById, TIERS } from "@/lib/tiers";
 import { getBadgeImage } from "@/lib/badges";
@@ -428,21 +427,6 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
-            {project.tags.length > 0 && (
-              <div className="mt-4">
-                <p className="text-brown-800 text-xs uppercase mb-2">Tags</p>
-                <div className="flex flex-wrap gap-2">
-                  {project.tags.map((tag) => (
-                    <span 
-                      key={tag}
-                      className="bg-cream-200 border border-cream-400 text-brown-800 px-2 py-1 text-xs uppercase"
-                    >
-                      {TAG_LABELS[tag]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {project.badges.length > 0 && (
               <div className="mt-4">

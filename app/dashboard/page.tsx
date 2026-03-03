@@ -87,6 +87,7 @@ export default function ProjectsPage() {
     badges: BadgeType[]
     isStarter: boolean
     starterProjectId: string | null
+    githubRepo: string
     tier: number | null
   }) => {
     setModalError(null);

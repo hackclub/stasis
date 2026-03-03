@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges"
-import { AVAILABLE_TAGS } from "@/lib/tags"
 import { TIERS } from "@/lib/tiers"
 
 interface Props {
@@ -17,6 +16,7 @@ interface Props {
     badges: BadgeType[]
     isStarter: boolean
     starterProjectId: string | null
+    githubRepo: string
     tier: number | null
   }) => Promise<{ error?: string } | void>
   error?: string | null
@@ -33,6 +33,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [selectedBadges, setSelectedBadges] = useState<BadgeType[]>([])
   const [isStarter, setIsStarter] = useState(false)
   const [starterProjectId, setStarterProjectId] = useState('')
+  const [githubRepo, setGithubRepo] = useState('')
   const [claimedBadges, setClaimedBadges] = useState<BadgeType[]>([])
   const [selectedTier, setSelectedTier] = useState<number | null>(1)
 
@@ -79,6 +80,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
       badges: selectedBadges,
       isStarter,
       starterProjectId: isStarter ? starterProjectId : null,
+      githubRepo: githubRepo.trim(),
       tier: selectedTier,
     })
 
@@ -90,6 +92,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
     setSelectedBadges([])
     setIsStarter(false)
     setStarterProjectId('')
+    setGithubRepo('')
     setSelectedTier(1)
     setStep(0)
   }
@@ -248,24 +251,15 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
 
                 <div>
                   <label className="block text-brown-800 text-sm uppercase mb-2">
-                    Tags
+                    GitHub Repository <span className="text-cream-500">(optional)</span>
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {AVAILABLE_TAGS.map((tag) => (
-                      <button
-                        key={tag.value}
-                        type="button"
-                        onClick={() => handleTagToggle(tag.value)}
-                        className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
-                          selectedTags.includes(tag.value)
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
-                        }`}
-                      >
-                        {tag.label}
-                      </button>
-                    ))}
-                  </div>
+                  <input
+                    type="text"
+                    value={githubRepo}
+                    onChange={(e) => setGithubRepo(e.target.value)}
+                    className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
+                    placeholder="github.com/user/repo"
+                  />
                 </div>
               </>
             )}

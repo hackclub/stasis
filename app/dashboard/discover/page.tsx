@@ -5,7 +5,6 @@ import { useSession } from "@/lib/auth-client";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ProjectTag } from "@/app/generated/prisma/enums";
-import { TAG_LABELS } from "@/lib/tags";
 
 interface DiscoverProject {
   id: string;
@@ -100,18 +99,6 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
           </p>
         )}
 
-        {project.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {project.tags.map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 text-xs bg-cream-200 border border-cream-400 text-brown-800"
-              >
-                {TAG_LABELS[tag]}
-              </span>
-            ))}
-          </div>
-        )}
 
         <div className="flex items-center justify-between text-xs text-cream-600">
           <button

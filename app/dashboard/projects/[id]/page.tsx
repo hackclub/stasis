@@ -9,7 +9,6 @@ import { Timeline } from '@/app/components/projects/Timeline';
 import { OnboardingTutorial, TutorialHelpButton } from '@/app/components/OnboardingTutorial';
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
-import { TAG_LABELS } from "@/lib/tags";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
 import { getBadgeImage } from "@/lib/badges";
 import { formatPrice } from "@/lib/format";
@@ -580,26 +579,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </label>
             </div>
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              {project.tags.map((tag) => (
-                <span 
-                  key={tag} 
-                  className={`text-xs px-2 py-1 uppercase ${
-                    tag === 'CAD' 
-                      ? 'bg-orange-500 text-white' 
-                      : 'bg-cream-200 text-brown-800'
-                  }`}
-                >
-                  {TAG_LABELS[tag]}
-                </span>
-              ))}
-              {project.isStarter && (
+            {project.isStarter && (
+              <div className="flex flex-wrap gap-2 mt-4">
                 <span className="text-xs bg-orange-500 text-white font-medium px-2 py-1 uppercase">
                   Starter
                 </span>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Stats */}
             <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-fit">

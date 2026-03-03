@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
+import { normalizeUrl, isValidUrl } from "@/lib/url"
 import { VALID_BADGE_TYPES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
 import { VALID_TAGS } from "@/lib/tags"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { title, description, tags, badges, isStarter, starterProjectId, tier } = body
+  const { title, description, tags, badges, isStarter, starterProjectId, githubRepo, tier } = body
 
   if (!title || typeof title !== "string" || title.trim().length === 0) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 })
@@ -130,6 +131,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Badge(s) already in use: ${taken}` }, { status: 400 })
   }
 
+  let sanitizedGithubRepo: string | null = null
+  if (typeof githubRepo === "string" && githubRepo.trim()) {
+    const normalized = normalizeUrl(githubRepo.trim())
+    if (isValidUrl(normalized)) {
+      sanitizedGithubRepo = sanitize(normalized)
+    }
+  }
+
   const project = await prisma.project.create({
     data: {
       title: sanitize(title.trim()),
@@ -137,6 +146,7 @@ export async function POST(request: NextRequest) {
       tags: validateTags(tags),
       isStarter: Boolean(isStarter),
       starterProjectId: typeof starterProjectId === "string" ? sanitize(starterProjectId) : null,
+      githubRepo: sanitizedGithubRepo,
       tier: tier ?? null,
       userId: session.user.id,
       badges: {
