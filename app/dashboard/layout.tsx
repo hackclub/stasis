@@ -85,6 +85,8 @@ export default function DashboardLayout({
               name={(session.user as any).slackDisplayName || session.user.name || session.user.email || ''}
               email={session.user.email}
               image={session.user.image}
+              isAdmin={hasRole(Role.ADMIN)}
+              onSignOut={() => signOut()}
             />
             {hasRole(Role.SIDEKICK) && (
               <Link
@@ -94,20 +96,6 @@ export default function DashboardLayout({
                 Sidekick
               </Link>
             )}
-            {hasRole(Role.ADMIN) && (
-              <Link
-                href="/admin"
-                className="text-brown-800 hover:text-orange-500 text-sm uppercase transition-colors flex items-center"
-              >
-                Admin
-              </Link>
-            )}
-            <button
-              onClick={() => signOut()}
-              className="text-brown-800 hover:text-orange-500 text-sm uppercase transition-colors cursor-pointer flex items-center"
-            >
-              Sign Out
-            </button>
           </div>
         </div>
 
