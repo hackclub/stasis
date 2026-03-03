@@ -158,6 +158,10 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          await handleLogin();
+          return;
+        }
         throw new Error('Failed to start RSVP');
       }
 

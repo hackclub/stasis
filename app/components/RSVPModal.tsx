@@ -47,6 +47,13 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          await authClient.signIn.oauth2({
+            providerId: 'hca',
+            callbackURL: '/dashboard',
+          });
+          return;
+        }
         const data = await response.json();
         throw new Error(data.error || 'Failed to start RSVP');
       }
