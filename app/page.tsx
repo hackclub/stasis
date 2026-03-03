@@ -54,7 +54,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
   return <span ref={ref} className={className}>{children}</span>;
 }
 
-function HomeContent() {
+export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean } = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -62,10 +62,10 @@ function HomeContent() {
   const referralCode = searchParams.get('r');
 
   useEffect(() => {
-    if (session) {
+    if (!skipRedirect && session) {
       router.replace('/dashboard');
     }
-  }, [session, router]);
+  }, [session, router, skipRedirect]);
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
