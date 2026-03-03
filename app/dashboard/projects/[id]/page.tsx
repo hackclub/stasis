@@ -896,7 +896,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <div className="flex items-center">
                     <span className="text-brown-800 text-xs mr-3">Estimated cost in bits:</span>
                     <span className="text-brown-800 text-sm">
-                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))} bits
+                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))}&nbsp;bits
                     </span>
                   </div>
                 </div>

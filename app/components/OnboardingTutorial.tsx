@@ -14,12 +14,19 @@ interface TutorialStep {
 export type TutorialType = 'dashboard' | 'project';
 
 function renderContent(content: string) {
-  const parts = content.split(/(\b\d+\s+bits?\b|\bbits?\b)/gi);
-  return parts.map((part, i) =>
-    /^(\d+\s+bits?|bits?)$/i.test(part)
-      ? <span key={i} className="text-orange-500 font-medium">{part}</span>
-      : part
-  );
+  const lines = content.split('\n');
+  return lines.flatMap((line, lineIndex) => {
+    const parts = line.split(/(\b\d+\s+bits?\b|\bbits?\b)/gi);
+    const rendered = parts.map((part, i) =>
+      /^(\d+\s+bits?|bits?)$/i.test(part)
+        ? <span key={`${lineIndex}-${i}`} className="text-orange-500 font-medium">{part.replace(/(\d+)\s+(bits?)/i, '$1\u00A0$2')}</span>
+        : part
+    );
+    if (lineIndex < lines.length - 1) {
+      rendered.push(<br key={`br-${lineIndex}`} />);
+    }
+    return rendered;
+  });
 }
 
 interface TutorialStatus {
@@ -37,7 +44,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'badge-progress',
     title: 'Your Goal: Qualify for Stasis',
-    content: 'To come to Stasis, you need to earn enough bits from completing hardware projects. Each project has a complexity level with a fixed bit reward—your profit is the complexity level\'s bits minus the build cost. Accumulate enough profit bits and you\'re in!',
+    content: 'To come to Stasis, you need to earn enough bits from completing hardware projects.\n\nEach project has a complexity level with a fixed reward - you get a budget to spend on parts for your project, and you earn bits based on how much money you have left over.\n\nAccumulate enough bits and you\'re in!',
     targetSelector: '[data-tutorial="badge-progress"]',
     position: 'bottom',
   },

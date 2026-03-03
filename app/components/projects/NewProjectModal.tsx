@@ -34,7 +34,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [isStarter, setIsStarter] = useState(false)
   const [starterProjectId, setStarterProjectId] = useState('')
   const [claimedBadges, setClaimedBadges] = useState<BadgeType[]>([])
-  const [selectedTier, setSelectedTier] = useState<number | null>(5)
+  const [selectedTier, setSelectedTier] = useState<number | null>(1)
 
   useEffect(() => {
     if (isOpen) {
@@ -90,7 +90,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
     setSelectedBadges([])
     setIsStarter(false)
     setStarterProjectId('')
-    setSelectedTier(5)
+    setSelectedTier(1)
     setStep(0)
   }
 
@@ -199,7 +199,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => { setIsStarter(false); setStarterProjectId(''); setSelectedTier(5); }}
+                      onClick={() => { setIsStarter(false); setStarterProjectId(''); setSelectedTier(1); }}
                       className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
                         !isStarter
                           ? 'bg-orange-500 text-white'
@@ -327,7 +327,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   </p>
                 )}
                 <div className="flex flex-col gap-2">
-                  {[...TIERS].slice().reverse().map((tier) => {
+                  {TIERS.map((tier) => {
                     const isRecommended = starterProject && tier.id === starterProject.tier
                     const isGreyed = starterProject && tier.id !== starterProject.tier && selectedTier !== tier.id
                     return (
@@ -349,7 +349,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                             {isRecommended && selectedTier === tier.id && <span className="ml-2 text-xs font-normal opacity-80">(recommended)</span>}
                           </span>
                           <span className="text-xs opacity-80">
-                            {tier.bits} bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                            {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
                           </span>
                         </div>
                         <span className={`block text-xs mt-1 ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
