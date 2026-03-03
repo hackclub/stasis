@@ -182,6 +182,20 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   }, [session, isPending, projectId, router]);
 
+  // Listen for project tutorial replay triggers (from UserMenu or floating button)
+  useEffect(() => {
+    if (localStorage.getItem('stasis_replay_project_tutorial')) {
+      localStorage.removeItem('stasis_replay_project_tutorial');
+      setShowTutorial(true);
+    }
+    const handler = () => {
+      localStorage.removeItem('stasis_replay_project_tutorial');
+      setShowTutorial(true);
+    };
+    window.addEventListener('stasis:replay-project-tutorial', handler);
+    return () => window.removeEventListener('stasis:replay-project-tutorial', handler);
+  }, []);
+
   const handleSubmitStage = async (stage: "design" | "build") => {
     if (!project) return;
     if (stage === "design") {
@@ -1309,6 +1323,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <Timeline items={timelineItems} projectId={projectId} />
         </div>
       </div>
+
+      {/* Floating help button to replay project tutorial */}
+      {!showTutorial && (
+        <button
+          onClick={() => setShowTutorial(true)}
+          className="fixed bottom-10 right-10 w-10 h-10 bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center text-lg font-bold transition-colors cursor-pointer z-40"
+          aria-label="Replay project tutorial"
+          title="Replay project tutorial"
+        >
+          ?
+        </button>
+      )}
     </div>
   );
 }

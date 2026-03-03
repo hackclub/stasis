@@ -75,7 +75,7 @@ export default function SidekickLayout({
               </span>
             </div>
             <button
-              onClick={() => signOut()}
+              onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/' } } })}
               className="text-cream-700 hover:text-brand-500 text-sm uppercase transition-colors cursor-pointer"
             >
               Sign Out
