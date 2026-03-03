@@ -209,12 +209,7 @@ export async function POST(
     ? timelapseIds.filter((id: unknown): id is string => typeof id === "string" && id.length > 0)
     : []
 
-  if (hoursClaimed > 7 && validatedTimelapseIds.length === 0) {
-    return NextResponse.json(
-      { error: "Sessions over 7 hours require at least one timelapse" },
-      { status: 400 }
-    )
-  }
+
 
   const timelapseMetas = await Promise.all(
     validatedTimelapseIds.map(async (timelapseId) => {

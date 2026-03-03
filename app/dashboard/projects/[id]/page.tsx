@@ -655,7 +655,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </a>
                 </div>
                 <p className="text-cream-600 text-xs mt-2">
-                  Planning to work 7+ hours? You&apos;ll need to include a timelapse recording of your session.
+                  Planning to work 7+ hours? We recommend including a timelapse recording of your session.
                 </p>
               </div>
             )}

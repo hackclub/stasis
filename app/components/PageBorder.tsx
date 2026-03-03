@@ -490,7 +490,7 @@ useEffect(() => {
         </div>
 
         <div className={`absolute whitespace-pre-line font-mono text-xs leading-tight text-cream-500 text-2 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ left: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px + 0.75rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}>
-          <span>IDENTIFICATION NUMBER REC2PMW0I1lA2GQ3X<br /><img src="/pixel-star.png" alt="" className="inline-block" style={{ height: '0.8rem', imageRendering: 'pixelated' }} /> STASIS V0.1 <span className="font-barcode">jksdfj</span> 2026-02 - HC 000000159</span>
+          <span>IDENTIFICATION NUMBER REC2PMW0I1lA2GQ3X<br /><img src="/pixel-star.png" alt="" className="inline-block" style={{ height: '0.8rem', imageRendering: 'pixelated' }} /> <strong>STASIS</strong> V0.1 <span className="font-barcode">jksdfj</span> 2026-02 - HC 000000159</span>
         </div>
 
         <div className={`absolute font-mono text-xs text-cream-500 text-3 pointer-events-auto ${bottomVisible ? 'mounted' : ''}`} style={{ right: `calc(${inset} + 0.75rem)`, bottom: `calc(${footerHeight}px + 0.75rem)`, visibility: bottomVisible ? 'visible' : 'hidden' }}>

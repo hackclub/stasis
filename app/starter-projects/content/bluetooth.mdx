@@ -1,0 +1,149 @@
+# Bluetooth Messenger Display
+
+## What You'll Need
+
+**Programs**
+- [KiCad](https://www.kicad.org/) — for PCB design
+- CAD software ([Onshape](https://www.onshape.com/), [Fusion 360](https://www.autodesk.com/products/fusion-360/), or Solidworks) — for 3D modeling
+- [Arduino IDE](https://www.arduino.cc/en/software) — for firmware
+
+**Components**
+- SSD1306 OLED Display
+- WeMos D1 Mini (or any board of your choosing)
+- Custom PCB
+
+**Optional (for portability)**
+- Lithium Coin Battery (×2)
+- Battery Holder (×2)
+
+---
+
+## Step 1: Design Your Circuit
+
+Open up KiCad and create a new project — name it whatever you want! (This tutorial uses `bluetext` as an example.)
+
+![KiCad new project](https://github.com/user-attachments/assets/4856be50-c635-479e-acdb-be14578b5156)
+
+Select the **Schematic Editor** — this is where we lay out all our components.
+
+Before placing anything, we need to import symbol and footprint libraries for our components. Rather than making them from scratch, we can download them online.
+
+- [Library for the WeMos D1 Mini](https://github.com/jerome-labidurie/d1_mini_kicad)
+- [Symbol and Footprint for OLED Display (SnapEDA)](https://www.snapeda.com/parts/DM-OLED096-636/Display%20Module/view-part/)
+
+Once downloaded, go to **Preferences → Manage Symbol Libraries...**
+
+![Manage Symbol Libraries menu](https://github.com/user-attachments/assets/47500026-2d6f-4678-9843-05cefee746e6)
+
+A window will appear. Under **Project Specific Libraries**, click the folder icon ("Add existing library to table") and locate the `.kicad_sym` files you downloaded. Do this once for the OLED and once for the WeMos.
+
+![Library import dialog](https://github.com/user-attachments/assets/da147dd0-035a-498b-bdce-aa92f724a722)
+
+Your window should look something like this (nicknames can be renamed to make them easier to read). Click **OK**.
+
+![Completed symbol libraries](https://github.com/user-attachments/assets/c71f9d29-7098-4983-aa93-f584cab0c2ef)
+
+Now it's time to place components! Press **A** to open the "Add Symbol" dialog and search for your parts — it's easiest to search by the library nicknames you just set. Left-click to place.
+
+![Add symbol dialog](https://github.com/user-attachments/assets/13cb4e85-758a-4462-b3eb-543a2bcce3f7)
+
+Repeat for your second component. You should see something like this:
+
+![Both components placed](https://github.com/user-attachments/assets/be936908-6901-4a84-83c3-2ca175e7bec0)
+
+![Both components placed (wide view)](https://github.com/user-attachments/assets/fdb37843-872f-4207-8fe6-b4b2c49b79a1)
+
+Now we need to wire them up. Check the pinouts for both components to determine what connects to what.
+
+![WeMos D1 Mini pinout](https://github.com/user-attachments/assets/76063f0b-154e-486e-960e-6ac8796412ce)
+
+![OLED display pinout](https://github.com/user-attachments/assets/3d4ab8ae-3375-4b30-aaf3-4bc92487124c)
+
+SCL and SDA are I²C pins that must connect to specific pins on the board. Based on both pinouts, the connections are:
+
+| OLED    | WeMos |
+|---------|-------|
+| VCC_IN  | 5V    |
+| SCL     | D2    |
+| SDA     | D1    |
+| GND     | GND   |
+
+You can wire these by pressing **W** and dragging lines between pins:
+
+![Manual wiring](https://github.com/user-attachments/assets/851942ac-82bf-43cb-a1ee-a5dabb5682a1)
+
+*Note: the highlighted wire crosses the SDA/SCL lines near the GND pin — it doesn't interfere, but keep it in mind.*
+
+Or, use **Global Labels** (`Ctrl+L`) to keep the schematic cleaner. Labels with the same name are automatically connected:
+
+![Global labels wiring](https://github.com/user-attachments/assets/89b30e4e-1205-489e-b25d-c5be1f4bda35)
+
+Either approach works — it's up to you!
+
+**Schematic complete!**
+
+---
+
+## Step 2: Design the PCB
+
+Before switching to the PCB editor, we need to assign footprints. Since we already downloaded them, we just need to import them.
+
+In the top toolbar, click **Assign Footprints**.
+
+![Assign Footprints button](https://github.com/user-attachments/assets/e2c71bf5-826b-4b89-8478-cf0eb81fb521)
+
+You should now see this window:
+
+![Footprint assignment window](https://github.com/user-attachments/assets/a762f55c-84fd-49a0-be20-a148b7523bb7)
+
+Go to **Preferences → Manage Footprint Libraries**, navigate to **Project Specific Libraries**, and add an existing folder — the same process as before.
+
+![Footprint libraries dialog](https://github.com/user-attachments/assets/4c7d9fbb-cbac-46e3-802c-e036fea801f6)
+
+> The file you're looking for has a `.kicad_mod` extension. You must select the **folder** containing it, not the file itself.
+
+To assign a footprint, select a row in the Symbol:Footprint Assignments column, find your library on the right panel, and double-click the footprint to assign it. Repeat for the other part.
+
+![Footprint assigned](https://github.com/user-attachments/assets/6bd62d21-98d1-44fe-859d-73bb86a56325)
+
+Save, then switch to the PCB editor. Use **Update PCB from Schematic** and click to place your parts.
+
+![PCB editor with placed parts](https://github.com/user-attachments/assets/c7456c55-6989-4d6d-a308-feca3b29d035)
+
+Now get creative! Use **R** to rotate and **F** to flip parts. Switch to the **Edge.Cuts** layer to draw your board outline — experiment with shapes!
+
+Here's an example layout with the WeMos flipped to the back:
+
+![PCB layout](https://github.com/user-attachments/assets/8ce9db4b-4326-486e-875c-d436901986d1)
+
+Route your connections by pressing **W** and following the blue ratlines. Click a pad, follow the line to its destination, and repeat for all 3 remaining connections.
+
+![Routed PCB](https://github.com/user-attachments/assets/56413cc5-00df-4ca5-90e5-412a9c040a98)
+
+This is perfectly functional, but you can go further! Add your name, graphics, or other artwork to make it your own:
+
+![Personalized PCB front](https://github.com/user-attachments/assets/20396e15-9d27-487d-85bb-e895692b76bd)
+
+![Personalized PCB back](https://github.com/user-attachments/assets/418fbc5f-d68a-43b4-b247-b68ed7148b32)
+
+**Your PCB is done!**
+
+---
+
+## Step 3: Firmware
+
+At this stage you have creative freedom — make cool shapes appear, tell a short story, or communicate over Wi-Fi or Bluetooth (which is what this tutorial does).
+
+Install Arduino IDE, then go to **Tools → Board → Boards Manager** and search for `esp32`. The WeMos D1 Mini uses an ESP32 chip. Once installed, navigate to **Board → esp32 → WEMOS D1 MINI ESP32**.
+
+From here, write your firmware! You can use the `BluetoothSerial` library to receive messages over Bluetooth and the `Adafruit_SSD1306` library to display them on the OLED.
+
+---
+
+## Step 4: Taking It Further
+
+This project is relatively simple to build, but there's plenty more you can do to earn more bits:
+
+- Design a 3D printed case
+- Add a motor, sensor, or other peripheral and display live values on the screen
+- Build a two-way messaging system using Bluetooth

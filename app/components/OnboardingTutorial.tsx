@@ -122,7 +122,7 @@ const PROJECT_STEPS: TutorialStep[] = [
   {
     id: 'timelapse',
     title: 'Record a Timelapse',
-    content: 'Planning a 7+ hour session? Start a timelapse recording before you begin. This is required for longer work sessions.',
+    content: 'Planning a 7+ hour session? Start a timelapse recording before you begin. This is recommended for longer work sessions.',
     targetSelector: '[data-tutorial="timelapse"]',
     position: 'bottom',
   },

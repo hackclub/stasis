@@ -576,10 +576,7 @@ export function SessionForm({
             return;
         }
 
-        if (hoursNum > 7 && selectedTimelapseIds.length === 0) {
-            setError('Sessions over 7 hours require at least one Lapse timelapse');
-            return;
-        }
+
 
         const stillUploading = media.some(m => m.uploading);
         if (stillUploading) {
@@ -615,7 +612,7 @@ export function SessionForm({
                     <li>Be detailed and thorough with your journal entries.</li>
                     <li>100-200~ words is recommended</li>
                     <li><strong className="text-brown-800">Images are required</strong> for every journal entry</li>
-                    <li><strong className="text-brown-800">Sessions over 7 hours require a timelapse</strong></li>
+                    <li><strong className="text-brown-800">Sessions over 7 hours: a timelapse is recommended</strong></li>
                 </ul>
             </div>
 
@@ -725,7 +722,7 @@ export function SessionForm({
                     )}
                     {hoursNum > 7 && (
                         <p className="text-orange-500 text-sm mt-2">
-                            Sessions over 7 hours require a Lapse timelapse
+                            Sessions over 7 hours: a Lapse timelapse is recommended
                         </p>
                     )}
 
