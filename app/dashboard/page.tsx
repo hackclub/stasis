@@ -6,7 +6,7 @@ import { authClient } from "@/lib/auth-client";
 import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
-import { OnboardingTutorial, TutorialHelpButton } from '../components/OnboardingTutorial';
+import { OnboardingTutorial } from '../components/OnboardingTutorial';
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress } from "@/lib/tiers"
@@ -132,7 +132,7 @@ export default function ProjectsPage() {
     <>
       {/* Onboarding Tutorial */}
       <OnboardingTutorial type="dashboard" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} />
-      <TutorialHelpButton onClick={() => setShowTutorial(true)} />
+
 
       {/* Qualification Progress */}
       <div data-tutorial="badge-progress" className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">

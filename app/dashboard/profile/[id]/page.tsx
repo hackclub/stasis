@@ -26,7 +26,7 @@ interface ProfileData {
     bio: string | null;
     createdAt: string;
   };
-  xp: { totalXP: number };
+  xp?: { totalXP: number };
   bitsBalance: number;
   badges: { badge: BadgeType; grantedAt: string }[];
   projects: ProfileProject[];
@@ -197,7 +197,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
             {/* XP */}
             {(() => {
-              const xp = profile.xp.totalXP;
+              const xp = profile.xp?.totalXP ?? 0;
               const nextPrize = PRIZES.find(p => p.xpRequired > xp);
               const prevThreshold = PRIZES.filter(p => p.xpRequired <= xp).at(-1)?.xpRequired ?? 0;
               const nextThreshold = nextPrize?.xpRequired ?? PRIZES[PRIZES.length - 1].xpRequired;

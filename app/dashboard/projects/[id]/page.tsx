@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { StageProgress } from '@/app/components/projects/StageProgress';
 import { Timeline } from '@/app/components/projects/Timeline';
-import { OnboardingTutorial, TutorialHelpButton } from '@/app/components/OnboardingTutorial';
+import { OnboardingTutorial } from '@/app/components/OnboardingTutorial';
 import Link from 'next/link';
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
@@ -515,7 +515,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     <div className="max-w-4xl mx-auto">
       {/* Onboarding Tutorial */}
       <OnboardingTutorial type="project" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} badgeCount={badges.length} />
-      <TutorialHelpButton onClick={() => setShowTutorial(true)} />
+
 
       {/* Breadcrumb */}
       <div className="mb-6">

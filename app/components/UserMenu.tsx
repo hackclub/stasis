@@ -7,10 +7,11 @@ import { useRouter } from 'next/navigation';
 interface UserMenuProps {
   userId: string;
   name: string;
+  email?: string | null;
   image?: string | null;
 }
 
-export function UserMenu({ userId, name, image }: UserMenuProps) {
+export function UserMenu({ userId, name, email, image }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -67,6 +68,12 @@ export function UserMenu({ userId, name, image }: UserMenuProps) {
       {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 bg-cream-100 border-2 border-cream-400 min-w-[180px]">
+          {email && (
+            <div className="px-4 py-2 text-xs text-cream-600 truncate max-w-[220px]">
+              {email}
+            </div>
+          )}
+          <div className="border-t border-cream-400" />
           <Link
             href={`/dashboard/profile/${userId}`}
             onClick={() => setOpen(false)}

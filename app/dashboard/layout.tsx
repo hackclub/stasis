@@ -83,6 +83,7 @@ export default function DashboardLayout({
             <UserMenu
               userId={session.user.id}
               name={(session.user as any).slackDisplayName || session.user.name || session.user.email || ''}
+              email={session.user.email}
               image={session.user.image}
             />
             {hasRole(Role.SIDEKICK) && (
