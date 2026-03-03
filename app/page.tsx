@@ -531,7 +531,7 @@ function HomeContent() {
               <MagneticCorners offset={12}>
                 <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
                   <a
-                    href="mailto:meghana@hackclub.com"
+                    href="mailto:stasis@hackclub.com"
                     className="relative bg-orange-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-8 h-[45px] flex items-center justify-center cursor-pointer transition-colors box-border no-underline"
                   >
                     <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
