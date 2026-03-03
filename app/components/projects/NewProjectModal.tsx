@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges"
@@ -35,12 +35,26 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [starterProjectId, setStarterProjectId] = useState('')
   const [githubRepo, setGithubRepo] = useState('')
   const [selectedTier, setSelectedTier] = useState<number | null>(1)
+  const [alreadyClaimedBadges, setAlreadyClaimedBadges] = useState<BadgeType[]>([])
+
+  const fetchClaimedBadges = useCallback(async () => {
+    try {
+      const res = await fetch('/api/badges/claimed')
+      if (res.ok) {
+        setAlreadyClaimedBadges(await res.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch claimed badges:', err)
+    }
+  }, [])
 
   useEffect(() => {
     if (!isOpen) {
       setStep(0)
+    } else {
+      fetchClaimedBadges()
     }
-  }, [isOpen])
+  }, [isOpen, fetchClaimedBadges])
 
   if (!isOpen) return null
 
@@ -272,7 +286,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 <div className="grid grid-cols-3 gap-3">
                   {AVAILABLE_BADGES.map((badge) => {
                     const isSelected = selectedBadges.includes(badge.value)
-                    const isDisabled = !isSelected && selectedBadges.length >= MAX_BADGES_PER_PROJECT
+                    const isClaimed = alreadyClaimedBadges.includes(badge.value)
+                    const isDisabled = isClaimed || (!isSelected && selectedBadges.length >= MAX_BADGES_PER_PROJECT)
                     return (
                       <button
                         key={badge.value}
@@ -280,15 +295,19 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                         onClick={() => handleBadgeToggle(badge.value)}
                         disabled={isDisabled}
                         className={`flex flex-col items-center gap-1 p-2 border-2 transition-colors ${
-                          isSelected
-                            ? 'border-orange-500 bg-orange-500/25 cursor-pointer'
-                            : selectedBadges.length >= MAX_BADGES_PER_PROJECT
-                              ? 'border-cream-300 bg-cream-200 opacity-50 cursor-not-allowed'
-                              : 'border-cream-400 bg-cream-200 hover:border-cream-500 cursor-pointer'
+                          isClaimed
+                            ? 'border-cream-300 bg-cream-200 opacity-40 cursor-not-allowed'
+                            : isSelected
+                              ? 'border-orange-500 bg-orange-500/25 cursor-pointer'
+                              : selectedBadges.length >= MAX_BADGES_PER_PROJECT
+                                ? 'border-cream-300 bg-cream-200 opacity-50 cursor-not-allowed'
+                                : 'border-cream-400 bg-cream-200 hover:border-cream-500 cursor-pointer'
                         }`}
                       >
-                        <img src={getBadgeImage(badge.value)} alt={badge.label} className="w-full aspect-square object-contain" />
-                        <span className={`text-xs uppercase ${isSelected ? 'bg-orange-500 text-white px-1' : 'text-brown-800'}`}>{badge.label}</span>
+                        <img src={getBadgeImage(badge.value)} alt={badge.label} className={`w-full aspect-square object-contain ${isClaimed ? 'grayscale' : ''}`} />
+                        <span className={`text-xs uppercase ${isClaimed ? 'text-cream-500 line-through' : isSelected ? 'bg-orange-500 text-white px-1' : 'text-brown-800'}`}>
+                          {isClaimed ? `${badge.label} (claimed)` : badge.label}
+                        </span>
                       </button>
                     )
                   })}

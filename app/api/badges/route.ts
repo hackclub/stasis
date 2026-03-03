@@ -89,6 +89,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Maximum ${MAX_BADGES_PER_PROJECT} badges per project` }, { status: 400 })
   }
 
+  // Check if badge is already claimed on another project by this user
+  const claimedElsewhere = await prisma.projectBadge.findFirst({
+    where: {
+      badge,
+      projectId: { not: projectId },
+      project: { userId: session.user.id },
+    },
+  })
+
+  if (claimedElsewhere) {
+    return NextResponse.json({ error: "Badge already in use on another project" }, { status: 400 })
+  }
+
   const projectBadge = await prisma.projectBadge.create({
     data: {
       badge,
