@@ -8,74 +8,7 @@ import { PlaceholderProjectPreview } from '../components/starter-projects/Placeh
 import { ProjectPreview } from '../components/starter-projects/ProjectPreview';
 import { ProjectGridHoverCorners } from '../components/starter-projects/ProjectGridHoverCorners';
 import Link from 'next/link';
-
-const projects = [
-  {
-    id: 'spotify-thing',
-    name: 'Spotify Display',
-    hours: 8,
-    short_description: 'A 3D LED display controlled by Arduino.',
-    badges: []
-  },
-  {
-    id: 'hackpad',
-    name: 'Eink Camera',
-    hours: 10,
-    short_description: 'Build a DIY analog synthesizer from scratch.',
-    badges: []
-  },
-  {
-    id: 'hackpad',
-    name: 'Blinky',
-    hours: 12,
-    short_description: 'A Raspberry Pi powered two-way mirror.',
-    badges: []
-  },
-  {
-    id: 'hackpad',
-    name: 'Devboard',
-    hours: 15,
-    short_description: 'A 3D printed robotic arm with servo control.',
-    badges: []
-  },
-  {
-    id: 'hackpad',
-    name: 'Split Keyboard',
-    hours: 20,
-    short_description: 'A custom quadcopter with FPV camera.',
-    badges: []
-  },
-  {
-    id: 'hackpad',
-    name: 'Bluetooth Display',
-    hours: 7,
-    short_description: 'A wireless controller for retro gaming.',
-    badges: []
-  },
-  // For future projects:
-
-  // {
-  //   id: 'hackpad',
-  //   name: 'VU Meter',
-  //   hours: 5,
-  //   short_description: 'An audio visualizer with RGB LEDs.',
-  //   badges: []
-  // },
-  // {
-  //   id: 'hackpad',
-  //   name: 'Weather Station',
-  //   hours: 9,
-  //   short_description: 'Track temperature, humidity, and pressure.',
-  //   badges: []
-  // },
-  // {
-  //   id: 'hackpad',
-  //   name: 'Badge PCB',
-  //   hours: 4,
-  //   short_description: 'A wearable LED badge with animations.',
-  //   badges: []
-  // }
-];
+import { projects, type StarterProject } from './projects';
 
 export default function StarterProjectsPage() {
   const [gridOffset, setGridOffset] = useState(0);
@@ -488,11 +421,17 @@ export default function StarterProjectsPage() {
                     </div>
                   </div>
                   {/* TODO: add back hover effect using GSAP instead */}
-                  <button className="w-full h-fit text-cream-300 text-2xl hover:bg-orange-600 hover:text-cream-100 py-6 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter]duration-50 border-orange-600/20 border-r-3">
-                      <span className=" w-full h-full block ">
-                        GUIDE
-                      </span>                  
-                  </button>
+                  {projects[selectedProjectIndex ?? 0].hasTutorial ? (
+                    <Link href={`/starter-projects/${projects[selectedProjectIndex ?? 0].id}`} className="block w-full">
+                      <button className="w-full h-fit text-cream-300 text-2xl hover:bg-orange-600 hover:text-cream-100 py-6 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter]duration-50 border-orange-600/20 border-r-3">
+                        <span className="w-full h-full block">GUIDE</span>
+                      </button>
+                    </Link>
+                  ) : (
+                    <button disabled className="w-full h-fit text-cream-600/40 text-2xl py-6 cursor-not-allowed relative overflow-hidden z-1 border-orange-600/20 border-r-3">
+                      <span className="w-full h-full block">GUIDE</span>
+                    </button>
+                  )}
                   </div>
               </div>
             </div>
@@ -545,7 +484,7 @@ export default function StarterProjectsPage() {
 }
 
 interface PreviewImageProps {
-  projects: typeof projects;
+  projects: StarterProject[];
   selectedProjectIndex: number | null;
   hasSelectedOnce: boolean;
   onIntroStart: () => void;
@@ -652,25 +591,29 @@ function PreviewImage({
   return (
     <>
       {showPrevious && previousIndex !== null && (
-        <div 
+        <div
           className="absolute inset-0 w-full h-full z-1"
           style={{ transform: `translateY(${previousY}px)` }}
         >
-          <img 
-            src={`/projects/${projects[previousIndex].id}.png`}
+          <img
+            key={projects[previousIndex].id}
+            src={`/projects/${projects[previousIndex].image ?? projects[previousIndex].id + '.png'}`}
             alt=""
             className="w-full h-full object-cover"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         </div>
       )}
-      <div 
+      <div
         className="absolute inset-0 w-full h-full z-1"
         style={{ transform: `translateY(${currentY}px)` }}
       >
-        <img 
-          src={`/projects/${projects[currentIndex].id}.png`}
+        <img
+          key={projects[currentIndex].id}
+          src={`/projects/${projects[currentIndex].image ?? projects[currentIndex].id + '.png'}`}
           alt=""
           className="w-full h-full object-cover"
+          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
       </div>
     </>

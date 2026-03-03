@@ -1,11 +1,14 @@
 'use client';
 
+import { useState } from 'react';
+
 interface Project {
   id: string;
   name: string;
   hours: number;
   short_description: string;
   badges: string[];
+  image?: string;
 }
 
 interface Props {
@@ -15,6 +18,12 @@ interface Props {
 }
 
 export function ProjectPreview({ project, onClick, selected = false }: Readonly<Props>) {
+  const [useFallback, setUseFallback] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const graySrc = `/projects/${project.id}-gray.png`;
+  const fallbackSrc = project.image ? `/projects/${project.image}` : null;
+
   return (
     <>
       <style jsx>{`
@@ -34,17 +43,27 @@ export function ProjectPreview({ project, onClick, selected = false }: Readonly<
           transform: scale(1.05) rotate(1.5deg);
         }
       `}</style>
-      <button 
-        className="aspect-square bg-brown-900 relative select-none w-full cursor-pointer overflow-hidden" 
-        data-project-card="true" 
+      <button
+        className="aspect-square bg-brown-900 relative select-none w-full cursor-pointer overflow-hidden"
+        data-project-card="true"
         onClick={onClick}
       >
-        <img 
-          src={`/projects/${project.id}-gray.png`} 
-          alt="" 
-          className={`w-full h-full inset-0 ${selected ? 'selected' : ''}`}
-          draggable="false"
-        />
+        {!failed && (
+          <img
+            src={useFallback && fallbackSrc ? fallbackSrc : graySrc}
+            alt=""
+            className={`w-full h-full inset-0 ${selected ? 'selected' : ''}`}
+            style={useFallback ? { filter: 'grayscale(1)' } : undefined}
+            draggable="false"
+            onError={() => {
+              if (!useFallback && fallbackSrc) {
+                setUseFallback(true);
+              } else {
+                setFailed(true);
+              }
+            }}
+          />
+        )}
       </button>
     </>
   );
