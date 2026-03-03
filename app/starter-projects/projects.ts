@@ -41,7 +41,7 @@ export const projects: StarterProject[] = [
     short_description: 'A 555 LED chaser board — a classic beginner PCB project.',
     badges: [],
     hasTutorial: true,
-    image: 'blinky.webp',
+    image: 'blinky.png',
   },
   {
     id: 'devboard',
@@ -50,7 +50,7 @@ export const projects: StarterProject[] = [
     short_description: 'Design and build your own RP2040 development board.',
     badges: ['SPI', 'I2C', 'MCU'],
     hasTutorial: true,
-    image: 'devboard.webp',
+    image: 'devboard.png',
   },
   {
     id: 'split-keyboard',
@@ -59,6 +59,7 @@ export const projects: StarterProject[] = [
     short_description: 'Build a wireless split mechanical keyboard from scratch.',
     badges: ['Bluetooth', 'MCU'],
     hasTutorial: true,
+    image: 'split-keyboard.png',
   },
   {
     id: 'squeak',

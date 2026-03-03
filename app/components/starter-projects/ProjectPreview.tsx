@@ -18,11 +18,9 @@ interface Props {
 }
 
 export function ProjectPreview({ project, onClick, selected = false }: Readonly<Props>) {
-  const [useFallback, setUseFallback] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const graySrc = `/projects/${project.id}-gray.png`;
-  const fallbackSrc = project.image ? `/projects/${project.image}` : null;
+  const src = project.image ? `/projects/${project.image}` : `/projects/${project.id}.png`;
 
   return (
     <>
@@ -50,18 +48,12 @@ export function ProjectPreview({ project, onClick, selected = false }: Readonly<
       >
         {!failed && (
           <img
-            src={useFallback && fallbackSrc ? fallbackSrc : graySrc}
+            src={src}
             alt=""
-            className={`w-full h-full inset-0 ${selected ? 'selected' : ''}`}
-            style={useFallback ? { filter: 'grayscale(1)' } : undefined}
+            className={`w-full h-full inset-0 object-contain ${selected ? 'selected' : ''}`}
+            style={{ filter: selected ? 'none' : 'grayscale(1)' }}
             draggable="false"
-            onError={() => {
-              if (!useFallback && fallbackSrc) {
-                setUseFallback(true);
-              } else {
-                setFailed(true);
-              }
-            }}
+            onError={() => setFailed(true)}
           />
         )}
       </button>

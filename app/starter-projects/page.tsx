@@ -14,7 +14,7 @@ export default function StarterProjectsPage() {
   const [gridOffset, setGridOffset] = useState(0);
   const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
   const [placeholderCount, setPlaceholderCount] = useState(0);
-  const [selectedProjectIndex, setSelectedProjectIndex] = useState<number | null>(null);
+  const [selectedProjectIndex, setSelectedProjectIndex] = useState<number | null>(0);
   const [projectHeights, setProjectHeights] = useState<number[]>(new Array(projects.length).fill(0));
   const [hasSelectedOnce, setHasSelectedOnce] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -426,7 +426,7 @@ export default function StarterProjectsPage() {
                   {/* TODO: add back hover effect using GSAP instead */}
                   {projects[selectedProjectIndex ?? 0].hasTutorial ? (
                     <Link href={`/starter-projects/${projects[selectedProjectIndex ?? 0].id}`} className="block w-full">
-                      <button className="w-full h-fit text-cream-300 text-2xl hover:bg-orange-600 hover:text-cream-100 py-6 cursor-pointer relative overflow-hidden group z-1 hover:brightness-110 transition-[filter]duration-50 border-orange-600/20 border-r-3">
+                      <button className="w-full h-fit bg-orange-600 text-cream-100 text-2xl hover:bg-white hover:text-orange-600 py-6 cursor-pointer relative overflow-hidden group z-1 transition-colors duration-150 border-orange-600/20 border-r-3">
                         <span className="w-full h-full block">GUIDE</span>
                       </button>
                     </Link>
@@ -602,7 +602,7 @@ function PreviewImage({
             key={projects[previousIndex].id}
             src={`/projects/${projects[previousIndex].image ?? projects[previousIndex].id + '.png'}`}
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         </div>
@@ -615,7 +615,7 @@ function PreviewImage({
           key={projects[currentIndex].id}
           src={`/projects/${projects[currentIndex].image ?? projects[currentIndex].id + '.png'}`}
           alt=""
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
       </div>
