@@ -10,7 +10,7 @@
 // ============================================================
 
 // --- Tier Definitions ---
-// Tiers are ordered from highest (Tier 1) to lowest (Tier 5).
+// Tiers are ordered from lowest (Tier 1) to highest (Tier 5).
 // bits: fixed allocation per project at this tier
 // minHours / maxHours: hour range for projects at this tier
 // examples: example projects at this tier
@@ -18,18 +18,18 @@ export const TIERS = [
   {
     id: 1,
     name: "Tier 1",
-    bits: 400,
-    minHours: 40,
-    maxHours: Infinity,
-    examples: ["VVVF Inverter", "Custom CNC Machine", "Satellite Ground Station"],
+    bits: 25,
+    minHours: 3,
+    maxHours: 5,
+    examples: ["Phone Stand", "3D Printed Trinket", "PCB Fidget Toy"],
   },
   {
     id: 2,
     name: "Tier 2",
-    bits: 200,
-    minHours: 20,
-    maxHours: 40,
-    examples: ["Battle Bot", "Custom Robot Arm", "FPGA Board"],
+    bits: 50,
+    minHours: 5,
+    maxHours: 10,
+    examples: ["Drone Kit", "LED Lamp", "Custom Macropad"],
   },
   {
     id: 3,
@@ -42,18 +42,18 @@ export const TIERS = [
   {
     id: 4,
     name: "Tier 4",
-    bits: 50,
-    minHours: 5,
-    maxHours: 10,
-    examples: ["Drone Kit", "LED Lamp", "Custom Macropad"],
+    bits: 200,
+    minHours: 20,
+    maxHours: 40,
+    examples: ["Battle Bot", "Custom Robot Arm", "FPGA Board"],
   },
   {
     id: 5,
     name: "Tier 5",
-    bits: 25,
-    minHours: 3,
-    maxHours: 5,
-    examples: ["Phone Stand", "3D Printed Trinket", "PCB Fidget Toy"],
+    bits: 400,
+    minHours: 40,
+    maxHours: Infinity,
+    examples: ["VVVF Inverter", "Custom CNC Machine", "Satellite Ground Station"],
   },
 ] as const
 
@@ -71,7 +71,7 @@ export function getTierById(id: number): Tier | undefined {
   return TIERS.find((t) => t.id === id)
 }
 
-/** Get all tiers sorted from highest to lowest. */
+/** Get all tiers sorted from lowest to highest. */
 export function getTiersSorted(): readonly Tier[] {
   return TIERS
 }
