@@ -261,13 +261,13 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
             {/* Step 2: Badges */}
             {step === 1 && (
               <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
+                <label className="block text-brown-800 text-sm uppercase mb-1">
                   Skill Badges <span className="text-cream-500">({selectedBadges.length}/{MAX_BADGES_PER_PROJECT})</span>
                 </label>
-                <p className="text-cream-600 text-sm py-3">
+                <p className="text-cream-600 text-sm pt-1 pb-4">
                   Select up to {MAX_BADGES_PER_PROJECT} badges for skills you&apos;ll use in this project.
-                  If you ship a project with these badges, we&apos;ll send you physical stickers for each badge!
-                  You can always edit these, or you can skip this step and choose your badges later.
+                  If you ship a project with these badges, we&apos;ll send you a physical badge for each one!
+                  <span className="block mt-2">You can always edit these, or you can skip this step and choose your badges later.</span>
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   {AVAILABLE_BADGES.map((badge) => {

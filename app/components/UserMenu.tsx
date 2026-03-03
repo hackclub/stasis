@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface UserMenuProps {
   userId: string;
@@ -18,6 +18,8 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
   const [showTooltip, setShowTooltip] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const isOnProjectPage = pathname.startsWith('/dashboard/projects/');
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -36,6 +38,12 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
     // Also dispatch an event for same-page trigger
     window.dispatchEvent(new CustomEvent('stasis:replay-tutorial'));
     router.push('/dashboard');
+  }
+
+  function handleReplayProjectTutorial() {
+    setOpen(false);
+    localStorage.setItem('stasis_replay_project_tutorial', '1');
+    window.dispatchEvent(new CustomEvent('stasis:replay-project-tutorial'));
   }
 
   return (
@@ -69,9 +77,9 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 bg-cream-100 border-2 border-cream-400 min-w-[180px]">
+        <div className="absolute right-0 top-full mt-1 z-50 bg-cream-100 border-2 border-cream-400 whitespace-nowrap">
           {email && (
-            <div className="px-4 py-2 text-sm text-cream-600 truncate max-w-[220px]">
+            <div className="px-4 py-2 text-sm text-cream-600 truncate max-w-[280px]">
               {email}
             </div>
           )}
@@ -96,6 +104,14 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
           >
             Replay Tutorial
           </button>
+          {isOnProjectPage && (
+            <button
+              onClick={handleReplayProjectTutorial}
+              className="block w-full text-left px-4 py-2 text-sm text-brown-800 hover:bg-cream-200 hover:text-orange-500 uppercase tracking-wide transition-colors cursor-pointer"
+            >
+              Replay Project Tutorial
+            </button>
+          )}
           {isAdmin && (
             <>
               <div className="border-t border-cream-400" />

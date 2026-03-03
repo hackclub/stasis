@@ -2,15 +2,21 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { MDXComponents } from 'mdx/types';
+import Link from 'next/link';
 import FAQ from '../dashboard/help/content/faq.mdx';
 import Overview from '../dashboard/help/content/overview.mdx';
 import AboutCost from '../dashboard/help/content/about-cost.mdx';
 import SubmissionGuidelines from '../dashboard/help/content/submission-guidelines.mdx';
 import Parents from '../dashboard/help/content/parents.mdx';
 
-type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents';
+export type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents';
 
-const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; section: 'guides' | 'faq' }[] = [
+interface GuidesContentProps {
+  activePage?: GuidePage;
+  basePath?: string;
+}
+
+export const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; section: 'guides' | 'faq' }[] = [
   { id: 'overview', label: 'Overview', section: 'guides' },
   { id: 'submission-guidelines', label: 'Submission Guidelines', section: 'guides' },
   { id: 'about-cost', label: 'About Cost', section: 'guides' },
@@ -77,10 +83,13 @@ const PAGE_CONTENT: Record<GuidePage, React.ComponentType<any>> = {
   'parents': Parents,
 };
 
-export default function GuidesContent() {
-  const [activeGuidePage, setActiveGuidePage] = useState<GuidePage>('overview');
+export default function GuidesContent({ activePage: controlledPage, basePath }: GuidesContentProps = {}) {
+  const [internalPage, setInternalPage] = useState<GuidePage>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faqTab, setFaqTab] = useState(FAQ_SECTIONS[0]);
+
+  const activeGuidePage = controlledPage ?? internalPage;
+  const setActiveGuidePage = controlledPage ? () => {} : setInternalPage;
 
   const faqComponents = useMemo<MDXComponents>(() => {
     let currentSection = '';
@@ -102,11 +111,12 @@ export default function GuidesContent() {
   }, [faqTab]);
 
   useEffect(() => {
+    if (controlledPage) return;
     const hash = window.location.hash.slice(1) as GuidePage;
     if (GUIDE_PAGES.some(p => p.id === hash)) {
-      setActiveGuidePage(hash);
+      setInternalPage(hash);
     }
-  }, []);
+  }, [controlledPage]);
 
   const currentPage = GUIDE_PAGES.find(p => p.id === activeGuidePage);
   const guidePages = GUIDE_PAGES.filter(p => p.section === 'guides');
@@ -156,56 +166,74 @@ export default function GuidesContent() {
             </button>
             {mobileMenuOpen && (
               <div className="absolute top-full left-0 right-0 bg-cream-100 border-2 border-t-0 border-cream-400 z-10">
-                {GUIDE_PAGES.map((page) => (
-                  <button
-                    key={page.id}
-                    onClick={() => {
-                      setActiveGuidePage(page.id);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer ${
-                      activeGuidePage === page.id
-                        ? 'text-orange-500 bg-cream-200'
-                        : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
-                    }`}
-                  >
-                    {page.label}
-                  </button>
-                ))}
+                {GUIDE_PAGES.map((page) => {
+                  const className = `w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer block ${
+                    activeGuidePage === page.id
+                      ? 'text-orange-500 bg-cream-200'
+                      : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
+                  }`;
+                  return basePath ? (
+                    <Link
+                      key={page.id}
+                      href={`${basePath}/${page.id}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={className}
+                    >
+                      {page.label}
+                    </Link>
+                  ) : (
+                    <button
+                      key={page.id}
+                      onClick={() => {
+                        setActiveGuidePage(page.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={className}
+                    >
+                      {page.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
           {/* Desktop: vertical sidebar */}
           <div className="hidden md:block space-y-1">
             <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">Guidelines</p>
-            {guidePages.map((page) => (
-              <button
-                key={page.id}
-                onClick={() => setActiveGuidePage(page.id)}
-                className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer ${
-                  activeGuidePage === page.id
-                    ? 'text-orange-500 bg-cream-200'
-                    : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
-                }`}
-              >
-                {page.label}
-              </button>
-            ))}
+            {guidePages.map((page) => {
+              const className = `w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer block ${
+                activeGuidePage === page.id
+                  ? 'text-orange-500 bg-cream-200'
+                  : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
+              }`;
+              return basePath ? (
+                <Link key={page.id} href={`${basePath}/${page.id}`} className={className}>
+                  {page.label}
+                </Link>
+              ) : (
+                <button key={page.id} onClick={() => setActiveGuidePage(page.id)} className={className}>
+                  {page.label}
+                </button>
+              );
+            })}
             <div className="border-t border-cream-400 my-3" />
             <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">FAQ</p>
-            {faqPages.map((page) => (
-              <button
-                key={page.id}
-                onClick={() => setActiveGuidePage(page.id)}
-                className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer ${
-                  activeGuidePage === page.id
-                    ? 'text-orange-500 bg-cream-200'
-                    : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
-                }`}
-              >
-                {page.label}
-              </button>
-            ))}
+            {faqPages.map((page) => {
+              const className = `w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer block ${
+                activeGuidePage === page.id
+                  ? 'text-orange-500 bg-cream-200'
+                  : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
+              }`;
+              return basePath ? (
+                <Link key={page.id} href={`${basePath}/${page.id}`} className={className}>
+                  {page.label}
+                </Link>
+              ) : (
+                <button key={page.id} onClick={() => setActiveGuidePage(page.id)} className={className}>
+                  {page.label}
+                </button>
+              );
+            })}
           </div>
         </nav>
       </div>
