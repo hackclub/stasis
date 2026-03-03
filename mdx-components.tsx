@@ -49,10 +49,10 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     },
     pre: ({ children }) => <>{children}</>,
     img: ({ src, alt }) => (
-      <img 
-        src={src} 
-        alt={alt || ''} 
-        className="max-w-full h-auto my-4 border-4 border-orange-500 mx-auto block"
+      <img
+        src={src}
+        alt={alt || ''}
+        className="max-w-full max-h-[500px] h-auto object-contain my-4 border-4 border-orange-500 mx-auto block"
       />
     ),
     blockquote: ({ children }) => (

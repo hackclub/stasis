@@ -126,11 +126,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 fetchBadges();
             } else {
                 const result = await res.json();
-                if (result.error?.includes('already in use')) {
-                    setBadgeError("This badge is already claimed on another project. Please choose a different one.");
-                } else {
-                    setBadgeError(result.error || 'Failed to claim badge');
-                }
+                setBadgeError(result.error || 'Failed to claim badge');
             }
         } catch (error) {
             console.error('Failed to claim badge:', error);

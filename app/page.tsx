@@ -235,7 +235,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
   return (
     <div ref={pageWrapperRef} className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-brown-800 bg-container overflow-x-hidden">
       {hasLoggedInBefore && !session && (
-        <div className="fixed top-[calc(1rem+1rem)] right-[calc(1rem+1rem)] md:top-[calc(3rem+3rem)] md:right-[calc(3rem+1.5rem)] z-[60]">
+        <div className="absolute top-[calc(1rem+1rem)] right-[calc(1rem+1rem)] md:top-[calc(3rem+3rem)] md:right-[calc(3rem+1.5rem)] z-[60]">
           <MagneticCorners offset={12}>
             <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
               <button

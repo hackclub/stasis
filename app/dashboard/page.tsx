@@ -103,11 +103,7 @@ export default function ProjectsPage() {
         fetchProjects();
       } else {
         const result = await res.json();
-        if (result.error?.includes('already in use')) {
-          setModalError("You've already claimed this badge on another project. Please choose a different badge.");
-        } else {
-          setModalError(result.error || 'Failed to create project');
-        }
+        setModalError(result.error || 'Failed to create project');
         return { error: result.error };
       }
     } catch (error) {

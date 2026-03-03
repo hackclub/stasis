@@ -118,19 +118,6 @@ export async function POST(request: NextRequest) {
 
   const validatedBadges = validateBadges(badges)
 
-  const existingBadges = await prisma.projectBadge.findMany({
-    where: { 
-      badge: { in: validatedBadges },
-      project: { userId: session.user.id },
-    },
-    select: { badge: true },
-  })
-
-  if (existingBadges.length > 0) {
-    const taken = existingBadges.map(b => b.badge).join(", ")
-    return NextResponse.json({ error: `Badge(s) already in use: ${taken}` }, { status: 400 })
-  }
-
   let sanitizedGithubRepo: string | null = null
   if (typeof githubRepo === "string" && githubRepo.trim()) {
     const normalized = normalizeUrl(githubRepo.trim())
