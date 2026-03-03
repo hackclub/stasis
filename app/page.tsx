@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import PageBorder from './components/PageBorder';
 import { DottedLine } from './components/DottedLine';
 import { NoiseOverlay } from './components/NoiseOverlay';
@@ -11,7 +11,7 @@ import { ASCIIArt } from './components/ASCIIArt';
 
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
-import { authClient } from '@/lib/auth-client';
+import { authClient, useSession } from '@/lib/auth-client';
 
 
 const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
@@ -56,8 +56,16 @@ function ScrambleText({ children, className }: { children: string; className?: s
 
 function HomeContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session } = useSession();
   const referralType = searchParams.get('t') || searchParams.get('utm_source');
   const referralCode = searchParams.get('r');
+
+  useEffect(() => {
+    if (session) {
+      router.replace('/dashboard');
+    }
+  }, [session, router]);
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
