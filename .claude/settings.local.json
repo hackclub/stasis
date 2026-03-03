@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(powershell -Command \"Set-Location ''C:\\\\Users\\\\claya\\\\OneDrive\\\\Documents\\\\Projects\\\\stasis-site''; yarn build\")",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ls:*)"
     ]
   }
 }
