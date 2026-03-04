@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from "@/lib/auth-client";
 import { SHOP_ITEMS, ShopItem } from '@/lib/shop';
 
+interface DbShopItem {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  price: number;
+}
+
 interface ConfirmModalState {
   item: ShopItem;
   quantity: number;
@@ -130,6 +138,45 @@ function PurchaseConfirmModal({
   );
 }
 
+function ItemDetailModal({
+  item,
+  onClose,
+}: {
+  item: DbShopItem;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-[#3D3229]/80" onClick={onClose} />
+      <div className="relative bg-cream-100 border-2 border-brown-800 p-8 max-w-lg w-full mx-4 shadow-lg">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-brown-800 hover:text-orange-500 text-2xl leading-none cursor-pointer"
+        >
+          &times;
+        </button>
+
+        {item.imageUrl && (
+          <div className="aspect-video overflow-hidden border border-cream-400 bg-cream-200 mb-4">
+            <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        <h2 className="text-xl uppercase tracking-wide mb-2 text-brown-800">{item.name}</h2>
+        <p className="text-brown-800 text-sm mb-4 whitespace-pre-wrap">{item.description}</p>
+        <p className="text-orange-400 font-bold text-lg mb-6">{item.price.toLocaleString()}&nbsp;Bits</p>
+
+        <button
+          disabled
+          className="w-full bg-cream-300 px-6 py-3 text-center opacity-60 cursor-not-allowed"
+        >
+          <span className="text-cream-600 uppercase tracking-wide text-sm font-bold">Buy</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ShopPage() {
   const { data: session } = useSession();
   const [bitsBalance, setBitsBalance] = useState<number>(0);
@@ -140,13 +187,16 @@ export default function ShopPage() {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState | null>(null);
+  const [otherItems, setOtherItems] = useState<DbShopItem[]>([]);
+  const [detailItem, setDetailItem] = useState<DbShopItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [currencyRes, purchasesRes] = await Promise.all([
+      const [currencyRes, purchasesRes, itemsRes] = await Promise.all([
         fetch('/api/currency'),
         fetch('/api/shop/purchases'),
+        fetch('/api/shop/items'),
       ]);
       if (currencyRes.ok) {
         const { bitsEarned, bomCost, bitsBalance } = await currencyRes.json();
@@ -158,6 +208,10 @@ export default function ShopPage() {
         const { purchasedItemIds, itemTotals } = await purchasesRes.json();
         setPurchasedItems(new Set(purchasedItemIds));
         setItemTotals(itemTotals);
+      }
+      if (itemsRes.ok) {
+        const { items } = await itemsRes.json();
+        setOtherItems(items);
       }
     } catch (err) {
       console.error('Failed to fetch shop data:', err);
@@ -340,12 +394,39 @@ export default function ShopPage() {
 
           {/* Other Items */}
           <div>
-            <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-20">Other Items</h2>
-            <div className="flex justify-center">
-              <div className="bg-cream-100 border-2 border-cream-400 px-10 py-4">
-                <p className="text-cream-500 uppercase tracking-wide text-sm">Coming soon...</p>
+            <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Other Items</h2>
+            {otherItems.length === 0 ? (
+              <div className="flex justify-center">
+                <div className="bg-cream-100 border-2 border-cream-400 px-10 py-4">
+                  <p className="text-cream-500 uppercase tracking-wide text-sm">Coming soon...</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {otherItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-cream-100 border-2 border-cream-400 cursor-pointer hover:border-orange-500 transition-colors"
+                    onClick={() => setDetailItem(item)}
+                  >
+                    <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-200">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-cream-500 text-sm uppercase tracking-wider">No image</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-brown-800 font-medium text-lg mb-1">{item.name}</h3>
+                      <p className="text-brown-800 text-sm mb-2 line-clamp-2">{item.description}</p>
+                      <p className="text-orange-400 font-bold">{item.price.toLocaleString()}&nbsp;Bits</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -358,6 +439,13 @@ export default function ShopPage() {
           onConfirm={handlePurchase}
           onClose={() => setConfirmModal(null)}
           purchasing={purchasing !== null}
+        />
+      )}
+
+      {detailItem && (
+        <ItemDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
         />
       )}
     </div>

@@ -128,6 +128,11 @@ export default function AdminLayout({
                   Bits Ledger
                 </Link>
               )}
+              {hasPermission(Permission.MANAGE_CURRENCY) && (
+                <Link href="/admin/shop" className={getTabClass('/admin/shop')}>
+                  Shop
+                </Link>
+              )}
             </div>
           </div>
         </div>
