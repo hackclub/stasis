@@ -58,7 +58,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const referralType = searchParams.get('t') || searchParams.get('utm_source');
+  const referralType = searchParams.get('t') || searchParams.get('utm_source') || searchParams.get('ref');
   const referralCode = searchParams.get('r');
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
       const response = await fetch('/api/rsvp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, referralType, referralCode }),
       });
 
       if (!response.ok) {
