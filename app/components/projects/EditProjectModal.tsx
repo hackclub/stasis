@@ -328,9 +328,9 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
               <button
                 type="button"
                 onClick={() => setIsStarter(false)}
-                className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                className={`flex-1 px-3 py-2 text-sm uppercase cursor-pointer ${
                   !isStarter
-                    ? 'bg-orange-500 text-white'
+                    ? 'bg-orange-500 text-white led-flicker'
                     : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                 }`}
               >
@@ -339,9 +339,9 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
               <button
                 type="button"
                 onClick={() => setIsStarter(true)}
-                className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                className={`flex-1 px-3 py-2 text-sm uppercase cursor-pointer ${
                   isStarter
-                    ? 'bg-orange-500 text-white'
+                    ? 'bg-orange-500 text-white led-flicker'
                     : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                 }`}
               >

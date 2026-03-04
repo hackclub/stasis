@@ -739,8 +739,8 @@ export function SessionForm({
                                 key={cat.value}
                                 type="button"
                                 onClick={() => handleCategoryToggle(cat.value)}
-                                className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${selectedCategories.includes(cat.value)
-                                        ? 'bg-orange-500 text-white font-medium'
+                                className={`px-4 py-2 text-sm uppercase cursor-pointer ${selectedCategories.includes(cat.value)
+                                        ? 'bg-orange-500 text-white font-medium led-flicker'
                                         : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                                     }`}
                             >

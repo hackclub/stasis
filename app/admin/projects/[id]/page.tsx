@@ -734,9 +734,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       key={tier.id}
                       type="button"
                       onClick={() => setDesignTier(designTier === tier.id ? null : tier.id)}
-                      className={`px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                      className={`px-3 py-2 text-sm text-left cursor-pointer border ${
                         designTier === tier.id
-                          ? 'bg-yellow-500 text-white border-yellow-500'
+                          ? 'bg-yellow-500 text-white border-yellow-500 led-flicker'
                           : 'bg-cream-100 text-brown-800 hover:bg-cream-200 border-cream-400'
                       }`}
                     >

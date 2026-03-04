@@ -306,10 +306,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                                         selectedTier === tier.id
                                             ? project.designStatus === 'approved'
                                                 ? 'bg-green-600/20 border-green-600 text-green-700 cursor-default'
-                                                : 'bg-orange-500 text-white border-orange-400 cursor-pointer'
+                                                : 'bg-orange-500 text-white border-orange-400 cursor-pointer led-flicker'
                                             : project.designStatus === 'approved'
                                                 ? 'bg-cream-200 text-cream-400 border-cream-300 cursor-default'
-                                                : 'bg-cream-300 text-brown-800 hover:bg-cream-400 border-cream-400 cursor-pointer transition-colors'
+                                                : 'bg-cream-300 text-brown-800 hover:bg-cream-400 border-cream-400 cursor-pointer'
                                     }`}
                                 >
                                     <span className="uppercase font-medium">{tier.name}</span>
@@ -329,8 +329,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                             <button
                                 type="button"
                                 onClick={() => setIsStarter(false)}
-                                className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${!isStarter
-                                        ? 'bg-orange-500 text-white font-medium'
+                                className={`flex-1 px-3 py-2 text-sm uppercase cursor-pointer ${!isStarter
+                                        ? 'bg-orange-500 text-white font-medium led-flicker'
                                         : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                                     }`}
                             >
@@ -339,8 +339,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                             <button
                                 type="button"
                                 onClick={() => setIsStarter(true)}
-                                className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${isStarter
-                                        ? 'bg-orange-500 text-white font-medium'
+                                className={`flex-1 px-3 py-2 text-sm uppercase cursor-pointer ${isStarter
+                                        ? 'bg-orange-500 text-white font-medium led-flicker'
                                         : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                                     }`}
                             >

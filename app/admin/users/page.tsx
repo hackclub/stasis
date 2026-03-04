@@ -196,9 +196,9 @@ export default function AdminUsersPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilterFraud(filterFraud === true ? null : true)}
-                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterFraud === true
-                    ? 'bg-red-600 text-white'
+                    ? 'bg-red-600 text-white led-flicker'
                     : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
                 }`}
               >
@@ -206,9 +206,9 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setFilterFraud(filterFraud === false ? null : false)}
-                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterFraud === false
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-green-600 text-white led-flicker'
                     : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
                 }`}
               >
@@ -217,9 +217,9 @@ export default function AdminUsersPage() {
               <span className="text-cream-400">|</span>
               <button
                 onClick={() => setFilterRole(filterRole === 'ADMIN' ? null : 'ADMIN')}
-                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'ADMIN'
-                    ? 'bg-orange-500 text-brown-800'
+                    ? 'bg-orange-500 text-brown-800 led-flicker'
                     : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
                 }`}
               >
@@ -227,9 +227,9 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setFilterRole(filterRole === 'REVIEWER' ? null : 'REVIEWER')}
-                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'REVIEWER'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white led-flicker'
                     : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
                 }`}
               >
@@ -237,9 +237,9 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setFilterRole(filterRole === 'SIDEKICK' ? null : 'SIDEKICK')}
-                className={`px-3 py-1.5 text-xs uppercase transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'SIDEKICK'
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-purple-600 text-white led-flicker'
                     : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
                 }`}
               >
