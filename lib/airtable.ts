@@ -330,6 +330,55 @@ export async function getRSVPCount(): Promise<number> {
   return count;
 }
 
+export async function submitYSWSProjectSubmission(data: {
+  githubUrl: string | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  description: string | null;
+  bannerUrl: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  zip: string | null;
+  birthday: string | null;
+  totalHours: number;
+}): Promise<void> {
+  const base = getAirtableBase();
+  if (!base) {
+    console.warn('Airtable credentials not configured, skipping YSWS project submission');
+    return;
+  }
+
+  const tableName = process.env.AIRTABLE_YSWS_TABLE_NAME || 'YSWS Project Submission';
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fields: Record<string, any> = {
+    'First Name': data.firstName,
+    'Last Name': data.lastName,
+    'Email': data.email,
+  };
+
+  if (data.githubUrl) {
+    fields['Code URL'] = data.githubUrl;
+    fields['Playable URL'] = data.githubUrl;
+  }
+  if (data.description) fields['Description'] = data.description;
+  if (data.bannerUrl) fields['Screenshot'] = [{ url: data.bannerUrl }];
+  if (data.addressLine1) fields['Address (Line 1)'] = data.addressLine1;
+  if (data.addressLine2) fields['Address (Line 2)'] = data.addressLine2;
+  if (data.city) fields['City'] = data.city;
+  if (data.state) fields['State / Province'] = data.state;
+  if (data.country) fields['Country'] = data.country;
+  if (data.zip) fields['ZIP / Postal Code'] = data.zip;
+  if (data.birthday) fields['Birthday'] = data.birthday;
+  if (data.totalHours > 0) fields['Optional - Override Hours Spent'] = data.totalHours;
+
+  await base(tableName).create([{ fields }]);
+}
+
 export async function getRSVPCountLast24Hours(): Promise<number> {
   const base = getAirtableBase();
 
