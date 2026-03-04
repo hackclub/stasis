@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
 import prisma from "./prisma";
 import { ensureRSVPExists } from "./airtable";
-import { getSlackProfilePicture, getSlackDisplayName } from "./slack";
+import { getSlackProfilePicture, getSlackDisplayName, inviteToSlackChannels } from "./slack";
 import { encryptPII } from "./pii";
 import { assignSidekick } from "./sidekick";
 
@@ -67,6 +67,12 @@ export const auth = betterAuth({
               console.error('Failed to fetch Slack profile data:', error);
             }
           }
+          // Invite user to Slack channels
+          if (slackId) {
+            inviteToSlackChannels(slackId).catch((error) =>
+              console.error('Failed to invite to Slack channels:', error)
+            );
+          }
           // Auto-assign a sidekick mentor
           try {
             await assignSidekick(user.id);
@@ -86,6 +92,9 @@ export const auth = betterAuth({
             select: { slackId: true },
           });
           if (user?.slackId) {
+            inviteToSlackChannels(user.slackId).catch((err) =>
+              console.error('Failed to invite to Slack channels:', err)
+            );
             getSlackDisplayName(user.slackId).then(async (displayName) => {
               if (displayName) {
                 await prisma.user.update({

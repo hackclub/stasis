@@ -48,6 +48,36 @@ export async function sendSlackDM(
   }
 }
 
+const AUTO_JOIN_CHANNELS = [
+  "C09HSQM550A",
+  "C09JP51FHNE",
+  "C09JLLP4YH4",
+];
+
+export async function inviteToSlackChannels(slackId: string): Promise<void> {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return;
+
+  for (const channel of AUTO_JOIN_CHANNELS) {
+    try {
+      const res = await fetch("https://slack.com/api/conversations.invite", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ channel, users: slackId }),
+      });
+      const data = await res.json();
+      if (!data.ok && data.error !== "already_in_channel") {
+        console.error(`Failed to invite ${slackId} to ${channel}:`, data.error);
+      }
+    } catch (error) {
+      console.error(`Failed to invite ${slackId} to ${channel}:`, error);
+    }
+  }
+}
+
 export async function getSlackDisplayName(slackId: string): Promise<string | null> {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) {
