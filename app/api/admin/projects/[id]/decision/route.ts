@@ -70,7 +70,7 @@ export async function POST(
       parsedTier = tier
     } else {
       return NextResponse.json(
-        { error: "tier must be 1, 2, 3, or 4" },
+        { error: `tier must be ${TIERS.map(t => t.id).join(', ')}` },
         { status: 400 }
       )
     }
