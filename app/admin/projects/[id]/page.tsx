@@ -103,6 +103,7 @@ interface AdminProject {
   badges: ProjectBadge[];
   bomItems: BOMItem[];
   reviewActions: ReviewAction[];
+  hiddenFromGallery: boolean;
 }
 
 const BADGE_LABELS: Record<BadgeType, string> = {
@@ -137,6 +138,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
   const [project, setProject] = useState<AdminProject | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [sessionReviews, setSessionReviews] = useState<Record<string, SessionReviewState>>({});
   const [designComments, setDesignComments] = useState('');
   const [buildComments, setBuildComments] = useState('');
@@ -144,6 +146,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [designBomGrant, setDesignBomGrant] = useState('');
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [adminActioning, setAdminActioning] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
 
@@ -190,7 +193,42 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
     }
 
     fetchProject();
+
+    fetch('/api/user/roles').then(r => r.json()).then(data => {
+      setIsAdmin((data.roles as string[])?.includes('ADMIN'));
+    }).catch(() => {});
   }, [projectId, router]);
+
+  const handleAdminAction = async (action: string) => {
+    if (!project) return;
+    const confirmMessages: Record<string, string> = {
+      hide: 'Hide this project from the public gallery?',
+      unhide: 'Unhide this project (make it visible in the gallery again)?',
+      unapprove_design: 'Unapprove the design? This will reset design status to in_review and build status to draft.',
+      unapprove_build: 'Unapprove the build? This will reset build status to in_review.',
+    };
+    if (!confirm(confirmMessages[action] || `Perform action: ${action}?`)) return;
+
+    setAdminActioning(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProject(prev => prev ? { ...prev, ...data } : prev);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Action failed');
+      }
+    } catch {
+      alert('Action failed');
+    } finally {
+      setAdminActioning(false);
+    }
+  };
 
   const handleSessionReview = async (sessionId: string) => {
     const review = sessionReviews[sessionId];
@@ -320,12 +358,55 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* Project Header */}
-          <div className="mb-6">
-            <h1 className="text-orange-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
-            <p className="text-brown-800 text-sm">
-              by {project.user.name || project.user.email}
-              {project.user.name && <span className="text-cream-600"> ({project.user.email})</span>}
-            </p>
+          <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-orange-500 text-3xl uppercase tracking-wide">{project.title}</h1>
+                {project.hiddenFromGallery && (
+                  <span className="px-2 py-0.5 text-xs uppercase border border-gray-500 text-gray-500 bg-gray-500/10 self-center">Hidden</span>
+                )}
+              </div>
+              <p className="text-brown-800 text-sm">
+                by {project.user.name || project.user.email}
+                {project.user.name && <span className="text-cream-600"> ({project.user.email})</span>}
+              </p>
+            </div>
+            {isAdmin && (
+              <div className="flex flex-wrap gap-2 shrink-0">
+                {/* Hide / Unhide */}
+                <button
+                  onClick={() => handleAdminAction(project.hiddenFromGallery ? 'unhide' : 'hide')}
+                  disabled={adminActioning}
+                  className={`px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors cursor-pointer disabled:opacity-50 ${
+                    project.hiddenFromGallery
+                      ? 'bg-green-600/20 border-green-600 text-green-600 hover:bg-green-600/30'
+                      : 'bg-cream-200 border-cream-400 text-brown-800 hover:bg-cream-300'
+                  }`}
+                >
+                  {project.hiddenFromGallery ? 'Unhide from Gallery' : 'Hide from Gallery'}
+                </button>
+                {/* Unapprove design */}
+                {project.designStatus === 'approved' && (
+                  <button
+                    onClick={() => handleAdminAction('unapprove_design')}
+                    disabled={adminActioning}
+                    className="px-3 py-1.5 text-xs uppercase tracking-wider border border-yellow-600 bg-yellow-600/10 text-yellow-600 hover:bg-yellow-600/20 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Unapprove Design
+                  </button>
+                )}
+                {/* Unapprove build */}
+                {project.buildStatus === 'approved' && (
+                  <button
+                    onClick={() => handleAdminAction('unapprove_build')}
+                    disabled={adminActioning}
+                    className="px-3 py-1.5 text-xs uppercase tracking-wider border border-yellow-600 bg-yellow-600/10 text-yellow-600 hover:bg-yellow-600/20 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Unapprove Build
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Cover Image */}

@@ -191,7 +191,8 @@ model Project {
   noBomNeeded      Boolean       @default(false)
   cartScreenshots  String[]      @default([])
   tier             Int?
-  bitsAwarded      Int?          // Set atomically at build approval; null until then
+  bitsAwarded           Int?          // Set atomically at build approval; null until then
+  hiddenFromGallery     Boolean       @default(false)
 
   // Stage-based status tracking
   designStatus          ProjectStatus @default(draft)
@@ -372,6 +373,10 @@ enum AuditAction {
   ADMIN_REJECT_DESIGN
   ADMIN_APPROVE_BUILD
   ADMIN_REJECT_BUILD
+  ADMIN_UNAPPROVE_DESIGN
+  ADMIN_UNAPPROVE_BUILD
+  ADMIN_HIDE_PROJECT
+  ADMIN_UNHIDE_PROJECT
   ADMIN_REQUEST_UPDATE
   ADMIN_REVIEW_SESSION
   ADMIN_APPROVE_BOM
