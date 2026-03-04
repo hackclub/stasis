@@ -71,7 +71,7 @@ export function RecentJournalEntries() {
     return (
       <div className="bg-cream-100 border-2 border-cream-400 p-4">
         <h2 className="text-orange-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
-        <p className="text-cream-600 text-sm">Loading...</p>
+        <div className="flex items-center justify-center py-4"><div className="loader" /></div>
       </div>
     );
   }

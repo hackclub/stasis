@@ -512,7 +512,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   if (isPending || loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <p className="text-brown-800">Loading...</p>
+        <div className="loader" />
       </div>
     );
   }

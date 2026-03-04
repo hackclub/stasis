@@ -210,7 +210,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     if (isPending || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-cream-100 font-mono">
-                <p className="text-brown-800">Loading...</p>
+                <div className="loader" />
             </div>
         );
     }
@@ -377,7 +377,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                         <h2 className="text-brown-800 text-lg uppercase">
                             Skill Badges ({badges.length}/{MAX_BADGES_PER_PROJECT})
                         </h2>
-                        {loadingBadges && <span className="text-brown-800 text-xs">Loading...</span>}
+                        {loadingBadges && <div className="loader" style={{ width: 12, height: 18 }} />}
                     </div>
 
                     {badgeError && (

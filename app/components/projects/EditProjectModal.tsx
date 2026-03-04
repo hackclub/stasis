@@ -240,9 +240,9 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                   key={tier.id}
                   type="button"
                   onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
-                  className={`px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                  className={`px-3 py-2 text-sm text-left cursor-pointer border ${
                     selectedTier === tier.id
-                      ? 'bg-orange-500 text-white border-orange-400'
+                      ? 'bg-orange-500 text-white border-orange-400 led-flicker'
                       : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
                   }`}
                 >
@@ -261,7 +261,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
               <label className="block text-brown-800 text-sm uppercase">
                 Skill Badges ({badges.length}/{MAX_BADGES_PER_PROJECT})
               </label>
-              {loadingBadges && <span className="text-cream-600 text-xs">Loading...</span>}
+              {loadingBadges && <div className="loader" style={{ width: 12, height: 18 }} />}
             </div>
             
             {/* Claimed badges */}

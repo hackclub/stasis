@@ -98,6 +98,18 @@ a:focus-visible {
 	outline-offset: 2px;
 }
 
+/* LED flicker animation for tier selection */
+@keyframes led-flicker-on {
+	0%   { opacity: 0.4; }
+	40%  { opacity: 1; }
+	55%  { opacity: 0.7; }
+	100% { opacity: 1; }
+}
+
+.led-flicker {
+	animation: led-flicker-on 0.2s ease-out;
+}
+
 /* Page loader */
 .loader {
 	width: 40px;

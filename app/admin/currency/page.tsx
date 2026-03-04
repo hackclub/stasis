@@ -182,7 +182,7 @@ export default function BitsLedgerPage() {
       <div className="bg-cream-100 border-2 border-cream-400 overflow-x-auto">
         {loading ? (
           <div className="p-8 text-center">
-            <p className="text-brown-800">Loading...</p>
+            <div className="flex items-center justify-center"><div className="loader" /></div>
           </div>
         ) : fetchError ? (
           <div className="p-8 text-center">

@@ -284,7 +284,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   };
 
   if (loading) {
-    return <p className="text-brown-800">Loading...</p>;
+    return <div className="flex items-center justify-center py-12"><div className="loader" /></div>;
   }
 
   if (!project) {
