@@ -151,7 +151,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
           )}
           {isDesignComplete && buildStatus === 'in_review' && (
             <p className="text-yellow-600 text-sm">
-              Your build is being reviewed. You&apos;ll earn your complexity level&apos;s <span className="text-orange-500 font-medium">bits</span> upon approval!
+              Your build is being reviewed. You&apos;ll earn your complexity level&apos;s <span className="font-medium">bits</span> upon approval!
             </p>
           )}
           {isDesignComplete && buildStatus === 'rejected' && (

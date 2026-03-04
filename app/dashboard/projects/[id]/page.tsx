@@ -833,7 +833,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             
             <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
               <p className="text-blue-600 text-sm">
-                Your project&apos;s complexity level determines its <span className="text-orange-500 font-medium">bit</span> allocation (<span className="text-orange-500 font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials.
+                Your project&apos;s complexity level determines its <span className="font-medium">bit</span> allocation (<span className="font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials.
               </p>
             </div>
 

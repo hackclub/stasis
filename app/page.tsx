@@ -77,7 +77,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(searchParams.get('email') || searchParams.get('e') || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
