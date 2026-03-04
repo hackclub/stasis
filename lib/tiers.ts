@@ -21,7 +21,7 @@ export const TIERS = [
     bits: 25,
     minHours: 3,
     maxHours: 5,
-    examples: ["Phone Stand", "3D Printed Trinket", "PCB Fidget Toy"],
+    examples: ["Phone Stand", "3D Printed Trinket", "PCB Fidget"],
   },
   {
     id: 2,

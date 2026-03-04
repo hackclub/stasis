@@ -322,11 +322,11 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   Complexity
                 </label>
                 {starterProject ? (
-                  <p className="text-cream-600 text-xs mb-2">
+                  <p className="text-cream-600 text-sm mb-2">
                     Since you&apos;re using a starter project, the complexity level is predetermined. You can still change it if needed.
                   </p>
                 ) : (
-                  <p className="text-cream-600 text-xs mb-2">
+                  <p className="text-cream-600 text-sm mb-2">
                     How complex is this project? (You can change this later)
                   </p>
                 )}
@@ -350,13 +350,13 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                         <div className="flex items-center justify-between">
                           <span className="uppercase font-medium">
                             {tier.name}
-                            {isRecommended && selectedTier === tier.id && <span className="ml-2 text-xs font-normal opacity-80">(recommended)</span>}
+                            {isRecommended && selectedTier === tier.id && <span className="ml-2 text-sm font-normal opacity-80">(recommended)</span>}
                           </span>
-                          <span className="text-xs opacity-80">
+                          <span className="text-sm opacity-80">
                             {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
                           </span>
                         </div>
-                        <span className={`block text-xs mt-1 ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
+                        <span className={`block text-sm mt-1 ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
                           e.g. {tier.examples.join(', ')}
                         </span>
                       </button>

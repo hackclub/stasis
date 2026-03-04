@@ -57,9 +57,9 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
         aria-label="Open user menu"
       >
         {image ? (
-          <img src={image} alt="" className="w-8 h-8" />
+          <img src={image} alt="" className="w-8 h-8 border-2 border-orange-500" />
         ) : (
-          <div className="w-8 h-8 bg-cream-400 flex items-center justify-center">
+          <div className="w-8 h-8 bg-cream-400 flex items-center justify-center border-2 border-orange-500">
             <span className="text-brown-800 text-sm">{name?.[0]?.toUpperCase()}</span>
           </div>
         )}

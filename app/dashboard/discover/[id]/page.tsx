@@ -80,10 +80,10 @@ function formatRelativeTime(dateStr: string): string {
 
 function UserAvatar({ name, image }: { name: string | null; image: string | null }) {
   if (image) {
-    return <img src={image} alt="" className="w-6 h-6 flex-shrink-0" />;
+    return <img src={image} alt="" className="w-6 h-6 flex-shrink-0 border-2 border-orange-500" />;
   }
   return (
-    <div className="w-6 h-6 bg-cream-400 flex items-center justify-center flex-shrink-0">
+    <div className="w-6 h-6 bg-cream-400 flex items-center justify-center flex-shrink-0 border-2 border-orange-500">
       <span className="text-brown-800 text-xs">{name?.[0]?.toUpperCase() || '?'}</span>
     </div>
   );
@@ -271,9 +271,9 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
             <div className="flex items-center gap-3 text-sm">
               <Link href={`/dashboard/profile/${project.user.id}`} className="flex items-center gap-2 hover:text-orange-500 transition-colors">
                 {project.user.image ? (
-                  <img src={project.user.image} alt="" className="w-6 h-6" />
+                  <img src={project.user.image} alt="" className="w-6 h-6 border-2 border-orange-500" />
                 ) : (
-                  <div className="w-6 h-6 bg-cream-400 flex items-center justify-center">
+                  <div className="w-6 h-6 bg-cream-400 flex items-center justify-center border-2 border-orange-500">
                     <span className="text-brown-800 text-xs">{project.user.name?.[0]?.toUpperCase() || '?'}</span>
                   </div>
                 )}

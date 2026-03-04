@@ -137,9 +137,9 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
             {/* Avatar */}
             <div className="flex justify-center mb-4">
               {profile.user.image ? (
-                <Image src={profile.user.image} alt="" width={160} height={160} className="w-40 h-40" />
+                <Image src={profile.user.image} alt="" width={160} height={160} className="w-40 h-40 border-2 border-orange-500" />
               ) : (
-                <div className="w-40 h-40 bg-cream-400 flex items-center justify-center">
+                <div className="w-40 h-40 bg-cream-400 flex items-center justify-center border-2 border-orange-500">
                   <span className="text-brown-800 text-5xl">
                     {profile.user.name?.[0]?.toUpperCase() || '?'}
                   </span>

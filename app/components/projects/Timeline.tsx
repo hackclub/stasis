@@ -38,12 +38,12 @@ function UserAvatar({ name, image }: { name: string | null; image: string | null
       <img 
         src={image} 
         alt="" 
-        className="w-6 h-6 flex-shrink-0"
+        className="w-6 h-6 flex-shrink-0 border-2 border-orange-500"
       />
     );
   }
   return (
-    <div className="w-6 h-6 bg-cream-400 flex items-center justify-center flex-shrink-0">
+    <div className="w-6 h-6 bg-cream-400 flex items-center justify-center flex-shrink-0 border-2 border-orange-500">
       <span className="text-brown-800 text-xs">
         {name?.[0]?.toUpperCase() || '?'}
       </span>
