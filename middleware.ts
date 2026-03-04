@@ -63,6 +63,16 @@ export function middleware(request: NextRequest) {
     if (!checkBasicAuth(request)) return requireAuth();
   }
 
+  // Redirect logged-in users from / to /dashboard immediately (no flash)
+  if (request.nextUrl.pathname === "/") {
+    const hasSession = request.cookies.has("better-auth.session_token");
+    if (hasSession) {
+      return addSecurityHeaders(
+        NextResponse.redirect(new URL("/dashboard", request.url))
+      );
+    }
+  }
+
   return addSecurityHeaders(NextResponse.next());
 }
 
