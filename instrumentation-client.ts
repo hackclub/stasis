@@ -8,6 +8,19 @@ Sentry.init({
   dsn: "https://5e657a38b387207d41ded2b67cdec8ad@o40609.ingest.us.sentry.io/4510701182255104",
   enabled: process.env.NODE_ENV !== "development",
 
+  // Filter out browser extension noise
+  beforeSend(event) {
+    if (
+      event.message?.includes("runtime.sendMessage") ||
+      event.exception?.values?.some((e) =>
+        e.value?.includes("runtime.sendMessage")
+      )
+    ) {
+      return null;
+    }
+    return event;
+  },
+
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
 
