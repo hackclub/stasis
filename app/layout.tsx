@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Libre_Barcode_128, Libre_Barcode_39 } from "next/font/google";
 import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 import AsteroidCatWrapper from "./components/AsteroidCatWrapper";
 
@@ -60,6 +61,14 @@ export default function RootLayout({
       <head>
         <meta name="msapplication-navbutton-color" content="#C4B9A2" />
         <meta name="apple-mobile-web-app-status-bar-style" content="#C4B9A2" />
+        <Script
+          defer
+          src="https://plausible.io/js/pa-dauQpiTVbXInL_522ZKfx.js"
+          strategy="afterInteractive"
+        />
+        <Script id="plausible-init" strategy="afterInteractive">
+          {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
+        </Script>
       </head>
       <body className={`antialiased ${departureMono.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
         {children}
