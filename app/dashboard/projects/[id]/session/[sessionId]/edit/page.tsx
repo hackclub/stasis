@@ -139,7 +139,7 @@ export default function EditSessionPage({ params }: { params: Promise<{ id: stri
   if (isPending || loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-brown-800">Loading...</p>
+        <div className="loader" />
       </div>
     );
   }

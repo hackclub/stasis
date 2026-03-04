@@ -131,7 +131,7 @@ export function RSVPModal({ isOpen, onClose }: Readonly<RSVPModalProps>) {
                   className="relative w-full bg-orange-500 hover:bg-orange-400 px-6 py-3 text-lg uppercase tracking-wider text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[52px] min-w-[320px]"
                 >
                   <span className={isSubmitting ? 'invisible' : ''}>Continue with Hack Club Auth</span>
-                  {isSubmitting && <span className="absolute inset-0 flex items-center justify-center">Loading...</span>}
+                  {isSubmitting && <span className="absolute inset-0 flex items-center justify-center"><div className="loader" style={{ width: 20, height: 30 }} /></span>}
                 </button>
               </MagneticCorners>
             </MagneticCorners>

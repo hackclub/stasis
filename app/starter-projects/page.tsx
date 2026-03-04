@@ -404,9 +404,9 @@ export default function StarterProjectsPage() {
                 {/* Visible project details */}
                 <div 
                   className="space-y-3 px-6 md:px-8 lg:mx-6 py-6 sm:py-10">
-                  <h2 className="text-orange-600 text-5xl">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
+                  <h2 className="text-orange-600 text-5xl min-h-[6rem]">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
                   <p className="text-cream-300 text-2xl">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
-                  <p className="text-cream-300 text-lg">{projects[selectedProjectIndex ?? 0].short_description}</p>
+                  <p className="text-cream-300 text-lg min-h-[5.25rem]">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
                 <div className="w-full">
                   <div className="flex flex-row border-cream-500 border-y-2 relative z-10 min-h-18">

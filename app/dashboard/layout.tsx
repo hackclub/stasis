@@ -5,7 +5,7 @@ import { useSession, signIn, signOut } from "@/lib/auth-client";
 import { NoiseOverlay } from '../components/NoiseOverlay';
 import { UserMenu } from '../components/UserMenu';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useRoles, Role } from "@/lib/hooks/useRoles";
 
 
@@ -18,6 +18,7 @@ export default function DashboardLayout({
   const { data: session, isPending } = useSession();
   const { hasRole } = useRoles();
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (session) {
@@ -42,9 +43,14 @@ export default function DashboardLayout({
   if (isPending) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
-        <p className="text-brown-800">Loading...</p>
+        <div className="loader" />
       </div>
     );
+  }
+
+  if (!session && pathname.startsWith('/dashboard/help')) {
+    router.replace('/help');
+    return null;
   }
 
   if (!session) {

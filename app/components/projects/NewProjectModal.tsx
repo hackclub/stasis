@@ -211,9 +211,9 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                     <button
                       type="button"
                       onClick={() => { setIsStarter(false); setStarterProjectId(''); setSelectedTier(1); }}
-                      className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                      className={`flex-1 px-3 py-2 text-sm uppercase cursor-pointer ${
                         !isStarter
-                          ? 'bg-orange-500 text-white'
+                          ? 'bg-orange-500 text-white led-flicker'
                           : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                       }`}
                     >
@@ -222,9 +222,9 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                     <button
                       type="button"
                       onClick={() => setIsStarter(true)}
-                      className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                      className={`flex-1 px-3 py-2 text-sm uppercase cursor-pointer ${
                         isStarter
-                          ? 'bg-orange-500 text-white'
+                          ? 'bg-orange-500 text-white led-flicker'
                           : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
                       }`}
                     >
@@ -339,9 +339,9 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                         key={tier.id}
                         type="button"
                         onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
-                        className={`w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer border ${
+                        className={`w-full px-3 py-2 text-sm text-left cursor-pointer border ${
                           selectedTier === tier.id
-                            ? 'bg-orange-500 text-white border-orange-400'
+                            ? 'bg-orange-500 text-white border-orange-400 led-flicker'
                             : isGreyed
                               ? 'bg-cream-200 text-cream-500 border-cream-300 opacity-60'
                               : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'

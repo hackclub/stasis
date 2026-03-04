@@ -44,7 +44,7 @@ Always run `yarn build` after completing any code changes to verify there are no
 ### Key Business Logic (in `lib/`)
 
 - `currency.ts` — Append-only bits ledger (entries created at build approval based on project tier)
-- `tiers.ts` — Four-tier project system (25–200 bits), 350-bit qualification threshold
+- `tiers.ts` — Five-tier project system (25–400 bits), 350-bit qualification threshold
 - `badges.ts` — 16 hardware achievement badge definitions (I2C, SPI, WiFi, CAD, etc.)
 - `airtable.ts` — RSVP CRUD and referral tracking
 - `audit.ts` — Audit logging for sensitive actions
