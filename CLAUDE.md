@@ -62,6 +62,22 @@ When `NEXT_PUBLIC_PRELAUNCH_MODE=true`, the site shows RSVP-only mode with refer
 
 Copy `.env.example` for required variables. Key ones: `DATABASE_URL`, `BETTER_AUTH_SECRET`, OAuth client IDs/secrets (HCA, Hackatime, GitHub), `AIRTABLE_API_KEY`, S3 credentials, `SLACK_BOT_TOKEN`.
 
+## Granting Admin Roles Locally
+
+To grant a user the ADMIN role in a local dev database:
+
+```bash
+psql "postgresql://postgres:postgres@localhost:5432/stasis" -c "
+INSERT INTO user_role (id, \"userId\", role, \"grantedAt\")
+SELECT gen_random_uuid()::text, id, 'ADMIN', now()
+FROM \"user\"
+WHERE email = 'USER_EMAIL_HERE'
+AND id NOT IN (SELECT \"userId\" FROM user_role WHERE role = 'ADMIN');
+"
+```
+
+Note: The `user_role` table uses camelCase column names (`userId`, `grantedAt`) due to Prisma conventions.
+
 ## Database Migrations
 
 Never AI-generate migration files. Always use `npx prisma migrate dev` to create migrations — this requires a running database. If the database is not available, instruct the user to run the migration themselves.
