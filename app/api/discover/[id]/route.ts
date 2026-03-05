@@ -46,7 +46,7 @@ export async function GET(
     },
   });
 
-  if (!project) {
+  if (!project || project.hiddenFromGallery) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
