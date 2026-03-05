@@ -32,6 +32,14 @@ interface Sidekick {
   assignees: Assignee[];
 }
 
+interface UnassignedUser {
+  id: string;
+  name: string | null;
+  image: string | null;
+  slackId: string | null;
+  createdAt: string;
+}
+
 function StatusBadge({ label, status }: { label: string; status: string }) {
   const color =
     status === 'approved' ? 'text-green-600' :
@@ -46,11 +54,103 @@ function StatusBadge({ label, status }: { label: string; status: string }) {
   );
 }
 
+function AssignDialog({
+  userName,
+  userId,
+  sidekicks,
+  currentSidekickId,
+  onClose,
+  onAssign,
+}: {
+  userName: string | null;
+  userId: string;
+  sidekicks: Sidekick[];
+  currentSidekickId?: string;
+  onClose: () => void;
+  onAssign: (assigneeId: string, newSidekickId?: string) => Promise<void>;
+}) {
+  const [selectedSidekickId, setSelectedSidekickId] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const availableSidekicks = currentSidekickId
+    ? sidekicks.filter((s) => s.id !== currentSidekickId)
+    : sidekicks;
+
+  const isReassign = !!currentSidekickId;
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    try {
+      await onAssign(userId, selectedSidekickId || undefined);
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-cream-100 border-2 border-cream-400 p-6 max-w-md w-full space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-brown-800 text-lg uppercase">
+          {isReassign ? 'Reassign' : 'Assign'} {userName ?? 'Unknown'}
+        </h3>
+
+        <div className="space-y-2">
+          <label className="block text-brown-800 text-sm uppercase">
+            {isReassign ? 'New Sidekick' : 'Sidekick'}
+          </label>
+          <select
+            value={selectedSidekickId}
+            onChange={(e) => setSelectedSidekickId(e.target.value)}
+            className="w-full bg-cream-200 border border-cream-400 text-brown-800 px-3 py-2 text-sm"
+          >
+            <option value="">Random (least loaded)</option>
+            {availableSidekicks.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name ?? 'Unknown'} ({s.assigneeCount} assignee{s.assigneeCount !== 1 ? 's' : ''})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="px-4 py-2 text-xs uppercase bg-cream-200 border border-cream-400 text-brown-800 hover:border-cream-500 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="px-4 py-2 text-xs uppercase bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {submitting ? (isReassign ? 'Reassigning...' : 'Assigning...') : (isReassign ? 'Reassign' : 'Assign')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminSidekicksPage() {
   const [sidekicks, setSidekicks] = useState<Sidekick[]>([]);
+  const [unassignedUsers, setUnassignedUsers] = useState<UnassignedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSidekick, setExpandedSidekick] = useState<string | null>(null);
   const [reassigning, setReassigning] = useState<string | null>(null);
+  const [assignTarget, setAssignTarget] = useState<{
+    userId: string;
+    userName: string | null;
+    currentSidekickId?: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchSidekicks();
@@ -61,12 +161,31 @@ export default function AdminSidekicksPage() {
       const res = await fetch('/api/admin/sidekick');
       if (res.ok) {
         const data = await res.json();
-        setSidekicks(data);
+        setSidekicks(data.sidekicks);
+        setUnassignedUsers(data.unassignedUsers);
       }
     } catch (error) {
       console.error('Failed to fetch sidekicks:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function reassignIndividual(assigneeId: string, newSidekickId?: string) {
+    try {
+      const res = await fetch('/api/admin/sidekick/reassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigneeId, newSidekickId }),
+      });
+      if (res.ok) {
+        fetchSidekicks();
+      } else {
+        const data = await res.json();
+        alert(`Failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to reassign:', error);
     }
   }
 
@@ -308,7 +427,7 @@ export default function AdminSidekicksPage() {
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-2 pt-1">
+                        <div className="flex gap-2 pt-1 flex-wrap">
                           {assignee.slackId && (
                             <a
                               href={`https://hackclub.slack.com/team/${assignee.slackId}`}
@@ -325,6 +444,18 @@ export default function AdminSidekicksPage() {
                           >
                             Profile
                           </Link>
+                          <button
+                            onClick={() =>
+                              setAssignTarget({
+                                userId: assignee.id,
+                                userName: assignee.name,
+                                currentSidekickId: sidekick.id,
+                              })
+                            }
+                            className="px-2 py-1 text-[10px] uppercase bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer"
+                          >
+                            Reassign
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -335,6 +466,74 @@ export default function AdminSidekicksPage() {
           </div>
         ))}
       </div>
+
+      {/* Unassigned Users */}
+      {unassignedUsers.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-brown-800 text-sm uppercase">
+            {unassignedUsers.length} unassigned user{unassignedUsers.length !== 1 ? 's' : ''}
+          </p>
+          <div className="bg-cream-100 border-2 border-cream-400 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {unassignedUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="bg-cream-200 border border-cream-400 p-3 flex items-center gap-3"
+                >
+                  {user.image ? (
+                    <img
+                      src={user.image}
+                      alt=""
+                      className="w-8 h-8 flex-shrink-0 border-2 border-orange-500"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-cream-400 flex items-center justify-center flex-shrink-0 border-2 border-orange-500">
+                      <span className="text-brown-800 text-xs">
+                        {(user.name ?? '?')[0].toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-brown-800 text-sm truncate">
+                      {user.name ?? 'Unknown'}
+                    </p>
+                    <p className="text-cream-600 text-xs">
+                      Joined{' '}
+                      {new Date(user.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setAssignTarget({
+                        userId: user.id,
+                        userName: user.name,
+                      })
+                    }
+                    className="px-2 py-1 text-[10px] uppercase bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer flex-shrink-0"
+                  >
+                    Assign
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {assignTarget && (
+        <AssignDialog
+          userName={assignTarget.userName}
+          userId={assignTarget.userId}
+          sidekicks={sidekicks}
+          currentSidekickId={assignTarget.currentSidekickId}
+          onClose={() => setAssignTarget(null)}
+          onAssign={reassignIndividual}
+        />
+      )}
     </div>
   );
 }

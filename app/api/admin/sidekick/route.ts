@@ -88,5 +88,20 @@ export async function GET() {
     })
   );
 
-  return NextResponse.json(sidekicks);
+  const unassignedUsers = await prisma.user.findMany({
+    where: {
+      assignedSidekick: null,
+      roles: { none: { role: Role.SIDEKICK } },
+    },
+    select: {
+      id: true,
+      name: true,
+      image: true,
+      slackId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json({ sidekicks, unassignedUsers });
 }
