@@ -4,6 +4,13 @@ import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { encryptPII } from "@/lib/pii"
 
+const DISCOVERY_URL = "https://auth.hackclub.com/.well-known/openid-configuration"
+
+interface OIDCConfig {
+  token_endpoint: string
+  userinfo_endpoint: string
+}
+
 interface TokenResponse {
   access_token: string
   token_type: string
@@ -11,8 +18,23 @@ interface TokenResponse {
   refresh_token?: string
 }
 
+let cachedOIDCConfig: OIDCConfig | null = null
+
+async function getOIDCConfig(): Promise<OIDCConfig> {
+  if (cachedOIDCConfig) return cachedOIDCConfig
+  const resp = await fetch(DISCOVERY_URL)
+  if (!resp.ok) throw new Error(`Failed to fetch OIDC discovery: ${resp.status}`)
+  const config = await resp.json()
+  cachedOIDCConfig = {
+    token_endpoint: config.token_endpoint,
+    userinfo_endpoint: config.userinfo_endpoint,
+  }
+  return cachedOIDCConfig
+}
+
 async function refreshAccessToken(refreshToken: string): Promise<TokenResponse | null> {
-  const resp = await fetch("https://auth.hackclub.com/oauth/token", {
+  const { token_endpoint } = await getOIDCConfig()
+  const resp = await fetch(token_endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -28,7 +50,8 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResponse |
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchUserInfo(accessToken: string): Promise<any | null> {
-  const resp = await fetch("https://auth.hackclub.com/userinfo", {
+  const { userinfo_endpoint } = await getOIDCConfig()
+  const resp = await fetch(userinfo_endpoint, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!resp.ok) return null
@@ -56,22 +79,44 @@ export async function POST() {
     },
   })
 
+  // Run backfill in the background — respond immediately
+  runBackfill(accounts).catch((err) =>
+    console.error("[backfill-addresses] Unexpected error:", err)
+  )
+
+  return NextResponse.json({
+    message: "Backfill started",
+    total: accounts.length,
+  })
+}
+
+async function runBackfill(accounts: Array<{ id: string; userId: string; accessToken: string | null; refreshToken: string | null }>) {
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  console.log(`[backfill-addresses] Starting backfill for ${accounts.length} users`)
+
   let updated = 0
   let failed = 0
-  const errors: Array<{ userId: string; error: string }> = []
 
-  for (const account of accounts) {
+  for (let i = 0; i < accounts.length; i++) {
+    const account = accounts[i]
+
+    if (i > 0) await delay(500)
+
     try {
+      console.log(`[backfill-addresses] (${i + 1}/${accounts.length}) Processing user ${account.userId}`)
+
       // Try existing access token first, then refresh
       let accessToken = account.accessToken
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let profile: any = accessToken ? await fetchUserInfo(accessToken) : null
 
       if (!profile && account.refreshToken) {
+        console.log(`[backfill-addresses] Refreshing token for user ${account.userId}`)
         const tokenData = await refreshAccessToken(account.refreshToken)
         if (!tokenData) {
+          console.log(`[backfill-addresses] Token refresh failed for user ${account.userId}`)
           failed++
-          errors.push({ userId: account.userId, error: "Token refresh failed" })
           continue
         }
 
@@ -93,8 +138,8 @@ export async function POST() {
       }
 
       if (!profile) {
+        console.log(`[backfill-addresses] Could not fetch userinfo for user ${account.userId}`)
         failed++
-        errors.push({ userId: account.userId, error: "Could not fetch userinfo" })
         continue
       }
 
@@ -112,20 +157,16 @@ export async function POST() {
       if (Object.keys(updates).length > 0) {
         await prisma.user.update({ where: { id: account.userId }, data: updates })
         updated++
+        console.log(`[backfill-addresses] Updated address for user ${account.userId} (${Object.keys(updates).length} fields)`)
       } else {
-        errors.push({ userId: account.userId, error: "No address data in HCA profile" })
+        console.log(`[backfill-addresses] No address data in HCA profile for user ${account.userId}`)
         failed++
       }
     } catch (err) {
+      console.error(`[backfill-addresses] Error processing user ${account.userId}:`, err)
       failed++
-      errors.push({ userId: account.userId, error: String(err) })
     }
   }
 
-  return NextResponse.json({
-    total: accounts.length,
-    updated,
-    failed,
-    errors: errors.slice(0, 50),
-  })
+  console.log(`[backfill-addresses] Complete: ${updated} updated, ${failed} failed out of ${accounts.length} total`)
 }

@@ -63,7 +63,7 @@ export default function AdminUsersPage() {
   const [filterAddress, setFilterAddress] = useState<boolean | null>(null);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
   const [backfilling, setBackfilling] = useState(false);
-  const [backfillResult, setBackfillResult] = useState<{ total: number; updated: number; failed: number } | null>(null);
+  const [backfillResult, setBackfillResult] = useState<{ message: string; total: number } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -90,8 +90,7 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/admin/users/backfill-addresses', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
-        setBackfillResult({ total: data.total, updated: data.updated, failed: data.failed });
-        if (data.updated > 0) fetchUsers();
+        setBackfillResult({ message: data.message, total: data.total });
       }
     } catch (error) {
       console.error('Failed to backfill addresses:', error);
@@ -307,8 +306,7 @@ export default function AdminUsersPage() {
               </button>
               {backfillResult && (
                 <span className="text-xs text-brown-800 self-center">
-                  {backfillResult.updated}/{backfillResult.total} updated
-                  {backfillResult.failed > 0 && `, ${backfillResult.failed} failed`}
+                  {backfillResult.message} ({backfillResult.total} users) — check server logs for progress
                 </span>
               )}
               {(filterFraud !== null || filterRole !== null || filterAddress !== null) && (
