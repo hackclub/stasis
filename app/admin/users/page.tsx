@@ -323,7 +323,7 @@ export default function AdminUsersPage() {
                       </div>
                       <div className="flex items-center gap-6 flex-shrink-0">
                         <div className="text-right hidden sm:block">
-                          <p className="text-orange-500">{user.totalProjects} projects</p>
+                          <p className="text-orange-500">{user.totalProjects} {user.totalProjects === 1 ? 'project' : 'projects'}</p>
                           <p className="text-brown-800 text-xs">
                             {user.totalHoursApproved.toFixed(1)}h approved
                           </p>

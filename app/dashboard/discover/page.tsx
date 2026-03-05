@@ -126,7 +126,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
             <span>{project.user.name || 'Anonymous'}</span>
           </button>
           <div className="flex items-center gap-3">
-            <span>{project.sessionCount} entries</span>
+            <span>{project.sessionCount} {project.sessionCount === 1 ? 'entry' : 'entries'}</span>
             <span>{formatRelativeTime(project.lastActivity)}</span>
           </div>
         </div>

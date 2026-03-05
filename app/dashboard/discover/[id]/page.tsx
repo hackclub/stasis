@@ -280,7 +280,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
                 <span className="text-brown-800">{project.user.name || 'Anonymous'}</span>
               </Link>
               <span className="text-cream-600">•</span>
-              <span className="text-cream-600">{project.sessionCount} journal entries</span>
+              <span className="text-cream-600">{project.sessionCount} journal {project.sessionCount === 1 ? 'entry' : 'entries'}</span>
               <span className="text-cream-600">•</span>
               <span className="text-cream-600">Started {formatRelativeTime(project.createdAt)}</span>
             </div>

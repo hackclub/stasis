@@ -54,7 +54,7 @@ export default function StarterProjectPage({
             <h1 className="text-4xl font-bold text-orange-500 mb-2">{project.name}</h1>
             <p className="text-cream-400 text-lg mb-4">{project.short_description}</p>
             <div className="flex flex-wrap gap-4 text-sm">
-              <span className="text-cream-500">~{project.hours} hours</span>
+              <span className="text-cream-500">~{project.hours} {project.hours === 1 ? 'hour' : 'hours'}</span>
               {project.badges.length > 0 && (
                 <div className="flex gap-2">
                   {project.badges.map((badge) => (
