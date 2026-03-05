@@ -18,6 +18,11 @@ export async function GET() {
       fraudConvicted: true,
       slackId: true,
       verificationStatus: true,
+      encryptedAddressStreet: true,
+      encryptedAddressCity: true,
+      encryptedAddressState: true,
+      encryptedAddressZip: true,
+      encryptedAddressCountry: true,
       projects: {
         select: {
           id: true,
@@ -57,6 +62,12 @@ export async function GET() {
       0
     ),
     badges: user.projects.flatMap((p) => p.badges),
+    hasAddress: !!(user.encryptedAddressStreet && user.encryptedAddressCity && user.encryptedAddressCountry),
+    encryptedAddressStreet: undefined,
+    encryptedAddressCity: undefined,
+    encryptedAddressState: undefined,
+    encryptedAddressZip: undefined,
+    encryptedAddressCountry: undefined,
     hasEventInvite: user.currencyTransactions.some(
       (t) => t.shopItemId === SHOP_ITEM_IDS.STASIS_EVENT_INVITE
     ),

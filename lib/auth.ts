@@ -171,6 +171,7 @@ export const auth = betterAuth({
           clientId: process.env.HCA_CLIENT_ID!,
           clientSecret: process.env.HCA_CLIENT_SECRET!,
           scopes: hcaScopes,
+          overrideUserInfo: true,
           authorizationUrlParams: (ctx): Record<string, string> => {
             if (!ctx.request) return {};
             const cookieHeader = ctx.request.headers.get('cookie') || '';

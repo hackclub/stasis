@@ -39,6 +39,7 @@ interface AdminUser {
   fraudConvicted: boolean;
   slackId: string | null;
   verificationStatus: string | null;
+  hasAddress: boolean;
   totalProjects: number;
   totalHoursClaimed: number;
   totalHoursApproved: number;
@@ -59,6 +60,7 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterFraud, setFilterFraud] = useState<boolean | null>(null);
   const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | null>(null);
+  const [filterAddress, setFilterAddress] = useState<boolean | null>(null);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
@@ -109,7 +111,8 @@ export default function AdminUsersPage() {
     );
     const matchesFraud = filterFraud === null || user.fraudConvicted === filterFraud;
     const matchesRole = filterRole === null || user.roles?.some(r => r.role === filterRole);
-    return matchesSearch && matchesFraud && matchesRole;
+    const matchesAddress = filterAddress === null || user.hasAddress === filterAddress;
+    return matchesSearch && matchesFraud && matchesRole && matchesAddress;
   });
 
   const hasRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') =>
@@ -246,9 +249,30 @@ export default function AdminUsersPage() {
               >
                 Sidekick Role
               </button>
-              {(filterFraud !== null || filterRole !== null) && (
+              <span className="text-cream-400">|</span>
+              <button
+                onClick={() => setFilterAddress(filterAddress === true ? null : true)}
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                  filterAddress === true
+                    ? 'bg-green-600 text-white led-flicker'
+                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                }`}
+              >
+                Has Address
+              </button>
+              <button
+                onClick={() => setFilterAddress(filterAddress === false ? null : false)}
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                  filterAddress === false
+                    ? 'bg-red-600 text-white led-flicker'
+                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                }`}
+              >
+                No Address
+              </button>
+              {(filterFraud !== null || filterRole !== null || filterAddress !== null) && (
                 <button
-                  onClick={() => { setFilterFraud(null); setFilterRole(null); }}
+                  onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); }}
                   className="px-3 py-1.5 text-xs uppercase text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
                 >
                   Clear Filters
@@ -316,6 +340,15 @@ export default function AdminUsersPage() {
                             {user.fraudConvicted && (
                               <span className="text-xs bg-red-600 text-white px-2 py-0.5 uppercase">
                                 Fraud
+                              </span>
+                            )}
+                            {user.hasAddress ? (
+                              <span className="text-xs bg-green-600 text-white px-2 py-0.5 uppercase">
+                                Address
+                              </span>
+                            ) : (
+                              <span className="text-xs bg-red-600/80 text-white px-2 py-0.5 uppercase">
+                                No Address
                               </span>
                             )}
                             {user.verificationStatus === 'verified' ? (
