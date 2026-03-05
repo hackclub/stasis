@@ -32,6 +32,10 @@ const faqs = [
     answer: "With each hardware skill you use in your project, you can earn a badge that goes on your profile page! Special merch will be given out to those who reach <mark>5 badges</mark>, and you'll also be mailed a real-life badge so you can show off your skills!<br><br>Each project can earn a maximum of <mark>3 badges</mark> and must meet each badge's criteria."
   },
   {
+    question: "Wait, you're giving me money to build projects?",
+    answer: "<mark>YES!</mark> You can get up to <mark>$400</mark> to buy parts to build your project."
+  },
+  {
     question: "Is this legit? What's Hack Club?",
     answer: "<a href='https://hackclub.com'>Hack Club</a> is the world's largest community of teenage makers, and a <mark>501(c)(3) nonprofit</mark>. Hack Club is supported by donations from tech companies like GitHub and individuals like Michael Dell. Hack Club is <a href='https://hcb.hackclub.com/hq'>fiscally transparent</a>."
   },
