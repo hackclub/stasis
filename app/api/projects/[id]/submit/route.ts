@@ -34,7 +34,6 @@ export async function POST(
     where: { id },
     include: {
       workSessions: true,
-      badges: true,
       bomItems: true,
     },
   })
@@ -97,13 +96,6 @@ export async function POST(
       )
     }
 
-    if (project.badges.length === 0) {
-      return NextResponse.json(
-        { error: "At least one badge is required for design review" },
-        { status: 400 }
-      )
-    }
-
     if (!project.coverImage) {
       return NextResponse.json(
         { error: "Project image is required for design review" },
@@ -160,13 +152,6 @@ export async function POST(
     if (!project.githubRepo) {
       return NextResponse.json(
         { error: "GitHub repository link is required for build review" },
-        { status: 400 }
-      )
-    }
-
-    if (project.badges.length === 0) {
-      return NextResponse.json(
-        { error: "At least one badge must be claimed for build review" },
         { status: 400 }
       )
     }

@@ -286,7 +286,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     (project.bomItems.length === 0 || project.cartScreenshots.length > 0) &&
     designSessions.length > 0 &&
     project.githubRepo &&
-    project.badges.length > 0 &&
     project.coverImage &&
     isVerified;
 
@@ -788,7 +787,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   GitHub repo linked
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${project.badges.length > 0 ? 'text-green-500' : 'text-brown-800'}`}>
+                <div className={`flex items-center gap-2 text-sm ${project.badges.length > 0 ? 'text-green-500' : 'text-cream-500'}`}>
                   {project.badges.length > 0 ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
@@ -796,7 +795,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   ) : (
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
-                  At least 1 badge claimed ({project.badges.length} claimed)
+                  Badges claimed ({project.badges.length} claimed) — optional
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${project.coverImage ? 'text-green-500' : 'text-brown-800'}`}>
                   {project.coverImage ? (
