@@ -158,7 +158,7 @@ function ItemDetailModal({
 
         {item.imageUrl && (
           <div className="aspect-video overflow-hidden border border-cream-400 bg-cream-200 mb-4">
-            <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+            <img src={item.imageUrl} alt="" className="w-full h-full object-contain" />
           </div>
         )}
 
@@ -411,7 +411,7 @@ export default function ShopPage() {
                   >
                     <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-200">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={item.imageUrl} alt="" className="w-full h-full object-contain" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <span className="text-cream-500 text-sm uppercase tracking-wider">No image</span>
