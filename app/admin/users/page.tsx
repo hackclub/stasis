@@ -62,6 +62,8 @@ export default function AdminUsersPage() {
   const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | null>(null);
   const [filterAddress, setFilterAddress] = useState<boolean | null>(null);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<{ total: number; updated: number; failed: number } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -78,6 +80,23 @@ export default function AdminUsersPage() {
       console.error('Failed to fetch users:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function backfillAddresses() {
+    setBackfilling(true);
+    setBackfillResult(null);
+    try {
+      const res = await fetch('/api/admin/users/backfill-addresses', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setBackfillResult({ total: data.total, updated: data.updated, failed: data.failed });
+        if (data.updated > 0) fetchUsers();
+      }
+    } catch (error) {
+      console.error('Failed to backfill addresses:', error);
+    } finally {
+      setBackfilling(false);
     }
   }
 
@@ -270,6 +289,28 @@ export default function AdminUsersPage() {
               >
                 No Address
               </button>
+              <span className="text-cream-400">|</span>
+              <button
+                onClick={() => {
+                  if (confirm('Backfill address data from Hack Club Auth for all users missing addresses?')) {
+                    backfillAddresses();
+                  }
+                }}
+                disabled={backfilling}
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                  backfilling
+                    ? 'bg-cream-300 text-brown-800 opacity-50'
+                    : 'bg-orange-500 text-brown-800 hover:bg-orange-400'
+                } transition-colors`}
+              >
+                {backfilling ? 'Backfilling...' : 'Backfill Addresses'}
+              </button>
+              {backfillResult && (
+                <span className="text-xs text-brown-800 self-center">
+                  {backfillResult.updated}/{backfillResult.total} updated
+                  {backfillResult.failed > 0 && `, ${backfillResult.failed} failed`}
+                </span>
+              )}
               {(filterFraud !== null || filterRole !== null || filterAddress !== null) && (
                 <button
                   onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); }}
