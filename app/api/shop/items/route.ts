@@ -11,7 +11,7 @@ export async function GET() {
     where: { active: true },
     orderBy: [
       { sortOrder: "asc" },
-      { createdAt: "asc" },
+      { price: "asc" },
     ],
     select: {
       id: true,

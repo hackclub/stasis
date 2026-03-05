@@ -413,10 +413,10 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {project.coverImage && (
             <div className="mb-6">
               <a href={project.coverImage} target="_blank" rel="noopener noreferrer">
-                <img 
-                  src={project.coverImage} 
+                <img
+                  src={project.coverImage}
                   alt={project.title}
-                  className="w-full max-h-96 object-cover border-2 border-cream-400 hover:border-orange-500 transition-colors"
+                  className="w-full max-h-96 object-cover border-2 border-cream-400 hover:border-orange-500 transition-colors bg-cream-100"
                 />
               </a>
             </div>

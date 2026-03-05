@@ -68,7 +68,7 @@ export function ProjectCard({ project }: Readonly<Props>) {
       data-project-card="true" 
     >
       {/* Cover Image */}
-      <div className="aspect-video bg-cream-200 border-b border-cream-400 flex items-center justify-center relative overflow-hidden">
+      <div className="aspect-video bg-cream-100 border-b border-cream-400 flex items-center justify-center relative overflow-hidden">
         {project.coverImage ? (
           <Image 
             src={project.coverImage} 

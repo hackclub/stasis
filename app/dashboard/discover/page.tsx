@@ -58,7 +58,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
       href={`/dashboard/discover/${project.id}`}
       className="block bg-cream-100 border-2 border-cream-400 hover:border-orange-500 transition-colors"
     >
-      <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-200">
+      <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-100">
         {thumbnail ? (
           <img
             src={thumbnail}

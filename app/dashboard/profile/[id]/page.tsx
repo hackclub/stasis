@@ -245,7 +245,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                     className="block bg-cream-200 border border-cream-400 hover:border-orange-500 transition-colors"
                   >
                     {project.coverImage ? (
-                      <div className="aspect-video overflow-hidden">
+                      <div className="aspect-video overflow-hidden bg-cream-100">
                         <img src={project.coverImage} alt="" className="w-full h-full object-cover" />
                       </div>
                     ) : (

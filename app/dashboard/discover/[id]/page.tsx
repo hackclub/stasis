@@ -258,7 +258,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
       {/* Header */}
       <div className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
         {project.coverImage && (
-          <div className="aspect-video max-h-64 overflow-hidden border border-cream-400 mb-4">
+          <div className="aspect-video max-h-64 overflow-hidden border border-cream-400 mb-4 bg-cream-100">
             <img src={project.coverImage} alt="" className="w-full h-full object-cover" />
           </div>
         )}

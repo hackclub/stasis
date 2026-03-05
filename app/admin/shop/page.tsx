@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface ShopItem {
   id: string;
@@ -18,6 +18,8 @@ export default function AdminShopPage() {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -61,6 +63,7 @@ export default function AdminShopPage() {
     setFormSortOrder('0');
     setFormImageFile(null);
     setFormImageUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setEditingId(null);
     setFormError(null);
   };
@@ -214,7 +217,7 @@ export default function AdminShopPage() {
                 />
               </div>
               <div>
-                <label className="text-brown-800 text-xs uppercase block mb-1">Sort Order</label>
+                <label className="text-brown-800 text-xs uppercase block mb-1">Sort Order <span className="normal-case text-cream-600">(price breaks ties)</span></label>
                 <input
                   type="number"
                   value={formSortOrder}
@@ -239,6 +242,7 @@ export default function AdminShopPage() {
             <label className="text-brown-800 text-xs uppercase block mb-1">Image</label>
             <div className="flex items-center gap-3">
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 onChange={(e) => {
@@ -250,7 +254,7 @@ export default function AdminShopPage() {
               {(formImageUrl || formImageFile) && (
                 <button
                   type="button"
-                  onClick={() => { setFormImageFile(null); setFormImageUrl(''); }}
+                  onClick={() => { setFormImageFile(null); setFormImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                   className="text-red-600 text-xs uppercase hover:text-red-500 cursor-pointer"
                 >
                   Remove
