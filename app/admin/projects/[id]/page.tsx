@@ -65,6 +65,7 @@ interface ProjectUser {
   id: string;
   name: string | null;
   email: string;
+  verificationStatus: string | null;
 }
 
 interface ReviewAction {
@@ -369,6 +370,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               <p className="text-brown-800 text-sm">
                 by {project.user.name || project.user.email}
                 {project.user.name && <span className="text-cream-600"> ({project.user.email})</span>}
+                {project.user.verificationStatus === 'verified' ? (
+                  <span className="ml-2 text-xs bg-green-600 text-white px-2 py-0.5 uppercase">IDV Verified</span>
+                ) : (
+                  <span className="ml-2 text-xs bg-yellow-600 text-white px-2 py-0.5 uppercase">IDV {project.user.verificationStatus || 'Unknown'}</span>
+                )}
               </p>
             </div>
             {isAdmin && (

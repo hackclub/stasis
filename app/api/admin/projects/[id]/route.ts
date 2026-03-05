@@ -22,6 +22,7 @@ export async function GET(
           name: true,
           email: true,
           image: true,
+          verificationStatus: true,
         },
       },
       workSessions: {

@@ -121,6 +121,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
+  const isVerified = (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -286,7 +287,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     designSessions.length > 0 &&
     project.githubRepo &&
     project.badges.length > 0 &&
-    project.coverImage;
+    project.coverImage &&
+    isVerified;
 
   // Check if there are new build sessions since last approval
   const hasNewBuildSessions = project?.buildStatus === "approved" && project?.buildReviewedAt
@@ -297,7 +299,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     project.designStatus === "approved" &&
     (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") &&
     totalBuildHours >= MIN_HOURS_REQUIRED &&
-    hasNewBuildSessions;
+    hasNewBuildSessions &&
+    isVerified;
 
   const handleRequestUpdate = async () => {
     if (!project) return;
@@ -805,6 +808,27 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Upload a project image
                 </div>
+                <div className={`flex items-center gap-2 text-sm ${isVerified ? 'text-green-500' : 'text-brown-800'}`}>
+                  {isVerified ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  Verify your YSWS Eligibility
+                  {!isVerified && (
+                    <a
+                      href="https://auth.hackclub.com/verifications/document"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      do this now
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -822,6 +846,27 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
                   Minimum {MIN_HOURS_REQUIRED} build hours ({totalBuildHours.toFixed(1)}h logged)
+                </div>
+                <div className={`flex items-center gap-2 text-sm ${isVerified ? 'text-green-500' : 'text-brown-800'}`}>
+                  {isVerified ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  Verify your YSWS Eligibility
+                  {!isVerified && (
+                    <a
+                      href="https://auth.hackclub.com/verifications/document"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      do this now
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

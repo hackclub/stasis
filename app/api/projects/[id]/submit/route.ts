@@ -47,6 +47,11 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { verificationStatus: true } })
+  if (user?.verificationStatus !== "verified") {
+    return NextResponse.json({ error: "Identity verification required. Please verify your YSWS eligibility before submitting." }, { status: 403 })
+  }
+
   if (stage === "design") {
     // Design stage submission
     if (project.designStatus !== "draft" && project.designStatus !== "rejected") {
