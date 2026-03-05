@@ -433,6 +433,21 @@ model CurrencyTransaction {
   @@map("currency_transaction")
 }
 
+// Admin-managed shop items (excludes hardcoded Event Invite & Flight Stipend)
+model ShopItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String?
+  price       Int      // Cost in bits
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("shop_item")
+}
+
 // Temporary RSVP storage (fallback when Airtable is down)
 model TempRsvp {
   id              String   @id @default(cuid())
