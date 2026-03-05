@@ -29,6 +29,25 @@ interface AdminProject {
 export default function AdminDashboard() {
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogoutAll = async () => {
+    if (!confirm('Log out ALL users (except yourself)? This will invalidate every active session.')) return;
+    setLoggingOut(true);
+    try {
+      const res = await fetch('/api/admin/sessions', { method: 'DELETE' });
+      if (res.ok) {
+        const { count } = await res.json();
+        alert(`Done — ${count} session${count !== 1 ? 's' : ''} invalidated.`);
+      } else {
+        alert('Failed to log out users.');
+      }
+    } catch {
+      alert('Failed to log out users.');
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchProjects() {
@@ -55,10 +74,17 @@ export default function AdminDashboard() {
   return (
     <>
           {/* Stats */}
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between gap-4">
             <p className="text-brown-800 text-sm uppercase">
               {projects.length} project{projects.length !== 1 ? 's' : ''} awaiting review
             </p>
+            <button
+              onClick={handleLogoutAll}
+              disabled={loggingOut}
+              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-red-600 text-red-600 bg-red-600/10 hover:bg-red-600/20 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {loggingOut ? 'Logging out...' : 'Log Out All Users'}
+            </button>
           </div>
 
           {/* Projects List */}

@@ -21,7 +21,7 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       slackId: {
-        type: "string", 
+        type: "string",
         required: false,
       },
       slackDisplayName: {
@@ -29,6 +29,30 @@ export const auth = betterAuth({
         required: false,
       },
       verificationStatus: {
+        type: "string",
+        required: false,
+      },
+      encryptedAddressStreet: {
+        type: "string",
+        required: false,
+      },
+      encryptedAddressCity: {
+        type: "string",
+        required: false,
+      },
+      encryptedAddressState: {
+        type: "string",
+        required: false,
+      },
+      encryptedAddressZip: {
+        type: "string",
+        required: false,
+      },
+      encryptedAddressCountry: {
+        type: "string",
+        required: false,
+      },
+      encryptedBirthday: {
         type: "string",
         required: false,
       },
@@ -85,12 +109,13 @@ export const auth = betterAuth({
     session: {
       create: {
         after: async (session) => {
-          // Refresh Slack display name in the background on each login
           const userId = session.userId;
           const user = await prisma.user.findUnique({
             where: { id: userId },
             select: { slackId: true },
           });
+
+          // Refresh Slack display name + channel invite on each login
           if (user?.slackId) {
             inviteToSlackChannels(user.slackId).catch((err) =>
               console.error('Failed to invite to Slack channels:', err)
@@ -103,6 +128,35 @@ export const auth = betterAuth({
                 }).catch((err) => console.error('Failed to update Slack display name:', err));
               }
             }).catch((err) => console.error('Failed to fetch Slack display name:', err));
+          }
+
+          // Refresh HCA PII (address + birthday) on every login using the stored access token
+          if (process.env.PULL_HCA_PII === 'true') {
+            prisma.account.findFirst({
+              where: { userId, providerId: 'hca' },
+              select: { accessToken: true },
+            }).then(async (account) => {
+              if (!account?.accessToken) return;
+              const resp = await fetch('https://auth.hackclub.com/userinfo', {
+                headers: { Authorization: `Bearer ${account.accessToken}` },
+              });
+              if (!resp.ok) return;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const profile: any = await resp.json();
+              const updates: Record<string, string> = {};
+              const addr = profile.address;
+              if (addr) {
+                if (addr.street_address) updates.encryptedAddressStreet = encryptPII(addr.street_address);
+                if (addr.locality) updates.encryptedAddressCity = encryptPII(addr.locality);
+                if (addr.region) updates.encryptedAddressState = encryptPII(addr.region);
+                if (addr.postal_code) updates.encryptedAddressZip = encryptPII(addr.postal_code);
+                if (addr.country) updates.encryptedAddressCountry = encryptPII(addr.country);
+              }
+              if (profile.birthdate) updates.encryptedBirthday = encryptPII(profile.birthdate);
+              if (Object.keys(updates).length > 0) {
+                await prisma.user.update({ where: { id: userId }, data: updates });
+              }
+            }).catch((err) => console.error('Failed to refresh HCA PII:', err));
           }
         },
       },
