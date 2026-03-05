@@ -38,6 +38,7 @@ interface AdminUser {
   createdAt: string;
   fraudConvicted: boolean;
   slackId: string | null;
+  verificationStatus: string | null;
   totalProjects: number;
   totalHoursClaimed: number;
   totalHoursApproved: number;
@@ -317,6 +318,15 @@ export default function AdminUsersPage() {
                                 Fraud
                               </span>
                             )}
+                            {user.verificationStatus === 'verified' ? (
+                              <span className="text-xs bg-green-600 text-white px-2 py-0.5 uppercase">
+                                IDV Verified
+                              </span>
+                            ) : (
+                              <span className="text-xs bg-yellow-600 text-white px-2 py-0.5 uppercase">
+                                IDV {user.verificationStatus || 'Unknown'}
+                              </span>
+                            )}
                           </div>
                           <p className="text-brown-800 text-sm truncate">{user.email}</p>
                         </div>
@@ -378,6 +388,12 @@ export default function AdminUsersPage() {
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Projects</p>
                           <p className="text-brown-800">{user.totalProjects}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-600 uppercase text-xs mb-1">ID Verification</p>
+                          <p className={user.verificationStatus === 'verified' ? 'text-green-600' : 'text-yellow-600'}>
+                            {user.verificationStatus || '—'}
+                          </p>
                         </div>
                         <div>
                           <p className="text-cream-600 uppercase text-xs mb-1">Event Invite</p>
