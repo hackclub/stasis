@@ -50,20 +50,9 @@ function requireAuth(): NextResponse {
 }
 
 export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  const isDashboard = pathname.startsWith("/dashboard");
-  const isAdmin = pathname.startsWith("/admin");
-  const isSidekick = pathname.startsWith("/sidekick");
-  const isSuperadmin = pathname.startsWith("/superadmin");
+  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
   const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === "true";
   const requireSiteAuth = process.env.REQUIRE_BASICAUTH === "true";
-
-  // Redirect all authenticated routes to /downtime
-  if (isDashboard || isAdmin || isSidekick || isSuperadmin) {
-    return addSecurityHeaders(
-      NextResponse.redirect(new URL("/downtime", request.url))
-    );
-  }
 
   if (requireSiteAuth) {
     if (!checkBasicAuth(request)) return requireAuth();
@@ -74,12 +63,12 @@ export function middleware(request: NextRequest) {
     if (!checkBasicAuth(request)) return requireAuth();
   }
 
-  // Redirect logged-in users from / to /downtime
-  if (pathname === "/") {
+  // Redirect logged-in users from / to /dashboard immediately (no flash)
+  if (request.nextUrl.pathname === "/") {
     const hasSession = request.cookies.has("better-auth.session_token");
     if (hasSession) {
       return addSecurityHeaders(
-        NextResponse.redirect(new URL("/downtime", request.url))
+        NextResponse.redirect(new URL("/dashboard", request.url))
       );
     }
   }
