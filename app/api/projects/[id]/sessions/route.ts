@@ -106,20 +106,20 @@ export async function POST(
 
   const body = await request.json()
 
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const dailySessionCount = await prisma.workSession.count({
-    where: {
-      project: { userId: session.user.id },
-      createdAt: { gte: todayStart },
-    },
-  })
-  if (dailySessionCount >= 10) {
-    return NextResponse.json(
-      { error: "Daily session limit reached (max 10 per day)" },
-      { status: 429 }
-    )
-  }
+  // const todayStart = new Date()
+  // todayStart.setHours(0, 0, 0, 0)
+  // const dailySessionCount = await prisma.workSession.count({
+  //   where: {
+  //     project: { userId: session.user.id },
+  //     createdAt: { gte: todayStart },
+  //   },
+  // })
+  // if (dailySessionCount >= 10) {
+  //   return NextResponse.json(
+  //     { error: "Daily session limit reached (max 10 per day)" },
+  //     { status: 429 }
+  //   )
+  // }
 
   const { title, hoursClaimed, content, categories, media, stage: rawStage, timelapseIds } = body
   
