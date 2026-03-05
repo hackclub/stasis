@@ -396,7 +396,7 @@ export default function StarterProjectsPage() {
                     className="flex flex-col space-y-3 px-4 py-12 absolute opacity-0 pointer-events-none  mx-8"
                   >
                     <h2 className="text-orange-600 text-5xl">{project.name.toUpperCase()}</h2>
-                    <p className="text-cream-50 text-2xl">{project.hours} hours</p>
+                    <p className="text-cream-50 text-2xl">{project.hours} {project.hours === 1 ? 'hour' : 'hours'}</p>
                     <p className="text-cream-50 text-lg">{project.short_description}</p>
                   </div>
                 ))}
@@ -405,7 +405,7 @@ export default function StarterProjectsPage() {
                 <div 
                   className="space-y-3 px-6 md:px-8 lg:mx-6 py-6 sm:py-10">
                   <h2 className="text-orange-600 text-5xl min-h-[6rem]">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
-                  <p className="text-cream-300 text-2xl">~{projects[selectedProjectIndex ?? 0].hours} hours</p>
+                  <p className="text-cream-300 text-2xl">~{projects[selectedProjectIndex ?? 0].hours} {projects[selectedProjectIndex ?? 0].hours === 1 ? 'hour' : 'hours'}</p>
                   <p className="text-cream-300 text-lg min-h-[5.25rem]">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
                 <div className="w-full">

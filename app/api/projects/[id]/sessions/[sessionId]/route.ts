@@ -186,7 +186,7 @@ export async function PATCH(
   if (requiredVideos > 0 && videoCount < requiredVideos) {
     return NextResponse.json(
       {
-        error: `Sessions over 4 hours require video clips. You need ${requiredVideos} video(s) for ${hoursClaimed} hours.`,
+        error: `Sessions over 4 hours require video clips. You need ${requiredVideos} video ${requiredVideos !== 1 ? 'clips' : 'clip'} for ${hoursClaimed} ${hoursClaimed === 1 ? 'hour' : 'hours'}.`,
       },
       { status: 400 }
     )

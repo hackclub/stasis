@@ -172,7 +172,7 @@ export async function POST(
 
     if (totalBuildHours < MIN_BUILD_HOURS_REQUIRED) {
       return NextResponse.json(
-        { error: `Minimum ${MIN_BUILD_HOURS_REQUIRED} hours of build work required` },
+        { error: `Minimum ${MIN_BUILD_HOURS_REQUIRED} ${MIN_BUILD_HOURS_REQUIRED === 1 ? 'hour' : 'hours'} of build work required` },
         { status: 400 }
       )
     }
