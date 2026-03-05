@@ -263,7 +263,7 @@ export default function AdminShopPage() {
             </div>
             {formImageUrl && !formImageFile && (
               <div className="mt-2">
-                <img src={formImageUrl} alt="" className="h-20 border border-cream-400 object-cover" />
+                <img src={formImageUrl} alt="" className="h-20 border border-cream-400 object-contain" />
               </div>
             )}
           </div>
@@ -320,7 +320,7 @@ export default function AdminShopPage() {
                 <tr key={item.id} className="border-b border-cream-300 last:border-b-0 hover:bg-cream-200/50">
                   <td className="px-4 py-3">
                     {item.imageUrl ? (
-                      <img src={item.imageUrl} alt="" className="w-12 h-12 object-cover border border-cream-400" />
+                      <img src={item.imageUrl} alt="" className="w-12 h-12 object-contain border border-cream-400" />
                     ) : (
                       <div className="w-12 h-12 bg-cream-200 border border-cream-400 flex items-center justify-center">
                         <span className="text-cream-500 text-[10px] uppercase">None</span>
