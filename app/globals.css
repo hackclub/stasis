@@ -110,6 +110,29 @@ a:focus-visible {
 	animation: led-flicker-on 0.2s ease-out;
 }
 
+/* Grid texture sliding background for shop items */
+@keyframes grid-slide {
+	from { background-position: 0 0; }
+	to   { background-position: 4rem 4rem; }
+}
+
+.shop-item-image {
+	position: relative;
+}
+
+.shop-item-image::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-image: url(/grid-texture.png);
+	background-size: 4rem 4rem;
+	image-rendering: pixelated;
+	animation: grid-slide 8s linear infinite;
+	opacity: 0.05;
+	z-index: 0;
+	pointer-events: none;
+}
+
 /* Page loader */
 .loader {
 	width: 40px;

@@ -73,7 +73,7 @@ export default function BitsLedgerPage() {
     setAdjustError(null);
     const amount = parseInt(adjustAmount, 10);
     if (!adjustUserId.trim() || isNaN(amount) || amount === 0) {
-      setAdjustError('User ID and a non-zero integer amount are required.');
+      setAdjustError('User ID or email and a non-zero integer amount are required.');
       return;
     }
 
@@ -121,12 +121,12 @@ export default function BitsLedgerPage() {
         <form onSubmit={handleAdjust} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">User ID</label>
+              <label className="text-brown-800 text-xs uppercase block mb-1">User ID or Email</label>
               <input
                 type="text"
                 value={adjustUserId}
                 onChange={(e) => setAdjustUserId(e.target.value)}
-                placeholder="cuid..."
+                placeholder="cuid or email..."
                 className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-mono"
               />
             </div>
@@ -167,7 +167,7 @@ export default function BitsLedgerPage() {
       {/* Filter */}
       <div className="flex gap-3 items-end">
         <div>
-          <label className="text-brown-800 text-xs uppercase block mb-1">Filter by User ID</label>
+          <label className="text-brown-800 text-xs uppercase block mb-1">Filter by User ID or Email</label>
           <input
             type="text"
             value={filterUserId}

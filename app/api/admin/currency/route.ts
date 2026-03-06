@@ -18,9 +18,18 @@ export async function GET(request: NextRequest) {
   if (authCheck.error) return authCheck.error
 
   const { searchParams } = new URL(request.url)
-  const userId = searchParams.get("userId") ?? undefined
   const limit = Math.min(500, Math.max(1, parseInt(searchParams.get("limit") ?? "100", 10)))
   const offset = Math.max(0, parseInt(searchParams.get("offset") ?? "0", 10))
+  let userId = searchParams.get("userId") ?? undefined
+
+  // Allow filtering by email — resolve to userId
+  if (userId && userId.includes("@")) {
+    const user = await prisma.user.findUnique({ where: { email: userId }, select: { id: true } })
+    if (!user) {
+      return NextResponse.json({ entries: [], total: 0, limit, offset })
+    }
+    userId = user.id
+  }
 
   const [entries, total] = await Promise.all([
     prisma.currencyTransaction.findMany({
@@ -53,10 +62,10 @@ export async function POST(request: NextRequest) {
   if (authCheck.error) return authCheck.error
 
   const body = await request.json()
-  const { userId, amount, note } = body
+  const { userId: userIdOrEmail, amount, note } = body
 
-  if (typeof userId !== "string" || !userId) {
-    return NextResponse.json({ error: "userId is required" }, { status: 400 })
+  if (typeof userIdOrEmail !== "string" || !userIdOrEmail) {
+    return NextResponse.json({ error: "userId or email is required" }, { status: 400 })
   }
   if (typeof amount !== "number" || !Number.isInteger(amount) || amount === 0) {
     return NextResponse.json({ error: "amount must be a non-zero integer" }, { status: 400 })
@@ -65,10 +74,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "note must be a string" }, { status: 400 })
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  // Resolve email to user ID if input contains @
+  const user = userIdOrEmail.includes("@")
+    ? await prisma.user.findUnique({ where: { email: userIdOrEmail }, select: { id: true } })
+    : await prisma.user.findUnique({ where: { id: userIdOrEmail }, select: { id: true } })
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
+  const userId = user.id
 
   const type = amount > 0 ? CurrencyTransactionType.ADMIN_GRANT : CurrencyTransactionType.ADMIN_DEDUCTION
 

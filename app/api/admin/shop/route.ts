@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   if (authCheck.error) return authCheck.error
 
   const body = await request.json()
-  const { name, description, imageUrl, price, sortOrder } = body
+  const { name, description, longDescription, imageUrl, price, sortOrder, maxPerUser } = body
 
   if (typeof name !== "string" || !name.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 })
@@ -46,9 +46,11 @@ export async function POST(request: NextRequest) {
     data: {
       name: name.trim(),
       description: description.trim(),
+      longDescription: typeof longDescription === "string" && longDescription.trim() ? longDescription.trim() : null,
       imageUrl: typeof imageUrl === "string" ? imageUrl : null,
       price,
       sortOrder: typeof sortOrder === "number" ? sortOrder : 0,
+      maxPerUser: typeof maxPerUser === "number" && Number.isInteger(maxPerUser) && maxPerUser >= 0 ? maxPerUser : 0,
     },
   })
 

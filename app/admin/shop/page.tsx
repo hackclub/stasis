@@ -6,8 +6,10 @@ interface ShopItem {
   id: string;
   name: string;
   description: string;
+  longDescription: string | null;
   imageUrl: string | null;
   price: number;
+  maxPerUser: number;
   active: boolean;
   sortOrder: number;
   createdAt: string;
@@ -24,8 +26,10 @@ export default function AdminShopPage() {
   // Form state
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [formLongDescription, setFormLongDescription] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formSortOrder, setFormSortOrder] = useState('0');
+  const [formOnePerUser, setFormOnePerUser] = useState(false);
   const [formImageFile, setFormImageFile] = useState<File | null>(null);
   const [formImageUrl, setFormImageUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -59,8 +63,10 @@ export default function AdminShopPage() {
   const resetForm = () => {
     setFormName('');
     setFormDescription('');
+    setFormLongDescription('');
     setFormPrice('');
     setFormSortOrder('0');
+    setFormOnePerUser(false);
     setFormImageFile(null);
     setFormImageUrl('');
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -72,8 +78,10 @@ export default function AdminShopPage() {
     setEditingId(item.id);
     setFormName(item.name);
     setFormDescription(item.description);
+    setFormLongDescription(item.longDescription ?? '');
     setFormPrice(String(item.price));
     setFormSortOrder(String(item.sortOrder));
+    setFormOnePerUser(item.maxPerUser === 1);
     setFormImageUrl(item.imageUrl ?? '');
     setFormImageFile(null);
     setFormError(null);
@@ -116,8 +124,10 @@ export default function AdminShopPage() {
       const body = {
         name: formName.trim(),
         description: formDescription.trim(),
+        longDescription: formLongDescription.trim() || null,
         price,
         sortOrder: parseInt(formSortOrder, 10) || 0,
+        maxPerUser: formOnePerUser ? 1 : 0,
         imageUrl,
       };
 
@@ -229,43 +239,64 @@ export default function AdminShopPage() {
             </div>
           </div>
           <div>
-            <label className="text-brown-800 text-xs uppercase block mb-1">Description</label>
+            <label className="text-brown-800 text-xs uppercase block mb-1">Short Description <span className="normal-case text-cream-600">(shown on card)</span></label>
             <textarea
               value={formDescription}
               onChange={(e) => setFormDescription(e.target.value)}
-              placeholder="Item description"
-              rows={3}
+              placeholder="Brief item description"
+              rows={2}
               className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-y"
             />
           </div>
           <div>
-            <label className="text-brown-800 text-xs uppercase block mb-1">Image</label>
-            <div className="flex items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null;
-                  setFormImageFile(file);
-                }}
-                className="text-brown-800 text-sm file:bg-cream-300 file:border file:border-cream-400 file:text-brown-800 file:px-3 file:py-1 file:text-sm file:cursor-pointer file:mr-3"
-              />
-              {(formImageUrl || formImageFile) && (
-                <button
-                  type="button"
-                  onClick={() => { setFormImageFile(null); setFormImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                  className="text-red-600 text-xs uppercase hover:text-red-500 cursor-pointer"
-                >
-                  Remove
-                </button>
+            <label className="text-brown-800 text-xs uppercase block mb-1">Long Description <span className="normal-case text-cream-600">(shown in detail modal, optional)</span></label>
+            <textarea
+              value={formLongDescription}
+              onChange={(e) => setFormLongDescription(e.target.value)}
+              placeholder="Detailed description shown when item is clicked"
+              rows={4}
+              className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-y"
+            />
+          </div>
+          <div className="flex items-start gap-6">
+            <div className="flex-1">
+              <label className="text-brown-800 text-xs uppercase block mb-1">Image</label>
+              <div className="flex items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setFormImageFile(file);
+                  }}
+                  className="text-brown-800 text-sm file:bg-cream-300 file:border file:border-cream-400 file:text-brown-800 file:px-3 file:py-1 file:text-sm file:cursor-pointer file:mr-3"
+                />
+                {(formImageUrl || formImageFile) && (
+                  <button
+                    type="button"
+                    onClick={() => { setFormImageFile(null); setFormImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    className="text-red-600 text-xs uppercase hover:text-red-500 cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {formImageUrl && !formImageFile && (
+                <div className="mt-2">
+                  <img src={formImageUrl} alt="" className="h-20 border border-cream-400 object-contain" />
+                </div>
               )}
             </div>
-            {formImageUrl && !formImageFile && (
-              <div className="mt-2">
-                <img src={formImageUrl} alt="" className="h-20 border border-cream-400 object-contain" />
-              </div>
-            )}
+            <label className="flex items-center gap-2 cursor-pointer pt-5 flex-shrink-0">
+              <input
+                type="checkbox"
+                checked={formOnePerUser}
+                onChange={(e) => setFormOnePerUser(e.target.checked)}
+                className="accent-orange-500"
+              />
+              <span className="text-brown-800 text-sm">Limit to one purchase per user</span>
+            </label>
           </div>
           {formError && <p className="text-red-600 text-sm">{formError}</p>}
           <div className="flex gap-3">
@@ -333,6 +364,9 @@ export default function AdminShopPage() {
                   </td>
                   <td className="text-right px-4 py-3 text-brown-800 font-mono">
                     {item.price.toLocaleString()}
+                    {item.maxPerUser === 1 && (
+                      <span className="ml-1 text-xs text-cream-600">(1x)</span>
+                    )}
                   </td>
                   <td className="text-center px-4 py-3 text-brown-800 font-mono">
                     {item.sortOrder}

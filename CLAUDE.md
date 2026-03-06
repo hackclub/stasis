@@ -78,9 +78,32 @@ AND id NOT IN (SELECT \"userId\" FROM user_role WHERE role = 'ADMIN');
 
 Note: The `user_role` table uses camelCase column names (`userId`, `grantedAt`) due to Prisma conventions.
 
+## Granting Bits (Currency) Locally
+
+To grant bits to a user in the local dev database:
+
+```bash
+psql "postgresql://postgres:postgres@localhost:5432/stasis" -c "
+INSERT INTO currency_transaction (id, \"userId\", amount, type, \"balanceBefore\", \"balanceAfter\", note, \"createdAt\")
+SELECT
+  gen_random_uuid()::text,
+  u.id,
+  AMOUNT_HERE,
+  'ADMIN_GRANT',
+  COALESCE((SELECT SUM(amount) FROM currency_transaction WHERE \"userId\" = u.id), 0),
+  COALESCE((SELECT SUM(amount) FROM currency_transaction WHERE \"userId\" = u.id), 0) + AMOUNT_HERE,
+  'Manual grant via CLI',
+  now()
+FROM \"user\" u
+WHERE u.email = 'USER_EMAIL_HERE';
+"
+```
+
+Replace `USER_EMAIL_HERE` with the user's email and `AMOUNT_HERE` with the number of bits to grant. The currency ledger is append-only — balance is derived from `SUM(amount)` across all entries for a user.
+
 ## Database Migrations
 
-Never AI-generate migration files. Always use `npx prisma migrate dev` to create migrations — this requires a running database. If the database is not available, instruct the user to run the migration themselves.
+Never AI-generate migration files. Always use `npx prisma migrate dev --name <descriptive_name>` to create migrations — this requires a running database. Always include a descriptive `--name` flag (e.g., `--name add_shop_items_table`) so the migration folder is clearly named. If the database is not available, instruct the user to run the migration themselves.
 
 ## TypeScript
 

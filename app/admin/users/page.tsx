@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 interface ProjectBadge {
@@ -45,9 +45,19 @@ interface AdminUser {
   totalHoursApproved: number;
   hasEventInvite: boolean;
   flightStipend: number;
+  shopPurchaseCount: number;
   projects: Project[];
   badges: ProjectBadge[];
   roles: UserRole[];
+}
+
+interface UserPurchase {
+  id: string;
+  itemId: string;
+  itemName: string;
+  imageUrl: string | null;
+  amount: number;
+  purchasedAt: string;
 }
 
 const AVAILABLE_ROLES: Array<'ADMIN' | 'REVIEWER' | 'SIDEKICK'> = ['ADMIN', 'REVIEWER', 'SIDEKICK'];
@@ -64,6 +74,24 @@ export default function AdminUsersPage() {
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ message: string; total: number } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [purchasesModal, setPurchasesModal] = useState<{ user: AdminUser; purchases: UserPurchase[] } | null>(null);
+  const [loadingPurchases, setLoadingPurchases] = useState<string | null>(null);
+
+  const openPurchasesModal = useCallback(async (user: AdminUser) => {
+    setLoadingPurchases(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/purchases`);
+      if (res.ok) {
+        const { purchases } = await res.json();
+        setPurchasesModal({ user, purchases });
+      }
+    } catch (error) {
+      console.error('Failed to fetch purchases:', error);
+    } finally {
+      setLoadingPurchases(null);
+    }
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -125,7 +153,8 @@ export default function AdminUsersPage() {
     const matchesSearch = (
       user.email.toLowerCase().includes(query) ||
       (user.name?.toLowerCase().includes(query)) ||
-      (user.slackId?.toLowerCase().includes(query))
+      (user.slackId?.toLowerCase().includes(query)) ||
+      user.id.toLowerCase().includes(query)
     );
     const matchesFraud = filterFraud === null || user.fraudConvicted === filterFraud;
     const matchesRole = filterRole === null || user.roles?.some(r => r.role === filterRole);
@@ -400,7 +429,22 @@ export default function AdminUsersPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-brown-800 text-sm truncate">{user.email}</p>
+                          <p className="text-brown-800 text-sm truncate">
+                            {user.email}
+                            <span className="text-cream-500 mx-1">·</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(user.id);
+                                setCopiedId(user.id);
+                                setTimeout(() => setCopiedId(prev => prev === user.id ? null : prev), 2000);
+                              }}
+                              className="ml-2 text-cream-600 hover:text-orange-500 transition-colors cursor-pointer"
+                              title="Copy CUID"
+                            >
+                              {copiedId === user.id ? 'Copied!' : user.id}
+                            </button>
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6 flex-shrink-0">
@@ -654,11 +698,91 @@ export default function AdminUsersPage() {
                         >
                           {updating === user.id ? '...' : user.fraudConvicted ? 'Clear Fraud Flag' : 'Mark as Fraud'}
                         </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPurchasesModal(user);
+                          }}
+                          disabled={user.shopPurchaseCount === 0 || loadingPurchases === user.id}
+                          className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                            user.shopPurchaseCount === 0
+                              ? 'bg-cream-300 text-cream-500 cursor-not-allowed'
+                              : 'bg-orange-500 text-brown-800 hover:bg-orange-400'
+                          } disabled:opacity-50`}
+                        >
+                          {loadingPurchases === user.id
+                            ? 'Loading...'
+                            : user.shopPurchaseCount === 0
+                              ? 'No Purchases'
+                              : `View ${user.shopPurchaseCount} Purchase${user.shopPurchaseCount !== 1 ? 's' : ''}`}
+                        </button>
                       </div>
                     </div>
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Purchases Modal */}
+          {purchasesModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setPurchasesModal(null)} />
+              <div className="relative bg-cream-100 border-2 border-brown-800 p-6 max-w-lg w-full mx-4 shadow-lg max-h-[80vh] flex flex-col">
+                <button
+                  onClick={() => setPurchasesModal(null)}
+                  className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
+                >
+                  &times;
+                </button>
+
+                <h2 className="text-lg uppercase tracking-wide mb-1 text-brown-800">
+                  Purchases
+                </h2>
+                <p className="text-cream-600 text-sm mb-4">
+                  {purchasesModal.user.name || purchasesModal.user.email}
+                </p>
+
+                {purchasesModal.purchases.length === 0 ? (
+                  <p className="text-cream-500 text-sm text-center py-4">No purchases found.</p>
+                ) : (
+                  <div className="overflow-y-auto overflow-x-auto flex-1 -mx-6 px-6">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-cream-400">
+                          <th className="text-left text-brown-800 text-xs uppercase px-3 py-2">Item</th>
+                          <th className="text-right text-brown-800 text-xs uppercase px-3 py-2">Bits</th>
+                          <th className="text-right text-brown-800 text-xs uppercase px-3 py-2">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {purchasesModal.purchases.map((purchase) => (
+                          <tr key={purchase.id} className="border-b border-cream-300 last:border-b-0">
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                {purchase.imageUrl && (
+                                  <img src={purchase.imageUrl} alt="" className="w-6 h-6 object-contain border border-cream-400 flex-shrink-0" />
+                                )}
+                                <span className="text-brown-800">{purchase.itemName}</span>
+                              </div>
+                            </td>
+                            <td className="text-right px-3 py-2 text-orange-400 font-mono">
+                              {purchase.amount.toLocaleString()}
+                            </td>
+                            <td className="text-right px-3 py-2 text-brown-800 whitespace-nowrap">
+                              {new Date(purchase.purchasedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
     </>
