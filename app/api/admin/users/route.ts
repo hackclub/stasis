@@ -74,6 +74,11 @@ export async function GET() {
     flightStipend: user.currencyTransactions
       .filter((t) => t.shopItemId === SHOP_ITEM_IDS.FLIGHT_STIPEND)
       .reduce((acc, t) => acc + Math.abs(t.amount), 0),
+    shopPurchaseCount: user.currencyTransactions.filter(
+      (t) =>
+        t.shopItemId !== SHOP_ITEM_IDS.STASIS_EVENT_INVITE &&
+        t.shopItemId !== SHOP_ITEM_IDS.FLIGHT_STIPEND
+    ).length,
     currencyTransactions: undefined,
   }))
 

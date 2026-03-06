@@ -17,8 +17,10 @@ export async function GET() {
       id: true,
       name: true,
       description: true,
+      longDescription: true,
       imageUrl: true,
       price: true,
+      maxPerUser: true,
     },
   })
 

@@ -1,43 +1,33 @@
 import { NextResponse } from "next/server"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { requirePermission } from "@/lib/admin-auth"
+import { Permission } from "@/lib/permissions"
 import { SHOP_ITEMS } from "@/lib/shop"
 
-/**
- * GET /api/shop/purchases
- *
- * Returns the list of shop item IDs the user has purchased,
- * aggregated totals for repeatable items (flight stipend),
- * and a detailed purchase list with item names and dates.
- */
-export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authCheck = await requirePermission(Permission.MANAGE_USERS)
+  if (authCheck.error) return authCheck.error
+
+  const { id } = await params
 
   const transactions = await prisma.currencyTransaction.findMany({
     where: {
-      userId: session.user.id,
+      userId: id,
       type: "SHOP_PURCHASE",
       shopItemId: { not: null },
     },
-    select: { id: true, shopItemId: true, amount: true, note: true, createdAt: true },
+    select: {
+      id: true,
+      shopItemId: true,
+      amount: true,
+      note: true,
+      createdAt: true,
+    },
     orderBy: { createdAt: "desc" },
   })
-
-  const purchasedItemIds: string[] = []
-  const itemTotals: Record<string, number> = {}
-
-  for (const t of transactions) {
-    const id = t.shopItemId!
-
-    if (!purchasedItemIds.includes(id)) {
-      purchasedItemIds.push(id)
-    }
-    itemTotals[id] = (itemTotals[id] ?? 0) + Math.abs(t.amount)
-  }
 
   // Collect unique DB item IDs (not hardcoded shop items)
   const dbItemIds = [
@@ -75,5 +65,5 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ purchasedItemIds, itemTotals, purchases })
+  return NextResponse.json({ purchases })
 }

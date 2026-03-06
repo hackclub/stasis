@@ -436,10 +436,12 @@ model CurrencyTransaction {
 // Admin-managed shop items (excludes hardcoded Event Invite & Flight Stipend)
 model ShopItem {
   id          String   @id @default(cuid())
-  name        String
-  description String
-  imageUrl    String?
+  name            String
+  description     String
+  longDescription String?
+  imageUrl        String?
   price       Int      // Cost in bits
+  maxPerUser  Int      @default(0) // 0 = unlimited, 1 = one per user
   active      Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())

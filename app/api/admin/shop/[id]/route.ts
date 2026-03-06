@@ -28,10 +28,16 @@ export async function PATCH(
 
   if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim()
   if (typeof body.description === "string" && body.description.trim()) data.description = body.description.trim()
+  if (body.longDescription !== undefined) {
+    data.longDescription = typeof body.longDescription === "string" && body.longDescription.trim()
+      ? body.longDescription.trim()
+      : null
+  }
   if (body.imageUrl !== undefined) data.imageUrl = typeof body.imageUrl === "string" ? body.imageUrl : null
   if (typeof body.price === "number" && Number.isInteger(body.price) && body.price > 0) data.price = body.price
   if (typeof body.active === "boolean") data.active = body.active
   if (typeof body.sortOrder === "number") data.sortOrder = body.sortOrder
+  if (typeof body.maxPerUser === "number" && Number.isInteger(body.maxPerUser) && body.maxPerUser >= 0) data.maxPerUser = body.maxPerUser
 
   const updated = await prisma.shopItem.update({ where: { id }, data })
 

@@ -16,9 +16,19 @@ export async function POST(request: NextRequest) {
 
   const quantity = Math.max(1, Math.floor(rawQuantity ?? 1))
 
-  const item = SHOP_ITEMS.find((i) => i.id === itemId)
+  let item: { id: string; name: string; bitsCost: number; maxPerUser: number; category?: string } | undefined =
+    SHOP_ITEMS.find((i) => i.id === itemId)
+
   if (!item) {
-    return NextResponse.json({ error: "Item not found" }, { status: 404 })
+    // Fall back to database shop items
+    const dbItem = await prisma.shopItem.findFirst({
+      where: { id: itemId, active: true },
+      select: { id: true, name: true, price: true, maxPerUser: true },
+    })
+    if (!dbItem) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 })
+    }
+    item = { id: dbItem.id, name: dbItem.name, bitsCost: dbItem.price, maxPerUser: dbItem.maxPerUser }
   }
 
   const totalCost = item.bitsCost * quantity

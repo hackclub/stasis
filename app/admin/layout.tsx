@@ -130,7 +130,12 @@ export default function AdminLayout({
               )}
               {hasPermission(Permission.MANAGE_CURRENCY) && (
                 <Link href="/admin/shop" className={getTabClass('/admin/shop')}>
-                  Shop
+                  Shop Items
+                </Link>
+              )}
+              {hasPermission(Permission.MANAGE_CURRENCY) && (
+                <Link href="/admin/purchases" className={getTabClass('/admin/purchases')}>
+                  Purchases
                 </Link>
               )}
             </div>

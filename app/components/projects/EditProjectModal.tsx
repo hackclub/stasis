@@ -72,6 +72,15 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
   }, [project])
 
   useEffect(() => {
+    if (!isOpen) return
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
+
+  useEffect(() => {
     if (project && isOpen) {
       setTitle(project.title)
       setDescription(project.description || '')
