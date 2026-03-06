@@ -122,6 +122,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   
   const [project, setProject] = useState<Project | null>(null);
   const isVerified = (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
+  const [hasAddress, setHasAddress] = useState(true); // default true so it doesn't block when PII is disabled
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -175,9 +176,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       }
     }
 
+    async function refreshAddress() {
+      try {
+        const res = await fetch('/api/user/refresh-address', { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.piiEnabled) {
+            setHasAddress(data.hasAddress);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check address:', err);
+      }
+    }
+
     if (session) {
       fetchProject();
       fetchTimeline();
+      refreshAddress();
     } else if (!isPending) {
       router.push('/dashboard');
     }
@@ -287,7 +303,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     designSessions.length > 0 &&
     project.githubRepo &&
     project.coverImage &&
-    isVerified;
+    isVerified &&
+    hasAddress;
 
   // Check if there are new build sessions since last approval
   const hasNewBuildSessions = project?.buildStatus === "approved" && project?.buildReviewedAt
@@ -299,7 +316,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") &&
     totalBuildHours >= MIN_HOURS_REQUIRED &&
     hasNewBuildSessions &&
-    isVerified;
+    isVerified &&
+    hasAddress;
 
   const handleRequestUpdate = async () => {
     if (!project) return;
@@ -828,6 +846,27 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </a>
                   )}
                 </div>
+                <div className={`flex items-center gap-2 text-sm ${hasAddress ? 'text-green-500' : 'text-brown-800'}`}>
+                  {hasAddress ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  Add your shipping address
+                  {!hasAddress && (
+                    <a
+                      href="https://auth.hackclub.com/addresses"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      do this now
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -858,6 +897,27 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   {!isVerified && (
                     <a
                       href="https://auth.hackclub.com/verifications/document"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      do this now
+                    </a>
+                  )}
+                </div>
+                <div className={`flex items-center gap-2 text-sm ${hasAddress ? 'text-green-500' : 'text-brown-800'}`}>
+                  {hasAddress ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  Add your shipping address
+                  {!hasAddress && (
+                    <a
+                      href="https://auth.hackclub.com/addresses"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
