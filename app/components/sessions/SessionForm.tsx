@@ -641,24 +641,36 @@ export function SessionForm({
                     <div className="flex items-center gap-1.5">
                         {/* Hours */}
                         <div className="flex border-2 border-cream-400 bg-cream-200">
-                            <div className="flex flex-col items-center justify-center px-4 py-1.5">
-                                <span className="text-xl text-brown-800 font-bold tabular-nums leading-tight">
-                                    {hoursValue}
-                                </span>
+                            <div className="flex flex-col items-center justify-center px-1 py-1.5">
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={24}
+                                    value={hoursValue}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        if (isNaN(val)) {
+                                            setHoursValue(0);
+                                        } else {
+                                            setHoursValue(Math.max(0, Math.min(24, val)));
+                                        }
+                                    }}
+                                    className="w-12 text-xl text-brown-800 font-bold tabular-nums leading-tight text-center bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
                                 <span className="text-cream-600 text-[10px] uppercase tracking-wider">hrs</span>
                             </div>
                             <div className="flex flex-col border-l-2 border-cream-400">
                                 <button
                                     type="button"
                                     onClick={() => setHoursValue(Math.min(24, hoursValue + 1))}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
+                                    className="w-8 flex-1 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
                                 >
                                     +
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setHoursValue(Math.max(0, hoursValue - 1))}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
+                                    className="w-8 flex-1 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
                                 >
                                     −
                                 </button>
@@ -669,40 +681,56 @@ export function SessionForm({
 
                         {/* Minutes */}
                         <div className="flex border-2 border-cream-400 bg-cream-200">
-                            <div className="flex flex-col items-center justify-center px-4 py-1.5">
-                                <span className="text-xl text-brown-800 font-bold tabular-nums leading-tight">
-                                    {String(minutesValue).padStart(2, '0')}
-                                </span>
+                            <div className="flex flex-col items-center justify-center px-1 py-1.5">
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={59}
+                                    value={minutesValue}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        if (isNaN(val)) {
+                                            setMinutesValue(0);
+                                        } else {
+                                            setMinutesValue(Math.max(0, Math.min(59, val)));
+                                        }
+                                    }}
+                                    className="w-12 text-xl text-brown-800 font-bold tabular-nums leading-tight text-center bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
                                 <span className="text-cream-600 text-[10px] uppercase tracking-wider">min</span>
                             </div>
                             <div className="flex flex-col border-l-2 border-cream-400">
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        if (minutesValue === 45) {
-                                            setMinutesValue(0);
+                                        const next = minutesValue + 5;
+                                        if (next >= 60) {
+                                            setMinutesValue(next - 60);
                                             setHoursValue(Math.min(24, hoursValue + 1));
                                         } else {
-                                            setMinutesValue(minutesValue + 15);
+                                            setMinutesValue(next);
                                         }
                                     }}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
+                                    className="w-8 flex-1 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer border-b border-cream-400 flex items-center justify-center select-none"
                                 >
                                     +
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        if (minutesValue === 0) {
+                                        const next = minutesValue - 5;
+                                        if (next < 0) {
                                             if (hoursValue > 0) {
-                                                setMinutesValue(45);
+                                                setMinutesValue(60 + next);
                                                 setHoursValue(hoursValue - 1);
+                                            } else {
+                                                setMinutesValue(0);
                                             }
                                         } else {
-                                            setMinutesValue(minutesValue - 15);
+                                            setMinutesValue(next);
                                         }
                                     }}
-                                    className="w-8 h-6 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
+                                    className="w-8 flex-1 bg-cream-300 hover:bg-cream-400 active:bg-cream-500 text-brown-800 text-base font-bold transition-colors cursor-pointer flex items-center justify-center select-none"
                                 >
                                     −
                                 </button>
