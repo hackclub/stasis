@@ -79,13 +79,14 @@ export default function ProjectsPage() {
           setEventPreference(event);
         } else {
           // No preference stored yet — check if user arrived from /opensauce signup
-          const signupEvent = searchParams.get('signupEvent');
-          if (signupEvent === 'stasis' || signupEvent === 'opensauce') {
-            setEventPreference(signupEvent);
+          const signupPage = searchParams.get('signupPage');
+          if (signupPage) {
+            const pref = signupPage === 'Open Sauce' ? 'opensauce' as const : 'stasis' as const;
+            setEventPreference(pref);
             fetch('/api/user/event-preference', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ event: signupEvent }),
+              body: JSON.stringify({ event: pref }),
             });
           }
         }

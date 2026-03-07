@@ -74,9 +74,9 @@ export const auth = betterAuth({
           if (slackId) {
             const updates: Record<string, string> = {};
             try {
-              if (!user.image) {
-                const slackImage = await getSlackProfilePicture(slackId);
-                if (slackImage) updates.image = slackImage;
+              const slackImage = await getSlackProfilePicture(slackId);
+              if (slackImage && !user.image) {
+                updates.image = slackImage;
               }
               const displayName = await getSlackDisplayName(slackId);
               if (displayName) updates.slackDisplayName = displayName;

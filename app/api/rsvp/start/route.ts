@@ -10,9 +10,7 @@ const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
 // TODO: Add rate limiting - this is a public endpoint vulnerable to abuse
 export async function POST(request: NextRequest) {
   try {
-    const { email, referralType, referralCode: referredBy, signupEvent } = await request.json();
-    const validEvents = ['stasis', 'opensauce'];
-    const safeSignupEvent = validEvents.includes(signupEvent) ? signupEvent : null;
+    const { email, referralType, referralCode: referredBy, signupPage } = await request.json();
 
     if (!email || typeof email !== 'string') {
       return NextResponse.json(
@@ -30,6 +28,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const safeSignupPage = signupPage ? sanitize(String(signupPage)) : null;
+
     const alreadyRSVPed = await findRSVPByEmail(safeEmail);
     if (alreadyRSVPed) {
       const cookieStore = await cookies();
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
         maxAge: 60 * 10,
         path: '/',
       });
-      if (safeSignupEvent) {
-        cookieStore.set('signup_event', safeSignupEvent, {
+      if (safeSignupPage) {
+        cookieStore.set('signup_page', safeSignupPage, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
         ip,
         referralType: safeReferralType,
         referredBy: safeReferredBy,
+        signupPage: safeSignupPage,
       });
       if (rsvpResult?.referralCode) {
         newReferralCode = rsvpResult.referralCode;
@@ -109,8 +110,8 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 10,
       path: '/',
     });
-    if (safeSignupEvent) {
-      cookieStore.set('signup_event', safeSignupEvent, {
+    if (safeSignupPage) {
+      cookieStore.set('signup_page', safeSignupPage, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

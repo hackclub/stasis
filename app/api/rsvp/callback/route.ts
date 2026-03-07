@@ -30,17 +30,18 @@ export async function GET() {
 
     // Set event preference from signup source
     const cookieStore = await cookies();
-    const signupEvent = cookieStore.get('signup_event')?.value;
-    if (signupEvent && (signupEvent === 'stasis' || signupEvent === 'opensauce')) {
+    const signupPage = cookieStore.get('signup_page')?.value;
+    if (signupPage) {
+      const eventPreference = signupPage === 'Open Sauce' ? 'opensauce' : 'stasis';
       try {
         await prisma.user.update({
           where: { id: session.user.id },
-          data: { eventPreference: signupEvent },
+          data: { eventPreference },
         });
       } catch (error) {
         console.error('Failed to set event preference:', error);
       }
-      cookieStore.delete('signup_event');
+      cookieStore.delete('signup_page');
     }
 
     // Clean up cookies
