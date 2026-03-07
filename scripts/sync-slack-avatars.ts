@@ -29,9 +29,11 @@ async function getSlackProfilePicture(slackId: string): Promise<string | null> {
       return null;
     }
 
-    return data.user?.profile?.image_original 
-      || data.user?.profile?.image_512 
-      || data.user?.profile?.image_192 
+    return data.user?.profile?.image_original
+      || data.user?.profile?.image_512
+      || data.user?.profile?.image_192
+      || data.user?.profile?.image_72
+      || data.user?.profile?.image_48
       || null;
   } catch (error) {
     console.error('Failed to fetch Slack profile picture:', error);
