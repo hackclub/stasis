@@ -1,20 +1,23 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from "@/lib/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial } from '../components/OnboardingTutorial';
+import { EventPicker } from '../components/EventPicker';
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
-import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress } from "@/lib/tiers"
+import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress, getEventThreshold, EVENT_LABELS, type EventPreference } from "@/lib/tiers"
 import Link from 'next/link';
 import type { Project } from './types';
 
 export default function ProjectsPage() {
   const { data: session, isPending } = useSession();
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,7 +38,11 @@ export default function ProjectsPage() {
     window.addEventListener('stasis:replay-tutorial', handler);
     return () => window.removeEventListener('stasis:replay-tutorial', handler);
   }, []);
+
   const [bitsBalance, setBitsBalance] = useState<number | null>(null);
+  const [eventPreference, setEventPreference] = useState<EventPreference>('stasis');
+  const [showEventPicker, setShowEventPicker] = useState(false);
+  const [pickerSelection, setPickerSelection] = useState<EventPreference | null>(null);
 
   if (!isPending && !session) {
     return (
@@ -54,9 +61,10 @@ export default function ProjectsPage() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const [projectsRes, currencyRes] = await Promise.all([
+      const [projectsRes, currencyRes, eventPrefRes] = await Promise.all([
         fetch('/api/projects'),
         fetch('/api/currency'),
+        fetch('/api/user/event-preference'),
       ]);
       if (projectsRes.ok) {
         setProjects(await projectsRes.json());
@@ -64,6 +72,24 @@ export default function ProjectsPage() {
       if (currencyRes.ok) {
         const { bitsBalance } = await currencyRes.json();
         setBitsBalance(bitsBalance);
+      }
+      if (eventPrefRes.ok) {
+        const { event } = await eventPrefRes.json();
+        if (event === 'stasis' || event === 'opensauce') {
+          setEventPreference(event);
+        } else {
+          // No preference stored yet — check if user arrived from /opensauce signup
+          const signupPage = searchParams.get('signupPage');
+          if (signupPage) {
+            const pref = signupPage === 'Open Sauce' ? 'opensauce' as const : 'stasis' as const;
+            setEventPreference(pref);
+            fetch('/api/user/event-preference', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ event: pref }),
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -121,41 +147,70 @@ export default function ProjectsPage() {
   const pendingBadges = allBadges.filter(b => b.grantedAt === null);
 
   const actualBits = bitsBalance ?? 0;
-  const qualified = isQualified(actualBits);
-  const progress = qualificationProgress(actualBits);
+  const eventThreshold = getEventThreshold(eventPreference);
+  const qualified = actualBits >= eventThreshold;
+  const progress = Math.min(1, actualBits / eventThreshold);
+
+  const openEventPicker = () => {
+    setPickerSelection(eventPreference);
+    setShowEventPicker(true);
+  };
+
+  const confirmEventChange = () => {
+    if (!pickerSelection || pickerSelection === eventPreference) {
+      setShowEventPicker(false);
+      return;
+    }
+    setEventPreference(pickerSelection);
+    fetch('/api/user/event-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: pickerSelection }),
+    });
+    setShowEventPicker(false);
+  };
 
   return (
     <>
       {/* Onboarding Tutorial */}
-      <OnboardingTutorial type="dashboard" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} />
+      <OnboardingTutorial type="dashboard" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} onEventChange={(event) => setEventPreference(event)} initialEvent={eventPreference} />
 
 
       {/* Qualification Progress */}
       <div data-tutorial="badge-progress" className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-orange-500 text-lg uppercase tracking-wide">progress to qualifying</h2>
-            <p className="text-brown-800 text-sm">Earn <span className="text-orange-500 font-medium">{QUALIFICATION_BITS_THRESHOLD}&nbsp;bits</span> from building hardware projects to qualify for Stasis!</p>
+            <h2 className="text-orange-500 text-lg uppercase tracking-wide">progress to qualifying for {EVENT_LABELS[eventPreference]}</h2>
+            <p className="text-brown-800 text-sm">Earn <span className="text-orange-500 font-medium">{eventThreshold}&nbsp;bits</span> from building hardware projects to qualify for {EVENT_LABELS[eventPreference]}!</p>
           </div>
-          {qualified && (
-            <p className="text-green-500 text-sm uppercase tracking-wide">✓ Eligible!</p>
-          )}
+          <div className="flex items-center gap-3">
+            {qualified && (
+              <p className="text-green-500 text-sm uppercase tracking-wide whitespace-nowrap">✓ Eligible!</p>
+            )}
+            <button
+              type="button"
+              onClick={openEventPicker}
+              className="shrink-0 border-2 border-cream-400 bg-cream-200 hover:bg-cream-300 px-3 py-1.5 text-xs uppercase tracking-wide text-brown-800 cursor-pointer transition-colors whitespace-nowrap"
+            >
+              Switch event
+            </button>
+          </div>
         </div>
-        
+
         {/* Bits Progress */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-brown-800 text-xs uppercase tracking-wide">Bits Earned ({actualBits}/{QUALIFICATION_BITS_THRESHOLD})</p>
+            <p className="text-brown-800 text-xs uppercase tracking-wide">Bits Earned ({actualBits}/{eventThreshold})</p>
             {qualified && <span className="text-green-500 text-xs">✓</span>}
           </div>
           <div className="w-full h-8 bg-cream-200 border-2 border-cream-400 relative overflow-hidden">
-            <div 
+            <div
               className="h-full bg-orange-500 transition-all duration-500"
               style={{ width: `${progress * 100}%` }}
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className={`text-xs font-medium ${qualified ? 'text-white' : 'text-brown-800'}`}>
-                {actualBits} / {QUALIFICATION_BITS_THRESHOLD}&nbsp;bits
+                {actualBits} / {eventThreshold}&nbsp;bits
               </span>
             </div>
           </div>
@@ -229,6 +284,44 @@ export default function ProjectsPage() {
         onSubmit={handleCreateProject}
         error={modalError}
       />
+
+      {/* Event change confirmation dialog */}
+      {showEventPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setShowEventPicker(false)} />
+          <div className="relative bg-cream-100 border-2 border-brown-800 p-6 max-w-[780px] w-[95vw] mx-4 shadow-lg">
+            <button
+              onClick={() => setShowEventPicker(false)}
+              className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
+            >
+              &times;
+            </button>
+
+            <h3 className="text-brown-800 text-lg uppercase tracking-wide mb-3">Pick Your Event</h3>
+            <p className="text-brown-800 text-sm leading-relaxed mb-5">
+              Pick which event you want to work toward. You can switch at any time, and if you buy a ticket for one event, you can keep earning bits to qualify for the other one too!
+            </p>
+
+            <EventPicker selectedEvent={pickerSelection} onSelect={setPickerSelection} />
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setShowEventPicker(false)}
+                className="flex-1 bg-cream-300 hover:bg-cream-400 px-4 py-2 text-center cursor-pointer transition-colors"
+              >
+                <span className="text-brown-800 uppercase tracking-wide text-sm">Cancel</span>
+              </button>
+              <button
+                onClick={confirmEventChange}
+                disabled={!pickerSelection}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 text-center cursor-pointer transition-colors"
+              >
+                <span className="text-cream-100 uppercase tracking-wide text-sm">Confirm</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

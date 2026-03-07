@@ -4,6 +4,7 @@
       "Bash(powershell -Command \"Set-Location ''C:\\\\Users\\\\claya\\\\OneDrive\\\\Documents\\\\Projects\\\\stasis-site''; yarn build\")",
       "Bash(grep:*)",
       "Bash(ls:*)",
+      "Bash(identify:*)",
       "Bash(for file in /home/augie/Code/hackclub/stasis-site/app/api/*/route.ts /home/augie/Code/hackclub/stasis-site/app/api/*/*/route.ts)",
       "Bash(do)",
       "Bash(if [ -f \"$file\" ])",

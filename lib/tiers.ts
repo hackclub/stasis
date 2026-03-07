@@ -64,6 +64,24 @@ export type Tier = (typeof TIERS)[number]
 // Total bits a user must earn (from project profits) to qualify.
 export const QUALIFICATION_BITS_THRESHOLD = 350
 
+// Event-specific thresholds
+export const EVENT_THRESHOLDS = {
+  stasis: 350,
+  opensauce: 200,
+} as const
+
+export type EventPreference = keyof typeof EVENT_THRESHOLDS
+
+export const EVENT_LABELS: Record<EventPreference, string> = {
+  stasis: 'Stasis',
+  opensauce: 'Open Sauce',
+}
+
+/** Get the qualification threshold for a given event preference. */
+export function getEventThreshold(event: EventPreference | null | undefined): number {
+  return EVENT_THRESHOLDS[event ?? 'stasis']
+}
+
 // --- Helpers ---
 
 /** Get a tier by ID, or undefined if not found. */

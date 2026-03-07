@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 interface TextSegment {
   text: string;
   class?: string;
+  href?: string;
 }
 
 interface Props {
@@ -30,6 +31,7 @@ interface CharState {
   animating: boolean;
   iteration: number;
   segmentClass: string;
+  href?: string;
 }
 
 export function HoverScramble({
@@ -66,6 +68,7 @@ export function HoverScramble({
           animating: false,
           iteration: 0,
           segmentClass: segment.class || '',
+          href: segment.href,
         });
       });
     });
@@ -79,7 +82,7 @@ export function HoverScramble({
     (index: number) => {
       setCharacters((prev) => {
         const char = prev[index];
-        if (char.animating || char.original === ' ' || /[^\w]/.test(char.original)) {
+        if (!char || char.animating || char.original === ' ' || /[^\w]/.test(char.original)) {
           return prev;
         }
 
@@ -232,25 +235,63 @@ export function HoverScramble({
     <>
       {accessibleText && <p className="sr-only">{accessibleText}</p>}
       <div className={className} aria-hidden="true">
-        {characters.map((char, i) =>
-          char.original === '\n' ? (
-            <br key={i} />
-          ) : char.original === '\t' ? (
-            <span key={i} className={char.segmentClass}>{'\u00A0\u00A0\u00A0\u00A0'}</span>
-          ) : char.original === ' ' ? (
-            <span key={i} className={char.segmentClass}>
-              {char.current}
-            </span>
-          ) : (
-            <span
-              key={i}
-              className={`cursor-default ${char.segmentClass}`}
-              onMouseEnter={() => handleHover(i)}
-            >
-              {char.current}
-            </span>
-          )
-        )}
+        {(() => {
+          const elements: React.ReactNode[] = [];
+          let i = 0;
+          while (i < characters.length) {
+            const char = characters[i];
+            const idx = i;
+            if (char.href) {
+              // Group consecutive chars with the same href into a single <a>
+              const href = char.href;
+              const linkChars: { char: CharState; index: number }[] = [];
+              while (i < characters.length && characters[i].href === href) {
+                linkChars.push({ char: characters[i], index: i });
+                i++;
+              }
+              elements.push(
+                <a
+                  key={`link-${linkChars[0].index}`}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group/link cursor-pointer"
+                >
+                  {linkChars.map(({ char: c, index }) => (
+                    <span
+                      key={index}
+                      className={`${c.segmentClass} group-hover/link:!text-orange-500`}
+                      onMouseEnter={() => handleHover(index)}
+                    >
+                      {c.current}
+                    </span>
+                  ))}
+                </a>
+              );
+            } else if (char.original === '\n') {
+              elements.push(<br key={idx} />);
+              i++;
+            } else if (char.original === '\t') {
+              elements.push(<span key={idx} className={char.segmentClass}>{'\u00A0\u00A0\u00A0\u00A0'}</span>);
+              i++;
+            } else if (char.original === ' ') {
+              elements.push(<span key={idx} className={char.segmentClass}>{char.current}</span>);
+              i++;
+            } else {
+              elements.push(
+                <span
+                  key={idx}
+                  className={`cursor-default ${char.segmentClass}`}
+                  onMouseEnter={() => handleHover(idx)}
+                >
+                  {char.current}
+                </span>
+              );
+              i++;
+            }
+          }
+          return elements;
+        })()}
       </div>
     </>
   );
