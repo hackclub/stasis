@@ -79,7 +79,7 @@ export async function airtableEnsureRSVPExists(email: string, name: string): Pro
     });
   } else {
     await base(tableName).create([{
-      fields: { Email: email, 'First Name': firstName, 'Last Name': lastName, 'Finished Account Creation': true },
+      fields: { Email: email, 'First Name': firstName, 'Last Name': lastName, 'Finished Account Creation': true, 'Loops - stasisSignUpPage': 'Direct', 'Loops - stasisTargetEvent': 'Stasis' },
     }]);
   }
 }
@@ -239,6 +239,8 @@ export async function ensureRSVPExists(email: string, name?: string): Promise<vo
           'First Name': firstName,
           'Last Name': lastName,
           'Finished Account Creation': true,
+          'Loops - stasisSignUpPage': 'Direct',
+          'Loops - stasisTargetEvent': 'Stasis',
         },
       },
     ]);
