@@ -54,7 +54,9 @@ export async function airtableCreateRSVP(data: {
   if (data.referralType) fields['UTM Source'] = data.referralType;
   const referredByNum = Number(data.referredBy);
   if (data.referredBy && isFinite(referredByNum)) fields['Referred By'] = referredByNum;
-  if (data.signupPage) fields['Loops - stasisSignUpPage'] = data.signupPage;
+  const signupPageValue = data.signupPage || 'Stasis';
+  fields['Loops - stasisSignUpPage'] = signupPageValue;
+  fields['Loops - stasisTargetEvent'] = signupPageValue;
   await base(tableName).create([{ fields }]);
 }
 
@@ -159,9 +161,9 @@ export async function createRSVP(data: {
     fields['Referred By'] = referredByNum;
   }
 
-  if (data.signupPage) {
-    fields['Loops - stasisSignUpPage'] = data.signupPage;
-  }
+  const signupPageValue = data.signupPage || 'Stasis';
+  fields['Loops - stasisSignUpPage'] = signupPageValue;
+  fields['Loops - stasisTargetEvent'] = signupPageValue;
 
   const result = await base(tableName).create([{ fields }]);
   const record = result[0];
@@ -313,6 +315,44 @@ export async function getReferrerByNumber(referrerNumber: number): Promise<{
     email: record.get('Email') as string,
     totalReferrals: (record.get('Total Referrals') as number) || 0,
   };
+}
+
+export function eventPreferenceToDisplayName(event: string): string {
+  return event === 'opensauce' ? 'Open Sauce' : 'Stasis';
+}
+
+export async function updateTargetEvent(email: string, event: string): Promise<boolean> {
+  const displayName = eventPreferenceToDisplayName(event);
+
+  if (usePostgres()) {
+    // No target event field in TempRsvp — will be synced to Airtable later
+    return true;
+  }
+
+  const base = getAirtableBase();
+  if (!base) {
+    console.warn('Airtable credentials not configured, skipping target event update');
+    return false;
+  }
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+
+  const records = await base(tableName)
+    .select({
+      filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  if (records.length === 0) {
+    return false;
+  }
+
+  await base(tableName).update(records[0].id, {
+    'Loops - stasisTargetEvent': displayName,
+  });
+
+  return true;
 }
 
 export async function getRSVPCount(): Promise<number> {

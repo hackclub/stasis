@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { updateTargetEvent } from "@/lib/airtable"
 
 const VALID_EVENTS = ["stasis", "opensauce"]
 
@@ -32,10 +33,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid event" }, { status: 400 })
   }
 
-  await prisma.user.update({
+  const user = await prisma.user.update({
     where: { id: session.user.id },
     data: { eventPreference: event },
+    select: { email: true },
   })
+
+  // Update Airtable target event in the background
+  updateTargetEvent(user.email, event).catch((err) =>
+    console.error("Failed to update Airtable target event:", err)
+  )
 
   return NextResponse.json({ success: true })
 }
