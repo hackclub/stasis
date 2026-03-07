@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { EventPicker } from './EventPicker';
 
 interface TutorialStep {
   id: string;
@@ -38,13 +39,19 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Stasis!',
-    content: 'Stasis is where you design and build hardware projects, earn bits, and qualify for the event. Each project has a complexity level that determines how many bits you earn. Let\'s get you started!',
+    content: 'Stasis is where you design and build hardware projects, earn bits, and qualify for an event. Each project has a complexity level that determines how many bits you earn. Let\'s get you started!',
+    position: 'center',
+  },
+  {
+    id: 'pick-event',
+    title: 'Pick Your Event',
+    content: '',
     position: 'center',
   },
   {
     id: 'badge-progress',
-    title: 'Your Goal: Qualify for Stasis',
-    content: 'To come to Stasis, you need to earn enough bits from completing hardware projects.\n\nEach project has a complexity level with a fixed reward - you get a budget to spend on parts for your project, and you earn bits based on how much money you have left over.\n\nAccumulate enough bits and you\'re in!',
+    title: 'Your Goal: Qualify for Your Event',
+    content: 'To qualify, you need to earn enough bits from completing hardware projects.\n\nEach project has a complexity level with a fixed reward - you get a budget to spend on parts for your project, and you earn bits based on how much money you have left over.\n\nAccumulate enough bits and you\'re in!',
     targetSelector: '[data-tutorial="badge-progress"]',
     position: 'bottom',
   },
@@ -152,22 +159,37 @@ interface Props {
   type: TutorialType;
   forceShow?: boolean;
   onComplete?: () => void;
+  onEventChange?: (event: 'stasis' | 'opensauce') => void;
   badgeCount?: number;
+  initialEvent?: 'stasis' | 'opensauce' | null;
 }
 
-export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeCount = 0 }: Readonly<Props>) {
+export function OnboardingTutorial({ type, forceShow = false, onComplete, onEventChange, badgeCount = 0, initialEvent = null }: Readonly<Props>) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<'stasis' | 'opensauce' | null>(initialEvent);
+  const hasManuallySelected = useRef(false);
+  const wrappedSetSelectedEvent = useCallback((event: 'stasis' | 'opensauce') => {
+    hasManuallySelected.current = true;
+    setSelectedEvent(event);
+  }, []);
   const hasFetched = useRef(false);
+
+  // Sync initialEvent when it arrives asynchronously (e.g. after API fetch)
+  useEffect(() => {
+    if (initialEvent && !hasManuallySelected.current) {
+      setSelectedEvent(initialEvent);
+    }
+  }, [initialEvent]);
 
   const TUTORIAL_STEPS = useMemo(() => {
     const baseSteps = type === 'dashboard' ? DASHBOARD_STEPS : PROJECT_STEPS;
     if (type === 'project' && badgeCount >= 3) {
-      return baseSteps.map(step => 
-        step.id === 'badges' 
-          ? { 
-              ...step, 
+      return baseSteps.map(step =>
+        step.id === 'badges'
+          ? {
+              ...step,
               title: 'Nice Work on Badges!',
               content: 'Good job, you\'ve already added 3 badges to this project! Badges are verified during review to ensure you demonstrated the skills.'
             }
@@ -176,6 +198,8 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
     }
     return baseSteps;
   }, [type, badgeCount]);
+
+  const isEventPickerStep = TUTORIAL_STEPS[currentStep]?.id === 'pick-event';
 
   useEffect(() => {
     if (forceShow) {
@@ -209,10 +233,10 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
         const tooltipHeight = 280;
         const padding = 40;
         const totalNeeded = rect.height + tooltipHeight + padding * 2;
-        
+
         const elementTop = rect.top + window.scrollY;
         let scrollTarget: number;
-        
+
         if (step.position === 'top') {
           scrollTarget = elementTop - tooltipHeight - padding * 3;
         } else if (step.position === 'bottom') {
@@ -220,9 +244,9 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
         } else {
           scrollTarget = elementTop - window.innerHeight / 2 + rect.height / 2;
         }
-        
+
         window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
-        
+
         setTimeout(() => {
           const newRect = element.getBoundingClientRect();
           setHighlightRect(newRect);
@@ -260,11 +284,11 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
 
   useEffect(() => {
     if (!isVisible) return;
-    
+
     updateHighlight();
     window.addEventListener('resize', throttledUpdateRect);
     window.addEventListener('scroll', throttledUpdateRect);
-    
+
     return () => {
       window.removeEventListener('resize', throttledUpdateRect);
       window.removeEventListener('scroll', throttledUpdateRect);
@@ -272,6 +296,14 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
   }, [isVisible, updateHighlight, throttledUpdateRect]);
 
   const handleNext = () => {
+    if (isEventPickerStep && selectedEvent) {
+      fetch('/api/user/event-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: selectedEvent }),
+      });
+      onEventChange?.(selectedEvent);
+    }
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -319,7 +351,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
 
     const spaceAbove = highlightRect.top;
     const spaceBelow = viewportHeight - highlightRect.bottom;
-    
+
     const extraOffset = (step.id === 'actions' || step.id === 'submit') ? 100 : 0;
 
     const horizontalCenter = Math.max(
@@ -427,7 +459,9 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
 
       {/* Tooltip */}
       <div
-        className="absolute bg-cream-100 border-2 border-orange-500 p-6 max-w-110 w-full shadow-2xl"
+        className={`absolute bg-cream-100 border-2 border-orange-500 p-6 shadow-2xl ${
+          isEventPickerStep ? 'max-w-[780px] w-[95vw]' : 'max-w-110 w-full'
+        }`}
         style={tooltipPosition}
       >
         {/* Progress indicator */}
@@ -452,17 +486,29 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, badgeC
           {step.title}
         </h3>
 
-        {/* Content */}
-        <p className="text-brown-800 text-sm leading-relaxed mb-6">
-          {renderContent(step.content)}
-        </p>
+        {/* Event picker step */}
+        {isEventPickerStep ? (
+          <div>
+            <p className="text-brown-800 text-sm leading-relaxed mb-5">
+              Through Stasis, you can qualify for two different events! Pick which one you want to work toward — you&apos;ll earn bits by building hardware projects to unlock your ticket. You can change your selection at any time.
+            </p>
+
+            <EventPicker selectedEvent={selectedEvent} onSelect={wrappedSetSelectedEvent} />
+          </div>
+        ) : (
+          /* Normal step content */
+          <p className="text-brown-800 text-sm leading-relaxed mb-6">
+            {renderContent(step.content)}
+          </p>
+        )}
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className={`flex items-center justify-between ${isEventPickerStep ? 'mt-5' : ''}`}>
           <div className="flex gap-2">
             <button
               onClick={handleNext}
-              className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+              disabled={isEventPickerStep && !selectedEvent}
+              className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {currentStep === TUTORIAL_STEPS.length - 1 ? 'Get Started' : 'Next'}
             </button>
@@ -494,4 +540,3 @@ export async function resetOnboardingTutorial(type?: TutorialType) {
   const url = type ? `/api/user/tutorial?type=${type}` : '/api/user/tutorial';
   await fetch(url, { method: 'DELETE' });
 }
-

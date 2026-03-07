@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const safeSignupPage = signupPage ? sanitize(String(signupPage)) : null;
+
     const alreadyRSVPed = await findRSVPByEmail(safeEmail);
     if (alreadyRSVPed) {
       const cookieStore = await cookies();
@@ -38,6 +40,15 @@ export async function POST(request: NextRequest) {
         maxAge: 60 * 10,
         path: '/',
       });
+      if (safeSignupPage) {
+        cookieStore.set('signup_page', safeSignupPage, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 10,
+          path: '/',
+        });
+      }
       return NextResponse.json(
         { error: 'This email has already been RSVPed' },
         { status: 409 }
@@ -54,8 +65,6 @@ export async function POST(request: NextRequest) {
 
     let newReferralCode: number | undefined;
     try {
-      const safeSignupPage = signupPage ? sanitize(String(signupPage)) : null;
-
       const rsvpResult = await createRSVP({
         email: safeEmail,
         ip,
@@ -101,6 +110,15 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 10,
       path: '/',
     });
+    if (safeSignupPage) {
+      cookieStore.set('signup_page', safeSignupPage, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 10,
+        path: '/',
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
