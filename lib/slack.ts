@@ -129,10 +129,13 @@ export async function getSlackProfilePicture(slackId: string): Promise<string | 
       return null;
     }
 
-    // Prefer highest quality image available
-    return data.user?.profile?.image_original 
-      || data.user?.profile?.image_512 
-      || data.user?.profile?.image_192 
+    // Prefer highest quality image available, include smaller sizes as fallback
+    // for users with default Slack avatars (who may not have higher-res versions)
+    return data.user?.profile?.image_original
+      || data.user?.profile?.image_512
+      || data.user?.profile?.image_192
+      || data.user?.profile?.image_72
+      || data.user?.profile?.image_48
       || null;
   } catch (error) {
     console.error('Failed to fetch Slack profile picture:', error);
