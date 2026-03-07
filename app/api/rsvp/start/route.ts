@@ -10,7 +10,7 @@ const isPrelaunch = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
 // TODO: Add rate limiting - this is a public endpoint vulnerable to abuse
 export async function POST(request: NextRequest) {
   try {
-    const { email, referralType, referralCode: referredBy } = await request.json();
+    const { email, referralType, referralCode: referredBy, signupPage } = await request.json();
 
     if (!email || typeof email !== 'string') {
       return NextResponse.json(
@@ -54,11 +54,14 @@ export async function POST(request: NextRequest) {
 
     let newReferralCode: number | undefined;
     try {
+      const safeSignupPage = signupPage ? sanitize(String(signupPage)) : null;
+
       const rsvpResult = await createRSVP({
         email: safeEmail,
         ip,
         referralType: safeReferralType,
         referredBy: safeReferredBy,
+        signupPage: safeSignupPage,
       });
       if (rsvpResult?.referralCode) {
         newReferralCode = rsvpResult.referralCode;
