@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 50;
+const DEFAULT_LIMIT = 21;
+const MAX_LIMIT = 48;
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });

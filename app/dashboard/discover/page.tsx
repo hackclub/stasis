@@ -186,8 +186,8 @@ export default function DiscoverPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-brown-800">Loading projects...</p>
+      <div className="flex justify-center py-16">
+        <div className="loader" />
       </div>
     );
   }
@@ -217,9 +217,9 @@ export default function DiscoverPage() {
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
-          <div ref={loadMoreRef} className="py-4 text-center">
+          <div ref={loadMoreRef} className="py-8 flex justify-center">
             {loadingMore && (
-              <p className="text-brown-800 text-sm">Loading more...</p>
+              <div className="loader" />
             )}
           </div>
         </>
