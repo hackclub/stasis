@@ -76,6 +76,15 @@ interface ReviewAction {
   createdAt: string;
 }
 
+interface HackatimeProjectData {
+  id: string;
+  hackatimeProject: string;
+  totalSeconds: number;
+  hoursApproved: number | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+}
+
 interface AdminProject {
   id: string;
   title: string;
@@ -105,6 +114,7 @@ interface AdminProject {
   bomItems: BOMItem[];
   reviewActions: ReviewAction[];
   hiddenFromGallery: boolean;
+  hackatimeProjects: HackatimeProjectData[];
 }
 
 const BADGE_LABELS: Record<BadgeType, string> = {
@@ -151,6 +161,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
+  const [hackatimeReviews, setHackatimeReviews] = useState<Record<string, { hoursApproved: number; isReviewed: boolean }>>({});
+  const [reviewingHackatime, setReviewingHackatime] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProject() {
@@ -184,6 +196,16 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             };
           });
           setSessionReviews(initialReviews);
+
+          const initialHackatimeReviews: Record<string, { hoursApproved: number; isReviewed: boolean }> = {};
+          (data.hackatimeProjects ?? []).forEach((hp: HackatimeProjectData) => {
+            const totalHours = hp.totalSeconds / 3600;
+            initialHackatimeReviews[hp.id] = {
+              hoursApproved: hp.hoursApproved ?? Math.round(totalHours * 10) / 10,
+              isReviewed: hp.hoursApproved !== null,
+            };
+          });
+          setHackatimeReviews(initialHackatimeReviews);
         } else if (res.status === 404) {
           router.push('/admin');
         }
@@ -281,6 +303,35 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       alert('Failed to review session');
     } finally {
       setReviewingSession(null);
+    }
+  };
+
+  const handleHackatimeReview = async (hackatimeId: string) => {
+    const review = hackatimeReviews[hackatimeId];
+    if (!review) return;
+
+    setReviewingHackatime(hackatimeId);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/hackatime/${hackatimeId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hoursApproved: review.hoursApproved }),
+      });
+
+      if (res.ok) {
+        setHackatimeReviews((prev) => ({
+          ...prev,
+          [hackatimeId]: { ...prev[hackatimeId], isReviewed: true },
+        }));
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to review hackatime project');
+      }
+    } catch (error) {
+      console.error('Failed to review hackatime project:', error);
+      alert('Failed to review hackatime project');
+    } finally {
+      setReviewingHackatime(null);
     }
   };
 
@@ -470,6 +521,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 <p className="text-brown-800 text-xs uppercase mb-1">Sessions</p>
                 <p className="text-brown-800 text-xl">{project.workSessions.length}</p>
               </div>
+              {project.hackatimeProjects && project.hackatimeProjects.length > 0 && (
+                <div>
+                  <p className="text-brown-800 text-xs uppercase mb-1">Firmware Time</p>
+                  <p className="text-brown-800 text-xl">
+                    {(project.hackatimeProjects.reduce((sum, p) => sum + p.totalSeconds, 0) / 3600).toFixed(1)}h
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-brown-800 text-xs uppercase mb-1">Complexity Level</p>
                 {project.tier ? (() => {
@@ -747,6 +806,98 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             </div>
             )}
           </div>
+
+          {/* Firmware Time (Hackatime) */}
+          {project.hackatimeProjects && project.hackatimeProjects.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Firmware Time (Hackatime)</h2>
+              <div className="space-y-3">
+                {project.hackatimeProjects.map((hp) => {
+                  const totalHours = hp.totalSeconds / 3600;
+                  const review = hackatimeReviews[hp.id];
+                  const isReviewing = reviewingHackatime === hp.id;
+
+                  return (
+                    <div
+                      key={hp.id}
+                      className={`bg-cream-100 border-2 p-4 ${
+                        review?.isReviewed ? 'border-green-600/50' : 'border-cream-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-brown-800 font-medium">{hp.hackatimeProject}</span>
+                          <span className="bg-cream-200 border border-cream-400 text-brown-800 px-2 py-0.5 text-sm">
+                            {totalHours.toFixed(1)}h tracked
+                          </span>
+                          {review?.isReviewed && (
+                            <span className="bg-green-100 border border-green-600 text-green-600 px-2 py-0.5 text-sm">
+                              ✓ Reviewed
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {isAnyStageInReview ? (
+                        <div className="bg-cream-200 border border-cream-400 p-3 mt-2">
+                          <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                              <label className="text-brown-800 text-xs uppercase block mb-1">
+                                Hours Approved
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={review?.hoursApproved ?? totalHours.toFixed(1)}
+                                onChange={(e) =>
+                                  setHackatimeReviews((prev) => ({
+                                    ...prev,
+                                    [hp.id]: { ...prev[hp.id], hoursApproved: parseFloat(e.target.value) || 0 },
+                                  }))
+                                }
+                                className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                              />
+                            </div>
+                            <div className="flex items-end">
+                              <span className="text-brown-800 text-sm pb-2">
+                                of {totalHours.toFixed(1)}h tracked
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleHackatimeReview(hp.id)}
+                            disabled={isReviewing}
+                            className={`w-full py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer ${
+                              review?.isReviewed
+                                ? 'bg-green-100 border border-green-600 text-green-600 hover:bg-green-200'
+                                : 'bg-orange-500 hover:bg-orange-400 text-white'
+                            }`}
+                          >
+                            {isReviewing ? 'Saving...' : review?.isReviewed ? 'Update Review' : 'Review Firmware Time'}
+                          </button>
+                        </div>
+                      ) : hp.hoursApproved !== null && (
+                        <div className="bg-cream-200 border border-cream-400 p-3 mt-2">
+                          <span className="text-brown-800 text-sm">
+                            Hours Approved: <span className="text-brown-800">{hp.hoursApproved}h</span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="bg-cream-100 border-2 border-cream-400 p-3">
+                  <span className="text-brown-800 text-sm">
+                    Total firmware time:{' '}
+                    <span className="text-brown-800 font-medium">
+                      {(project.hackatimeProjects.reduce((sum, p) => sum + p.totalSeconds, 0) / 3600).toFixed(1)}h
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bill of Materials */}
           {project.bomItems && project.bomItems.length > 0 && (

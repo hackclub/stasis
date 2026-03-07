@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { useSession } from "@/lib/auth-client";
+import { useSession, linkOAuth2 } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 
 import { StageProgress } from '@/app/components/projects/StageProgress';
@@ -145,6 +145,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
+  const [hackatimeLinked, setHackatimeLinked] = useState(false);
+  const [hackatimeProjects, setHackatimeProjects] = useState<{ id: string; hackatimeProject: string; totalSeconds: number }[]>([]);
+  const [availableHackatimeProjects, setAvailableHackatimeProjects] = useState<{ name: string; total_seconds: number; archived: boolean }[]>([]);
+  const [loadingHackatime, setLoadingHackatime] = useState(false);
+  const [hackatimeSearch, setHackatimeSearch] = useState('');
+  const [linkingHackatime, setLinkingHackatime] = useState(false);
+  const [hackatimePickerOpen, setHackatimePickerOpen] = useState(false);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -305,11 +312,37 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       }
     }
 
+    async function fetchHackatime() {
+      setLoadingHackatime(true);
+      try {
+        const [linkedRes, availRes] = await Promise.all([
+          fetch(`/api/projects/${projectId}/hackatime`),
+          fetch('/api/hackatime/projects'),
+        ]);
+        if (linkedRes.ok) {
+          const data = await linkedRes.json();
+          setHackatimeProjects(data.linkedProjects ?? []);
+        }
+        if (availRes.ok) {
+          const data = await availRes.json();
+          setAvailableHackatimeProjects(data.projects ?? []);
+          setHackatimeLinked(true);
+        } else if (availRes.status === 404) {
+          setHackatimeLinked(false);
+        }
+      } catch (err) {
+        console.error('Failed to fetch hackatime data:', err);
+      } finally {
+        setLoadingHackatime(false);
+      }
+    }
+
     if (session) {
       fetchProject();
       fetchTimeline();
       refreshAddress();
       fetchClaimedBadges();
+      fetchHackatime();
     } else if (!isPending) {
       router.push('/dashboard');
     }
@@ -649,6 +682,47 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   };
 
+  const handleLinkHackatimeProject = async (projectName: string) => {
+    if (!project) return;
+    setLinkingHackatime(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/hackatime`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hackatimeProject: projectName }),
+      });
+      if (res.ok) {
+        const linkedRes = await fetch(`/api/projects/${project.id}/hackatime`);
+        if (linkedRes.ok) {
+          const data = await linkedRes.json();
+          setHackatimeProjects(data.linkedProjects ?? []);
+        }
+        setHackatimeSearch('');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to link project');
+      }
+    } catch (error) {
+      console.error('Failed to link hackatime project:', error);
+    } finally {
+      setLinkingHackatime(false);
+    }
+  };
+
+  const handleUnlinkHackatimeProject = async (hackatimeProjectId: string) => {
+    if (!project) return;
+    try {
+      const res = await fetch(`/api/projects/${project.id}/hackatime?hackatimeProjectId=${hackatimeProjectId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setHackatimeProjects(prev => prev.filter(p => p.id !== hackatimeProjectId));
+      }
+    } catch (error) {
+      console.error('Failed to unlink hackatime project:', error);
+    }
+  };
+
   if (isPending || loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -883,6 +957,31 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </p>
               </div>
             )}
+
+          </div>
+
+          {/* Stage Progress */}
+          <div data-tutorial="stage-progress" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
+            <StageProgress 
+              designStatus={project.designStatus} 
+              buildStatus={project.buildStatus}
+            />
+            
+            {/* Design Stage Review Comments */}
+            {project.designStatus === "rejected" && project.designReviewComments && (
+              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
+                <p className="text-red-500/80 text-xs uppercase mb-1">Design Feedback</p>
+                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
+              </div>
+            )}
+            
+            {/* Build Stage Review Comments */}
+            {project.buildStatus === "rejected" && project.buildReviewComments && (
+              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
+                <p className="text-red-500/80 text-xs uppercase mb-1">Build Feedback</p>
+                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
+              </div>
+            )}
           </div>
 
           {/* Badges Section */}
@@ -971,26 +1070,95 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
           </div>
 
-          {/* Stage Progress */}
-          <div data-tutorial="stage-progress" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
-            <StageProgress 
-              designStatus={project.designStatus} 
-              buildStatus={project.buildStatus}
-            />
+          {/* Hackatime Firmware Tracking */}
+          <div className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
+            <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-2">Firmware Time</h2>
+            <p className="text-brown-800 text-sm mb-4">
+              Journaling time spent on writing firmware is not required, link your <a href="https://hackatime.hackclub.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">Hackatime</a> projects and we&apos;ll pull your coding time automatically.
+            </p>
             
-            {/* Design Stage Review Comments */}
-            {project.designStatus === "rejected" && project.designReviewComments && (
-              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
-                <p className="text-red-500/80 text-xs uppercase mb-1">Design Feedback</p>
-                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
-              </div>
-            )}
-            
-            {/* Build Stage Review Comments */}
-            {project.buildStatus === "rejected" && project.buildReviewComments && (
-              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
-                <p className="text-red-500/80 text-xs uppercase mb-1">Build Feedback</p>
-                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
+            {!hackatimeLinked ? (
+              <p className="text-brown-800 text-sm">
+                No Hackatime account linked.{' '}
+                <button
+                  onClick={() => linkOAuth2({ providerId: "hackatime", callbackURL: `/dashboard/projects/${project.id}` })}
+                  className="text-orange-500 hover:text-orange-400 underline cursor-pointer"
+                >
+                  Link your account
+                </button>
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {/* Linked projects */}
+                {hackatimeProjects.length > 0 && (
+                  <div className="space-y-2">
+                    {hackatimeProjects.map((hp) => (
+                      <div key={hp.id} className="flex items-center justify-between bg-cream-200 border border-cream-300 px-3 py-2 group">
+                        <div className="flex items-center gap-2">
+                          <span className="text-brown-800 text-sm">{hp.hackatimeProject}</span>
+                          <span className="text-cream-600 text-sm">
+                            {hp.totalSeconds > 0 ? `${(hp.totalSeconds / 3600).toFixed(1)}h` : '0h'}
+                          </span>
+                        </div>
+                        {project.designStatus !== "in_review" && project.buildStatus !== "in_review" && (
+                          <button
+                            onClick={() => handleUnlinkHackatimeProject(hp.id)}
+                            className="text-cream-500 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <div className="text-sm text-brown-800 mt-1">
+                      Total firmware time:{' '}
+                      <span className="text-brown-800">{(hackatimeProjects.reduce((sum, p) => sum + p.totalSeconds, 0) / 3600).toFixed(1)}h</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Add project picker - hidden while in review */}
+                {project.designStatus !== "in_review" && project.buildStatus !== "in_review" && (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={hackatimeSearch}
+                      onChange={(e) => setHackatimeSearch(e.target.value)}
+                      onFocus={() => setHackatimePickerOpen(true)}
+                      onBlur={() => setTimeout(() => setHackatimePickerOpen(false), 150)}
+                      placeholder="+ Link a Hackatime project..."
+                      className="w-full bg-white border-2 border-dashed border-cream-400 text-brown-800 px-3 py-2.5 text-sm focus:border-orange-500 focus:border-solid focus:outline-none transition-colors placeholder:text-cream-500"
+                    />
+                    {hackatimePickerOpen && (
+                      <div className="absolute z-10 left-0 right-0 border border-cream-300 border-t-0 max-h-48 overflow-y-auto bg-white">
+                        {availableHackatimeProjects
+                          .filter(p => !p.archived && p.name.toLowerCase().includes(hackatimeSearch.toLowerCase()))
+                          .filter(p => !hackatimeProjects.some(hp => hp.hackatimeProject === p.name))
+                          .map((p) => (
+                            <button
+                              key={p.name}
+                              onClick={() => handleLinkHackatimeProject(p.name)}
+                              disabled={linkingHackatime}
+                              className="w-full text-left px-3 py-2.5 text-sm hover:bg-orange-500/10 transition-colors cursor-pointer flex justify-between items-center border-b border-cream-200 last:border-b-0"
+                            >
+                              <span className="text-brown-800 font-medium">{p.name}</span>
+                              <span className="text-cream-600 text-xs">{(p.total_seconds / 3600).toFixed(1)}h</span>
+                            </button>
+                          ))}
+                        {availableHackatimeProjects
+                          .filter(p => !p.archived && p.name.toLowerCase().includes(hackatimeSearch.toLowerCase()))
+                          .filter(p => !hackatimeProjects.some(hp => hp.hackatimeProject === p.name))
+                          .length === 0 && (
+                          <p className="px-3 py-2.5 text-cream-500 text-sm">No matching projects</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {loadingHackatime && <div className="loader" style={{ width: 12, height: 18 }} />}
               </div>
             )}
           </div>
