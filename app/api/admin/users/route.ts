@@ -18,6 +18,8 @@ export async function GET() {
       fraudConvicted: true,
       slackId: true,
       verificationStatus: true,
+      pronouns: true,
+      eventPreference: true,
       encryptedAddressStreet: true,
       encryptedAddressCity: true,
       encryptedAddressState: true,

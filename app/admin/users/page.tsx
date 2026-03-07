@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { EVENT_LABELS, type EventPreference } from '@/lib/tiers';
 
 interface ProjectBadge {
   id: string;
@@ -39,6 +40,8 @@ interface AdminUser {
   fraudConvicted: boolean;
   slackId: string | null;
   verificationStatus: string | null;
+  pronouns: string | null;
+  eventPreference: string | null;
   hasAddress: boolean;
   totalProjects: number;
   totalHoursClaimed: number;
@@ -521,6 +524,81 @@ export default function AdminUsersPage() {
                           <p className="text-cream-600 uppercase text-xs mb-1">Flight Stipend</p>
                           <p className="text-brown-800">${user.flightStipend.toLocaleString()}</p>
                         </div>
+                        <div>
+                          <p className="text-cream-600 uppercase text-xs mb-1">Roles</p>
+                          <div className="flex flex-col gap-1">
+                            {AVAILABLE_ROLES.map((role) => {
+                              const roleInfo = getRoleInfo(user, role);
+                              const checked = hasPendingRole(user, role);
+                              return (
+                                <label
+                                  key={role}
+                                  className="flex items-start gap-2 cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      togglePendingRole(user, role);
+                                    }}
+                                    disabled={updating === user.id}
+                                    className="mt-0.5 accent-orange-500"
+                                  />
+                                  <div>
+                                    <span className={`text-sm ${
+                                      role === 'ADMIN' ? 'text-orange-500' : role === 'SIDEKICK' ? 'text-purple-600' : 'text-blue-600'
+                                    }`}>
+                                      {role}
+                                    </span>
+                                    {roleInfo && !hasPendingChanges(user) && (
+                                      <p className="text-xs text-cream-600">
+                                        Granted {new Date(roleInfo.grantedAt).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          year: 'numeric',
+                                        })}
+                                      </p>
+                                    )}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          {hasPendingChanges(user) && (
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveRoles(user);
+                                }}
+                                disabled={updating === user.id}
+                                className="px-3 py-1.5 text-xs uppercase bg-orange-500 text-brown-800 hover:bg-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                {updating === user.id ? 'Saving...' : 'Save Roles'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelRoleChanges(user.id);
+                                }}
+                                disabled={updating === user.id}
+                                className="px-3 py-1.5 text-xs uppercase bg-cream-300 text-brown-800 hover:bg-cream-400 transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-cream-600 uppercase text-xs mb-1">Pronouns</p>
+                          <p className="text-brown-800">{user.pronouns || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-600 uppercase text-xs mb-1">Target Event</p>
+                          <p className="text-brown-800">{user.eventPreference ? EVENT_LABELS[user.eventPreference as EventPreference] : '—'}</p>
+                        </div>
                       </div>
 
                       {/* Badges */}
@@ -609,75 +687,6 @@ export default function AdminUsersPage() {
                           </div>
                         </div>
                       )}
-
-                      {/* Roles Management */}
-                      <div>
-                        <p className="text-cream-600 uppercase text-xs mb-2">Roles</p>
-                        <div className="flex flex-wrap gap-4 mb-3">
-                          {AVAILABLE_ROLES.map((role) => {
-                            const roleInfo = getRoleInfo(user, role);
-                            const checked = hasPendingRole(user, role);
-                            return (
-                              <label
-                                key={role}
-                                className="flex items-start gap-2 cursor-pointer"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    togglePendingRole(user, role);
-                                  }}
-                                  disabled={updating === user.id}
-                                  className="mt-0.5 accent-orange-500"
-                                />
-                                <div>
-                                  <span className={`text-sm ${
-                                    role === 'ADMIN' ? 'text-orange-500' : role === 'SIDEKICK' ? 'text-purple-600' : 'text-blue-600'
-                                  }`}>
-                                    {role}
-                                  </span>
-                                  {roleInfo && !hasPendingChanges(user) && (
-                                    <p className="text-xs text-cream-600">
-                                      Granted {new Date(roleInfo.grantedAt).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                      })}
-                                    </p>
-                                  )}
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
-                        {hasPendingChanges(user) && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                saveRoles(user);
-                              }}
-                              disabled={updating === user.id}
-                              className="px-3 py-1.5 text-xs uppercase bg-orange-500 text-brown-800 hover:bg-orange-400 transition-colors cursor-pointer disabled:opacity-50"
-                            >
-                              {updating === user.id ? 'Saving...' : 'Save Roles'}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cancelRoleChanges(user.id);
-                              }}
-                              disabled={updating === user.id}
-                              className="px-3 py-1.5 text-xs uppercase bg-cream-300 text-brown-800 hover:bg-cream-400 transition-colors cursor-pointer disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        )}
-                      </div>
 
                       {/* Actions */}
                       <div className="flex flex-wrap gap-3 pt-2 border-t border-cream-400">
