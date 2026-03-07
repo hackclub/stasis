@@ -113,7 +113,6 @@ const BADGE_LABELS: Record<BadgeType, string> = {
   SOLDERING: "Soldering",
 };
 
-const MIN_HOURS_REQUIRED = 4;
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = use(params);
@@ -293,7 +292,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   // Computed values for stage requirements
   const designSessions = project?.workSessions.filter(s => s.stage === "DESIGN") ?? [];
   const buildSessions = project?.workSessions.filter(s => s.stage === "BUILD") ?? [];
-  const totalBuildHours = buildSessions.reduce((acc, s) => acc + s.hoursClaimed, 0);
   
   const canSubmitDesign = project &&
     (project.designStatus === "draft" || project.designStatus === "rejected") &&
@@ -314,7 +312,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const canSubmitBuild = project &&
     project.designStatus === "approved" &&
     (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") &&
-    totalBuildHours >= MIN_HOURS_REQUIRED &&
     hasNewBuildSessions &&
     isVerified &&
     hasAddress;
@@ -875,16 +872,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
               <p className="text-brown-800 text-xs uppercase mb-3">Build Stage Requirements</p>
               <div className="space-y-2">
-                <div className={`flex items-center gap-2 text-sm ${totalBuildHours >= MIN_HOURS_REQUIRED ? 'text-green-500' : 'text-brown-800'}`}>
-                  {totalBuildHours >= MIN_HOURS_REQUIRED ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  ) : (
-                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
-                  )}
-                  Minimum {MIN_HOURS_REQUIRED} build hours ({totalBuildHours.toFixed(1)}h logged)
-                </div>
                 <div className={`flex items-center gap-2 text-sm ${isVerified ? 'text-green-500' : 'text-brown-800'}`}>
                   {isVerified ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">

@@ -5,8 +5,6 @@ import { logAudit, AuditAction } from "@/lib/audit"
 import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
 
-const MIN_BUILD_HOURS_REQUIRED = 4
-
 // TODO: Add rate limiting - prevent submission spam
 export async function POST(
   request: NextRequest,
@@ -152,17 +150,6 @@ export async function POST(
     if (!project.githubRepo) {
       return NextResponse.json(
         { error: "GitHub repository link is required for build review" },
-        { status: 400 }
-      )
-    }
-
-    // Count only BUILD stage sessions
-    const buildSessions = project.workSessions.filter(s => s.stage === "BUILD")
-    const totalBuildHours = buildSessions.reduce((acc, s) => acc + s.hoursClaimed, 0)
-
-    if (totalBuildHours < MIN_BUILD_HOURS_REQUIRED) {
-      return NextResponse.json(
-        { error: `Minimum ${MIN_BUILD_HOURS_REQUIRED} hours of build work required` },
         { status: 400 }
       )
     }
