@@ -22,7 +22,7 @@ const getFaqs = (event: EventPreference) => [
   {
     question: event === 'opensauce' ? "How do I get a ticket to Open Sauce?" : "How do I qualify for Stasis?",
     answer: event === 'opensauce'
-      ? "Just make <mark>2 hardware projects</mark> (~30 hours) and you'll earn your ticket to Open Sauce!"
+      ? "Just make <mark>2 hardware projects</mark> (~35 hours) and you'll earn your ticket to Open Sauce!"
       : "To qualify for Stasis, just make <mark>3 hardware projects</mark> (~45 hours) and you'll earn your ticket to Stasis!"
   },
 
@@ -536,7 +536,7 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPre
                 <ScrambleText>{">>: How You Qualify"}</ScrambleText>
               </h2>
               <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-brown-800">
-                <li className="flex gap-2"><span>•</span><span><ScrambleText>{event === 'opensauce' ? 'Make 2 hardware projects (~30 hrs)' : 'Make 3 hardware projects (~45 hrs)'}</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>{event === 'opensauce' ? 'Make 2 hardware projects (~35 hrs)' : 'Make 3 hardware projects (~45 hrs)'}</ScrambleText></span></li>
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>{event === 'opensauce' ? 'Fly to the Bay Area for Open Sauce on July 17-19! (travel stipends available)' : 'Fly to Austin, TX! (travel stipends available)'}</ScrambleText></span></li>
               </ul>
 

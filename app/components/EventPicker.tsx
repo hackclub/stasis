@@ -49,7 +49,7 @@ export function EventPicker({ selectedEvent, onSelect }: Readonly<Props>) {
           <div className="flex items-center justify-center mb-4 h-24">
             <img src="/open-sauce-stasis.png" alt="Open Sauce" className="max-h-24 max-w-full object-contain" />
           </div>
-          <p className="text-orange-500 font-medium text-sm mb-2">200&nbsp;bits (~30 hrs) to qualify</p>
+          <p className="text-orange-500 font-medium text-sm mb-2">250&nbsp;bits (~35 hrs) to qualify</p>
           <p className="text-brown-800 text-sm leading-relaxed mb-3">
             Come to the biggest maker festival in the world with a group of teenagers from Hack Club. See 500+ projects, meet famous creators, and explore hands-on demos in San Francisco, July 17-19, 2026.
           </p>

@@ -36,7 +36,7 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
     id: SHOP_ITEM_IDS.OPEN_SAUCE_TICKET,
     name: 'Open Sauce Ticket',
     description: 'Your ticket to Open Sauce with Hack Club!',
-    bitsCost: 200,
+    bitsCost: 250,
     category: 'invite',
     maxPerUser: 1,
   },

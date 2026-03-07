@@ -67,7 +67,7 @@ export const QUALIFICATION_BITS_THRESHOLD = 350
 // Event-specific thresholds
 export const EVENT_THRESHOLDS = {
   stasis: 350,
-  opensauce: 200,
+  opensauce: 250,
 } as const
 
 export type EventPreference = keyof typeof EVENT_THRESHOLDS
