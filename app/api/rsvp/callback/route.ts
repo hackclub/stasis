@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { markAccountCreationFinished, updateRSVPName } from '@/lib/airtable';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
@@ -27,8 +28,22 @@ export async function GET() {
       console.error('Airtable update error:', error);
     }
 
-    // Clean up cookies
+    // Set event preference from signup source
     const cookieStore = await cookies();
+    const signupEvent = cookieStore.get('signup_event')?.value;
+    if (signupEvent && (signupEvent === 'stasis' || signupEvent === 'opensauce')) {
+      try {
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: { eventPreference: signupEvent },
+        });
+      } catch (error) {
+        console.error('Failed to set event preference:', error);
+      }
+      cookieStore.delete('signup_event');
+    }
+
+    // Clean up cookies
     cookieStore.delete('rsvp_login_hint');
 
     return NextResponse.redirect(new URL('/dashboard', baseUrl));

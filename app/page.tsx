@@ -12,21 +12,28 @@ import { ASCIIArt } from './components/ASCIIArt';
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
 import { authClient, useSession } from '@/lib/auth-client';
+import type { EventPreference } from '@/lib/tiers';
 
 
 const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
 const SIGNUP_GOAL = 3000;
 
-const faqs = [
+const getFaqs = (event: EventPreference) => [
   {
-    question: "How do I qualify for Stasis?",
-    answer: "To qualify for Stasis, just make <mark>3 hardware projects</mark> (~45 hours) and you'll earn your ticket to Stasis!"
+    question: event === 'opensauce' ? "How do I get a ticket to Open Sauce?" : "How do I qualify for Stasis?",
+    answer: event === 'opensauce'
+      ? "Just make <mark>2 hardware projects</mark> (~30 hours) and you'll earn your ticket to Open Sauce!"
+      : "To qualify for Stasis, just make <mark>3 hardware projects</mark> (~45 hours) and you'll earn your ticket to Stasis!"
   },
 
   {
     question: "I don't know hardware!",
     answer: "Don't worry! Stasis is <mark>100% beginner friendly</mark>, we have a ton of starter projects for you to start learning skills, and if you complete and build a starter project, you can get 3 badges!"
   },
+  ...(event !== 'opensauce' ? [{
+    question: "I heard something about Open Sauce tickets?",
+    answer: "Through making hardware projects on the Stasis platform, you can also win a ticket to <a href='https://opensauce.com'>Open Sauce</a>, a massive creator and maker festival in San Francisco where 500+ projects are exhibited alongside talks and panels from top engineering creators.<br><br><a href='/opensauce'>Click here</a> for the Open Sauce version of the site."
+  }] : []),
   {
     question: "What are the badges about?",
     answer: "With each hardware skill you use in your project, you can earn a badge that goes on your profile page! Special merch will be given out to those who reach <mark>5 badges</mark>, and you'll also be mailed a real-life badge so you can show off your skills!<br><br>Each project can earn a maximum of <mark>3 badges</mark> and must meet each badge's criteria."
@@ -58,7 +65,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
   return <span ref={ref} className={className}>{children}</span>;
 }
 
-export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean } = {}) {
+export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPreference }: { skipRedirect?: boolean; event?: EventPreference } = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -158,7 +165,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
       const response = await fetch('/api/rsvp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, referralType, referralCode }),
+        body: JSON.stringify({ email, referralType, referralCode, signupEvent: event }),
       });
 
       if (!response.ok) {
@@ -200,7 +207,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
       const response = await fetch('/api/rsvp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, referralType, referralCode }),
+        body: JSON.stringify({ email, referralType, referralCode, signupEvent: event }),
       });
 
       if (!response.ok) {
@@ -222,7 +229,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
   async function handleLogin() {
     await authClient.signIn.oauth2({
       providerId: 'hca',
-      callbackURL: '/dashboard',
+      callbackURL: event === 'opensauce' ? '/dashboard?signupEvent=opensauce' : '/dashboard',
     });
   }
 
@@ -238,7 +245,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
 
   return (
     <div ref={pageWrapperRef} className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-brown-800 bg-container overflow-x-hidden">
-      {hasLoggedInBefore && !session && (
+      {!skipRedirect && hasLoggedInBefore && !session && (
         <div className="absolute top-[calc(1rem+1rem)] right-[calc(1rem+1rem)] md:top-[calc(3rem+3rem)] md:right-[calc(3rem+1.5rem)] z-[60]">
           <MagneticCorners offset={12}>
             <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
@@ -281,7 +288,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
       `}</style>
 
       <div className="min-h-screen relative md:pt-12 z-0" style={{ paddingBottom: footerHeight }}>
-        <div className="mx-auto max-w-[460px] pt-20 pb-16 md:pt-32 md:pb-24 *:py-6 *:md:py-16">
+        <div className="mx-auto max-w-[460px] pt-14 pb-16 md:pt-24 md:pb-24 *:py-6 *:md:py-16">
           {/* Vertical dotted lines (desktop) */}
           <div className="absolute left-1/2 top-0 h-full w-full max-w-[460px] -translate-x-1/2 pointer-events-none md:block hidden">
             <div className="absolute left-0 top-0 h-full">
@@ -295,20 +302,51 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
           <div className="space-y-8 md:space-y-12 px-5 md:px-0">
             {/* Header */}
             <header className="text-center">
-              <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
+              <div className="absolute left-1/2 w-screen h-px -translate-x-1/2 translate-y-[3.75rem]">
                 <DottedLine orientation="horizontal" />
               </div>
 
               {/* Logo */}
-              <div className="mb-2 md:mb-4 w-full relative" style={{ aspectRatio: '625/81' }}>
-                <img
-                  src="/stasis-logo.svg"
-                  alt="Stasis"
-                  width={727}
-                  height={147}
-                  className="absolute -translate-x-[2%] md:-translate-x-4 scale-105 md:scale-[107%] -translate-y-[28%] origin-bottom md:origin-bottom-right select-none pointer-events-none"
-                />
-                <div className="opacity-0 pointer-events-none select-none" style={{ aspectRatio: '625/81', width: '100%' }} />
+              <div className="mb-2 md:mb-4 w-full relative" style={{ aspectRatio: '575/158' }}>
+                <div
+                  className="absolute w-full -translate-x-[2%] md:-translate-x-4 scale-105 md:scale-[107%] -translate-y-[28%] origin-bottom md:origin-bottom-right"
+                  style={{ aspectRatio: '575/233' }}
+                >
+                  <img
+                    src="/stasis-logo-os.svg"
+                    alt="Stasis"
+                    width={575}
+                    height={233}
+                    className="w-full h-full select-none pointer-events-none"
+                  />
+                  {/* Clickable Hack Club logo overlay */}
+                  <a
+                    href="https://hackclub.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute z-10"
+                    style={{
+                      left: '28.9%',
+                      top: '10.1%',
+                      width: '21.7%',
+                      height: '18.9%',
+                    }}
+                  />
+                  {/* Clickable Open Sauce logo overlay */}
+                  <a
+                    href="https://opensauce.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute z-10"
+                    style={{
+                      left: '62.6%',
+                      top: '0%',
+                      width: '15.7%',
+                      height: '39.1%',
+                    }}
+                  />
+                </div>
+                <div className="opacity-0 pointer-events-none select-none" style={{ aspectRatio: '575/158', width: '100%' }} />
               </div>
 
               <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -317,9 +355,23 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
 
               <ASCIIArt art={asciiArt.hackclub} horizontalPosition={80} verticalOffset="5rem" />
               <ASCIIArt art={asciiArt.earth} horizontalPosition={35} verticalOffset="12rem" />
+              {event === 'opensauce' && <ASCIIArt art={asciiArt.opensauce2} horizontalPosition={18} verticalOffset="100rem" />}
 
               <HoverScramble
-              segments={[
+              segments={event === 'opensauce' ? [
+                { text: "GAXX F I GYI TIMK G PRCQJJMS R\nF" },
+                { text: "BUILD ELECTRONICS PROJECTS", class: "text-brown-800" },
+                { text: " XQ\nK " },
+                { text: "GET A TICKET TO ", class: "text-brown-800" },
+                { text: "OPEN SAUCE", class: "text-brown-800", href: "https://opensauce.com" },
+                { text: " Q\nFCX XW VQQET S" },
+                { text: "COMPLETELY FREE", class: "text-brown-800" },
+                { text: "M\nC LQW" },
+                { text: "FLIGHT STIPENDS AVAILABLE", class: "text-brown-800" },
+                { text: "\nC" },
+                { text: "HIGH SCHOOLERS ONLY", class: "text-brown-800" },
+                { text: "MEXDLB LEZ\nYRE VJ URVSP LWOSH JWPOX I SFF" }
+              ] : [
                 { text: "GAXX F I GYI TIMK G PRCQJJMS R\nBCU XR" },
                 { text: "HARDWARE HACKATHON", class: "text-brown-800" },
                 { text: "QJ EMD\n" },
@@ -335,7 +387,10 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
                 { text: "HIGH SCHOOLERS ONLY", class: "text-brown-800" },
                 { text: "MEXDLB LEZ\nYRE VJ URVSP LWOSH JWPOX I SFF" }
               ]}
-              srLabel="A hardware hackathon happening May 15 to 18, in Austin, Texas. The event is completely free with flight stipends available. For high schoolers only."
+              srLabel={event === 'opensauce'
+                ? "Build electronics projects. Get a ticket to Open Sauce. An event that is completely free with flight stipends available. For high schoolers only."
+                : "A hardware hackathon happening May 15 to 18, in Austin, Texas. An event that is completely free with flight stipends available. For high schoolers only."
+              }
               initialScramble={true}
               initialDuration={2.5}
               initialStagger={1.2}
@@ -451,6 +506,15 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
                       Already have an account? Log in
                     </button>
                   )}
+
+                  {event !== 'opensauce' && (
+                    <a
+                      href="/opensauce"
+                      className="text-sm text-brown-800 hover:text-orange-500 no-underline opacity-70 cursor-pointer transition-colors"
+                    >
+                      Click here for Open Sauce tickets
+                    </a>
+                  )}
                 </>
               )}
             </div>
@@ -471,8 +535,8 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
                 <ScrambleText>{">>: How You Qualify"}</ScrambleText>
               </h2>
               <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-brown-800">
-                <li className="flex gap-2"><span>•</span><span><ScrambleText>Make 3 hardware projects (~45 hrs)</ScrambleText></span></li>
-                <li className="flex gap-2"><span>•</span><span><ScrambleText>Fly to Austin, TX! (travel stipends available)</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>{event === 'opensauce' ? 'Make 2 hardware projects (~30 hrs)' : 'Make 3 hardware projects (~45 hrs)'}</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>{event === 'opensauce' ? 'Fly to the Bay Area for Open Sauce on July 17-19! (travel stipends available)' : 'Fly to Austin, TX! (travel stipends available)'}</ScrambleText></span></li>
               </ul>
 
               {/* Badges */}
@@ -530,7 +594,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
             <section className="text-brown-800 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12 text-[14px] md:text-[18px] ">
               <h2 className="text-[24px] uppercase leading-normal mb-0 md:mb-2 "><ScrambleText>{">>: FAQ"}</ScrambleText></h2>
               <div>
-                {faqs.map((faq, i) => (
+                {getFaqs(event).map((faq, i) => (
                   <div key={i} className={`border-b-[1.5] border-brown-800 transition-colors duration-300 ${openIndex === i ? 'bg-cream-300/25' : ''}`}>
                     <button
                       onClick={(e) => { handleClick(e); toggle(i); }}

@@ -9,7 +9,8 @@ interface FooterProps {
 
 export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
   const pathname = usePathname();
-  const isLanding = pathname === '/';
+  const isLanding = pathname === '/' || pathname === '/landing' || pathname === '/opensauce';
+  const isOpenSauce = pathname === '/opensauce';
   const [mouseX, setMouseX] = useState(-1000);
   const [mouseY, setMouseY] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,6 +45,12 @@ export function Footer({ inset = '3rem' }: Readonly<FooterProps>) {
             <a href="https://hackclub.com/clubs" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Clubs</a>
             <span>・</span>
             <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Hackathons</a>
+            {isOpenSauce && (
+              <>
+                <span>・</span>
+                <a href="https://opensauce.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-500 hover:text-cream-100">Open Sauce</a>
+              </>
+            )}
           </div>
           {isLanding && (
             <p className="mt-4 text-sm opacity-40">

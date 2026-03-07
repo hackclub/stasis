@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { SHOP_ITEMS, SHOP_ITEM_IDS } from "@/lib/shop"
+import { SHOP_ITEMS, SHOP_ITEM_IDS, EVENT_INVITE_IDS } from "@/lib/shop"
 import { Prisma } from "@/app/generated/prisma/client"
 
 export async function POST(request: NextRequest) {
@@ -37,13 +37,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Flight stipend requires owning the event invite first
+      // Flight stipend requires owning any event invite first
       if (itemId === SHOP_ITEM_IDS.FLIGHT_STIPEND) {
         const hasInvite = await tx.currencyTransaction.count({
           where: {
             userId,
             type: "SHOP_PURCHASE",
-            shopItemId: SHOP_ITEM_IDS.STASIS_EVENT_INVITE,
+            shopItemId: { in: EVENT_INVITE_IDS as unknown as string[] },
           },
         })
         if (hasInvite === 0) {
