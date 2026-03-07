@@ -8,6 +8,7 @@ import { ProjectCard } from '../components/projects/ProjectCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial } from '../components/OnboardingTutorial';
+import { PronounsModal } from '../components/PronounsModal';
 import { EventPicker } from '../components/EventPicker';
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
@@ -43,6 +44,8 @@ export default function ProjectsPage() {
   const [eventPreference, setEventPreference] = useState<EventPreference>('stasis');
   const [showEventPicker, setShowEventPicker] = useState(false);
   const [pickerSelection, setPickerSelection] = useState<EventPreference | null>(null);
+  const [userPronouns, setUserPronouns] = useState<string | null>(null);
+  const [showPronounsModal, setShowPronounsModal] = useState(false);
 
   if (!isPending && !session) {
     return (
@@ -61,10 +64,12 @@ export default function ProjectsPage() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const [projectsRes, currencyRes, eventPrefRes] = await Promise.all([
+      const [projectsRes, currencyRes, eventPrefRes, pronounsRes, tutorialRes] = await Promise.all([
         fetch('/api/projects'),
         fetch('/api/currency'),
         fetch('/api/user/event-preference'),
+        fetch('/api/user/pronouns'),
+        fetch('/api/user/tutorial'),
       ]);
       if (projectsRes.ok) {
         setProjects(await projectsRes.json());
@@ -89,6 +94,19 @@ export default function ProjectsPage() {
               body: JSON.stringify({ event: pref }),
             });
           }
+        }
+      }
+      // Show pronouns modal if tutorial is already done and pronouns not set
+      let fetchedPronouns: string | null = null;
+      if (pronounsRes.ok) {
+        const data = await pronounsRes.json();
+        fetchedPronouns = data.pronouns;
+        setUserPronouns(fetchedPronouns);
+      }
+      if (tutorialRes.ok) {
+        const { tutorialDashboard } = await tutorialRes.json();
+        if (tutorialDashboard && fetchedPronouns === null) {
+          setShowPronounsModal(true);
         }
       }
     } catch (error) {
@@ -173,7 +191,7 @@ export default function ProjectsPage() {
   return (
     <>
       {/* Onboarding Tutorial */}
-      <OnboardingTutorial type="dashboard" forceShow={showTutorial} onComplete={() => setShowTutorial(false)} onEventChange={(event) => setEventPreference(event)} initialEvent={eventPreference} />
+      <OnboardingTutorial type="dashboard" forceShow={showTutorial} onComplete={() => { setShowTutorial(false); if (userPronouns === null) setShowPronounsModal(true); }} onEventChange={(event) => setEventPreference(event)} initialEvent={eventPreference} />
 
 
       {/* Qualification Progress */}
@@ -284,6 +302,10 @@ export default function ProjectsPage() {
         onSubmit={handleCreateProject}
         error={modalError}
       />
+
+      {showPronounsModal && (
+        <PronounsModal onComplete={() => setShowPronounsModal(false)} />
+      )}
 
       {/* Event change confirmation dialog */}
       {showEventPicker && (
