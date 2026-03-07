@@ -4,10 +4,15 @@
 // 1 bit = $1 value
 //
 // Based on the tier of your project, you earn a certain number of bits.
-// You must spend 1 bit per dollar to buy parts.
-// The profit (bits earned - bits spent) goes toward a 350-bit
-// qualification requirement.
+// You can spend at most 50% of your earned bits on parts (BIT_SPEND_RATIO).
+// The remaining 50% (bits earned - bits spent on parts) goes toward
+// your qualification total.
 // ============================================================
+
+// The maximum fraction of earned bits that can be spent on parts.
+// e.g. a Tier 1 project earns 50 bits → max 25 bits ($25) can be spent on parts,
+// and at least 25 bits go toward qualification.
+export const BIT_SPEND_RATIO = 0.5
 
 // --- Tier Definitions ---
 // Tiers are ordered from lowest (Tier 1) to highest (Tier 5).
@@ -18,40 +23,40 @@ export const TIERS = [
   {
     id: 1,
     name: "Tier 1",
-    bits: 25,
-    minHours: 3,
-    maxHours: 5,
+    bits: 50,
+    minHours: 5,
+    maxHours: 8,
     examples: ["Phone Stand", "3D Printed Trinket", "PCB Fidget"],
   },
   {
     id: 2,
     name: "Tier 2",
-    bits: 50,
-    minHours: 5,
-    maxHours: 10,
+    bits: 100,
+    minHours: 8,
+    maxHours: 16,
     examples: ["Drone Kit", "LED Lamp", "Custom Macropad"],
   },
   {
     id: 3,
     name: "Tier 3",
-    bits: 100,
-    minHours: 10,
-    maxHours: 20,
+    bits: 200,
+    minHours: 17,
+    maxHours: 33,
     examples: ["Game Console", "Devboard", "Keyboard"],
   },
   {
     id: 4,
     name: "Tier 4",
-    bits: 200,
-    minHours: 20,
-    maxHours: 40,
+    bits: 400,
+    minHours: 34,
+    maxHours: 66,
     examples: ["Battle Bot", "Custom Robot Arm", "FPGA Board"],
   },
   {
     id: 5,
     name: "Tier 5",
-    bits: 400,
-    minHours: 40,
+    bits: 600,
+    minHours: 67,
     maxHours: Infinity,
     examples: ["VVVF Inverter", "Custom CNC Machine", "Satellite Ground Station"],
   },

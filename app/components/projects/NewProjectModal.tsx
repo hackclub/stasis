@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges"
-import { TIERS } from "@/lib/tiers"
+import { TIERS, BIT_SPEND_RATIO } from "@/lib/tiers"
 
 interface Props {
   isOpen: boolean
@@ -335,14 +335,20 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                     Since you&apos;re using a starter project, the complexity level is predetermined. You can still change it if needed.
                   </p>
                 ) : (
-                  <p className="text-cream-600 text-sm mb-2">
-                    How complex is this project? (You can change this later)
-                  </p>
+                  <>
+                    <p className="text-cream-600 text-sm mb-2">
+                      How complex is this project? (You can change this later)
+                    </p>
+                    <p className="text-xs bg-orange-500/10 border border-orange-500/30 text-orange-600 px-2 py-1.5 mb-1">
+                      You can spend at most <strong>50% of earned bits</strong> on parts. The other 50% goes toward qualification.
+                    </p>
+                  </>
                 )}
                 <div className="flex flex-col gap-2">
                   {TIERS.map((tier) => {
                     const isRecommended = starterProject && tier.id === starterProject.tier
                     const isGreyed = starterProject && tier.id !== starterProject.tier && selectedTier !== tier.id
+                    const maxSpend = Math.floor(tier.bits * BIT_SPEND_RATIO)
                     return (
                       <button
                         key={tier.id}
@@ -365,9 +371,14 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                             {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
                           </span>
                         </div>
-                        <span className={`block text-sm mt-1 ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
-                          e.g. {tier.examples.join(', ')}
-                        </span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className={`text-sm ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
+                            e.g. {tier.examples.join(', ')}
+                          </span>
+                          <span className={`text-xs ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
+                            max ${maxSpend} on parts
+                          </span>
+                        </div>
                       </button>
                     )
                   })}

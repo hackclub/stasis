@@ -40,7 +40,7 @@ const getFaqs = (event: EventPreference) => [
   },
   {
     question: "Wait, you're giving me money to build projects?",
-    answer: "<mark>YES!</mark> You can get up to <mark>$400</mark> to buy parts to build your project."
+    answer: "<mark>YES!</mark> You can get up to <mark>$300</mark> to buy parts to build your project."
   },
   {
     question: "Is this legit? What's Hack Club?",

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
-import { TIERS } from "@/lib/tiers"
+import { TIERS, BIT_SPEND_RATIO } from "@/lib/tiers"
 
 interface ProjectBadge {
   id: string
@@ -257,7 +257,7 @@ export function EditProjectModal({ isOpen, project, onClose, onSubmit, onDelete 
                 >
                   <span className="uppercase font-medium">{tier.name}</span>
                   <span className="block text-xs mt-0.5 opacity-80">
-                    {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                    {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h · max ${Math.floor(tier.bits * BIT_SPEND_RATIO)} on parts
                   </span>
                 </button>
               ))}
