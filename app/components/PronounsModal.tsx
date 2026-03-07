@@ -36,7 +36,7 @@ export function PronounsModal({ onComplete }: Readonly<Props>) {
       <div className="absolute inset-0 bg-[#3D3229]/80" />
       <div className="relative bg-cream-100 border-2 border-orange-500 p-6 max-w-110 w-full mx-4 shadow-2xl">
         <p className="text-brown-800 text-sm leading-relaxed mb-5">
-          Stasis is dedicated to getting more girls and gender minorities into hardware, and we're committed to having 40% of our participants be girls! We have a ton of resources and support for our female / nonbinary students to be able to build their first hardware project - What pronouns do you use?
+          What pronouns do you use?
         </p>
 
         <div className="flex flex-col gap-3 mb-5">
