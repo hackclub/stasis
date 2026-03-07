@@ -149,7 +149,7 @@ export default function AdminPurchasesPage() {
                 <tr key={p.id} className="border-b border-cream-300 last:border-b-0 hover:bg-cream-200/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <img src={p.user.image || '/default-avatar.svg'} alt="" className="w-6 h-6 border border-cream-400" />
+                      <img src={p.user.image || '/default_slack.png'} alt="" className="w-6 h-6 border border-cream-400" />
                       <div className="min-w-0">
                         <p className="text-brown-800 text-sm truncate">{p.user.name || p.user.email}</p>
                         {p.user.name && (

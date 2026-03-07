@@ -489,7 +489,7 @@ export default function AdminSidekicksPage() {
                   className="bg-cream-200 border border-cream-400 p-3 flex items-center gap-3"
                 >
                   <img
-                    src={user.image || '/default-avatar.svg'}
+                    src={user.image || '/default_slack.png'}
                     alt=""
                     className="w-8 h-8 flex-shrink-0 border-2 border-orange-500"
                   />

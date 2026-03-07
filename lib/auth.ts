@@ -56,6 +56,10 @@ export const auth = betterAuth({
         type: "string",
         required: false,
       },
+      hackatimeUserId: {
+        type: "string",
+        required: false,
+      },
     },
   },
   databaseHooks: {
@@ -106,6 +110,18 @@ export const auth = betterAuth({
         },
       },
     },
+    account: {
+      create: {
+        after: async (account) => {
+          if (account.providerId === "hackatime") {
+            await prisma.user.update({
+              where: { id: account.userId },
+              data: { hackatimeUserId: account.accountId },
+            });
+          }
+        },
+      },
+    },
     session: {
       create: {
         after: async (session) => {
@@ -115,19 +131,25 @@ export const auth = betterAuth({
             select: { slackId: true },
           });
 
-          // Refresh Slack display name + channel invite on each login
+          // Refresh Slack profile picture, display name, and channel invites on each login
           if (user?.slackId) {
             inviteToSlackChannels(user.slackId).catch((err) =>
               console.error('Failed to invite to Slack channels:', err)
             );
-            getSlackDisplayName(user.slackId).then(async (displayName) => {
-              if (displayName) {
+            Promise.all([
+              getSlackProfilePicture(user.slackId),
+              getSlackDisplayName(user.slackId),
+            ]).then(async ([slackImage, displayName]) => {
+              const updates: Record<string, string | null> = {};
+              if (slackImage) updates.image = slackImage;
+              if (displayName) updates.slackDisplayName = displayName;
+              if (Object.keys(updates).length > 0) {
                 await prisma.user.update({
                   where: { id: userId },
-                  data: { slackDisplayName: displayName },
-                }).catch((err) => console.error('Failed to update Slack display name:', err));
+                  data: updates,
+                });
               }
-            }).catch((err) => console.error('Failed to fetch Slack display name:', err));
+            }).catch((err) => console.error('Failed to refresh Slack profile:', err));
           }
 
           // Refresh HCA PII (address + birthday) on every login using the stored access token
@@ -208,6 +230,33 @@ export const auth = betterAuth({
             }
 
             return user;
+          },
+        },
+        {
+          providerId: "hackatime",
+          authorizationUrl: "https://hackatime.hackclub.com/oauth/authorize",
+          tokenUrl: "https://hackatime.hackclub.com/oauth/token",
+          userInfoUrl: "https://hackatime.hackclub.com/api/v1/authenticated/me",
+          clientId: process.env.HACKATIME_CLIENT_ID!,
+          clientSecret: process.env.HACKATIME_CLIENT_SECRET!,
+          scopes: ["profile"],
+          pkce: true,
+          getUserInfo: async ({ accessToken }) => {
+            const response = await fetch(
+              "https://hackatime.hackclub.com/api/v1/authenticated/me",
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              }
+            );
+            const data = await response.json();
+            return {
+              id: String(data.id),
+              email: data.emails?.[0],
+              name: data.github_username || data.slack_id,
+              emailVerified: false,
+            };
           },
         },
       ],

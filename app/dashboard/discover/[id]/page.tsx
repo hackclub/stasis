@@ -79,7 +79,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function UserAvatar({ image }: { name: string | null; image: string | null }) {
-  return <img src={image || '/default-avatar.svg'} alt="" className="w-6 h-6 flex-shrink-0 border-2 border-orange-500" />;
+  return <img src={image || '/default_slack.png'} alt="" className="w-6 h-6 flex-shrink-0 border-2 border-orange-500" />;
 }
 
 function PublicTimeline({ items }: Readonly<{ items: PublicTimelineItem[] }>) {
@@ -263,7 +263,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
             </h1>
             <div className="flex items-center gap-3 text-sm">
               <Link href={`/dashboard/profile/${project.user.id}`} className="flex items-center gap-2 hover:text-orange-500 transition-colors">
-                <img src={project.user.image || '/default-avatar.svg'} alt="" className="w-6 h-6 border-2 border-orange-500" />
+                <img src={project.user.image || '/default_slack.png'} alt="" className="w-6 h-6 border-2 border-orange-500" />
                 <span className="text-brown-800">{project.user.name || 'Anonymous'}</span>
               </Link>
               <span className="text-cream-600">•</span>

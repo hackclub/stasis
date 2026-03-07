@@ -77,6 +77,8 @@ export default function AdminUsersPage() {
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ message: string; total: number } | null>(null);
+  const [refreshingAvatars, setRefreshingAvatars] = useState(false);
+  const [avatarResult, setAvatarResult] = useState<{ cleared: number; toFetch: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [purchasesModal, setPurchasesModal] = useState<{ user: AdminUser; purchases: UserPurchase[] } | null>(null);
   const [loadingPurchases, setLoadingPurchases] = useState<string | null>(null);
@@ -127,6 +129,22 @@ export default function AdminUsersPage() {
       console.error('Failed to backfill addresses:', error);
     } finally {
       setBackfilling(false);
+    }
+  }
+
+  async function refreshAvatars() {
+    setRefreshingAvatars(true);
+    setAvatarResult(null);
+    try {
+      const res = await fetch('/api/admin/users/refresh-avatars', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setAvatarResult({ cleared: data.cleared, toFetch: data.toFetch });
+      }
+    } catch (error) {
+      console.error('Failed to refresh avatars:', error);
+    } finally {
+      setRefreshingAvatars(false);
     }
   }
 
@@ -341,6 +359,27 @@ export default function AdminUsersPage() {
                   {backfillResult.message} ({backfillResult.total} users) — check server logs for progress
                 </span>
               )}
+              <span className="text-cream-400">|</span>
+              <button
+                onClick={() => {
+                  if (confirm('Refresh all Slack profile pictures? This will clear gravatar URLs and re-fetch from Slack.')) {
+                    refreshAvatars();
+                  }
+                }}
+                disabled={refreshingAvatars}
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                  refreshingAvatars
+                    ? 'bg-cream-300 text-brown-800 opacity-50'
+                    : 'bg-orange-500 text-brown-800 hover:bg-orange-400'
+                } transition-colors`}
+              >
+                {refreshingAvatars ? 'Refreshing...' : 'Refresh Avatars'}
+              </button>
+              {avatarResult && (
+                <span className="text-xs text-brown-800 self-center">
+                  Cleared {avatarResult.cleared} gravatar URLs, fetching {avatarResult.toFetch} avatars — check server logs
+                </span>
+              )}
               {(filterFraud !== null || filterRole !== null || filterAddress !== null) && (
                 <button
                   onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); }}
@@ -376,7 +415,7 @@ export default function AdminUsersPage() {
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 min-w-0">
                         <img
-                          src={user.image || '/default-avatar.svg'}
+                          src={user.image || '/default_slack.png'}
                           alt=""
                           className="w-10 h-10 flex-shrink-0 border-2 border-orange-500"
                         />

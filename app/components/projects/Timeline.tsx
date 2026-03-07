@@ -35,7 +35,7 @@ function formatRelativeTime(dateStr: string): string {
 function UserAvatar({ image }: { name: string | null; image: string | null }) {
   return (
     <img
-      src={image || '/default-avatar.svg'}
+      src={image || '/default_slack.png'}
       alt=""
       className="w-6 h-6 flex-shrink-0 border-2 border-orange-500"
     />

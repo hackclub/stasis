@@ -56,7 +56,7 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
         className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
         aria-label="Open user menu"
       >
-        <img src={image || '/default-avatar.svg'} alt="" className="w-8 h-8 border-2 border-orange-500" />
+        <img src={image || '/default_slack.png'} alt="" className="w-8 h-8 border-2 border-orange-500" />
         <span className="text-orange-500 font-bold text-sm hidden sm:block">{name}</span>
       </button>
 

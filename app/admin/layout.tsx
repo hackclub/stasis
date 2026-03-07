@@ -71,7 +71,7 @@ export default function AdminLayout({
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <img
-                src={session?.user.image || '/default-avatar.svg'}
+                src={session?.user.image || '/default_slack.png'}
                 alt=""
                 className="w-8 h-8 border-2 border-orange-500"
               />

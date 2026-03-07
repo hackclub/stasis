@@ -136,7 +136,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
           <div className="bg-cream-100 border-2 border-cream-400 p-6">
             {/* Avatar */}
             <div className="flex justify-center mb-4">
-              <Image src={profile.user.image || '/default-avatar.svg'} alt="" width={160} height={160} className="w-40 h-40 border-2 border-orange-500" />
+              <Image src={profile.user.image || '/default_slack.png'} alt="" width={160} height={160} className="w-40 h-40 border-2 border-orange-500" />
             </div>
 
             <h1 className="text-orange-500 text-xl uppercase tracking-wide text-center mb-3 font-bold">

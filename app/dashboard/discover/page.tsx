@@ -111,7 +111,7 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
             }}
           >
             <img
-              src={project.user.image || '/default-avatar.svg'}
+              src={project.user.image || '/default_slack.png'}
               alt=""
               className="w-5 h-5 border-2 border-orange-500"
             />
