@@ -58,7 +58,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
   return <span ref={ref} className={className}>{children}</span>;
 }
 
-export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean } = {}) {
+export function HomeContent({ skipRedirect = false, signupPage = 'Stasis' }: { skipRedirect?: boolean; signupPage?: string } = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -158,7 +158,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
       const response = await fetch('/api/rsvp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, referralType, referralCode }),
+        body: JSON.stringify({ email, referralType, referralCode, signupPage }),
       });
 
       if (!response.ok) {
@@ -200,7 +200,7 @@ export function HomeContent({ skipRedirect = false }: { skipRedirect?: boolean }
       const response = await fetch('/api/rsvp/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, referralType, referralCode }),
+        body: JSON.stringify({ email, referralType, referralCode, signupPage }),
       });
 
       if (!response.ok) {

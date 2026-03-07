@@ -46,6 +46,7 @@ export async function airtableCreateRSVP(data: {
   ip?: string;
   referralType?: string | null;
   referredBy?: string | null;
+  signupPage?: string | null;
 }): Promise<void> {
   const base = getAirtableBaseOrThrow();
   const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
@@ -53,6 +54,7 @@ export async function airtableCreateRSVP(data: {
   if (data.referralType) fields['UTM Source'] = data.referralType;
   const referredByNum = Number(data.referredBy);
   if (data.referredBy && isFinite(referredByNum)) fields['Referred By'] = referredByNum;
+  if (data.signupPage) fields['Loops - stasisSignUpPage'] = data.signupPage;
   await base(tableName).create([{ fields }]);
 }
 
@@ -120,6 +122,7 @@ export async function createRSVP(data: {
   ip?: string;
   referralType?: string | null;
   referredBy?: string | null;
+  signupPage?: string | null;
 }) {
   if (usePostgres()) {
     await prisma.tempRsvp.create({
@@ -154,6 +157,10 @@ export async function createRSVP(data: {
   const referredByNum = Number(data.referredBy);
   if (data.referredBy && isFinite(referredByNum)) {
     fields['Referred By'] = referredByNum;
+  }
+
+  if (data.signupPage) {
+    fields['Loops - stasisSignUpPage'] = data.signupPage;
   }
 
   const result = await base(tableName).create([{ fields }]);
