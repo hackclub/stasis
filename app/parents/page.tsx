@@ -52,6 +52,9 @@ export default function ParentsPage() {
             Guide for Parents
           </h1>
           <div className="prose max-w-none space-y-6 text-brown-800">
+            <div className="p-4 bg-orange-500/10 border border-orange-500/30 text-orange-600 text-sm">
+              This parents guide refers to the in-person Stasis hackathon, not Open Sauce.
+            </div>
             <Parents components={mdxComponents} />
           </div>
         </div>

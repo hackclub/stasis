@@ -265,6 +265,18 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
             </div>
           ) : (
             <div className="prose max-w-none space-y-6 text-brown-800">
+              {activeGuidePage === 'parents' && (
+                <>
+                  {!basePath && (
+                    <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-600 text-sm">
+                      This guide is also available at <a href="/help/parents" className="underline">stasis.hackclub.com/help/parents</a> for sharing with parents who don&apos;t have a Stasis account.
+                    </div>
+                  )}
+                  <div className="p-4 bg-orange-500/10 border border-orange-500/30 text-orange-600 text-sm">
+                    This parents guide refers to the in-person Stasis hackathon, not Open Sauce.
+                  </div>
+                </>
+              )}
               <ActiveContent components={mdxComponents} />
             </div>
           )}
