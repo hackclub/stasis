@@ -57,19 +57,11 @@ export default function SidekickLayout({
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              {session?.user.image ? (
-                <img
-                  src={session.user.image}
-                  alt=""
-                  className="w-8 h-8 border-2 border-orange-500"
-                />
-              ) : (
-                <div className="w-8 h-8 bg-cream-400 flex items-center justify-center border-2 border-orange-500">
-                  <span className="text-cream-800 text-sm">
-                    {(session?.user.name || session?.user.email)?.[0]?.toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <img
+                src={session?.user.image || '/default-avatar.svg'}
+                alt=""
+                className="w-8 h-8 border-2 border-orange-500"
+              />
               <span className="text-cream-700 text-sm hidden sm:block">
                 {session?.user.name || session?.user.email}
               </span>

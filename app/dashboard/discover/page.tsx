@@ -110,19 +110,11 @@ function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
               router.push(`/dashboard/profile/${project.user.id}`);
             }}
           >
-            {project.user.image ? (
-              <img
-                src={project.user.image}
-                alt=""
-                className="w-5 h-5 border-2 border-orange-500"
-              />
-            ) : (
-              <div className="w-5 h-5 bg-cream-400 flex items-center justify-center border-2 border-orange-500">
-                <span className="text-brown-800 text-[10px]">
-                  {project.user.name?.[0]?.toUpperCase() || '?'}
-                </span>
-              </div>
-            )}
+            <img
+              src={project.user.image || '/default-avatar.svg'}
+              alt=""
+              className="w-5 h-5 border-2 border-orange-500"
+            />
             <span>{project.user.name || 'Anonymous'}</span>
           </button>
           <div className="flex items-center gap-3">

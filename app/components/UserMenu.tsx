@@ -56,13 +56,7 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
         className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
         aria-label="Open user menu"
       >
-        {image ? (
-          <img src={image} alt="" className="w-8 h-8 border-2 border-orange-500" />
-        ) : (
-          <div className="w-8 h-8 bg-cream-400 flex items-center justify-center border-2 border-orange-500">
-            <span className="text-brown-800 text-sm">{name?.[0]?.toUpperCase()}</span>
-          </div>
-        )}
+        <img src={image || '/default-avatar.svg'} alt="" className="w-8 h-8 border-2 border-orange-500" />
         <span className="text-orange-500 font-bold text-sm hidden sm:block">{name}</span>
       </button>
 

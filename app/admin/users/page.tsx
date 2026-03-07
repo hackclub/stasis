@@ -375,19 +375,11 @@ export default function AdminUsersPage() {
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 min-w-0">
-                        {user.image ? (
-                          <img 
-                            src={user.image} 
-                            alt="" 
-                            className="w-10 h-10 flex-shrink-0 border-2 border-orange-500"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-cream-400 flex items-center justify-center flex-shrink-0 border-2 border-orange-500">
-                            <span className="text-brown-800 text-sm">
-                              {(user.name || user.email)[0].toUpperCase()}
-                            </span>
-                          </div>
-                        )}
+                        <img
+                          src={user.image || '/default-avatar.svg'}
+                          alt=""
+                          className="w-10 h-10 flex-shrink-0 border-2 border-orange-500"
+                        />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                                             <p className="text-brown-800 truncate">

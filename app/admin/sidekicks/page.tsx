@@ -488,19 +488,11 @@ export default function AdminSidekicksPage() {
                   key={user.id}
                   className="bg-cream-200 border border-cream-400 p-3 flex items-center gap-3"
                 >
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt=""
-                      className="w-8 h-8 flex-shrink-0 border-2 border-orange-500"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-cream-400 flex items-center justify-center flex-shrink-0 border-2 border-orange-500">
-                      <span className="text-brown-800 text-xs">
-                        {(user.name ?? '?')[0].toUpperCase()}
-                      </span>
-                    </div>
-                  )}
+                  <img
+                    src={user.image || '/default-avatar.svg'}
+                    alt=""
+                    className="w-8 h-8 flex-shrink-0 border-2 border-orange-500"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="text-brown-800 text-sm truncate">
                       {user.name ?? 'Unknown'}
