@@ -219,6 +219,8 @@ model Project {
   submissions      ProjectSubmission[]
   reviewActions    ProjectReviewAction[]
   kudos            Kudos[]
+  featuredAt       DateTime?
+  featuredById     String?
 
   @@index([userId])
   @@map("project")
