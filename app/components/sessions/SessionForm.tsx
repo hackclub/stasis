@@ -277,7 +277,7 @@ export function SessionForm({
     };
 
     const hoursNum = hoursValue + minutesValue / 60;
-    const requiredVideos = Math.floor(hoursNum / 4);
+    const requiredVideos = Math.floor(hoursNum / 10);
 
     // Extract image URLs from markdown content as the source of truth
     const contentImageUrls = useMemo(() => {
@@ -572,7 +572,7 @@ export function SessionForm({
         }
 
         if (requiredVideos > 0 && videoCount < requiredVideos) {
-            setError(`Sessions over 4 hours require video clips. You need ${requiredVideos} video(s).`);
+            setError(`Sessions over 10 hours require video clips. You need ${requiredVideos} video(s).`);
             return;
         }
 
@@ -743,9 +743,9 @@ export function SessionForm({
                             Please enter a time greater than 0
                         </p>
                     )}
-                    {hoursNum > 4 && (
+                    {hoursNum > 10 && (
                         <p className="text-orange-500 text-sm mt-4">
-                            Sessions over 4 hours require {requiredVideos} video clip{requiredVideos > 1 ? 's' : ''} (10-30 seconds each)
+                            Sessions over 10 hours require {requiredVideos} video clip{requiredVideos > 1 ? 's' : ''} (10-30 seconds each)
                         </p>
                     )}
                     {hoursNum > 7 && (
