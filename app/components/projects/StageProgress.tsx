@@ -161,7 +161,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
           )}
           {isBuildComplete && (
             <p className="text-green-600 text-sm">
-              🎉 Project complete! Your build hours have been approved.
+              🎉 Project complete! Your bits have been granted.
             </p>
           )}
         </div>
