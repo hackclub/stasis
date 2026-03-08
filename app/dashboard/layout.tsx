@@ -5,6 +5,7 @@ import { useSession, signIn, signOut } from "@/lib/auth-client";
 import { NoiseOverlay } from '../components/NoiseOverlay';
 import { UserMenu } from '../components/UserMenu';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRoles, Role } from "@/lib/hooks/useRoles";
 
@@ -56,7 +57,8 @@ export default function DashboardLayout({
   if (!session) {
     return (
       <>
-        <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
+        <div className="relative min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
+          <Image src="/stasis-logo.svg" alt="Hack Club Stasis" width={120} height={40} className="absolute top-6 left-6 h-10 w-auto" />
           <div className="bg-cream-200 border-2 border-cream-400 p-8 max-w-md w-full mx-4">
             <div className="space-y-6">
               <div className="text-center">
