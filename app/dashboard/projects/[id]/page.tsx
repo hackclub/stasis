@@ -312,6 +312,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const canSubmitBuild = project &&
     project.designStatus === "approved" &&
     (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") &&
+    buildSessions.length > 0 &&
     hasNewBuildSessions &&
     isVerified &&
     hasAddress;
@@ -790,7 +791,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   ) : (
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
-                  At least 1 work session ({designSessions.length} logged)
+                  At least 1 journal entry ({designSessions.length} logged)
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${project.githubRepo ? 'text-green-500' : 'text-brown-800'}`}>
                   {project.githubRepo ? (
@@ -913,6 +914,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       do this now
                     </a>
                   )}
+                </div>
+                <div className={`flex items-center gap-2 text-sm ${buildSessions.length > 0 ? 'text-green-500' : 'text-brown-800'}`}>
+                  {buildSessions.length > 0 ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
+                  )}
+                  At least 1 journal entry ({buildSessions.length} logged)
                 </div>
               </div>
             </div>

@@ -112,6 +112,12 @@ export async function POST(
           designReviewedBy: null,
         },
       }),
+      prisma.projectSubmission.deleteMany({
+        where: {
+          projectId: id,
+          stage: "DESIGN",
+        },
+      }),
       prisma.projectSubmission.create({
         data: {
           projectId: id,
@@ -154,6 +160,13 @@ export async function POST(
       )
     }
 
+    if (project.workSessions.length === 0) {
+      return NextResponse.json(
+        { error: "At least one journal entry is required for build review" },
+        { status: 400 }
+      )
+    }
+
     const [updatedProject] = await prisma.$transaction([
       prisma.project.update({
         where: { id },
@@ -163,6 +176,12 @@ export async function POST(
           buildReviewComments: null,
           buildReviewedAt: null,
           buildReviewedBy: null,
+        },
+      }),
+      prisma.projectSubmission.deleteMany({
+        where: {
+          projectId: id,
+          stage: "BUILD",
         },
       }),
       prisma.projectSubmission.create({

@@ -50,10 +50,18 @@ export async function POST(
     ? { designStatus: "draft" as const, designSubmissionNotes: null }
     : { buildStatus: "draft" as const, buildSubmissionNotes: null }
 
-  const updatedProject = await prisma.project.update({
-    where: { id },
-    data: updateData,
-  })
+  const [updatedProject] = await prisma.$transaction([
+    prisma.project.update({
+      where: { id },
+      data: updateData,
+    }),
+    prisma.projectSubmission.deleteMany({
+      where: {
+        projectId: id,
+        stage: stage.toUpperCase() as "DESIGN" | "BUILD",
+      },
+    }),
+  ])
 
   await logAudit({
     action: AuditAction.USER_UNSUBMIT_PROJECT,
