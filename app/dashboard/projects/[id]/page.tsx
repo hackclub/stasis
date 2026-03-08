@@ -8,18 +8,15 @@ import { StageProgress } from '@/app/components/projects/StageProgress';
 import { Timeline } from '@/app/components/projects/Timeline';
 import { OnboardingTutorial } from '@/app/components/OnboardingTutorial';
 import Link from 'next/link';
-import { ProjectTag } from "@/app/generated/prisma/enums";
+import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
-import { getBadgeImage } from "@/lib/badges";
+import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges";
 import { formatPrice } from "@/lib/format";
+import { TIERS } from "@/lib/tiers";
+import { STARTER_PROJECTS } from "@/lib/starter-projects";
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
-type BadgeType = 
-  | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
-  | "ANALOG_SENSORS" | "DIGITAL_SENSORS" | "CAD" | "DISPLAYS" | "MOTORS"
-  | "CAMERAS" | "METAL_MACHINING" | "WOOD_FASTENERS" | "MACHINE_LEARNING"
-  | "MCU_INTEGRATION" | "FOUR_LAYER_PCB" | "SOLDERING";
 
 interface SessionMedia {
   id: string;
@@ -65,6 +62,7 @@ interface Project {
   totalHoursClaimed: number;
   totalHoursApproved: number;
   isStarter: boolean;
+  starterProjectId: string | null;
   noBomNeeded: boolean;
 
   coverImage: string | null;
@@ -111,6 +109,7 @@ const BADGE_LABELS: Record<BadgeType, string> = {
   MCU_INTEGRATION: "MCU Integration",
   FOUR_LAYER_PCB: "4-Layer PCB",
   SOLDERING: "Soldering",
+  WOODWORKING: "Woodworking",
 };
 
 
@@ -145,6 +144,108 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
+
+  // Inline editing state
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editGithubRepo, setEditGithubRepo] = useState('');
+  const [editStarterProjectId, setEditStarterProjectId] = useState('');
+  const [savingField, setSavingField] = useState(false);
+  const [claimingBadge, setClaimingBadge] = useState<BadgeType | null>(null);
+  const [alreadyClaimedBadges, setAlreadyClaimedBadges] = useState<BadgeType[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  const canEdit = project && project.designStatus !== "in_review" && project.buildStatus !== "in_review";
+
+  const startEditing = (field: string) => {
+    if (!project || !canEdit) return;
+    setEditingField(field);
+    switch (field) {
+      case 'title': setEditTitle(project.title); break;
+      case 'description': setEditDescription(project.description || ''); break;
+      case 'githubRepo': setEditGithubRepo(project.githubRepo || ''); break;
+      case 'projectType':
+        setEditStarterProjectId(project.starterProjectId || '');
+        break;
+    }
+  };
+
+  const cancelEditing = () => setEditingField(null);
+
+  const saveField = async (field: string, data: Record<string, unknown>) => {
+    if (!project) return;
+    setSavingField(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        setProject({ ...project, ...data } as Project);
+        setEditingField(null);
+      }
+    } catch (error) {
+      console.error(`Failed to update ${field}:`, error);
+    } finally {
+      setSavingField(false);
+    }
+  };
+
+  const handleClaimBadge = async (badge: BadgeType) => {
+    if (!project) return;
+    const badges = project.badges ?? [];
+    if (badges.length >= MAX_BADGES_PER_PROJECT) return;
+    if (badges.some(b => b.badge === badge)) return;
+
+    setClaimingBadge(badge);
+    try {
+      const res = await fetch('/api/badges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ badge, projectId: project.id }),
+      });
+      if (res.ok) {
+        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        if (updatedRes.ok) setProject(await updatedRes.json());
+        const claimedRes = await fetch(`/api/badges/claimed?excludeProjectId=${project.id}`);
+        if (claimedRes.ok) setAlreadyClaimedBadges(await claimedRes.json());
+      }
+    } catch (error) {
+      console.error('Failed to claim badge:', error);
+    } finally {
+      setClaimingBadge(null);
+    }
+  };
+
+  const handleUnclaimBadge = async (badgeId: string, isGranted: boolean) => {
+    if (!project || isGranted) return;
+    try {
+      const res = await fetch(`/api/badges/${badgeId}`, { method: 'DELETE' });
+      if (res.ok) {
+        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        if (updatedRes.ok) setProject(await updatedRes.json());
+      }
+    } catch (error) {
+      console.error('Failed to unclaim badge:', error);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!project || deleteConfirmText.toLowerCase() !== project.title.toLowerCase()) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, { method: 'DELETE' });
+      if (res.ok) router.push('/dashboard');
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchProject() {
@@ -189,10 +290,20 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       }
     }
 
+    async function fetchClaimedBadges() {
+      try {
+        const res = await fetch(`/api/badges/claimed?excludeProjectId=${projectId}`);
+        if (res.ok) setAlreadyClaimedBadges(await res.json());
+      } catch (err) {
+        console.error('Failed to fetch claimed badges:', err);
+      }
+    }
+
     if (session) {
       fetchProject();
       fetchTimeline();
       refreshAddress();
+      fetchClaimedBadges();
     } else if (!isPending) {
       router.push('/dashboard');
     }
@@ -540,8 +651,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   }
 
   const badges = project.badges ?? [];
-  const approvedBadges = badges.filter(b => b.grantedAt !== null);
-  const pendingBadges = badges.filter(b => b.grantedAt === null);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -564,9 +673,57 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="mb-8">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h1 className="text-orange-500 text-3xl uppercase tracking-wide mb-2">{project.title}</h1>
-                {project.description && (
-                  <p data-tutorial="description" className="text-brown-800 text-lg">{project.description}</p>
+                {editingField === 'title' ? (
+                  <div className="mb-2">
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full bg-white border-2 border-orange-500 text-orange-500 text-3xl uppercase tracking-wide px-2 py-1 focus:outline-none"
+                      autoFocus
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button onClick={() => saveField('title', { title: editTitle.trim() })} disabled={!editTitle.trim() || savingField} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 text-white px-3 py-1 text-xs uppercase cursor-pointer">
+                        {savingField ? 'Saving...' : 'Save'}
+                      </button>
+                      <button onClick={cancelEditing} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-1 text-xs uppercase cursor-pointer">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <h1 className="text-orange-500 text-3xl uppercase tracking-wide mb-2 group">
+                    {project.title}
+                    {canEdit && (
+                      <button onClick={() => startEditing('title')} className="ml-2 text-cream-500 hover:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-block align-middle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                    )}
+                  </h1>
+                )}
+
+                {editingField === 'description' ? (
+                  <div>
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="w-full bg-white border-2 border-orange-500 text-brown-800 px-2 py-1 text-lg focus:outline-none resize-none h-24"
+                      autoFocus
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button onClick={() => saveField('description', { description: editDescription.trim() })} disabled={savingField} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 text-white px-3 py-1 text-xs uppercase cursor-pointer">
+                        {savingField ? 'Saving...' : 'Save'}
+                      </button>
+                      <button onClick={cancelEditing} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-1 text-xs uppercase cursor-pointer">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p data-tutorial="description" className="text-brown-800 text-lg group">
+                    {project.description || <span className="text-cream-500 italic">No description</span>}
+                    {canEdit && (
+                      <button onClick={() => startEditing('description')} className="ml-2 text-cream-500 hover:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-block align-middle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                    )}
+                  </p>
                 )}
               </div>
               
@@ -641,21 +798,45 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               {/* GitHub Repo */}
               <div data-tutorial="github" className="mt-3 text-sm">
                 <span className="text-brown-800">GitHub Repo:</span>{' '}
-                {project.githubRepo ? (
-                  <a 
-                    href={project.githubRepo} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-orange-500 hover:text-orange-400 underline"
-                  >
-                    {project.githubRepo}
-                  </a>
+                {editingField === 'githubRepo' ? (
+                  <span className="inline-flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editGithubRepo}
+                      onChange={(e) => setEditGithubRepo(e.target.value)}
+                      className="bg-white border-2 border-orange-500 text-brown-800 px-2 py-0.5 text-sm focus:outline-none w-64"
+                      placeholder="github.com/username/repo"
+                      autoFocus
+                    />
+                    <button onClick={() => saveField('githubRepo', { githubRepo: editGithubRepo.trim() || null })} disabled={savingField} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 text-white px-2 py-0.5 text-xs uppercase cursor-pointer">
+                      {savingField ? '...' : 'Save'}
+                    </button>
+                    <button onClick={cancelEditing} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-2 py-0.5 text-xs uppercase cursor-pointer">Cancel</button>
+                  </span>
+                ) : project.githubRepo ? (
+                  <span className="group">
+                    <a
+                      href={project.githubRepo}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-orange-500 hover:text-orange-400 underline"
+                    >
+                      {project.githubRepo}
+                    </a>
+                    {canEdit && (
+                      <button onClick={() => startEditing('githubRepo')} className="ml-1 text-cream-500 hover:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-block align-middle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                    )}
+                  </span>
                 ) : (
                   <span className="text-brown-800">
                     Not set.{' '}
-                    <Link href={`/dashboard/projects/${project.id}/edit`} className="text-orange-500 hover:text-orange-400 underline">
-                      Add one
-                    </Link>
+                    {canEdit && (
+                      <button onClick={() => startEditing('githubRepo')} className="text-orange-500 hover:text-orange-400 underline cursor-pointer">
+                        Add one
+                      </button>
+                    )}
                   </span>
                 )}
               </div>
@@ -695,29 +876,86 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* Badges Section */}
           <div data-tutorial="badges" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
-            <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Badges</h2>
-            
-            {badges.length === 0 ? (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-brown-800 text-xl uppercase tracking-wide">Badges ({badges.length}/{MAX_BADGES_PER_PROJECT})</h2>
+              {canEdit && editingField !== 'badges' && (
+                <button onClick={() => startEditing('badges')} className="text-orange-500 hover:text-orange-400 text-xs uppercase cursor-pointer">
+                  Manage Badges
+                </button>
+              )}
+              {editingField === 'badges' && (
+                <button onClick={cancelEditing} className="text-cream-600 hover:text-brown-800 text-xs uppercase cursor-pointer">
+                  Done
+                </button>
+              )}
+            </div>
+
+            {badges.length === 0 && editingField !== 'badges' ? (
               <p className="text-brown-800 text-sm">
                 No badges claimed yet.{' '}
-                <Link href={`/dashboard/projects/${project.id}/edit`} className="text-orange-500 hover:text-orange-400 underline">
-                  You should claim some
-                </Link>
+                {canEdit && (
+                  <button onClick={() => startEditing('badges')} className="text-orange-500 hover:text-orange-400 underline cursor-pointer">
+                    Claim some
+                  </button>
+                )}
               </p>
             ) : (
               <div className="flex flex-wrap gap-4">
-                {badges.map((badge) => (
-                  <div key={badge.id} className="flex flex-col items-center gap-1 w-24">
-                    <img
-                      src={getBadgeImage(badge.badge)}
-                      alt={BADGE_LABELS[badge.badge]}
-                      className={`w-20 h-20 object-contain ${!badge.grantedAt ? 'grayscale opacity-60' : ''}`}
-                    />
-                    <span className="text-xs uppercase text-brown-800 text-center">
-                      {BADGE_LABELS[badge.badge]}
-                    </span>
-                  </div>
-                ))}
+                {badges.map((badge) => {
+                  return (
+                    <div key={badge.id} className="flex flex-col items-center gap-1 w-24 relative group">
+                      <img
+                        src={getBadgeImage(badge.badge)}
+                        alt={BADGE_LABELS[badge.badge]}
+                        className={`w-20 h-20 object-contain ${!badge.grantedAt ? 'grayscale opacity-60' : ''}`}
+                      />
+                      <span className="text-xs uppercase text-brown-800 text-center">
+                        {BADGE_LABELS[badge.badge]}
+                      </span>
+                      {editingField === 'badges' && !badge.grantedAt && (
+                        <button
+                          onClick={() => handleUnclaimBadge(badge.id, !!badge.grantedAt)}
+                          className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      )}
+                      {badge.grantedAt && (
+                        <span className="text-[10px] text-green-600 uppercase">Granted</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Badge claiming UI */}
+            {editingField === 'badges' && badges.length < MAX_BADGES_PER_PROJECT && (
+              <div className="mt-4 border-t border-cream-400 pt-4">
+                <p className="text-brown-800 text-xs uppercase mb-2">Available to claim</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                  {AVAILABLE_BADGES.filter(b => !badges.some(pb => pb.badge === b.value)).map((badge) => {
+                    const isClaimedElsewhere = alreadyClaimedBadges.includes(badge.value);
+                    return (
+                      <button
+                        key={badge.value}
+                        type="button"
+                        onClick={() => handleClaimBadge(badge.value)}
+                        disabled={claimingBadge === badge.value || isClaimedElsewhere}
+                        className={`text-left px-3 py-2 border text-sm transition-colors ${
+                          isClaimedElsewhere
+                            ? 'bg-cream-200 border-cream-300 text-cream-500 cursor-not-allowed'
+                            : 'bg-white border-cream-400 hover:border-orange-400 text-brown-800 cursor-pointer disabled:opacity-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <img src={getBadgeImage(badge.value)} alt="" className={`w-8 h-8 object-contain ${isClaimedElsewhere ? 'grayscale opacity-50' : ''}`} />
+                          <span>{isClaimedElsewhere ? `${badge.label} (claimed)` : badge.label}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -1176,18 +1414,102 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
           </div>
 
+          {/* Complexity Level & Project Type */}
+          {canEdit && (
+            <div className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
+              <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Project Settings</h2>
+
+              {/* Tier - always visible as selectable buttons */}
+              <div className="mb-5">
+                <p className="text-brown-800 text-xs uppercase mb-2">
+                  Complexity Level
+                  {project.designStatus === 'approved' && (
+                    <span className="ml-2 text-cream-500 normal-case">(locked by reviewer)</span>
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TIERS.map((tier) => {
+                    const isSelected = project.tier === tier.id;
+                    const isLocked = project.designStatus === 'approved';
+                    return (
+                      <button
+                        key={tier.id}
+                        type="button"
+                        onClick={() => !isLocked && saveField('tier', { tier: isSelected ? null : tier.id })}
+                        disabled={isLocked}
+                        className={`px-3 py-2 text-sm text-left border transition-colors ${
+                          isSelected
+                            ? isLocked
+                              ? 'bg-green-600/20 border-green-600 text-green-700 cursor-default'
+                              : 'bg-orange-500 text-white border-orange-400 cursor-pointer'
+                            : isLocked
+                              ? 'bg-cream-200 text-cream-400 border-cream-300 cursor-default'
+                              : 'bg-cream-300 text-brown-800 hover:bg-cream-400 border-cream-400 cursor-pointer'
+                        }`}
+                      >
+                        <span className="uppercase font-medium">{tier.name}</span>
+                        <span className="block text-xs mt-0.5 opacity-80">
+                          {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Project Type - always visible as toggle */}
+              <div className="border-t border-cream-400 pt-4">
+                <p className="text-brown-800 text-xs uppercase mb-2">Project Type</p>
+                <div className="flex gap-2 max-w-xs">
+                  <button
+                    type="button"
+                    onClick={() => !project.isStarter || saveField('projectType', { isStarter: false, starterProjectId: null })}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                      !project.isStarter
+                        ? 'bg-orange-500 text-white font-medium'
+                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    }`}
+                  >
+                    Custom
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => project.isStarter || startEditing('projectType')}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
+                      project.isStarter
+                        ? 'bg-orange-500 text-white font-medium'
+                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    }`}
+                  >
+                    Starter
+                  </button>
+                </div>
+                {(project.isStarter || editingField === 'projectType') && (
+                  <div className="mt-2 max-w-xs">
+                    <select
+                      value={editingField === 'projectType' ? editStarterProjectId : (project.starterProjectId || '')}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          saveField('projectType', { isStarter: true, starterProjectId: e.target.value });
+                        } else {
+                          setEditStarterProjectId('');
+                        }
+                      }}
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                    >
+                      <option value="">Select a starter project...</option>
+                      {STARTER_PROJECTS.map((sp) => (
+                        <option key={sp.id} value={sp.id}>{sp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-wrap gap-3 mb-8">
-            {/* Edit button */}
-            {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
-              <Link
-                href={`/dashboard/projects/${project.id}/edit`}
-                className="flex-1 min-w-[200px] border-2 border-cream-500 bg-cream-100 hover:bg-cream-200 text-brown-800 py-3 text-center uppercase tracking-wider transition-colors font-medium"
-              >
-                Edit Project
-              </Link>
-            )}
-            
             {/* Design Stage: Submit or Unsubmit */}
             {(project.designStatus === "draft" || project.designStatus === "rejected") && (
               <button
@@ -1418,12 +1740,48 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
         {/* Timeline */}
-        <div data-tutorial="timeline" className="bg-cream-100 border-2 border-cream-400 p-6">
+        <div data-tutorial="timeline" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-brown-800 text-xl uppercase tracking-wide">Timeline</h2>
           </div>
           <Timeline items={timelineItems} projectId={projectId} />
         </div>
+
+        {/* Delete Project */}
+        {canEdit && (
+          <div className="bg-cream-100 border-2 border-red-600/30 p-6">
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+              className="text-red-500 hover:text-red-400 text-sm uppercase transition-colors cursor-pointer"
+            >
+              {showDeleteConfirm ? 'Cancel Delete' : 'Delete Project...'}
+            </button>
+
+            {showDeleteConfirm && (
+              <div className="mt-4 space-y-3">
+                <p className="text-brown-800 text-sm">
+                  Type <span className="text-red-500 font-bold">{project.title}</span> to confirm deletion:
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="w-full bg-white border-2 border-red-600/50 text-brown-800 px-3 py-2 focus:border-red-500 focus:outline-none transition-colors"
+                  placeholder="Type project name..."
+                />
+                <button
+                  type="button"
+                  onClick={handleDeleteProject}
+                  disabled={deleteConfirmText.toLowerCase() !== project.title.toLowerCase() || deleting}
+                  className="w-full bg-red-600 hover:bg-red-500 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  {deleting ? 'Deleting...' : 'Permanently Delete Project'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Floating help button to replay project tutorial */}
