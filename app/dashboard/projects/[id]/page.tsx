@@ -408,7 +408,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     (project.designStatus === "draft" || project.designStatus === "rejected") &&
     project.description?.trim() &&
     (project.bomItems.length > 0 || project.noBomNeeded) &&
-    (project.bomItems.length === 0 || project.cartScreenshots.length > 0) &&
+    (project.noBomNeeded || project.bomItems.length === 0 || project.cartScreenshots.length > 0) &&
     designSessions.length > 0 &&
     project.githubRepo &&
     project.coverImage &&
