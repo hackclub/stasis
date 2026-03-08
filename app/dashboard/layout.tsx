@@ -33,7 +33,7 @@ export default function DashboardLayout({
       ? pathname === '/dashboard'
       : pathname.startsWith(tabPath);
     
-    return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
+    return `px-4 md:px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
       isActive
         ? 'text-orange-500 border-orange-500 font-bold'
         : 'text-brown-800 border-transparent hover:text-brown-800'
@@ -115,7 +115,7 @@ export default function DashboardLayout({
         {/* Tabs */}
         <div className="border-b border-cream-400">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex gap-0">
+            <div className="flex flex-wrap">
               <Link href="/dashboard" className={getTabClass('/dashboard')}>
                 Projects
               </Link>
