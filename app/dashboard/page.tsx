@@ -309,17 +309,20 @@ export default function ProjectsPage() {
 
       {/* Event change confirmation dialog */}
       {showEventPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-start justify-center">
           <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setShowEventPicker(false)} />
-          <div className="relative bg-cream-100 border-2 border-brown-800 p-6 max-w-[780px] w-[95vw] mx-4 shadow-lg">
+          <div className="relative top-4 bg-cream-100 border-2 border-brown-800 p-6 max-w-[780px] w-[95vw] mx-4 shadow-lg overflow-y-auto max-h-[calc(100vh-2rem)]">
+            
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-brown-800 text-lg uppercase tracking-wide">Pick Your Event</h3>
             <button
               onClick={() => setShowEventPicker(false)}
-              className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
+              className=" w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
             >
               &times;
             </button>
-
-            <h3 className="text-brown-800 text-lg uppercase tracking-wide mb-3">Pick Your Event</h3>
+            </div>
+           
             <p className="text-brown-800 text-sm leading-relaxed mb-5">
               Pick which event you want to work toward. You can switch at any time, and if you buy a ticket for one event, you can keep earning bits to qualify for the other one too!
             </p>
