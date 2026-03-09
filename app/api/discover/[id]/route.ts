@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { getUserRoles, hasRole, Role } from "@/lib/permissions";
 
 export async function GET(
   _request: Request,
@@ -9,11 +10,11 @@ export async function GET(
 ) {
   const { id } = await params;
   const session = await auth.api.getSession({ headers: await headers() });
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  
+
   const userId = session.user.id;
 
   const project = await prisma.project.findUnique({
@@ -46,7 +47,10 @@ export async function GET(
     },
   });
 
-  if (!project || project.hiddenFromGallery) {
+  const roles = await getUserRoles(userId);
+  const isAdmin = hasRole(roles, Role.ADMIN);
+
+  if (!project || (project.hiddenFromGallery && !isAdmin)) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
@@ -65,6 +69,7 @@ export async function GET(
     githubRepo: project.githubRepo,
     designStatus: project.designStatus,
     buildStatus: project.buildStatus,
+    hiddenFromGallery: project.hiddenFromGallery,
     createdAt: project.createdAt,
     user: displayUser,
     badges: project.badges,
@@ -72,5 +77,6 @@ export async function GET(
     sessionCount: project._count.workSessions,
     hasGivenKudos: (project.kudos as { id: string }[]).length > 0,
     isOwner: userId === project.userId,
+    isAdmin,
   });
 }
