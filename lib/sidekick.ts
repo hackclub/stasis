@@ -2,30 +2,53 @@ import prisma from "@/lib/prisma";
 import { Role } from "@/app/generated/prisma/client";
 import { sendSlackDM } from "@/lib/slack";
 
-export async function findLeastLoadedSidekick(excludeId?: string) {
-  const sidekickRoles = await prisma.userRole.findMany({
+export async function findLeastLoadedSidekick(excludeId?: string, pronouns?: string) {
+  // For she/her users: prefer she/her sidekicks
+  // For everyone else: use any sidekick but deprioritize she/her ones
+  const preferSheHer = pronouns === "she/her";
+
+  const allSidekickRoles = await prisma.userRole.findMany({
     where: {
       role: Role.SIDEKICK,
       ...(excludeId ? { userId: { not: excludeId } } : {}),
     },
-    select: { userId: true },
+    select: { userId: true, user: { select: { pronouns: true } } },
   });
 
-  if (sidekickRoles.length === 0) return null;
+  if (allSidekickRoles.length === 0) return null;
 
-  const sidekickIds = sidekickRoles.map((r) => r.userId);
+  // Split into she/her and non-she/her pools
+  const sheHerIds = allSidekickRoles
+    .filter((r) => r.user.pronouns === "she/her")
+    .map((r) => r.userId);
+  const otherIds = allSidekickRoles
+    .filter((r) => r.user.pronouns !== "she/her")
+    .map((r) => r.userId);
 
+  // Determine which pool to search: she/her users get she/her pool first,
+  // everyone else gets non-she/her pool first
+  let primaryIds = preferSheHer ? sheHerIds : otherIds;
+  let fallbackIds = preferSheHer ? otherIds : sheHerIds;
+
+  // If primary pool is empty, use fallback
+  if (primaryIds.length === 0) {
+    primaryIds = fallbackIds;
+    fallbackIds = [];
+  }
+
+  const allIds = [...primaryIds, ...fallbackIds];
   const counts = await prisma.sidekickAssignment.groupBy({
     by: ["sidekickId"],
-    where: { sidekickId: { in: sidekickIds } },
+    where: { sidekickId: { in: allIds } },
     _count: { id: true },
   });
 
   const countMap = new Map(counts.map((c) => [c.sidekickId, c._count.id]));
 
-  let minId = sidekickIds[0];
-  let minCount = countMap.get(sidekickIds[0]) ?? 0;
-  for (const id of sidekickIds) {
+  // Pick the least-loaded from the primary pool
+  let minId = primaryIds[0];
+  let minCount = countMap.get(primaryIds[0]) ?? 0;
+  for (const id of primaryIds) {
     const count = countMap.get(id) ?? 0;
     if (count < minCount) {
       minCount = count;
@@ -36,8 +59,8 @@ export async function findLeastLoadedSidekick(excludeId?: string) {
   return minId;
 }
 
-export async function assignSidekick(assigneeId: string) {
-  const sidekickId = await findLeastLoadedSidekick();
+export async function assignSidekick(assigneeId: string, pronouns?: string) {
+  const sidekickId = await findLeastLoadedSidekick(undefined, pronouns);
   if (!sidekickId) {
     console.warn("No sidekicks available to assign");
     return null;

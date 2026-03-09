@@ -5,7 +5,7 @@ import prisma from "./prisma";
 import { ensureRSVPExists } from "./airtable";
 import { getSlackProfilePicture, getSlackDisplayName, inviteToSlackChannels } from "./slack";
 import { encryptPII } from "./pii";
-import { assignSidekick } from "./sidekick";
+
 
 const hcaScopes = ["openid", "profile", "email", "slack_id", "verification_status"];
 if (process.env.PULL_HCA_PII === "true") {
@@ -101,12 +101,8 @@ export const auth = betterAuth({
               console.error('Failed to invite to Slack channels:', error)
             );
           }
-          // Auto-assign a sidekick mentor
-          try {
-            await assignSidekick(user.id);
-          } catch (error) {
-            console.error('Failed to assign sidekick:', error);
-          }
+          // Sidekick assignment is deferred until the user completes the pronouns form
+          // so we can match them with a sidekick who shares their pronouns.
         },
       },
     },

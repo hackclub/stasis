@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { assignSidekick } from "@/lib/sidekick"
 
 const VALID_PRONOUNS = ["he/him", "she/her", "they/them"]
 
@@ -36,6 +37,19 @@ export async function POST(request: NextRequest) {
     where: { id: session.user.id },
     data: { pronouns },
   })
+
+  // Assign a sidekick now that we know their pronouns (match with same pronouns)
+  const existingAssignment = await prisma.sidekickAssignment.findUnique({
+    where: { assigneeId: session.user.id },
+  })
+
+  if (!existingAssignment) {
+    try {
+      await assignSidekick(session.user.id, pronouns)
+    } catch (error) {
+      console.error("Failed to assign sidekick after pronouns:", error)
+    }
+  }
 
   return NextResponse.json({ success: true })
 }
