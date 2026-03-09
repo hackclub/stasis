@@ -34,6 +34,12 @@ enum ReviewDecision {
   REJECTED
 }
 
+enum ReviewResult {
+  APPROVED
+  RETURNED
+  REJECTED
+}
+
 // This is the primary user object
 model User {
   id                 String    @id @default(cuid())
@@ -227,12 +233,15 @@ model Project {
 }
 
 model ProjectSubmission {
-  id        String       @id @default(cuid())
-  projectId String
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stage     ProjectStage
-  notes     String?
-  createdAt DateTime     @default(now())
+  id           String       @id @default(cuid())
+  projectId    String
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage        ProjectStage
+  notes        String?
+  preReviewed  Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  reviews      SubmissionReview[]
+  claim        ReviewClaim?
 
   @@index([projectId])
   @@map("project_submission")
@@ -387,6 +396,11 @@ enum AuditAction {
   ADMIN_APPROVE_BOM
   ADMIN_REJECT_BOM
   
+  REVIEWER_APPROVE
+  REVIEWER_RETURN
+  REVIEWER_REJECT
+  ADMIN_MOVE_QUEUE
+
   // Security events
   SUPERADMIN_GRANT
   
@@ -483,6 +497,62 @@ model SidekickAssignment {
 
   @@index([sidekickId])
   @@map("sidekick_assignment")
+}
+
+// Two-pass submission review record
+model SubmissionReview {
+  id              String            @id @default(cuid())
+  submissionId    String
+  submission      ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId      String
+  result          ReviewResult
+  isAdminReview   Boolean           @default(false)
+  feedback        String            // shown to submitter
+  reason          String?           // internal justification
+  invalidated     Boolean           @default(false)
+
+  // Optional overrides
+  workUnitsOverride Float?
+  tierOverride      Int?
+  grantOverride     Int?
+  categoryOverride  String?
+
+  // Frozen snapshot of submission state at review time
+  frozenWorkUnits     Float?
+  frozenEntryCount    Int?
+  frozenFundingAmount Int?
+  frozenTier          Int?
+  frozenReviewerNote  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([submissionId])
+  @@index([reviewerId])
+  @@map("submission_review")
+}
+
+// Review claim lock (one active claim per submission)
+model ReviewClaim {
+  id           String            @id @default(cuid())
+  submissionId String            @unique
+  submission   ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId   String
+  expiresAt    DateTime
+  createdAt    DateTime          @default(now())
+
+  @@index([reviewerId])
+  @@map("review_claim")
+}
+
+// Internal notes about a user, shared across reviewers
+model ReviewerNote {
+  id          String   @id @default(cuid())
+  aboutUserId String   @unique
+  content     String
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("reviewer_note")
 }
 
 // Kudos - social appreciation for projects

@@ -1,0 +1,98 @@
+'use client';
+
+import { useSession, signOut } from "@/lib/auth-client";
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { NoiseOverlay } from '@/app/components/NoiseOverlay';
+import Link from 'next/link';
+import { useRoles } from '@/lib/hooks/useRoles';
+
+export default function ReviewsLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+  const { roles, isLoading: rolesLoading, hasPermission } = useRoles();
+
+  const isLoading = isPending || rolesLoading;
+  const canReview = !isLoading && session && hasPermission('REVIEW_PROJECTS' as never);
+  const shouldRedirect = !isLoading && (!session || !canReview);
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push('/dashboard');
+    }
+  }, [shouldRedirect, router]);
+
+  if (isLoading || !canReview) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
+        <div className="loader" />
+      </div>
+    );
+  }
+
+  const isAdmin = roles.some((r) => r === 'ADMIN');
+
+  return (
+    <>
+      <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 flex items-center justify-between border-b border-cream-400">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-brown-800 hover:text-orange-500 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              </svg>
+            </Link>
+            <Link href="/reviews" className="text-orange-500 text-xl uppercase tracking-wide hover:text-orange-600 transition-colors">
+              Review Queue
+            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="text-brown-800 hover:text-orange-500 text-sm uppercase tracking-wider transition-colors"
+              >
+                Admin
+              </Link>
+            )}
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <img
+                src={session?.user.image || '/default_slack.png'}
+                alt=""
+                className="w-8 h-8 border-2 border-orange-500"
+              />
+              <span className="text-brown-800 text-sm hidden sm:block">
+                {session?.user.name || session?.user.email}
+              </span>
+            </div>
+            <button
+              onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/' } } })}
+              className="text-brown-800 hover:text-orange-500 text-sm uppercase transition-colors cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          {children}
+        </div>
+      </div>
+
+      <NoiseOverlay />
+    </>
+  );
+}
