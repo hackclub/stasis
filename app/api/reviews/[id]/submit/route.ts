@@ -7,7 +7,6 @@ import { logAdminAction, AuditAction } from "@/lib/audit"
 import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 import { sendSlackDM } from "@/lib/slack"
-import { resolveSubmissionId } from "@/lib/resolve-submission"
 
 export async function POST(
   request: NextRequest,
@@ -16,11 +15,7 @@ export async function POST(
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
   if (authCheck.error) return authCheck.error
 
-  const rawId = (await params).id
-  const id = await resolveSubmissionId(rawId)
-  if (!id) {
-    return NextResponse.json({ error: "Submission not found" }, { status: 404 })
-  }
+  const { id: rawId } = await params
   const isAdmin = hasRole(authCheck.roles, Role.ADMIN)
   const reviewerId = authCheck.session.user.id
   const body = await request.json()
@@ -28,7 +23,7 @@ export async function POST(
   const {
     result,
     feedback,
-    reason,
+    reason: _reason,
     workUnitsOverride,
     tierOverride,
     grantOverride,
@@ -69,279 +64,236 @@ export async function POST(
     }
   }
 
-  const submission = await prisma.projectSubmission.findUnique({
-    where: { id },
+  // Resolve: rawId can be project ID or submission ID
+  let project = await prisma.project.findUnique({
+    where: { id: rawId },
     include: {
-      project: {
+      user: { select: { id: true, name: true, slackId: true } },
+      workSessions: true,
+      bomItems: true,
+    },
+  })
+
+  let stage: "DESIGN" | "BUILD" | null = null
+
+  if (!project) {
+    // Try as submission ID
+    const submission = await prisma.projectSubmission.findUnique({
+      where: { id: rawId },
+      select: { projectId: true, stage: true },
+    })
+    if (submission) {
+      project = await prisma.project.findUnique({
+        where: { id: submission.projectId },
         include: {
           user: { select: { id: true, name: true, slackId: true } },
           workSessions: true,
           bomItems: true,
         },
-      },
-      claim: true,
-      reviews: { where: { invalidated: false } },
-    },
-  })
-
-  if (!submission) {
-    return NextResponse.json({ error: "Submission not found" }, { status: 404 })
-  }
-
-  // Check claim — must be claimed by this reviewer (or unclaimed)
-  if (submission.claim) {
-    const isExpired = new Date(submission.claim.expiresAt) <= new Date()
-    if (!isExpired && submission.claim.reviewerId !== reviewerId) {
-      return NextResponse.json(
-        { error: "Submission is claimed by another reviewer" },
-        { status: 409 }
-      )
+      })
+      stage = submission.stage as "DESIGN" | "BUILD"
     }
   }
 
-  // Non-admin cannot review pre-reviewed submissions
-  if (!isAdmin && submission.preReviewed) {
-    return NextResponse.json(
-      { error: "This submission is awaiting admin review" },
-      { status: 403 }
-    )
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
-  const project = submission.project
+  // Determine active stage if not from submission
+  if (!stage) {
+    const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
+    const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+    stage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : null
+  }
+
+  if (!stage) {
+    return NextResponse.json({ error: "Project is not in review" }, { status: 400 })
+  }
+
   const sanitizedFeedback = sanitize(feedback.trim())
-  const sanitizedReason = reason ? sanitize(reason.trim()) : null
+  const stageKey = stage.toLowerCase() as "design" | "build"
 
-  // Compute frozen snapshot
-  const totalWorkUnits = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
-  const entryCount = project.workSessions.length
-  const bomCost = project.bomItems
-    .filter((b) => b.status === "approved" || b.status === "pending")
-    .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+  // Map result to the existing decision format
+  if (result === "APPROVED") {
+    // Use the existing decision endpoint logic
+    const decision = "approved"
 
-  const review = await prisma.$transaction(async (tx) => {
-    // Create the review record
-    const newReview = await tx.submissionReview.create({
-      data: {
-        submissionId: id,
-        reviewerId,
-        result,
-        isAdminReview: isAdmin,
-        feedback: sanitizedFeedback,
-        reason: sanitizedReason,
-        workUnitsOverride: workUnitsOverride ?? null,
-        tierOverride: tierOverride ?? null,
-        grantOverride: grantOverride ?? null,
-        categoryOverride: categoryOverride ?? null,
-        frozenWorkUnits: Math.round(totalWorkUnits * 10) / 10,
-        frozenEntryCount: entryCount,
-        frozenFundingAmount: Math.round(bomCost * 100),
-        frozenTier: project.tier,
-        frozenReviewerNote: submission.notes,
-      },
+    const updatedProject = await prisma.$transaction(async (tx) => {
+      const statusField = stageKey === "design" ? "designStatus" : "buildStatus"
+      const commentsField = stageKey === "design" ? "designReviewComments" : "buildReviewComments"
+      const reviewedAtField = stageKey === "design" ? "designReviewedAt" : "buildReviewedAt"
+      const reviewedByField = stageKey === "design" ? "designReviewedBy" : "buildReviewedBy"
+
+      const updateData: Record<string, unknown> = {
+        [statusField]: decision,
+        [commentsField]: sanitizedFeedback,
+        [reviewedAtField]: new Date(),
+        [reviewedByField]: reviewerId,
+      }
+
+      // Apply tier override on design approval
+      if (stageKey === "design" && tierOverride !== undefined && tierOverride !== null) {
+        updateData.tier = tierOverride
+      }
+
+      // Design approval: approve BOM items
+      if (stageKey === "design") {
+        await tx.bOMItem.updateMany({
+          where: { projectId: project!.id, status: "pending" },
+          data: { status: "approved", reviewedAt: new Date(), reviewedBy: reviewerId },
+        })
+      }
+
+      // Build approval: approve sessions, grant badges, award bits
+      if (stageKey === "build") {
+        const buildSessions = project!.workSessions.filter(
+          (s) => s.stage === "BUILD" && s.hoursApproved === null
+        )
+        for (const session of buildSessions) {
+          await tx.workSession.update({
+            where: { id: session.id },
+            data: {
+              hoursApproved: workUnitsOverride ?? session.hoursClaimed,
+              reviewedAt: new Date(),
+              reviewedBy: reviewerId,
+            },
+          })
+        }
+
+        await tx.projectBadge.updateMany({
+          where: { projectId: project!.id, grantedAt: null },
+          data: { grantedAt: new Date(), grantedBy: reviewerId },
+        })
+
+        const effectiveTier = tierOverride ?? project!.tier
+        const tierBits = effectiveTier ? getTierBits(effectiveTier) : 0
+        const designAction = await tx.projectReviewAction.findFirst({
+          where: { projectId: project!.id, stage: "DESIGN", decision: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          select: { grantAmount: true },
+        })
+        const bomDeduction = Math.round(designAction?.grantAmount ?? 0)
+        const bitsAwarded = tierBits > 0 ? Math.max(0, tierBits - bomDeduction) : null
+
+        if (bitsAwarded !== null && bitsAwarded > 0) {
+          const tierName = getTierById(effectiveTier!)!.name
+          await appendLedgerEntry(tx, {
+            userId: project!.userId,
+            projectId: project!.id,
+            amount: bitsAwarded,
+            type: CurrencyTransactionType.PROJECT_APPROVED,
+            note: `Build approved — ${tierName} (${tierBits} − ${bomDeduction} BOM = ${bitsAwarded} bits)`,
+            createdBy: reviewerId,
+          })
+        }
+
+        if (grantOverride && grantOverride > 0) {
+          await appendLedgerEntry(tx, {
+            userId: project!.userId,
+            projectId: project!.id,
+            amount: grantOverride,
+            type: CurrencyTransactionType.ADMIN_GRANT,
+            note: `Additional grant on build approval (${grantOverride} bits)`,
+            createdBy: reviewerId,
+          })
+        }
+
+        updateData.bitsAwarded = bitsAwarded
+      }
+
+      // Create review action record
+      await tx.projectReviewAction.create({
+        data: {
+          projectId: project!.id,
+          stage,
+          decision: "APPROVED",
+          comments: sanitizedFeedback,
+          grantAmount: grantOverride ?? null,
+          tier: tierOverride ?? null,
+          reviewerId,
+        },
+      })
+
+      return tx.project.update({ where: { id: project!.id }, data: updateData })
     })
 
-    // Handle result-specific logic
-    if (result === "APPROVED") {
-      if (isAdmin) {
-        // Admin approval = finalize
-        const stage = submission.stage.toLowerCase() as "design" | "build"
-        const statusField = stage === "design" ? "designStatus" : "buildStatus"
-        const commentsField = stage === "design" ? "designReviewComments" : "buildReviewComments"
-        const reviewedAtField = stage === "design" ? "designReviewedAt" : "buildReviewedAt"
-        const reviewedByField = stage === "design" ? "designReviewedBy" : "buildReviewedBy"
+    await logAdminAction(
+      AuditAction.REVIEWER_APPROVE,
+      reviewerId,
+      authCheck.session.user.email ?? undefined,
+      "Project",
+      project.id,
+      { result, isAdmin, feedback: sanitizedFeedback }
+    )
 
-        const updateData: Record<string, unknown> = {
-          [statusField]: "approved",
+    // Slack notification
+    if (project.user.slackId) {
+      const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${project.id}`
+      const lines = [`Your *${project.title}* ${stageKey} has been approved! :tada:`]
+      if (sanitizedFeedback) lines.push(`\`\`\`${sanitizedFeedback}\`\`\``)
+      lines.push(`<${projectUrl}|View project>`)
+      sendSlackDM(project.user.slackId, lines.join("\n")).catch((err) =>
+        console.error("Failed to send Slack DM:", err)
+      )
+    }
+
+    return NextResponse.json(updatedProject)
+  } else {
+    // RETURNED or REJECTED
+    const newStatus = result === "REJECTED" ? "rejected" : "update_requested"
+    const legacyDecision = result === "REJECTED" ? "REJECTED" : "CHANGE_REQUESTED"
+
+    const statusField = stageKey === "design" ? "designStatus" : "buildStatus"
+    const commentsField = stageKey === "design" ? "designReviewComments" : "buildReviewComments"
+    const reviewedAtField = stageKey === "design" ? "designReviewedAt" : "buildReviewedAt"
+    const reviewedByField = stageKey === "design" ? "designReviewedBy" : "buildReviewedBy"
+
+    const updatedProject = await prisma.$transaction(async (tx) => {
+      await tx.projectReviewAction.create({
+        data: {
+          projectId: project!.id,
+          stage,
+          decision: legacyDecision,
+          comments: sanitizedFeedback,
+          reviewerId,
+        },
+      })
+
+      return tx.project.update({
+        where: { id: project!.id },
+        data: {
+          [statusField]: newStatus,
           [commentsField]: sanitizedFeedback,
           [reviewedAtField]: new Date(),
           [reviewedByField]: reviewerId,
-        }
-
-        // Apply tier override on design approval
-        if (stage === "design" && tierOverride !== undefined && tierOverride !== null) {
-          updateData.tier = tierOverride
-        }
-
-        // Build approval: award bits, approve sessions, grant badges
-        if (stage === "build") {
-          // Auto-approve pending build sessions
-          const buildSessions = project.workSessions.filter(
-            (s) => s.stage === "BUILD" && s.hoursApproved === null
-          )
-          for (const session of buildSessions) {
-            await tx.workSession.update({
-              where: { id: session.id },
-              data: {
-                hoursApproved: workUnitsOverride ?? session.hoursClaimed,
-                reviewedAt: new Date(),
-                reviewedBy: reviewerId,
-              },
-            })
-          }
-
-          // Grant badges
-          await tx.projectBadge.updateMany({
-            where: { projectId: project.id, grantedAt: null },
-            data: { grantedAt: new Date(), grantedBy: reviewerId },
-          })
-
-          // Award bits
-          const effectiveTier = tierOverride ?? project.tier
-          const tierBits = effectiveTier ? getTierBits(effectiveTier) : 0
-          const designAction = await tx.projectReviewAction.findFirst({
-            where: { projectId: project.id, stage: "DESIGN", decision: "APPROVED" },
-            orderBy: { createdAt: "desc" },
-            select: { grantAmount: true },
-          })
-          const bomDeduction = Math.round(designAction?.grantAmount ?? 0)
-          const bitsAwarded = tierBits > 0 ? Math.max(0, tierBits - bomDeduction) : null
-
-          if (bitsAwarded !== null && bitsAwarded > 0) {
-            const tierName = getTierById(effectiveTier!)!.name
-            await appendLedgerEntry(tx, {
-              userId: project.userId,
-              projectId: project.id,
-              amount: bitsAwarded,
-              type: CurrencyTransactionType.PROJECT_APPROVED,
-              note: `Build approved — ${tierName} (${tierBits} − ${bomDeduction} BOM = ${bitsAwarded} bits)`,
-              createdBy: reviewerId,
-            })
-          }
-
-          // Additional grant
-          if (grantOverride && grantOverride > 0) {
-            await appendLedgerEntry(tx, {
-              userId: project.userId,
-              projectId: project.id,
-              amount: grantOverride,
-              type: CurrencyTransactionType.ADMIN_GRANT,
-              note: `Additional grant on build approval (${grantOverride} bits)`,
-              createdBy: reviewerId,
-            })
-          }
-
-          updateData.bitsAwarded = bitsAwarded
-        }
-
-        // Approve BOM items on design approval
-        if (stage === "design") {
-          await tx.bOMItem.updateMany({
-            where: { projectId: project.id, status: "pending" },
-            data: { status: "approved", reviewedAt: new Date(), reviewedBy: reviewerId },
-          })
-        }
-
-        await tx.project.update({ where: { id: project.id }, data: updateData })
-
-        // Create legacy review action for compatibility
-        await tx.projectReviewAction.create({
-          data: {
-            projectId: project.id,
-            stage: submission.stage,
-            decision: "APPROVED",
-            comments: sanitizedFeedback,
-            grantAmount: grantOverride ?? null,
-            tier: tierOverride ?? null,
-            reviewerId,
-          },
-        })
-      } else {
-        // Community reviewer approval = mark as pre-reviewed
-        await tx.projectSubmission.update({
-          where: { id },
-          data: { preReviewed: true },
-        })
-      }
-    } else if (result === "RETURNED" || result === "REJECTED") {
-      // Invalidate all prior reviews on this submission
-      await tx.submissionReview.updateMany({
-        where: { submissionId: id, id: { not: newReview.id }, invalidated: false },
-        data: { invalidated: true },
+        },
       })
+    })
 
-      // Reset pre-reviewed status
-      await tx.projectSubmission.update({
-        where: { id },
-        data: { preReviewed: false },
-      })
-
-      if (isAdmin || result === "REJECTED") {
-        const stage = submission.stage.toLowerCase() as "design" | "build"
-        const statusField = stage === "design" ? "designStatus" : "buildStatus"
-        const commentsField = stage === "design" ? "designReviewComments" : "buildReviewComments"
-        const reviewedAtField = stage === "design" ? "designReviewedAt" : "buildReviewedAt"
-        const reviewedByField = stage === "design" ? "designReviewedBy" : "buildReviewedBy"
-
-        const newStatus = result === "REJECTED" ? "rejected" : "update_requested"
-
-        await tx.project.update({
-          where: { id: project.id },
-          data: {
-            [statusField]: newStatus,
-            [commentsField]: sanitizedFeedback,
-            [reviewedAtField]: new Date(),
-            [reviewedByField]: reviewerId,
-          },
-        })
-
-        // Create legacy review action
-        const legacyDecision = result === "REJECTED" ? "REJECTED" : "CHANGE_REQUESTED"
-        await tx.projectReviewAction.create({
-          data: {
-            projectId: project.id,
-            stage: submission.stage,
-            decision: legacyDecision,
-            comments: sanitizedFeedback,
-            reviewerId,
-          },
-        })
-      }
-    }
-
-    // Release claim
-    if (submission.claim) {
-      await tx.reviewClaim.delete({ where: { id: submission.claim.id } }).catch(() => {})
-    }
-
-    return newReview
-  })
-
-  // Audit log
-  const auditAction = result === "APPROVED"
-    ? AuditAction.REVIEWER_APPROVE
-    : result === "RETURNED"
-      ? AuditAction.REVIEWER_RETURN
-      : AuditAction.REVIEWER_REJECT
-
-  await logAdminAction(
-    auditAction,
-    reviewerId,
-    authCheck.session.user.email ?? undefined,
-    "ProjectSubmission",
-    id,
-    { result, isAdmin, feedback: sanitizedFeedback }
-  )
-
-  // Slack notification to submitter
-  if (project.user.slackId && (isAdmin || result !== "APPROVED")) {
-    const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${project.id}`
-    const lines: string[] = []
-
-    if (result === "APPROVED" && isAdmin) {
-      lines.push(`Your *${project.title}* ${submission.stage.toLowerCase()} has been approved! :tada:`)
-    } else if (result === "RETURNED") {
-      lines.push(`Your *${project.title}* ${submission.stage.toLowerCase()} needs changes. :rotating_light:`)
-    } else if (result === "REJECTED") {
-      lines.push(`Your *${project.title}* ${submission.stage.toLowerCase()} has been permanently rejected.`)
-    }
-
-    if (sanitizedFeedback) lines.push(`\`\`\`${sanitizedFeedback}\`\`\``)
-    lines.push(`<${projectUrl}|View project>`)
-
-    sendSlackDM(project.user.slackId, lines.join("\n")).catch((err) =>
-      console.error("Failed to send Slack DM for review:", err)
+    const auditAction = result === "REJECTED" ? AuditAction.REVIEWER_REJECT : AuditAction.REVIEWER_RETURN
+    await logAdminAction(
+      auditAction,
+      reviewerId,
+      authCheck.session.user.email ?? undefined,
+      "Project",
+      project.id,
+      { result, isAdmin, feedback: sanitizedFeedback }
     )
-  }
 
-  return NextResponse.json(review)
+    // Slack notification
+    if (project.user.slackId) {
+      const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${project.id}`
+      const msg = result === "REJECTED"
+        ? `Your *${project.title}* ${stageKey} has been permanently rejected.`
+        : `Your *${project.title}* ${stageKey} needs changes. :rotating_light:`
+      const lines = [msg]
+      if (sanitizedFeedback) lines.push(`\`\`\`${sanitizedFeedback}\`\`\``)
+      lines.push(`<${projectUrl}|View project>`)
+      sendSlackDM(project.user.slackId, lines.join("\n")).catch((err) =>
+        console.error("Failed to send Slack DM:", err)
+      )
+    }
+
+    return NextResponse.json(updatedProject)
+  }
 }

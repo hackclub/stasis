@@ -14,11 +14,32 @@ export async function GET(
   const isAdmin = hasRole(authCheck.roles, Role.ADMIN)
   const reviewerId = authCheck.session.user.id
 
-  // Try to find by submission ID first, then fall back to project ID
-  let submission = await prisma.projectSubmission.findUnique({
+  // Try as project ID first (most common path from queue), then submission ID
+  let project = await prisma.project.findUnique({
     where: { id },
     include: {
-      project: {
+      user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
+      workSessions: {
+        include: { media: true, timelapses: true },
+        orderBy: { createdAt: "desc" },
+      },
+      badges: true,
+      bomItems: true,
+      reviewActions: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  })
+
+  // Fall back: try finding a submission and get its project
+  if (!project) {
+    const submission = await prisma.projectSubmission.findUnique({
+      where: { id },
+      select: { projectId: true },
+    })
+    if (submission) {
+      project = await prisma.project.findUnique({
+        where: { id: submission.projectId },
         include: {
           user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
           workSessions: {
@@ -27,122 +48,32 @@ export async function GET(
           },
           badges: true,
           bomItems: true,
-          submissions: {
-            select: { id: true, stage: true, createdAt: true },
+          reviewActions: {
             orderBy: { createdAt: "desc" },
           },
-        },
-      },
-      reviews: {
-        orderBy: { createdAt: "desc" },
-      },
-      claim: true,
-    },
-  })
-
-  // Fall back: look up by project ID and find (or auto-create) a submission
-  if (!submission) {
-    const project = await prisma.project.findUnique({
-      where: { id },
-      include: {
-        user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
-        workSessions: {
-          include: { media: true, timelapses: true },
-          orderBy: { createdAt: "desc" },
-        },
-        badges: true,
-        bomItems: true,
-        submissions: {
-          orderBy: { createdAt: "desc" },
-          include: {
-            reviews: { orderBy: { createdAt: "desc" } },
-            claim: true,
-          },
-        },
-      },
-    })
-
-    if (!project) {
-      return NextResponse.json({ error: "Submission not found" }, { status: 404 })
-    }
-
-    // Determine active stage
-    const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
-    const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
-    const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : null
-
-    if (!activeStage) {
-      return NextResponse.json({ error: "Project is not in review" }, { status: 400 })
-    }
-
-    // Use existing submission for this stage, or auto-create one
-    const existing = project.submissions.find((s) => s.stage === activeStage)
-    if (existing) {
-      // Re-fetch with full includes via the submission path
-      submission = await prisma.projectSubmission.findUnique({
-        where: { id: existing.id },
-        include: {
-          project: {
-            include: {
-              user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
-              workSessions: {
-                include: { media: true, timelapses: true },
-                orderBy: { createdAt: "desc" },
-              },
-              badges: true,
-              bomItems: true,
-              submissions: {
-                select: { id: true, stage: true, createdAt: true },
-                orderBy: { createdAt: "desc" },
-              },
-            },
-          },
-          reviews: { orderBy: { createdAt: "desc" } },
-          claim: true,
-        },
-      })
-    } else {
-      // Auto-create a submission record for this project
-      const newSub = await prisma.projectSubmission.create({
-        data: {
-          projectId: project.id,
-          stage: activeStage,
-        },
-      })
-      submission = await prisma.projectSubmission.findUnique({
-        where: { id: newSub.id },
-        include: {
-          project: {
-            include: {
-              user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
-              workSessions: {
-                include: { media: true, timelapses: true },
-                orderBy: { createdAt: "desc" },
-              },
-              badges: true,
-              bomItems: true,
-              submissions: {
-                select: { id: true, stage: true, createdAt: true },
-                orderBy: { createdAt: "desc" },
-              },
-            },
-          },
-          reviews: { orderBy: { createdAt: "desc" } },
-          claim: true,
         },
       })
     }
   }
 
-  if (!submission) {
-    return NextResponse.json({ error: "Submission not found" }, { status: 404 })
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 })
+  }
+
+  // Determine active stage
+  const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
+  const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+  const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : null
+
+  if (!activeStage) {
+    return NextResponse.json({ error: "Project is not in review" }, { status: 400 })
   }
 
   // Check for conflicts — other projects by same author in review
   const conflicts = await prisma.project.findMany({
     where: {
-      id: { not: submission.project.id },
-      userId: submission.project.userId,
+      id: { not: project.id },
+      userId: project.userId,
       OR: [
         { designStatus: "in_review" },
         { buildStatus: "in_review" },
@@ -151,42 +82,69 @@ export async function GET(
     select: { id: true, title: true },
   })
 
-  // Get reviewer note about this author
-  const reviewerNote = await prisma.reviewerNote.findUnique({
-    where: { aboutUserId: submission.project.userId },
-  })
+  // Try to get reviewer note (may not exist if migration not run)
+  let reviewerNoteContent = ""
+  try {
+    const reviewerNote = await prisma.reviewerNote.findUnique({
+      where: { aboutUserId: project.userId },
+    })
+    reviewerNoteContent = reviewerNote?.content || ""
+  } catch {
+    // Table doesn't exist yet — that's fine
+  }
 
   // Compute stats
-  const workSessions = submission.project.workSessions
+  const workSessions = project.workSessions
   const totalWorkUnits = workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
   const entryCount = workSessions.length
   const avgWorkUnits = entryCount > 0 ? totalWorkUnits / entryCount : 0
   const maxWorkUnits = entryCount > 0 ? Math.max(...workSessions.map((s) => s.hoursClaimed)) : 0
   const minWorkUnits = entryCount > 0 ? Math.min(...workSessions.map((s) => s.hoursClaimed)) : 0
-  const bomCost = submission.project.bomItems
+  const bomCost = project.bomItems
     .filter((b) => b.status === "approved" || b.status === "pending")
     .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
 
-  const claimedByOther = submission.claim
-    ? submission.claim.reviewerId !== reviewerId && new Date(submission.claim.expiresAt) > new Date()
-    : false
+  // Get submission notes if available
+  const latestSubmission = await prisma.projectSubmission.findFirst({
+    where: { projectId: project.id, stage: activeStage },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, notes: true, createdAt: true },
+  }).catch(() => null)
 
-  // Find next/prev projects for navigation (query projects directly)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adjacentWhere: any = {
-    OR: [
-      { designStatus: { in: ["in_review", "update_requested"] } },
-      { buildStatus: { in: ["in_review", "update_requested"] } },
-    ],
-  }
+  // Map existing ProjectReviewAction records to the review format the frontend expects
+  const reviews = project.reviewActions.map((action) => ({
+    id: action.id,
+    reviewerId: action.reviewerId || "",
+    result: action.decision === "CHANGE_REQUESTED" ? "RETURNED" : action.decision,
+    isAdminReview: true,
+    feedback: action.comments || "",
+    reason: null,
+    invalidated: false,
+    workUnitsOverride: null,
+    tierOverride: action.tier,
+    grantOverride: action.grantAmount ? Math.round(action.grantAmount) : null,
+    categoryOverride: null,
+    frozenWorkUnits: null,
+    frozenEntryCount: null,
+    frozenFundingAmount: null,
+    frozenTier: action.tierBefore,
+    frozenReviewerNote: null,
+    createdAt: action.createdAt,
+  }))
 
+  // Find next/prev projects for navigation
   const allProjects = await prisma.project.findMany({
-    where: adjacentWhere,
-    select: { id: true, createdAt: true },
+    where: {
+      OR: [
+        { designStatus: { in: ["in_review", "update_requested"] } },
+        { buildStatus: { in: ["in_review", "update_requested"] } },
+      ],
+    },
+    select: { id: true },
     orderBy: { createdAt: "asc" },
   })
 
-  const currentIdx = allProjects.findIndex((p) => p.id === submission!.project.id)
+  const currentIdx = allProjects.findIndex((p) => p.id === project!.id)
   const nextId = currentIdx >= 0 && currentIdx < allProjects.length - 1
     ? allProjects[currentIdx + 1].id
     : null
@@ -196,13 +154,14 @@ export async function GET(
 
   return NextResponse.json({
     submission: {
-      id: submission.id,
-      stage: submission.stage,
-      notes: submission.notes,
-      preReviewed: submission.preReviewed,
-      createdAt: submission.createdAt,
+      id: latestSubmission?.id || project.id,
+      stage: activeStage,
+      notes: latestSubmission?.notes || (activeStage === "DESIGN" ? project.designSubmissionNotes : project.buildSubmissionNotes),
+      preReviewed: false,
+      createdAt: latestSubmission?.createdAt || project.updatedAt,
       project: {
-        ...submission.project,
+        ...project,
+        reviewActions: undefined,
         totalWorkUnits: Math.round(totalWorkUnits * 10) / 10,
         entryCount,
         avgWorkUnits: Math.round(avgWorkUnits * 10) / 10,
@@ -210,12 +169,12 @@ export async function GET(
         minWorkUnits: Math.round(minWorkUnits * 10) / 10,
         bomCost: Math.round(bomCost * 100) / 100,
       },
-      reviews: submission.reviews,
-      claim: submission.claim,
-      claimedByOther,
+      reviews,
+      claim: null,
+      claimedByOther: false,
     },
     conflicts: conflicts.map((c) => ({ id: c.id, project: { id: c.id, title: c.title } })),
-    reviewerNote: reviewerNote?.content || "",
+    reviewerNote: reviewerNoteContent,
     navigation: { nextId, prevId },
     isAdmin,
     reviewerId,
