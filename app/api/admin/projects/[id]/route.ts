@@ -91,9 +91,16 @@ export async function PATCH(
     if (project.designStatus !== "approved") {
       return NextResponse.json({ error: "Design is not approved" }, { status: 400 })
     }
-    await prisma.project.update({
-      where: { id },
-      data: { designStatus: "in_review", buildStatus: "draft" },
+    await prisma.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id },
+        data: { designStatus: "in_review", buildStatus: "draft" },
+      })
+      // Remove any stale DESIGN submissions, then create a fresh one
+      await tx.projectSubmission.deleteMany({ where: { projectId: id, stage: "DESIGN" } })
+      await tx.projectSubmission.create({
+        data: { projectId: id, stage: "DESIGN" },
+      })
     })
     await logAdminAction(AuditAction.ADMIN_UNAPPROVE_DESIGN, adminId, adminEmail, "Project", id)
     return NextResponse.json({ designStatus: "in_review", buildStatus: "draft" })
@@ -103,9 +110,15 @@ export async function PATCH(
     if (project.buildStatus !== "approved") {
       return NextResponse.json({ error: "Build is not approved" }, { status: 400 })
     }
-    await prisma.project.update({
-      where: { id },
-      data: { buildStatus: "in_review" },
+    await prisma.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id },
+        data: { buildStatus: "in_review" },
+      })
+      await tx.projectSubmission.deleteMany({ where: { projectId: id, stage: "BUILD" } })
+      await tx.projectSubmission.create({
+        data: { projectId: id, stage: "BUILD" },
+      })
     })
     await logAdminAction(AuditAction.ADMIN_UNAPPROVE_BUILD, adminId, adminEmail, "Project", id)
     return NextResponse.json({ buildStatus: "in_review" })
