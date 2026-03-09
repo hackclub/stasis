@@ -21,6 +21,7 @@ interface DiscoverProjectDetail {
   githubRepo: string | null;
   designStatus: string;
   buildStatus: string;
+  hiddenFromGallery: boolean;
   createdAt: string;
   user: {
     id: string;
@@ -32,6 +33,7 @@ interface DiscoverProjectDetail {
   sessionCount: number;
   hasGivenKudos: boolean;
   isOwner: boolean;
+  isAdmin: boolean;
 }
 
 
@@ -169,6 +171,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
   const [timeline, setTimeline] = useState<PublicTimelineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [kudosLoading, setKudosLoading] = useState(false);
+  const [adminActioning, setAdminActioning] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -216,6 +219,37 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
     }
   };
 
+  const handleAdminAction = async (action: string) => {
+    if (!project) return;
+    const confirmMessages: Record<string, string> = {
+      hide: 'Hide this project from the public gallery?',
+      unhide: 'Unhide this project (make it visible in the gallery again)?',
+      unapprove_design: 'Unapprove the design? This will reset design status to in_review and build status to draft.',
+      unapprove_build: 'Unapprove the build? This will reset build status to in_review.',
+    };
+    if (!confirm(confirmMessages[action] || `Perform action: ${action}?`)) return;
+
+    setAdminActioning(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProject(prev => prev ? { ...prev, ...data } : prev);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Action failed');
+      }
+    } catch {
+      alert('Action failed');
+    } finally {
+      setAdminActioning(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -248,6 +282,14 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
         Back to Discover
       </Link>
 
+      {/* Hidden Banner */}
+      {project.isAdmin && project.hiddenFromGallery && (
+        <div className="bg-red-50 border-2 border-red-300 p-3 mb-4 flex items-center gap-2">
+          <span className="text-red-800 text-xs uppercase tracking-wider font-medium">Hidden from Gallery</span>
+          <span className="text-red-600 text-xs">This project is not visible to other users</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
         {project.coverImage && (
@@ -273,36 +315,71 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
             </div>
           </div>
 
-          {/* Kudos button */}
-          {!project.isOwner && (
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            {/* Kudos button */}
+            {!project.isOwner && (
+              <button
+                onClick={handleKudos}
+                disabled={kudosLoading}
+                className={`flex items-center gap-2 px-4 py-2 border-2 transition-colors cursor-pointer ${
+                  project.hasGivenKudos
+                    ? 'bg-red-50 border-red-500 text-red-600 hover:bg-red-100'
+                    : 'bg-cream-100 border-cream-400 text-brown-800 hover:border-orange-500 hover:text-orange-500'
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill={project.hasGivenKudos ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                <span className="uppercase text-sm tracking-wider">
+                  {kudosLoading ? '...' : project.kudosCount}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Admin Actions */}
+        {project.isAdmin && (
+          <div className="flex flex-wrap gap-2 mb-4">
             <button
-              onClick={handleKudos}
-              disabled={kudosLoading}
-              className={`flex items-center gap-2 px-4 py-2 border-2 transition-colors cursor-pointer ${
-                project.hasGivenKudos
-                  ? 'bg-red-50 border-red-500 text-red-600 hover:bg-red-100'
-                  : 'bg-cream-100 border-cream-400 text-brown-800 hover:border-orange-500 hover:text-orange-500'
+              onClick={() => handleAdminAction(project.hiddenFromGallery ? 'unhide' : 'hide')}
+              disabled={adminActioning}
+              className={`px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors cursor-pointer disabled:opacity-50 ${
+                project.hiddenFromGallery
+                  ? 'bg-green-600/20 border-green-600 text-green-600 hover:bg-green-600/30'
+                  : 'bg-cream-200 border-cream-400 text-brown-800 hover:bg-cream-300'
               }`}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill={project.hasGivenKudos ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-              <span className="uppercase text-sm tracking-wider">
-                {kudosLoading ? '...' : project.kudosCount}
-              </span>
+              {project.hiddenFromGallery ? 'Unhide from Gallery' : 'Hide from Gallery'}
             </button>
-          )}
-
-
-        </div>
+            {project.designStatus === 'approved' && (
+              <button
+                onClick={() => handleAdminAction('unapprove_design')}
+                disabled={adminActioning}
+                className="px-3 py-1.5 text-xs uppercase tracking-wider border border-yellow-600 bg-yellow-600/10 text-yellow-600 hover:bg-yellow-600/20 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Unapprove Design
+              </button>
+            )}
+            {project.buildStatus === 'approved' && (
+              <button
+                onClick={() => handleAdminAction('unapprove_build')}
+                disabled={adminActioning}
+                className="px-3 py-1.5 text-xs uppercase tracking-wider border border-yellow-600 bg-yellow-600/10 text-yellow-600 hover:bg-yellow-600/20 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Unapprove Build
+              </button>
+            )}
+          </div>
+        )}
 
         {project.description && (
           <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit]" data-color-mode="light">
