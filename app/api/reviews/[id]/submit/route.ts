@@ -7,6 +7,7 @@ import { logAdminAction, AuditAction } from "@/lib/audit"
 import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 import { sendSlackDM } from "@/lib/slack"
+import { resolveSubmissionId } from "@/lib/resolve-submission"
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,11 @@ export async function POST(
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
   if (authCheck.error) return authCheck.error
 
-  const { id } = await params
+  const rawId = (await params).id
+  const id = await resolveSubmissionId(rawId)
+  if (!id) {
+    return NextResponse.json({ error: "Submission not found" }, { status: 404 })
+  }
   const isAdmin = hasRole(authCheck.roles, Role.ADMIN)
   const reviewerId = authCheck.session.user.id
   const body = await request.json()

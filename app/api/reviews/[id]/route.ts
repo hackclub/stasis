@@ -14,7 +14,8 @@ export async function GET(
   const isAdmin = hasRole(authCheck.roles, Role.ADMIN)
   const reviewerId = authCheck.session.user.id
 
-  const submission = await prisma.projectSubmission.findUnique({
+  // Try to find by submission ID first, then fall back to project ID
+  let submission = await prisma.projectSubmission.findUnique({
     where: { id },
     include: {
       project: {
@@ -39,26 +40,115 @@ export async function GET(
     },
   })
 
+  // Fall back: look up by project ID and find (or auto-create) a submission
+  if (!submission) {
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
+        workSessions: {
+          include: { media: true, timelapses: true },
+          orderBy: { createdAt: "desc" },
+        },
+        badges: true,
+        bomItems: true,
+        submissions: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            reviews: { orderBy: { createdAt: "desc" } },
+            claim: true,
+          },
+        },
+      },
+    })
+
+    if (!project) {
+      return NextResponse.json({ error: "Submission not found" }, { status: 404 })
+    }
+
+    // Determine active stage
+    const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
+    const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+    const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : null
+
+    if (!activeStage) {
+      return NextResponse.json({ error: "Project is not in review" }, { status: 400 })
+    }
+
+    // Use existing submission for this stage, or auto-create one
+    const existing = project.submissions.find((s) => s.stage === activeStage)
+    if (existing) {
+      // Re-fetch with full includes via the submission path
+      submission = await prisma.projectSubmission.findUnique({
+        where: { id: existing.id },
+        include: {
+          project: {
+            include: {
+              user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
+              workSessions: {
+                include: { media: true, timelapses: true },
+                orderBy: { createdAt: "desc" },
+              },
+              badges: true,
+              bomItems: true,
+              submissions: {
+                select: { id: true, stage: true, createdAt: true },
+                orderBy: { createdAt: "desc" },
+              },
+            },
+          },
+          reviews: { orderBy: { createdAt: "desc" } },
+          claim: true,
+        },
+      })
+    } else {
+      // Auto-create a submission record for this project
+      const newSub = await prisma.projectSubmission.create({
+        data: {
+          projectId: project.id,
+          stage: activeStage,
+        },
+      })
+      submission = await prisma.projectSubmission.findUnique({
+        where: { id: newSub.id },
+        include: {
+          project: {
+            include: {
+              user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
+              workSessions: {
+                include: { media: true, timelapses: true },
+                orderBy: { createdAt: "desc" },
+              },
+              badges: true,
+              bomItems: true,
+              submissions: {
+                select: { id: true, stage: true, createdAt: true },
+                orderBy: { createdAt: "desc" },
+              },
+            },
+          },
+          reviews: { orderBy: { createdAt: "desc" } },
+          claim: true,
+        },
+      })
+    }
+  }
+
   if (!submission) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 })
   }
 
-  // Check for conflicts — other active submissions by same author in same stage
-  const conflicts = await prisma.projectSubmission.findMany({
+  // Check for conflicts — other projects by same author in review
+  const conflicts = await prisma.project.findMany({
     where: {
-      id: { not: id },
-      project: {
-        userId: submission.project.userId,
-        OR: [
-          { designStatus: "in_review" },
-          { buildStatus: "in_review" },
-        ],
-      },
-      stage: submission.stage,
+      id: { not: submission.project.id },
+      userId: submission.project.userId,
+      OR: [
+        { designStatus: "in_review" },
+        { buildStatus: "in_review" },
+      ],
     },
-    include: {
-      project: { select: { id: true, title: true } },
-    },
+    select: { id: true, title: true },
   })
 
   // Get reviewer note about this author
@@ -81,33 +171,27 @@ export async function GET(
     ? submission.claim.reviewerId !== reviewerId && new Date(submission.claim.expiresAt) > new Date()
     : false
 
-  // Find next/prev submissions for navigation
-  const adjacentWhere: Record<string, unknown> = {
-    project: {
-      OR: [
-        { designStatus: "in_review" },
-        { buildStatus: "in_review" },
-        { designStatus: "update_requested" },
-        { buildStatus: "update_requested" },
-      ],
-    },
-  }
-  if (!isAdmin) {
-    adjacentWhere.preReviewed = false
+  // Find next/prev projects for navigation (query projects directly)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adjacentWhere: any = {
+    OR: [
+      { designStatus: { in: ["in_review", "update_requested"] } },
+      { buildStatus: { in: ["in_review", "update_requested"] } },
+    ],
   }
 
-  const allSubmissions = await prisma.projectSubmission.findMany({
+  const allProjects = await prisma.project.findMany({
     where: adjacentWhere,
-    select: { id: true, createdAt: true, preReviewed: true },
+    select: { id: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   })
 
-  const currentIdx = allSubmissions.findIndex((s) => s.id === id)
-  const nextId = currentIdx >= 0 && currentIdx < allSubmissions.length - 1
-    ? allSubmissions[currentIdx + 1].id
+  const currentIdx = allProjects.findIndex((p) => p.id === submission!.project.id)
+  const nextId = currentIdx >= 0 && currentIdx < allProjects.length - 1
+    ? allProjects[currentIdx + 1].id
     : null
   const prevId = currentIdx > 0
-    ? allSubmissions[currentIdx - 1].id
+    ? allProjects[currentIdx - 1].id
     : null
 
   return NextResponse.json({
@@ -130,7 +214,7 @@ export async function GET(
       claim: submission.claim,
       claimedByOther,
     },
-    conflicts,
+    conflicts: conflicts.map((c) => ({ id: c.id, project: { id: c.id, title: c.title } })),
     reviewerNote: reviewerNote?.content || "",
     navigation: { nextId, prevId },
     isAdmin,

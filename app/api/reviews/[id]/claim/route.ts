@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
+import { resolveSubmissionId } from "@/lib/resolve-submission"
 
 const CLAIM_DURATION_MS = 20 * 60 * 1000 // 20 minutes
 
@@ -15,8 +16,13 @@ export async function POST(
   const { id } = await params
   const reviewerId = authCheck.session.user.id
 
+  const submissionId = await resolveSubmissionId(id)
+  if (!submissionId) {
+    return NextResponse.json({ error: "Submission not found" }, { status: 404 })
+  }
+
   const submission = await prisma.projectSubmission.findUnique({
-    where: { id },
+    where: { id: submissionId },
     include: { claim: true },
   })
 
@@ -39,7 +45,7 @@ export async function POST(
 
   const claim = await prisma.reviewClaim.create({
     data: {
-      submissionId: id,
+      submissionId,
       reviewerId,
       expiresAt: new Date(Date.now() + CLAIM_DURATION_MS),
     },
@@ -58,8 +64,13 @@ export async function DELETE(
   const { id } = await params
   const reviewerId = authCheck.session.user.id
 
+  const submissionId = await resolveSubmissionId(id)
+  if (!submissionId) {
+    return NextResponse.json({ ok: true })
+  }
+
   const claim = await prisma.reviewClaim.findUnique({
-    where: { submissionId: id },
+    where: { submissionId },
   })
 
   if (!claim) {

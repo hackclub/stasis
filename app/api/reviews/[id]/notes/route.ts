@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
+import { resolveSubmissionId } from "@/lib/resolve-submission"
 
 export async function PUT(
   request: NextRequest,
@@ -11,7 +12,7 @@ export async function PUT(
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
   if (authCheck.error) return authCheck.error
 
-  const { id } = await params // submission ID
+  const rawId = (await params).id
   const body = await request.json()
   const { content } = body
 
@@ -19,9 +20,14 @@ export async function PUT(
     return NextResponse.json({ error: "content is required" }, { status: 400 })
   }
 
+  const submissionId = await resolveSubmissionId(rawId)
+  if (!submissionId) {
+    return NextResponse.json({ error: "Submission not found" }, { status: 404 })
+  }
+
   // Get the submission to find the author
   const submission = await prisma.projectSubmission.findUnique({
-    where: { id },
+    where: { id: submissionId },
     include: { project: { select: { userId: true } } },
   })
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
 import { logAdminAction, AuditAction } from "@/lib/audit"
+import { resolveSubmissionId } from "@/lib/resolve-submission"
 
 export async function POST(
   request: NextRequest,
@@ -10,7 +11,7 @@ export async function POST(
   const authCheck = await requireAdmin()
   if (authCheck.error) return authCheck.error
 
-  const { id } = await params
+  const rawId = (await params).id
   const body = await request.json()
   const { targetStage } = body // "DESIGN" or "BUILD"
 
@@ -19,6 +20,11 @@ export async function POST(
       { error: "targetStage must be DESIGN or BUILD" },
       { status: 400 }
     )
+  }
+
+  const id = await resolveSubmissionId(rawId)
+  if (!id) {
+    return NextResponse.json({ error: "Submission not found" }, { status: 404 })
   }
 
   const submission = await prisma.projectSubmission.findUnique({

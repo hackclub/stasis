@@ -17,97 +17,106 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20")))
   const offset = (page - 1) * limit
 
-  // Build the submission query — only submissions currently in review
-  const where: Record<string, unknown> = {
-    project: {
-      OR: [
-        { designStatus: "in_review" },
-        { buildStatus: "in_review" },
-        { designStatus: "update_requested" },
-        { buildStatus: "update_requested" },
-      ],
-    },
-  }
+  // Query projects directly — this ensures we find all projects in review
+  // regardless of whether a ProjectSubmission record exists
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projectWhere: any = {}
 
-  // Category filter
-  if (category === "DESIGN" || category === "BUILD") {
-    where.stage = category
+  // Filter by stage/status
+  if (category === "DESIGN") {
+    projectWhere.designStatus = { in: ["in_review", "update_requested"] }
+  } else if (category === "BUILD") {
+    projectWhere.buildStatus = { in: ["in_review", "update_requested"] }
+  } else {
+    projectWhere.OR = [
+      { designStatus: { in: ["in_review", "update_requested"] } },
+      { buildStatus: { in: ["in_review", "update_requested"] } },
+    ]
   }
 
   // Search filter
   if (search) {
-    where.OR = [
-      { project: { title: { contains: search, mode: "insensitive" } } },
-      { project: { user: { name: { contains: search, mode: "insensitive" } } } },
-      { project: { user: { email: { contains: search, mode: "insensitive" } } } },
-      { id: { contains: search } },
+    projectWhere.AND = [
+      {
+        OR: [
+          { title: { contains: search, mode: "insensitive" } },
+          { user: { name: { contains: search, mode: "insensitive" } } },
+          { user: { email: { contains: search, mode: "insensitive" } } },
+          { id: { contains: search } },
+        ],
+      },
     ]
   }
 
-  // For non-admin reviewers: exclude pre-reviewed and already-reviewed-by-self
+  // For non-admin reviewers: exclude pre-reviewed projects
   if (!isAdmin) {
-    where.preReviewed = false
-    where.NOT = {
-      reviews: {
-        some: {
-          reviewerId,
-          invalidated: false,
-        },
+    projectWhere.submissions = {
+      none: {
+        preReviewed: true,
       },
     }
   }
 
-  const [submissions, total] = await Promise.all([
-    prisma.projectSubmission.findMany({
-      where,
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where: projectWhere,
       include: {
-        project: {
-          include: {
-            user: { select: { id: true, name: true, email: true, image: true } },
-            workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true } },
-            bomItems: { select: { id: true, costPerItem: true, quantity: true, status: true } },
-          },
-        },
-        reviews: {
-          where: { invalidated: false },
-          include: {
-            submission: false,
-          },
+        user: { select: { id: true, name: true, email: true, image: true } },
+        workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true } },
+        bomItems: { select: { id: true, costPerItem: true, quantity: true, status: true } },
+        submissions: {
           orderBy: { createdAt: "desc" },
+          take: 1,
+          include: {
+            reviews: {
+              where: { invalidated: false },
+              orderBy: { createdAt: "desc" },
+            },
+            claim: true,
+          },
         },
-        claim: true,
       },
-      orderBy: { createdAt: "asc" }, // oldest first
+      orderBy: { createdAt: "asc" },
       skip: offset,
       take: limit,
     }),
-    prisma.projectSubmission.count({ where }),
+    prisma.project.count({ where: projectWhere }),
   ])
 
   // Transform for the frontend
-  const items = submissions.map((sub) => {
-    const project = sub.project
+  const items = projects.map((project) => {
+    const submission = project.submissions[0] || null
     const totalWorkUnits = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
     const entryCount = project.workSessions.length
     const bomCost = project.bomItems
       .filter((b) => b.status === "approved" || b.status === "pending")
       .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
-    const waitingMs = Date.now() - new Date(sub.createdAt).getTime()
 
-    const claimedByOther = sub.claim
-      ? sub.claim.reviewerId !== reviewerId && new Date(sub.claim.expiresAt) > new Date()
+    // Determine which stage is in review
+    const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
+    const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+    const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : "DESIGN"
+
+    const submittedAt = submission?.createdAt || project.updatedAt
+    const waitingMs = Date.now() - new Date(submittedAt).getTime()
+
+    const preReviewed = submission?.preReviewed || false
+
+    const claimedByOther = submission?.claim
+      ? submission.claim.reviewerId !== reviewerId && new Date(submission.claim.expiresAt) > new Date()
       : false
-    const claimedBySelf = sub.claim
-      ? sub.claim.reviewerId === reviewerId && new Date(sub.claim.expiresAt) > new Date()
+    const claimedBySelf = submission?.claim
+      ? submission.claim.reviewerId === reviewerId && new Date(submission.claim.expiresAt) > new Date()
       : false
 
     return {
-      id: sub.id,
+      id: submission?.id || project.id, // Use submission ID if available, project ID as fallback
       projectId: project.id,
+      submissionId: submission?.id || null,
       title: project.title,
       description: project.description,
       coverImage: project.coverImage,
-      category: sub.stage,
+      category: activeStage,
       tier: project.tier,
       author: project.user,
       workUnits: Math.round(totalWorkUnits * 10) / 10,
@@ -115,12 +124,12 @@ export async function GET(request: NextRequest) {
       bomCost: Math.round(bomCost * 100) / 100,
       costPerUnit: totalWorkUnits > 0 ? Math.round((bomCost / totalWorkUnits) * 100) / 100 : 0,
       waitingMs,
-      createdAt: sub.createdAt,
-      preReviewed: sub.preReviewed,
+      createdAt: submittedAt,
+      preReviewed,
       claimedByOther,
       claimedBySelf,
-      claimerName: claimedByOther ? sub.claim?.reviewerId : null,
-      reviewCount: sub.reviews.length,
+      claimerName: claimedByOther ? submission?.claim?.reviewerId : null,
+      reviewCount: submission?.reviews.length || 0,
     }
   })
 
@@ -129,7 +138,7 @@ export async function GET(request: NextRequest) {
     items.sort((a, b) => {
       if (a.preReviewed && !b.preReviewed) return -1
       if (!a.preReviewed && b.preReviewed) return 1
-      return a.waitingMs - b.waitingMs
+      return b.waitingMs - a.waitingMs
     })
   }
 
