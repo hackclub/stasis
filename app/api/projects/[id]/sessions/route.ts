@@ -217,7 +217,7 @@ export async function POST(
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 5000)
         const res = await fetch(
-          `https://lapse.hackclub.com/timelapse/query?id=${encodeURIComponent(timelapseId)}`,
+          `https://api.lapse.hackclub.com/api/timelapse/query?id=${encodeURIComponent(timelapseId)}`,
           { signal: controller.signal }
         )
         clearTimeout(timeout)

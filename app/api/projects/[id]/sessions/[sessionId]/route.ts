@@ -210,7 +210,7 @@ export async function PATCH(
     toAdd.map(async (timelapseId) => {
       try {
         const res = await fetch(
-          `https://lapse.hackclub.com/timelapse/query?id=${encodeURIComponent(timelapseId)}`
+          `https://api.lapse.hackclub.com/api/timelapse/query?id=${encodeURIComponent(timelapseId)}`
         )
         if (!res.ok) return { timelapseId, name: null, thumbnailUrl: null, playbackUrl: null, duration: null, workSessionId: sessionId }
         const data = await res.json()
