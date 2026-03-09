@@ -54,6 +54,14 @@ interface AdminUser {
   roles: UserRole[];
 }
 
+interface UsersResponse {
+  items: AdminUser[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 interface UserPurchase {
   id: string;
   itemId: string;
@@ -65,15 +73,26 @@ interface UserPurchase {
 
 const AVAILABLE_ROLES: Array<'ADMIN' | 'REVIEWER' | 'SIDEKICK'> = ['ADMIN', 'REVIEWER', 'SIDEKICK'];
 
+const PRONOUN_OPTIONS = [
+  { label: 'he/him', value: 'he/him' },
+  { label: 'she/her', value: 'she/her' },
+  { label: 'they/them', value: 'they/them' },
+  { label: 'Other', value: 'other' },
+  { label: 'Not Set', value: 'none' },
+];
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [filterFraud, setFilterFraud] = useState<boolean | null>(null);
   const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | null>(null);
   const [filterAddress, setFilterAddress] = useState<boolean | null>(null);
+  const [filterPronouns, setFilterPronouns] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ message: string; total: number } | null>(null);
@@ -98,23 +117,31 @@ export default function AdminUsersPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      if (search) params.set('search', search);
+      if (filterFraud !== null) params.set('fraud', String(filterFraud));
+      if (filterRole) params.set('role', filterRole);
+      if (filterAddress !== null) params.set('address', String(filterAddress));
+      if (filterPronouns) params.set('pronouns', filterPronouns);
+
+      const res = await fetch(`/api/admin/users?${params}`);
       if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
+        setData(await res.json());
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, search, filterFraud, filterRole, filterAddress, filterPronouns]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   async function backfillAddresses() {
     setBackfilling(true);
@@ -148,19 +175,22 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function updateUser(userId: string, data: { fraudConvicted?: boolean; roles?: string[] }) {
+  async function updateUser(userId: string, updateData: { fraudConvicted?: boolean; roles?: string[] }) {
     setUpdating(userId);
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(updateData),
       });
       if (res.ok) {
         const updatedUser = await res.json();
-        setUsers(prev => prev.map(u => 
-          u.id === userId ? { ...u, roles: updatedUser.roles ?? u.roles, fraudConvicted: data.fraudConvicted ?? u.fraudConvicted } : u
-        ));
+        setData(prev => prev ? {
+          ...prev,
+          items: prev.items.map(u =>
+            u.id === userId ? { ...u, roles: updatedUser.roles ?? u.roles, fraudConvicted: updateData.fraudConvicted ?? u.fraudConvicted } : u
+          ),
+        } : prev);
       }
     } catch (error) {
       console.error('Failed to update user:', error);
@@ -169,19 +199,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  const filteredUsers = users.filter(user => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = (
-      user.email.toLowerCase().includes(query) ||
-      (user.name?.toLowerCase().includes(query)) ||
-      (user.slackId?.toLowerCase().includes(query)) ||
-      user.id.toLowerCase().includes(query)
-    );
-    const matchesFraud = filterFraud === null || user.fraudConvicted === filterFraud;
-    const matchesRole = filterRole === null || user.roles?.some(r => r.role === filterRole);
-    const matchesAddress = filterAddress === null || user.hasAddress === filterAddress;
-    return matchesSearch && matchesFraud && matchesRole && matchesAddress;
-  });
+  const users = data?.items ?? [];
 
   const hasRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') =>
     user.roles?.some(r => r.role === role) ?? false;
@@ -203,8 +221,8 @@ export default function AdminUsersPage() {
   const togglePendingRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') => {
     setPendingRoles(prev => {
       const currentPending = prev[user.id];
-      const current = currentPending !== undefined 
-        ? currentPending 
+      const current = currentPending !== undefined
+        ? currentPending
         : (user.roles?.map(r => r.role) ?? []);
       const newRoles = current.includes(role)
         ? current.filter(r => r !== role)
@@ -249,25 +267,53 @@ export default function AdminUsersPage() {
     return Array.from(unique.values());
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput);
+    setPage(1);
+  };
+
+  const handleFilterChange = (setter: (val: typeof filterFraud | typeof filterRole | typeof filterAddress | typeof filterPronouns) => void, currentVal: unknown, newVal: unknown) => {
+    setter(currentVal === newVal ? null : newVal as never);
+    setPage(1);
+  };
+
   return (
     <>
           {/* Search & Filters */}
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <p className="text-brown-800 text-sm uppercase">
-                {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+                {data ? `${data.total} user${data.total !== 1 ? 's' : ''}` : '...'}
               </p>
-              <input
-                type="text"
-                placeholder="Search by name, email, or Slack ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 placeholder-cream-600 focus:border-orange-500 focus:outline-none w-full sm:w-80"
-              />
+              <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or Slack ID..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 placeholder-cream-600 focus:border-orange-500 focus:outline-none w-full sm:w-80"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-2 text-xs uppercase border-2 border-orange-500 text-orange-500 hover:bg-orange-500/10 cursor-pointer"
+                >
+                  Search
+                </button>
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}
+                    className="px-3 py-2 text-xs uppercase border-2 border-cream-400 text-brown-800 hover:border-orange-500 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </form>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setFilterFraud(filterFraud === true ? null : true)}
+                onClick={() => handleFilterChange(setFilterFraud as never, filterFraud, true)}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterFraud === true
                     ? 'bg-red-600 text-white led-flicker'
@@ -277,7 +323,7 @@ export default function AdminUsersPage() {
                 Fraud
               </button>
               <button
-                onClick={() => setFilterFraud(filterFraud === false ? null : false)}
+                onClick={() => handleFilterChange(setFilterFraud as never, filterFraud, false)}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterFraud === false
                     ? 'bg-green-600 text-white led-flicker'
@@ -288,7 +334,7 @@ export default function AdminUsersPage() {
               </button>
               <span className="text-cream-400">|</span>
               <button
-                onClick={() => setFilterRole(filterRole === 'ADMIN' ? null : 'ADMIN')}
+                onClick={() => handleFilterChange(setFilterRole as never, filterRole, 'ADMIN')}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'ADMIN'
                     ? 'bg-orange-500 text-brown-800 led-flicker'
@@ -298,7 +344,7 @@ export default function AdminUsersPage() {
                 Admin Role
               </button>
               <button
-                onClick={() => setFilterRole(filterRole === 'REVIEWER' ? null : 'REVIEWER')}
+                onClick={() => handleFilterChange(setFilterRole as never, filterRole, 'REVIEWER')}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'REVIEWER'
                     ? 'bg-blue-600 text-white led-flicker'
@@ -308,7 +354,7 @@ export default function AdminUsersPage() {
                 Reviewer Role
               </button>
               <button
-                onClick={() => setFilterRole(filterRole === 'SIDEKICK' ? null : 'SIDEKICK')}
+                onClick={() => handleFilterChange(setFilterRole as never, filterRole, 'SIDEKICK')}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'SIDEKICK'
                     ? 'bg-purple-600 text-white led-flicker'
@@ -319,7 +365,7 @@ export default function AdminUsersPage() {
               </button>
               <span className="text-cream-400">|</span>
               <button
-                onClick={() => setFilterAddress(filterAddress === true ? null : true)}
+                onClick={() => handleFilterChange(setFilterAddress as never, filterAddress, true)}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterAddress === true
                     ? 'bg-green-600 text-white led-flicker'
@@ -329,7 +375,7 @@ export default function AdminUsersPage() {
                 Has Address
               </button>
               <button
-                onClick={() => setFilterAddress(filterAddress === false ? null : false)}
+                onClick={() => handleFilterChange(setFilterAddress as never, filterAddress, false)}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterAddress === false
                     ? 'bg-red-600 text-white led-flicker'
@@ -338,6 +384,20 @@ export default function AdminUsersPage() {
               >
                 No Address
               </button>
+              <span className="text-cream-400">|</span>
+              {PRONOUN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleFilterChange(setFilterPronouns as never, filterPronouns, opt.value)}
+                  className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                    filterPronouns === opt.value
+                      ? 'bg-teal-600 text-white led-flicker'
+                      : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
               <span className="text-cream-400">|</span>
               <button
                 onClick={() => {
@@ -380,9 +440,9 @@ export default function AdminUsersPage() {
                   Cleared {avatarResult.cleared} gravatar URLs, fetching {avatarResult.toFetch} avatars — check server logs
                 </span>
               )}
-              {(filterFraud !== null || filterRole !== null || filterAddress !== null) && (
+              {(filterFraud !== null || filterRole !== null || filterAddress !== null || filterPronouns !== null) && (
                 <button
-                  onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); }}
+                  onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); setFilterPronouns(null); setPage(1); }}
                   className="px-3 py-1.5 text-xs uppercase text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
                 >
                   Clear Filters
@@ -396,19 +456,20 @@ export default function AdminUsersPage() {
             <div className="text-center py-8">
               <p className="text-brown-800">Loading users...</p>
             </div>
-          ) : filteredUsers.length === 0 ? (
+          ) : !data || users.length === 0 ? (
             <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
               <p className="text-brown-800">No users found</p>
             </div>
           ) : (
+            <>
             <div className="space-y-2">
-              {filteredUsers.map((user) => (
+              {users.map((user) => (
                 <div
                   key={user.id}
                   className="bg-cream-100 border-2 border-cream-400"
                 >
                   {/* User Row */}
-                  <div 
+                  <div
                     className="p-4 cursor-pointer hover:bg-cream-200 transition-colors"
                     onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                   >
@@ -488,13 +549,13 @@ export default function AdminUsersPage() {
                             {user.totalHoursApproved.toFixed(1)}h approved
                           </p>
                         </div>
-                        <svg 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          width="20" 
-                          height="20" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
                           strokeWidth="2"
                           className={`text-brown-800 transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`}
                         >
@@ -641,8 +702,8 @@ export default function AdminUsersPage() {
                               <span
                                 key={badge.id}
                                 className={`text-xs px-2 py-1 ${
-                                  badge.grantedAt 
-                                    ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50' 
+                                  badge.grantedAt
+                                    ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50'
                                     : 'bg-cream-200 text-brown-800 border border-cream-400'
                                 }`}
                               >
@@ -702,8 +763,8 @@ export default function AdminUsersPage() {
                                         <span
                                           key={badge.id}
                                           className={`text-xs px-1.5 py-0.5 ${
-                                            badge.grantedAt 
-                                              ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50' 
+                                            badge.grantedAt
+                                              ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50'
                                               : 'bg-cream-100 text-brown-800 border border-cream-400'
                                           }`}
                                         >
@@ -762,6 +823,30 @@ export default function AdminUsersPage() {
                 </div>
               ))}
             </div>
+
+            {/* Pagination */}
+            {data.totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <span className="text-sm text-brown-800">
+                  Page {data.page} of {data.totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+                  disabled={page >= data.totalPages}
+                  className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            </>
           )}
 
           {/* Purchases Modal */}

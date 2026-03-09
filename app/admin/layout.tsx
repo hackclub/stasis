@@ -92,7 +92,7 @@ export default function AdminLayout({
         <div className="border-b border-cream-400">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex gap-0">
-              <Link href="/reviews" className="px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] text-orange-500 border-transparent hover:border-orange-500">
+              <Link href="/admin/review" className={getTabClass('/admin/review')}>
                 Review Queue
               </Link>
               {hasPermission(Permission.MANAGE_USERS) && (

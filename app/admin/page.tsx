@@ -7,7 +7,7 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/reviews');
+    router.replace('/admin/review');
   }, [router]);
 
   return (
