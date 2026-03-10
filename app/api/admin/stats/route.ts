@@ -283,6 +283,9 @@ export async function GET() {
     bom: {
       totalItems: Object.values(bomStatusMap).reduce((a, b) => a + b, 0),
       totalApprovedCost: Math.round((bomApprovedCost[0]?.total_cost ?? 0) * 100) / 100,
+      costPerHour: (timeAggregates._sum.hoursApproved ?? 0) > 0
+        ? Math.round(((bomApprovedCost[0]?.total_cost ?? 0) / (timeAggregates._sum.hoursApproved ?? 1)) * 100) / 100
+        : null,
       byStatus: bomStatusMap,
     },
     qualification: {
