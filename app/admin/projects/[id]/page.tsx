@@ -148,6 +148,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [adminActioning, setAdminActioning] = useState(false);
+  const [airtableSyncing, setAirtableSyncing] = useState(false);
   const [reviewingSession, setReviewingSession] = useState<string | null>(null);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
 
@@ -228,6 +229,26 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       alert('Action failed');
     } finally {
       setAdminActioning(false);
+    }
+  };
+
+  const handleSyncToAirtable = async () => {
+    if (!project) return;
+    setAirtableSyncing(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/sync-to-airtable`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        alert('Synced to Airtable successfully');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to sync to Airtable');
+      }
+    } catch {
+      alert('Failed to sync to Airtable');
+    } finally {
+      setAirtableSyncing(false);
     }
   };
 
@@ -409,6 +430,16 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     className="px-3 py-1.5 text-xs uppercase tracking-wider border border-yellow-600 bg-yellow-600/10 text-yellow-600 hover:bg-yellow-600/20 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     Unapprove Build
+                  </button>
+                )}
+                {/* Sync to Airtable */}
+                {project.designStatus === 'approved' && (
+                  <button
+                    onClick={handleSyncToAirtable}
+                    disabled={airtableSyncing}
+                    className="px-3 py-1.5 text-xs uppercase tracking-wider border border-blue-600 bg-blue-600/10 text-blue-600 hover:bg-blue-600/20 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {airtableSyncing ? 'Syncing...' : 'Sync to Airtable'}
                   </button>
                 )}
               </div>

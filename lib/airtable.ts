@@ -428,6 +428,49 @@ export async function submitYSWSProjectSubmission(data: {
   await base(tableName).create([{ fields }]);
 }
 
+export async function syncProjectToAirtable(
+  userId: string,
+  project: { githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
+): Promise<void> {
+  const { decryptPII } = await import('./pii');
+
+  const safeDecrypt = (val: string | null | undefined) => {
+    if (!val) return null;
+    try { return decryptPII(val); } catch { return null; }
+  };
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('User not found');
+
+  const nameParts = (user.name || '').trim().split(/\s+/);
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+  const totalHours = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0);
+
+  await submitYSWSProjectSubmission({
+    githubUrl: project.githubRepo,
+    firstName,
+    lastName,
+    email: user.email,
+    description: project.description,
+    bannerUrl: project.coverImage,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    addressLine1: safeDecrypt((user as any).encryptedAddressStreet),
+    addressLine2: null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    city: safeDecrypt((user as any).encryptedAddressCity),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    state: safeDecrypt((user as any).encryptedAddressState),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    country: safeDecrypt((user as any).encryptedAddressCountry),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    zip: safeDecrypt((user as any).encryptedAddressZip),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    birthday: safeDecrypt((user as any).encryptedBirthday),
+    totalHours,
+  });
+}
+
 export async function getRSVPCountLast24Hours(): Promise<number> {
   const base = getAirtableBase();
 
