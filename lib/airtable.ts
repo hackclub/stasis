@@ -394,6 +394,7 @@ export async function submitYSWSProjectSubmission(data: {
   zip: string | null;
   birthday: string | null;
   totalHours: number;
+  grantAmount: number | null;
 }): Promise<void> {
   const base = getAirtableBase();
   if (!base) {
@@ -424,13 +425,14 @@ export async function submitYSWSProjectSubmission(data: {
   if (data.zip) fields['ZIP / Postal Code'] = data.zip;
   if (data.birthday) fields['Birthday'] = data.birthday;
   if (data.totalHours > 0) fields['Optional - Override Hours Spent'] = data.totalHours;
+  if (data.grantAmount !== null && data.grantAmount > 0) fields['Requested Grant Amount'] = data.grantAmount;
 
   await base(tableName).create([{ fields }]);
 }
 
 export async function syncProjectToAirtable(
   userId: string,
-  project: { githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
+  project: { id: string; githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
@@ -441,6 +443,14 @@ export async function syncProjectToAirtable(
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error('User not found');
+
+  // Look up the grant amount from the design approval review action
+  const designAction = await prisma.projectReviewAction.findFirst({
+    where: { projectId: project.id, stage: 'DESIGN', decision: 'APPROVED' },
+    orderBy: { createdAt: 'desc' },
+    select: { grantAmount: true },
+  });
+  const grantAmount = designAction?.grantAmount ?? null;
 
   const nameParts = (user.name || '').trim().split(/\s+/);
   const firstName = nameParts[0] || '';
@@ -468,6 +478,7 @@ export async function syncProjectToAirtable(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     birthday: safeDecrypt((user as any).encryptedBirthday),
     totalHours,
+    grantAmount,
   });
 }
 
