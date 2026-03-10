@@ -60,6 +60,7 @@ interface ReviewData {
         hoursApproved: number | null;
       }>;
       firmwareHours: number;
+      journalHours: number;
       submissions: Array<{ id: string; stage: string; createdAt: string }>;
     };
     reviews: Array<{
@@ -486,8 +487,8 @@ export default function ReviewDetailPage() {
             <p className="text-brown-800 font-medium">{project.entryCount}</p>
           </div>
           <div>
-            <p className="text-cream-600 text-xs uppercase">Total</p>
-            <p className="text-brown-800 font-medium">{project.totalWorkUnits}h</p>
+            <p className="text-cream-600 text-xs uppercase">Journal</p>
+            <p className="text-brown-800 font-medium">{project.journalHours}h</p>
           </div>
           <div>
             <p className="text-cream-600 text-xs uppercase">Average</p>

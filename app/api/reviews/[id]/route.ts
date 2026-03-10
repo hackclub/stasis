@@ -116,7 +116,7 @@ export async function GET(
   const journalHours = workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
   const totalWorkUnits = journalHours + firmwareHours
   const entryCount = workSessions.length
-  const avgWorkUnits = entryCount > 0 ? totalWorkUnits / entryCount : 0
+  const avgWorkUnits = entryCount > 0 ? journalHours / entryCount : 0
   const maxWorkUnits = entryCount > 0 ? Math.max(...workSessions.map((s) => s.hoursClaimed)) : 0
   const minWorkUnits = entryCount > 0 ? Math.min(...workSessions.map((s) => s.hoursClaimed)) : 0
   const bomCost = project.bomItems
@@ -183,6 +183,7 @@ export async function GET(
         reviewActions: undefined,
         hackatimeProjects: hackatimeProjectsWithHours,
         firmwareHours: Math.round(firmwareHours * 10) / 10,
+        journalHours: Math.round(journalHours * 10) / 10,
         totalWorkUnits: Math.round(totalWorkUnits * 10) / 10,
         entryCount,
         avgWorkUnits: Math.round(avgWorkUnits * 10) / 10,
