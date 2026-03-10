@@ -67,9 +67,9 @@ export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === "/") {
     const hasSession = request.cookies.has("better-auth.session_token");
     if (hasSession) {
-      return addSecurityHeaders(
-        NextResponse.redirect(new URL("/dashboard", request.url))
-      );
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return addSecurityHeaders(NextResponse.redirect(url));
     }
   }
 
