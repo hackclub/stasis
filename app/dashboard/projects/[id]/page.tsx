@@ -119,7 +119,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
-  const isVerified = (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
+  const sessionVerified = (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
+  const [isVerified, setIsVerified] = useState(sessionVerified);
   const [hasAddress, setHasAddress] = useState(true); // default true so it doesn't block when PII is disabled
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -254,6 +255,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         if (res.ok) {
           const data = await res.json();
           setProject(data);
+        } else if (res.status === 403) {
+          router.push(`/dashboard/discover/${projectId}`);
         } else if (res.status === 404) {
           router.push('/dashboard');
         }
@@ -284,6 +287,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           if (data.piiEnabled) {
             setHasAddress(data.hasAddress);
           }
+          if (data.verificationStatus === 'verified') {
+            setIsVerified(true);
+          }
         }
       } catch (err) {
         console.error('Failed to check address:', err);
@@ -308,6 +314,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       router.push('/dashboard');
     }
   }, [session, isPending, projectId, router]);
+
+  // Sync session verification status into local state
+  useEffect(() => {
+    if (sessionVerified) setIsVerified(true);
+  }, [sessionVerified]);
 
   // Listen for project tutorial replay triggers (from UserMenu or floating button)
   useEffect(() => {

@@ -19,7 +19,7 @@ async function getUserinfoEndpoint(): Promise<string> {
 
 export async function POST() {
   if (process.env.PULL_HCA_PII !== "true") {
-    return NextResponse.json({ hasAddress: true, piiEnabled: false })
+    return NextResponse.json({ hasAddress: true, piiEnabled: false, verificationStatus: null })
   }
 
   const session = await auth.api.getSession({ headers: await headers() })
@@ -32,11 +32,13 @@ export async function POST() {
   // Check if user already has address data
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { encryptedAddressStreet: true },
+    select: { encryptedAddressStreet: true, verificationStatus: true },
   })
 
-  if (user?.encryptedAddressStreet) {
-    return NextResponse.json({ hasAddress: true, piiEnabled: true })
+  const needsVerificationRefresh = user?.verificationStatus !== "verified"
+
+  if (user?.encryptedAddressStreet && !needsVerificationRefresh) {
+    return NextResponse.json({ hasAddress: true, piiEnabled: true, verificationStatus: user.verificationStatus })
   }
 
   // Try to refresh from HCA
@@ -46,7 +48,7 @@ export async function POST() {
   })
 
   if (!account?.accessToken) {
-    return NextResponse.json({ hasAddress: false, piiEnabled: true })
+    return NextResponse.json({ hasAddress: !!user?.encryptedAddressStreet, piiEnabled: true, verificationStatus: user?.verificationStatus ?? null })
   }
 
   try {
@@ -59,7 +61,7 @@ export async function POST() {
     if (!resp.ok && account.refreshToken) {
       const discoveryResp = await fetch(DISCOVERY_URL)
       if (!discoveryResp.ok) {
-        return NextResponse.json({ hasAddress: false, piiEnabled: true })
+        return NextResponse.json({ hasAddress: !!user?.encryptedAddressStreet, piiEnabled: true, verificationStatus: user?.verificationStatus ?? null })
       }
       const config = await discoveryResp.json()
 
@@ -75,7 +77,7 @@ export async function POST() {
       })
 
       if (!tokenResp.ok) {
-        return NextResponse.json({ hasAddress: false, piiEnabled: true })
+        return NextResponse.json({ hasAddress: !!user?.encryptedAddressStreet, piiEnabled: true, verificationStatus: user?.verificationStatus ?? null })
       }
 
       const tokenData = await tokenResp.json()
@@ -97,7 +99,7 @@ export async function POST() {
     }
 
     if (!resp.ok) {
-      return NextResponse.json({ hasAddress: false, piiEnabled: true })
+      return NextResponse.json({ hasAddress: !!user?.encryptedAddressStreet, piiEnabled: true, verificationStatus: user?.verificationStatus ?? null })
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,15 +114,18 @@ export async function POST() {
       if (addr.country) updates.encryptedAddressCountry = encryptPII(addr.country)
     }
     if (profile.birthdate) updates.encryptedBirthday = encryptPII(profile.birthdate)
+    if (profile.verification_status) updates.verificationStatus = profile.verification_status
+
+    const newVerificationStatus = profile.verification_status ?? user?.verificationStatus ?? null
 
     if (Object.keys(updates).length > 0) {
       await prisma.user.update({ where: { id: userId }, data: updates })
-      return NextResponse.json({ hasAddress: !!addr?.street_address, piiEnabled: true })
+      return NextResponse.json({ hasAddress: !!addr?.street_address || !!user?.encryptedAddressStreet, piiEnabled: true, verificationStatus: newVerificationStatus })
     }
 
-    return NextResponse.json({ hasAddress: false, piiEnabled: true })
+    return NextResponse.json({ hasAddress: !!user?.encryptedAddressStreet, piiEnabled: true, verificationStatus: newVerificationStatus })
   } catch (err) {
     console.error("Failed to refresh address from HCA:", err)
-    return NextResponse.json({ hasAddress: false, piiEnabled: true })
+    return NextResponse.json({ hasAddress: !!user?.encryptedAddressStreet, piiEnabled: true, verificationStatus: user?.verificationStatus ?? null })
   }
 }
