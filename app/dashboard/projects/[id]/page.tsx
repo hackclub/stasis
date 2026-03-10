@@ -1247,6 +1247,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       </span>
                     </div>
                   )}
+                  {project.bitsAwarded != null && project.totalHoursApproved > 0 && (
+                    <div className="flex items-center">
+                      <span className="text-brown-800 text-xs mr-3">Bits per hour:</span>
+                      <span className="text-orange-500 text-sm">
+                        {(project.bitsAwarded / project.totalHoursApproved).toFixed(1)}/h
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

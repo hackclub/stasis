@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission, hasRole, Role } from "@/lib/permissions"
+import { getTierById } from "@/lib/tiers"
 
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
@@ -94,6 +95,11 @@ export async function GET(request: NextRequest) {
       entryCount,
       bomCost: Math.round(bomCost * 100) / 100,
       costPerUnit: totalWorkUnits > 0 ? Math.round((bomCost / totalWorkUnits) * 100) / 100 : 0,
+      bitsPerHour: (() => {
+        if (totalWorkUnits <= 0 || !project.tier) return null
+        const tierInfo = getTierById(project.tier)
+        return tierInfo ? Math.round((tierInfo.bits / totalWorkUnits) * 10) / 10 : null
+      })(),
       waitingMs,
       createdAt: project.updatedAt,
       preReviewed: false,

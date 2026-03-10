@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission, hasRole, Role } from "@/lib/permissions"
+import { getTierById } from "@/lib/tiers"
 
 export async function GET(
   _request: NextRequest,
@@ -168,6 +169,12 @@ export async function GET(
         maxWorkUnits: Math.round(maxWorkUnits * 10) / 10,
         minWorkUnits: Math.round(minWorkUnits * 10) / 10,
         bomCost: Math.round(bomCost * 100) / 100,
+        costPerHour: totalWorkUnits > 0 ? Math.round((bomCost / totalWorkUnits) * 100) / 100 : null,
+        bitsPerHour: (() => {
+          if (totalWorkUnits <= 0 || !project.tier) return null
+          const tierInfo = getTierById(project.tier)
+          return tierInfo ? Math.round((tierInfo.bits / totalWorkUnits) * 10) / 10 : null
+        })(),
       },
       reviews,
       claim: null,

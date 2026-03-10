@@ -22,6 +22,7 @@ interface Stats {
     totalHoursApproved: number;
     totalSessions: number;
     byCategory: Record<string, number>;
+    bitsPerHour: number | null;
   };
   economy: {
     totalDistributed: number;
@@ -327,7 +328,7 @@ export default function StatsPage() {
         {/* Time Tracking */}
         <Section title="Time Tracking">
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
                 <div className="text-brown-800 text-xs uppercase tracking-wider">Claimed</div>
                 <div className="text-orange-500 text-xl font-mono">{stats.time.totalHoursClaimed}h</div>
@@ -339,6 +340,13 @@ export default function StatsPage() {
               <div>
                 <div className="text-brown-800 text-xs uppercase tracking-wider">Sessions</div>
                 <div className="text-orange-500 text-xl font-mono">{stats.time.totalSessions}</div>
+              </div>
+              <div>
+                <div className="text-brown-800 text-xs uppercase tracking-wider">Bits / Hour</div>
+                <div className="text-orange-500 text-xl font-mono">
+                  {stats.time.bitsPerHour !== null ? stats.time.bitsPerHour : '—'}
+                </div>
+                <div className="text-brown-800/60 text-xs">distributed / approved hours</div>
               </div>
             </div>
             {Object.keys(stats.time.byCategory).length > 0 && (

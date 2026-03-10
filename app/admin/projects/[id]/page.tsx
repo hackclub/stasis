@@ -729,9 +729,15 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   .filter((item) => item.status === 'approved')
                   .reduce((sum, item) => sum + item.costPerItem * item.quantity, 0);
                 const costPerHour = totalHoursClaimed > 0 ? totalCost / totalHoursClaimed : null;
+                const tier = project.tier ? getTierById(project.tier) : null;
+                const bomGrant = project.reviewActions.find(
+                  (a) => a.stage === "DESIGN" && a.decision === "APPROVED"
+                )?.grantAmount ?? 0;
+                const netBits = tier ? Math.max(0, tier.bits - Math.round(bomGrant)) : null;
+                const bitsPerHour = netBits !== null && totalHoursClaimed > 0 ? netBits / totalHoursClaimed : null;
                 return (
                   <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-4">
-                    <div className="flex gap-6">
+                    <div className="flex gap-6 flex-wrap">
                       <div>
                         <p className="text-brown-800 text-xs uppercase mb-1">Total Estimated</p>
                         <p className="text-brown-800 text-lg">${formatPrice(totalCost)}</p>
@@ -744,6 +750,12 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                         <p className="text-brown-800 text-xs uppercase mb-1">Cost / Hour</p>
                         <p className="text-brown-800 text-lg">
                           {costPerHour !== null ? `$${formatPrice(costPerHour)}/h` : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-brown-800 text-xs uppercase mb-1">Bits / Hour</p>
+                        <p className="text-orange-500 text-lg">
+                          {bitsPerHour !== null ? `${bitsPerHour.toFixed(1)}/h` : '—'}
                         </p>
                       </div>
                     </div>

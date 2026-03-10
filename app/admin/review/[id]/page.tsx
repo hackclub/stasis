@@ -30,6 +30,8 @@ interface ReviewData {
       maxWorkUnits: number;
       minWorkUnits: number;
       bomCost: number;
+      costPerHour: number | null;
+      bitsPerHour: number | null;
       user: { id: string; name: string | null; email: string; image: string | null; slackId: string | null };
       workSessions: Array<{
         id: string;
@@ -376,7 +378,7 @@ export default function ReviewDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-4 text-sm">
             <div>
               <p className="text-cream-600 text-xs uppercase">Work Units</p>
               <p className="text-brown-800">{project.totalWorkUnits}h</p>
@@ -388,6 +390,14 @@ export default function ReviewDetailPage() {
             <div>
               <p className="text-cream-600 text-xs uppercase">BOM Cost</p>
               <p className="text-brown-800">${project.bomCost.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-cream-600 text-xs uppercase">BOM $/h</p>
+              <p className="text-brown-800">{project.costPerHour !== null ? `$${project.costPerHour.toFixed(2)}` : '—'}</p>
+            </div>
+            <div>
+              <p className="text-cream-600 text-xs uppercase">Bits/h</p>
+              <p className="text-orange-500">{project.bitsPerHour !== null ? project.bitsPerHour : '—'}</p>
             </div>
             <div>
               <p className="text-cream-600 text-xs uppercase">Funding</p>
@@ -563,9 +573,17 @@ export default function ReviewDetailPage() {
       {/* ── Supporting Evidence Card ── */}
       <div className="bg-cream-100 border-2 border-cream-400 p-6">
         <h2 className="text-brown-800 text-sm uppercase tracking-wider mb-4">Supporting Evidence</h2>
-        <p className="text-brown-800 text-sm mb-3">
-          BOM Cost: <span className="font-medium">${project.bomCost.toFixed(2)}</span>
-        </p>
+        <div className="flex gap-6 text-sm mb-3">
+          <p className="text-brown-800">
+            BOM Cost: <span className="font-medium">${project.bomCost.toFixed(2)}</span>
+          </p>
+          <p className="text-brown-800">
+            $/h: <span className="font-medium">{project.costPerHour !== null ? `$${project.costPerHour.toFixed(2)}` : '—'}</span>
+          </p>
+          <p className="text-brown-800">
+            Bits/h: <span className="font-medium text-orange-500">{project.bitsPerHour !== null ? project.bitsPerHour : '—'}</span>
+          </p>
+        </div>
 
         {/* BOM Items */}
         {project.bomItems.length > 0 && (

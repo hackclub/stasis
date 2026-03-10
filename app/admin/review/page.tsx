@@ -24,6 +24,7 @@ interface QueueItem {
   entryCount: number;
   bomCost: number;
   costPerUnit: number;
+  bitsPerHour: number | null;
   waitingMs: number;
   createdAt: string;
   preReviewed: boolean;
@@ -265,7 +266,9 @@ export default function ReviewQueuePage() {
                   <th className="text-left text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden lg:table-cell">Author</th>
                   <th className="text-left text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Category</th>
                   <th className="text-left text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">Tier</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">Cost</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">BOM</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">$/h</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">bits/h</th>
                   <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Work Units</th>
                   <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden lg:table-cell">Entries</th>
                   <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Waiting</th>
@@ -335,6 +338,12 @@ export default function ReviewQueuePage() {
                       </td>
                       <td className="px-3 py-3 text-right text-sm text-brown-800 hidden md:table-cell">
                         ${item.bomCost.toFixed(2)}
+                      </td>
+                      <td className="px-3 py-3 text-right text-sm text-brown-800 hidden md:table-cell">
+                        {item.costPerUnit > 0 ? `$${item.costPerUnit.toFixed(2)}` : '—'}
+                      </td>
+                      <td className="px-3 py-3 text-right text-sm text-orange-500 hidden md:table-cell">
+                        {item.bitsPerHour !== null ? item.bitsPerHour : '—'}
                       </td>
                       <td className="px-3 py-3 text-right text-sm text-brown-800">
                         {item.workUnits}h

@@ -255,6 +255,9 @@ export async function GET() {
       totalHoursApproved: Math.round((timeAggregates._sum.hoursApproved ?? 0) * 10) / 10,
       totalSessions: sessionCount,
       byCategory: categoryMap,
+      bitsPerHour: (timeAggregates._sum.hoursApproved ?? 0) > 0
+        ? Math.round((totalDistributed / (timeAggregates._sum.hoursApproved ?? 1)) * 10) / 10
+        : null,
     },
     economy: {
       totalDistributed,
