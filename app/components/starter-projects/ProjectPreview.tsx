@@ -15,9 +15,10 @@ interface Props {
   project: Project;
   onClick?: () => void;
   selected?: boolean;
+  tier?: number;
 }
 
-export function ProjectPreview({ project, onClick, selected = false }: Readonly<Props>) {
+export function ProjectPreview({ project, onClick, selected = false, tier }: Readonly<Props>) {
   const [failed, setFailed] = useState(false);
 
   const src = project.image ? `/projects/${project.image}` : `/projects/${project.id}.png`;
@@ -55,6 +56,11 @@ export function ProjectPreview({ project, onClick, selected = false }: Readonly<
             draggable="false"
             onError={() => setFailed(true)}
           />
+        )}
+        {tier !== undefined && (
+          <span className="absolute bottom-1 right-1 text-[0.6rem] md:text-xs font-mono text-cream-500/60 bg-brown-900/70 px-1.5 py-0.5 z-10">
+            T{tier}
+          </span>
         )}
       </button>
     </>

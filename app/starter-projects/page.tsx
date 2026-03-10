@@ -9,6 +9,7 @@ import { ProjectPreview } from '../components/starter-projects/ProjectPreview';
 import { ProjectGridHoverCorners } from '../components/starter-projects/ProjectGridHoverCorners';
 import Link from 'next/link';
 import { projects, getBadgeImageUrl, type StarterProject } from './projects';
+import { STARTER_PROJECTS } from '@/lib/starter-projects';
 
 export default function StarterProjectsPage() {
   const [gridOffset, setGridOffset] = useState(0);
@@ -405,7 +406,7 @@ export default function StarterProjectsPage() {
                 <div 
                   className="space-y-3 px-6 md:px-8 lg:mx-6 py-6 sm:py-10">
                   <h2 className="text-orange-600 text-5xl min-h-[6rem]">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
-                  <p className="text-cream-300 text-2xl">~{projects[selectedProjectIndex ?? 0].hours} {projects[selectedProjectIndex ?? 0].hours === 1 ? 'hour' : 'hours'}</p>
+                  <p className="text-cream-300 text-2xl">TIER {STARTER_PROJECTS.find(p => p.id === projects[selectedProjectIndex ?? 0].id)?.tier ?? '?'} · ~{projects[selectedProjectIndex ?? 0].hours} {projects[selectedProjectIndex ?? 0].hours === 1 ? 'hour' : 'hours'}</p>
                   <p className="text-cream-300 text-lg min-h-[5.25rem]">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
                 <div className="w-full">
@@ -449,11 +450,12 @@ export default function StarterProjectsPage() {
               <p className="text-cream-600/40 absolute top-1 right-2 z-2">PROJECTS</p>
               <ProjectGridHoverCorners gridEl={gridEl} selectedIndex={selectedProjectIndex} />
               {projects.map((project, i) => (
-                <ProjectPreview 
+                <ProjectPreview
                   key={i}
-                  project={project} 
-                  selected={selectedProjectIndex === i} 
-                  onClick={() => handleProjectClick(i)} 
+                  project={project}
+                  selected={selectedProjectIndex === i}
+                  onClick={() => handleProjectClick(i)}
+                  tier={STARTER_PROJECTS.find(p => p.id === project.id)?.tier}
                 />
               ))}
               {Array.from({ length: placeholderCount }).map((_, i) => (

@@ -3,10 +3,10 @@ import { projects } from '@/app/starter-projects/projects';
 // Tier assignments for each starter project (hardcoded based on project complexity)
 const TIER_MAP: Record<string, number> = {
   'blinky': 1,
-  'squeak': 2,
-  'spotify-display': 2,
-  'devboard': 3,
-  'split-keyboard': 3,
+  'squeak': 1,
+  'spotify-display': 1,
+  'devboard': 2,
+  'split-keyboard': 2,
 };
 
 export const STARTER_PROJECTS = projects.map(p => ({
