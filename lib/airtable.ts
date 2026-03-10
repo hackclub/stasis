@@ -455,7 +455,39 @@ export async function syncProjectToAirtable(
   const nameParts = (user.name || '').trim().split(/\s+/);
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
-  const totalHours = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0);
+  const workSessionHours = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0);
+
+  // Sum firmware time from linked hackatime projects,
+  // preferring admin-reviewed hoursApproved over raw API hours
+  let firmwareHours = 0;
+  const hackatimeLinks = await prisma.hackatimeProject.findMany({
+    where: { projectId: project.id },
+  });
+  if (hackatimeLinks.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hackatimeUserId = (user as any).hackatimeUserId as string | null;
+    const results = await Promise.all(
+      hackatimeLinks.map(async (hp) => {
+        if (hp.hoursApproved !== null) return hp.hoursApproved;
+        if (!hackatimeUserId) return 0;
+        try {
+          const res = await fetch(
+            `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(hackatimeUserId)}/project/${encodeURIComponent(hp.hackatimeProject)}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            return (data.total_seconds ?? 0) / 3600;
+          }
+        } catch {
+          // ignore fetch errors for individual projects
+        }
+        return 0;
+      })
+    );
+    firmwareHours = results.reduce((sum, h) => sum + h, 0);
+  }
+
+  const totalHours = workSessionHours + firmwareHours;
 
   await submitYSWSProjectSubmission({
     githubUrl: project.githubRepo,
