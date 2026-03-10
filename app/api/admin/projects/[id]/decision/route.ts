@@ -7,8 +7,7 @@ import { logAdminAction, AuditAction } from "@/lib/audit"
 import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 import { sendSlackDM } from "@/lib/slack"
-import { submitYSWSProjectSubmission } from "@/lib/airtable"
-import { decryptPII } from "@/lib/pii"
+import { syncProjectToAirtable } from "@/lib/airtable"
 
 export async function POST(
   request: NextRequest,
@@ -188,37 +187,11 @@ export async function POST(
 
     // Submit to YSWS Airtable on design approval
     if (decision === "approved") {
-      const safeDecrypt = (val: string | null | undefined) => {
-        if (!val) return null
-        try { return decryptPII(val) } catch { return null }
+      try {
+        await syncProjectToAirtable(project.userId, project)
+      } catch (err) {
+        console.error("Failed to submit YSWS project to Airtable:", err)
       }
-
-      prisma.user.findUnique({
-        where: { id: project.userId },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }).then((user: any) => {
-        if (!user) return
-        const nameParts = (user.name || "").trim().split(/\s+/)
-        const firstName = nameParts[0] || ""
-        const lastName = nameParts.slice(1).join(" ") || ""
-        const totalHours = project.workSessions.reduce((sum: number, s: { hoursClaimed: number }) => sum + s.hoursClaimed, 0)
-        return submitYSWSProjectSubmission({
-          githubUrl: project.githubRepo,
-          firstName,
-          lastName,
-          email: user.email,
-          description: project.description,
-          bannerUrl: project.coverImage,
-          addressLine1: safeDecrypt(user.encryptedAddressStreet),
-          addressLine2: null,
-          city: safeDecrypt(user.encryptedAddressCity),
-          state: safeDecrypt(user.encryptedAddressState),
-          country: safeDecrypt(user.encryptedAddressCountry),
-          zip: safeDecrypt(user.encryptedAddressZip),
-          birthday: safeDecrypt(user.encryptedBirthday),
-          totalHours,
-        })
-      }).catch((err: unknown) => console.error("Failed to submit YSWS project to Airtable:", err))
     }
 
     return NextResponse.json(updatedProject)
