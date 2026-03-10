@@ -130,6 +130,11 @@ export default function AdminLayout({
                   Purchases
                 </Link>
               )}
+              {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/stats" className={getTabClass('/admin/stats')}>
+                  Stats
+                </Link>
+              )}
             </div>
           </div>
         </div>
