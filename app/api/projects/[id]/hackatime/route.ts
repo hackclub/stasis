@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { sanitize } from "@/lib/sanitize"
+import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
 export async function GET(
   request: NextRequest,
@@ -39,18 +39,7 @@ export async function GET(
 
   const linkedProjects = await Promise.all(
     project.hackatimeProjects.map(async (hp) => {
-      let totalSeconds = 0
-      try {
-        const res = await fetch(
-          `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(user.hackatimeUserId!)}/project/${encodeURIComponent(hp.hackatimeProject)}`
-        )
-        if (res.ok) {
-          const data = await res.json()
-          totalSeconds = data.total_seconds ?? 0
-        }
-      } catch {
-        // ignore fetch errors for individual projects
-      }
+      const totalSeconds = await fetchHackatimeProjectSeconds(user.hackatimeUserId!, hp.hackatimeProject)
       return {
         id: hp.id,
         hackatimeProject: hp.hackatimeProject,
@@ -92,7 +81,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const hackatimeProject = sanitize(body.hackatimeProject)
+  const hackatimeProject = typeof body.hackatimeProject === "string" ? body.hackatimeProject.trim() : ""
 
   if (!hackatimeProject) {
     return NextResponse.json({ error: "hackatimeProject is required" }, { status: 400 })

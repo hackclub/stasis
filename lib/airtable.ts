@@ -1,5 +1,6 @@
 import Airtable from 'airtable';
 import prisma from './prisma';
+import { fetchHackatimeProjectSeconds } from './hackatime';
 
 function usePostgres(): boolean {
   return process.env.RSVP_USE_POSTGRES === 'true';
@@ -470,18 +471,8 @@ export async function syncProjectToAirtable(
       hackatimeLinks.map(async (hp) => {
         if (hp.hoursApproved !== null) return hp.hoursApproved;
         if (!hackatimeUserId) return 0;
-        try {
-          const res = await fetch(
-            `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(hackatimeUserId)}/project/${encodeURIComponent(hp.hackatimeProject)}`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            return (data.total_seconds ?? 0) / 3600;
-          }
-        } catch {
-          // ignore fetch errors for individual projects
-        }
-        return 0;
+        const totalSeconds = await fetchHackatimeProjectSeconds(hackatimeUserId, hp.hackatimeProject);
+        return totalSeconds / 3600;
       })
     );
     firmwareHours = results.reduce((sum, h) => sum + h, 0);

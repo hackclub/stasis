@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requireAdmin, requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { logAdminAction, AuditAction } from "@/lib/audit"
+import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
 export async function GET(
   request: NextRequest,
@@ -61,20 +62,9 @@ export async function GET(
 
   const hackatimeProjectsWithHours = await Promise.all(
     project.hackatimeProjects.map(async (hp) => {
-      let totalSeconds = 0
-      if (user?.hackatimeUserId) {
-        try {
-          const res = await fetch(
-            `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(user.hackatimeUserId)}/project/${encodeURIComponent(hp.hackatimeProject)}`
-          )
-          if (res.ok) {
-            const data = await res.json()
-            totalSeconds = data.total_seconds ?? 0
-          }
-        } catch {
-          // ignore fetch errors
-        }
-      }
+      const totalSeconds = user?.hackatimeUserId
+        ? await fetchHackatimeProjectSeconds(user.hackatimeUserId, hp.hackatimeProject)
+        : 0
       return {
         ...hp,
         totalSeconds,

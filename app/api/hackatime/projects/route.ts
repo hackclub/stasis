@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   const res = await fetch(
     "https://hackatime.hackclub.com/api/v1/authenticated/projects",
-    { headers: { Authorization: `Bearer ${account.accessToken}` } }
+    { headers: { Authorization: `Bearer ${account.accessToken}` }, signal: AbortSignal.timeout(10_000) }
   )
 
   if (!res.ok) {

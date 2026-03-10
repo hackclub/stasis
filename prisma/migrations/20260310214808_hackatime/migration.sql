@@ -1,8 +1,14 @@
+-- AlterEnum
+ALTER TYPE "AuditAction" ADD VALUE 'ADMIN_REVIEW_HACKATIME';
+
 -- CreateTable
 CREATE TABLE "hackatime_project" (
     "id" TEXT NOT NULL,
     "hackatimeProject" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
+    "hoursApproved" DOUBLE PRECISION,
+    "reviewedAt" TIMESTAMP(3),
+    "reviewedBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "hackatime_project_pkey" PRIMARY KEY ("id")
