@@ -69,6 +69,7 @@ export function SessionForm({
     const [media, setMedia] = useState<MediaItem[]>(initialData?.media ?? []);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+    const [timeTouched, setTimeTouched] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
@@ -543,6 +544,7 @@ export function SessionForm({
         setError(null);
 
         if (hoursNum <= 0) {
+            setTimeTouched(true);
             setError('Please enter a time greater than 0');
             return;
         }
@@ -654,6 +656,7 @@ export function SessionForm({
                                 }
                                 const val = parseInt(raw, 10);
                                 if (val > 24) return;
+                                if (val > 0) setTimeTouched(true);
                                 setHoursValue(val);
                                 if (val >= 3 || raw.length >= 2) {
                                     minutesRef.current?.focus();
@@ -677,6 +680,7 @@ export function SessionForm({
                                 }
                                 const val = parseInt(raw, 10);
                                 if (val > 59) return;
+                                if (val > 0) setTimeTouched(true);
                                 setMinutesValue(val);
                             }}
                             onFocus={(e) => e.target.select()}
@@ -684,7 +688,7 @@ export function SessionForm({
                         />
                     </div>
 
-                    {hoursNum === 0 && (
+                    {hoursNum === 0 && timeTouched && (
                         <p className="text-red-500 text-sm mt-4">
                             Please enter a time greater than 0
                         </p>
