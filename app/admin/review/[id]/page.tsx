@@ -53,6 +53,13 @@ interface ReviewData {
         link: string | null;
         status: string;
       }>;
+      hackatimeProjects: Array<{
+        id: string;
+        hackatimeProject: string;
+        totalSeconds: number;
+        hoursApproved: number | null;
+      }>;
+      firmwareHours: number;
       submissions: Array<{ id: string; stage: string; createdAt: string }>;
     };
     reviews: Array<{
@@ -495,6 +502,30 @@ export default function ReviewDetailPage() {
             <p className="text-brown-800 font-medium">{project.minWorkUnits}h</p>
           </div>
         </div>
+
+        {/* Firmware Time from Hackatime */}
+        {project.hackatimeProjects.length > 0 && (
+          <div className="mb-4 bg-cream-200 border border-cream-300 p-3">
+            <p className="text-cream-600 text-xs uppercase mb-2">Firmware Time (Hackatime)</p>
+            <div className="space-y-1">
+              {project.hackatimeProjects.map((hp) => (
+                <div key={hp.id} className="flex items-center justify-between text-sm">
+                  <span className="text-brown-800">{hp.hackatimeProject}</span>
+                  <span className="text-brown-800">
+                    {(hp.totalSeconds / 3600).toFixed(1)}h
+                    {hp.hoursApproved !== null && (
+                      <span className="text-green-700 ml-2">({hp.hoursApproved}h approved)</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-brown-800 text-sm mt-2">
+              Firmware total: <span className="font-medium">{project.firmwareHours}h</span>
+              <span className="text-cream-600 ml-2">(included in {project.totalWorkUnits}h total)</span>
+            </p>
+          </div>
+        )}
 
         {/* Bar Chart */}
         {project.workSessions.length > 0 && (
