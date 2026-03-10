@@ -1239,6 +1239,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))}&nbsp;bits
                     </span>
                   </div>
+                  {project.totalHoursClaimed > 0 && (
+                    <div className="flex items-center">
+                      <span className="text-brown-800 text-xs mr-3">BOM cost per hour:</span>
+                      <span className="text-brown-800 text-sm">
+                        ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0) / project.totalHoursClaimed)}/h
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

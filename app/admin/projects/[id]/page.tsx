@@ -728,6 +728,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 const approvedCost = project.bomItems
                   .filter((item) => item.status === 'approved')
                   .reduce((sum, item) => sum + item.costPerItem * item.quantity, 0);
+                const costPerHour = totalHoursClaimed > 0 ? totalCost / totalHoursClaimed : null;
                 return (
                   <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-4">
                     <div className="flex gap-6">
@@ -738,6 +739,12 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       <div>
                         <p className="text-brown-800 text-xs uppercase mb-1">Approved</p>
                         <p className="text-green-600 text-lg">${formatPrice(approvedCost)}</p>
+                      </div>
+                      <div>
+                        <p className="text-brown-800 text-xs uppercase mb-1">Cost / Hour</p>
+                        <p className="text-brown-800 text-lg">
+                          {costPerHour !== null ? `$${formatPrice(costPerHour)}/h` : '—'}
+                        </p>
                       </div>
                     </div>
                   </div>

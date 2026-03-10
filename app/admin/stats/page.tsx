@@ -43,6 +43,7 @@ interface Stats {
   bom: {
     totalItems: number;
     totalApprovedCost: number;
+    costPerHour: number | null;
     byStatus: Record<string, number>;
   };
   qualification: {
@@ -410,7 +411,7 @@ export default function StatsPage() {
         {/* Bill of Materials */}
         <Section title="Bill of Materials">
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <div className="text-brown-800 text-xs uppercase tracking-wider">Total Items</div>
                 <div className="text-orange-500 text-xl font-mono">{stats.bom.totalItems}</div>
@@ -418,6 +419,13 @@ export default function StatsPage() {
               <div>
                 <div className="text-brown-800 text-xs uppercase tracking-wider">Approved Cost</div>
                 <div className="text-orange-500 text-xl font-mono">${stats.bom.totalApprovedCost.toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="text-brown-800 text-xs uppercase tracking-wider">Cost / Hour</div>
+                <div className="text-orange-500 text-xl font-mono">
+                  {stats.bom.costPerHour !== null ? `$${stats.bom.costPerHour.toFixed(2)}` : '—'}
+                </div>
+                <div className="text-brown-800/60 text-xs">approved BOM / approved hours</div>
               </div>
             </div>
             <div className="space-y-1 text-sm">
