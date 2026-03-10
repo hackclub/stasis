@@ -55,6 +55,7 @@ export async function GET(
         id: hp.id,
         hackatimeProject: hp.hackatimeProject,
         totalSeconds,
+        hoursApproved: hp.hoursApproved,
         createdAt: hp.createdAt,
       }
     })

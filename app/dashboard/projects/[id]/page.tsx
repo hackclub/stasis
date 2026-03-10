@@ -145,8 +145,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
-  const [hackatimeLinked, setHackatimeLinked] = useState(false);
-  const [hackatimeProjects, setHackatimeProjects] = useState<{ id: string; hackatimeProject: string; totalSeconds: number }[]>([]);
+  const [hackatimeLinked, setHackatimeLinked] = useState<boolean | null>(null);
+  const [hackatimeProjects, setHackatimeProjects] = useState<{ id: string; hackatimeProject: string; totalSeconds: number; hoursApproved: number | null }[]>([]);
   const [availableHackatimeProjects, setAvailableHackatimeProjects] = useState<{ name: string; total_seconds: number; archived: boolean }[]>([]);
   const [loadingHackatime, setLoadingHackatime] = useState(false);
   const [hackatimeSearch, setHackatimeSearch] = useState('');
@@ -711,6 +711,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const handleUnlinkHackatimeProject = async (hackatimeProjectId: string) => {
     if (!project) return;
+    const hp = hackatimeProjects.find(p => p.id === hackatimeProjectId);
+    if (hp?.hoursApproved !== null && hp?.hoursApproved !== undefined) {
+      if (!confirm('This project has already been reviewed. Unlinking will discard the review. Continue?')) return;
+    }
     try {
       const res = await fetch(`/api/projects/${project.id}/hackatime?hackatimeProjectId=${hackatimeProjectId}`, {
         method: 'DELETE',
@@ -1077,7 +1081,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               Journaling time spent on writing firmware is not required, link your <a href="https://hackatime.hackclub.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">Hackatime</a> projects and we&apos;ll pull your coding time automatically.
             </p>
             
-            {!hackatimeLinked ? (
+            {hackatimeLinked === null ? (
+              <div className="loader" style={{ width: 12, height: 18 }} />
+            ) : !hackatimeLinked ? (
               <p className="text-brown-800 text-sm">
                 No Hackatime account linked.{' '}
                 <button
@@ -1128,8 +1134,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       onChange={(e) => setHackatimeSearch(e.target.value)}
                       onFocus={() => setHackatimePickerOpen(true)}
                       onBlur={() => setTimeout(() => setHackatimePickerOpen(false), 150)}
+                      disabled={linkingHackatime}
                       placeholder="+ Link a Hackatime project..."
-                      className="w-full bg-white border-2 border-dashed border-cream-400 text-brown-800 px-3 py-2.5 text-sm focus:border-orange-500 focus:border-solid focus:outline-none transition-colors placeholder:text-cream-500"
+                      className="w-full bg-white border-2 border-dashed border-cream-400 text-brown-800 px-3 py-2.5 text-sm focus:border-orange-500 focus:border-solid focus:outline-none transition-colors placeholder:text-cream-500 disabled:opacity-50"
                     />
                     {hackatimePickerOpen && (
                       <div className="absolute z-10 left-0 right-0 border border-cream-300 border-t-0 max-h-48 overflow-y-auto bg-white">
