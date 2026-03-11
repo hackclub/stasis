@@ -1,9 +1,25 @@
 'use client';
 
-import { useSession, signOut } from "@/lib/auth-client";
+import { useState, useEffect } from 'react';
+import { useSession, signOut, linkOAuth2 } from "@/lib/auth-client";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const [hackatimeLinked, setHackatimeLinked] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkHackatime() {
+      try {
+        const res = await fetch('/api/hackatime/projects');
+        setHackatimeLinked(res.ok);
+      } catch {
+        setHackatimeLinked(false);
+      }
+    }
+    if (session) {
+      checkHackatime();
+    }
+  }, [session]);
 
   if (!session) {
     return null;
@@ -26,6 +42,32 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="border-t border-cream-400 pt-6">
+          <h2 className="text-orange-500 text-xl uppercase mb-4">Hackatime</h2>
+          <p className="text-brown-800 text-sm mb-3">
+            Link your Hackatime account to automatically track firmware coding time on your projects.
+          </p>
+          {hackatimeLinked === null ? (
+            <div className="loader" style={{ width: 12, height: 18 }} />
+          ) : hackatimeLinked ? (
+            <div className="flex items-center gap-3">
+              <span className="text-green-600 text-sm flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Hackatime account linked
+              </span>
+            </div>
+          ) : (
+            <button
+              onClick={() => linkOAuth2({ providerId: "hackatime", callbackURL: "/dashboard/settings" })}
+              className="bg-cream-800 hover:bg-cream-900 px-6 py-3 text-lg uppercase tracking-wider text-cream-100 transition-colors cursor-pointer"
+            >
+              Link Hackatime Account
+            </button>
+          )}
         </div>
 
         <div className="border-t border-cream-400 pt-6">

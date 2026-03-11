@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission, hasRole, Role } from "@/lib/permissions"
 import { getTierById } from "@/lib/tiers"
+import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
 export async function GET(
   _request: NextRequest,
@@ -19,13 +20,14 @@ export async function GET(
   let project = await prisma.project.findUnique({
     where: { id },
     include: {
-      user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
+      user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true } },
       workSessions: {
         include: { media: true, timelapses: true },
         orderBy: { createdAt: "desc" },
       },
       badges: true,
       bomItems: true,
+      hackatimeProjects: true,
       reviewActions: {
         orderBy: { createdAt: "desc" },
       },
@@ -42,13 +44,14 @@ export async function GET(
       project = await prisma.project.findUnique({
         where: { id: submission.projectId },
         include: {
-          user: { select: { id: true, name: true, email: true, image: true, slackId: true } },
+          user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true } },
           workSessions: {
             include: { media: true, timelapses: true },
             orderBy: { createdAt: "desc" },
           },
           badges: true,
           bomItems: true,
+          hackatimeProjects: true,
           reviewActions: {
             orderBy: { createdAt: "desc" },
           },
@@ -94,11 +97,26 @@ export async function GET(
     // Table doesn't exist yet — that's fine
   }
 
+  // Fetch firmware hours from linked hackatime projects
+  const hackatimeProjectsWithHours = await Promise.all(
+    project.hackatimeProjects.map(async (hp) => {
+      const totalSeconds = project.user.hackatimeUserId
+        ? await fetchHackatimeProjectSeconds(project.user.hackatimeUserId, hp.hackatimeProject)
+        : 0
+      return { ...hp, totalSeconds }
+    })
+  )
+  const firmwareHours = hackatimeProjectsWithHours.reduce((sum, hp) => {
+    const hours = hp.hoursApproved !== null ? hp.hoursApproved : hp.totalSeconds / 3600
+    return sum + hours
+  }, 0)
+
   // Compute stats
   const workSessions = project.workSessions
-  const totalWorkUnits = workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+  const journalHours = workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+  const totalWorkUnits = journalHours + firmwareHours
   const entryCount = workSessions.length
-  const avgWorkUnits = entryCount > 0 ? totalWorkUnits / entryCount : 0
+  const avgWorkUnits = entryCount > 0 ? journalHours / entryCount : 0
   const maxWorkUnits = entryCount > 0 ? Math.max(...workSessions.map((s) => s.hoursClaimed)) : 0
   const minWorkUnits = entryCount > 0 ? Math.min(...workSessions.map((s) => s.hoursClaimed)) : 0
   const bomCost = project.bomItems
@@ -163,6 +181,9 @@ export async function GET(
       project: {
         ...project,
         reviewActions: undefined,
+        hackatimeProjects: hackatimeProjectsWithHours,
+        firmwareHours: Math.round(firmwareHours * 10) / 10,
+        journalHours: Math.round(journalHours * 10) / 10,
         totalWorkUnits: Math.round(totalWorkUnits * 10) / 10,
         entryCount,
         avgWorkUnits: Math.round(avgWorkUnits * 10) / 10,
