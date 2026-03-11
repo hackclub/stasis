@@ -1,6 +1,7 @@
 import Airtable from 'airtable';
 import prisma from './prisma';
 import { fetchHackatimeProjectSeconds } from './hackatime';
+import { getTierById } from './tiers';
 
 function usePostgres(): boolean {
   return process.env.RSVP_USE_POSTGRES === 'true';
@@ -397,6 +398,9 @@ export async function submitYSWSProjectSubmission(data: {
   totalHours: number;
   grantAmount: number | null;
   hoursJustification: string | null;
+  complexityTier: string | null;
+  stasisId: string | null;
+  slackId: string | null;
 }): Promise<void> {
   const base = getAirtableBase();
   if (!base) {
@@ -429,13 +433,16 @@ export async function submitYSWSProjectSubmission(data: {
   if (data.totalHours > 0) fields['Optional - Override Hours Spent'] = data.totalHours;
   if (data.hoursJustification) fields['Optional - Override Hours Spent Justification'] = data.hoursJustification;
   if (data.grantAmount !== null) fields['Requested Grant Amount'] = data.grantAmount;
+  if (data.complexityTier) fields['Complexity Tier'] = data.complexityTier;
+  if (data.stasisId) fields['Stasis ID'] = data.stasisId;
+  if (data.slackId) fields['Slack ID'] = data.slackId;
 
   await base(tableName).create([{ fields }]);
 }
 
 export async function syncProjectToAirtable(
   userId: string,
-  project: { id: string; githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
+  project: { id: string; tier?: number | null; githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
   hoursJustification?: string,
   airtableGrantAmount?: number | null,
 ): Promise<void> {
@@ -507,6 +514,9 @@ export async function syncProjectToAirtable(
     totalHours,
     grantAmount,
     hoursJustification: hoursJustification ?? null,
+    complexityTier: project.tier ? (getTierById(project.tier)?.name ?? null) : null,
+    stasisId: project.id,
+    slackId: user.slackId ?? null,
   });
 }
 

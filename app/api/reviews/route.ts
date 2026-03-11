@@ -24,13 +24,13 @@ export async function GET(request: NextRequest) {
 
   // Filter by stage/status
   if (category === "DESIGN") {
-    projectWhere.designStatus = { in: ["in_review", "update_requested"] }
+    projectWhere.designStatus = "in_review"
   } else if (category === "BUILD") {
-    projectWhere.buildStatus = { in: ["in_review", "update_requested"] }
+    projectWhere.buildStatus = "in_review"
   } else {
     projectWhere.OR = [
-      { designStatus: { in: ["in_review", "update_requested"] } },
-      { buildStatus: { in: ["in_review", "update_requested"] } },
+      { designStatus: "in_review" },
+      { buildStatus: "in_review" },
     ]
   }
 
