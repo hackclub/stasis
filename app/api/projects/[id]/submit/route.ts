@@ -51,7 +51,7 @@ export async function POST(
 
   if (stage === "design") {
     // Design stage submission
-    if (project.designStatus !== "draft" && project.designStatus !== "rejected") {
+    if (project.designStatus !== "draft" && project.designStatus !== "rejected" && project.designStatus !== "update_requested") {
       return NextResponse.json(
         { error: "Design already submitted for review" },
         { status: 400 }
