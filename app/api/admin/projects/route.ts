@@ -28,6 +28,7 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
       },
       badges: true,
+      hackatimeProjects: true,
     },
     orderBy: { createdAt: "desc" },
   })

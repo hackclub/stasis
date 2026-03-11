@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requireAdmin, requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { logAdminAction, AuditAction } from "@/lib/audit"
+import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
 export async function GET(
   request: NextRequest,
@@ -36,6 +37,7 @@ export async function GET(
       reviewActions: {
         orderBy: { createdAt: "desc" },
       },
+      hackatimeProjects: true,
     },
   })
 
@@ -52,7 +54,25 @@ export async function GET(
     0
   )
 
-  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved })
+  // Fetch hackatime hours for each linked project
+  const user = await prisma.user.findUnique({
+    where: { id: project.userId },
+    select: { hackatimeUserId: true },
+  })
+
+  const hackatimeProjectsWithHours = await Promise.all(
+    project.hackatimeProjects.map(async (hp) => {
+      const totalSeconds = user?.hackatimeUserId
+        ? await fetchHackatimeProjectSeconds(user.hackatimeUserId, hp.hackatimeProject)
+        : 0
+      return {
+        ...hp,
+        totalSeconds,
+      }
+    })
+  )
+
+  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved, hackatimeProjects: hackatimeProjectsWithHours })
 }
 
 // PATCH: admin-only actions — hide/unhide and unapprove design/build

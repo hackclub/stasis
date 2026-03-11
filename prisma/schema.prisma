@@ -227,9 +227,25 @@ model Project {
   kudos            Kudos[]
   featuredAt       DateTime?
   featuredById     String?
+  hackatimeProjects    HackatimeProject[]
 
   @@index([userId])
   @@map("project")
+}
+
+model HackatimeProject {
+  id               String    @id @default(cuid())
+  hackatimeProject String
+  projectId        String
+  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  hoursApproved    Float?
+  reviewedAt       DateTime?
+  reviewedBy       String?
+  createdAt        DateTime  @default(now())
+
+  @@unique([projectId, hackatimeProject])
+  @@index([projectId])
+  @@map("hackatime_project")
 }
 
 model ProjectSubmission {
@@ -393,6 +409,7 @@ enum AuditAction {
   ADMIN_LOGOUT_ALL_USERS
   ADMIN_REQUEST_UPDATE
   ADMIN_REVIEW_SESSION
+  ADMIN_REVIEW_HACKATIME
   ADMIN_APPROVE_BOM
   ADMIN_REJECT_BOM
   
