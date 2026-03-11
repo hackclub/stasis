@@ -72,6 +72,7 @@ export async function POST(
       user: { select: { id: true, name: true, slackId: true } },
       workSessions: true,
       bomItems: true,
+      badges: true,
     },
   })
 
@@ -90,6 +91,7 @@ export async function POST(
           user: { select: { id: true, name: true, slackId: true } },
           workSessions: true,
           bomItems: true,
+          badges: true,
         },
       })
       stage = submission.stage as "DESIGN" | "BUILD"
@@ -240,10 +242,56 @@ export async function POST(
 
     // Sync to Airtable on approval
     {
-      const bomCost = project!.bomItems
-        .filter((b) => b.status === "approved" || b.status === "pending")
-        .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
-      const hoursJustification = typeof reason === "string" && reason.trim() ? reason.trim() : undefined
+      const approvedBom = project!.bomItems.filter((b) => b.status === "approved" || b.status === "pending")
+      const bomCost = approvedBom.reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+
+      // Build hours justification with comprehensive project stats
+      const sessions = project!.workSessions
+      const designSessions = sessions.filter((s) => s.stage === "DESIGN")
+      const buildSessions = sessions.filter((s) => s.stage === "BUILD")
+      const designHours = designSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+      const buildHours = buildSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+      const totalHours = sessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+      const entryCount = sessions.length
+
+      const tierInfo = project!.tier ? getTierById(project!.tier) : null
+      const badges = project!.badges
+      const reviewerName = authCheck.session.user.name || "Unknown"
+      const reviewerEmail = authCheck.session.user.email || "unknown"
+      const dateStr = new Date().toISOString().slice(0, 10)
+      const reasonText = typeof reason === "string" && reason.trim() ? reason.trim() : null
+
+      const lines: string[] = []
+      lines.push(`Project: "${project!.title}" (${stageKey} approval)`)
+      lines.push(`User: ${project!.user.name || "Unknown"}`)
+      if (tierInfo) lines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
+      lines.push("")
+      lines.push(`This user logged ${totalHours.toFixed(1)} hours across ${entryCount} journal entr${entryCount === 1 ? "y" : "ies"}.`)
+      if (designSessions.length > 0) lines.push(`  Design: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
+      if (buildSessions.length > 0) lines.push(`  Build: ${buildHours.toFixed(1)}h across ${buildSessions.length} entr${buildSessions.length === 1 ? "y" : "ies"}`)
+      lines.push("")
+      if (approvedBom.length > 0) {
+        lines.push(`BOM (${approvedBom.length} item${approvedBom.length === 1 ? "" : "s"}, $${bomCost.toFixed(2)} total):`)
+        for (const item of approvedBom) {
+          const itemTotal = item.costPerItem * item.quantity
+          lines.push(`  - ${item.name}: ${item.quantity}x $${item.costPerItem.toFixed(2)} = $${itemTotal.toFixed(2)}${item.status === "pending" ? " (pending)" : ""}`)
+        }
+        lines.push("")
+      } else {
+        lines.push(`BOM: None${project!.noBomNeeded ? " (marked as no BOM needed)" : ""}`)
+        lines.push("")
+      }
+      if (badges.length > 0) {
+        lines.push(`Badges: ${badges.map((b) => b.badge).join(", ")}`)
+        lines.push("")
+      }
+      if (project!.githubRepo) lines.push(`GitHub: ${project!.githubRepo}`)
+      if (project!.description) lines.push(`Description: ${project!.description}`)
+      lines.push("")
+      lines.push(`On ${dateStr}, ${reviewerName} (${reviewerEmail}) decided "approved"${reasonText ? ` with reason: ${reasonText}` : "."}`)
+
+      const hoursJustification = lines.join("\n")
+
       try {
         await syncProjectToAirtable(project!.userId, project!, hoursJustification, bomCost)
       } catch (err) {
