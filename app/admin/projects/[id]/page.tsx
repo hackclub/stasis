@@ -154,6 +154,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [buildComments, setBuildComments] = useState('');
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [buildHoursJustification, setBuildHoursJustification] = useState('');
+  const [justificationManuallyEdited, setJustificationManuallyEdited] = useState(false);
   const [buildAirtableGrantAmount, setBuildAirtableGrantAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [adminActioning, setAdminActioning] = useState(false);
@@ -205,6 +206,41 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       setIsAdmin((data.roles as string[])?.includes('ADMIN'));
     }).catch(() => {});
   }, [projectId, router]);
+
+  // Auto-generate hours justification from session reviews
+  useEffect(() => {
+    if (!project || justificationManuallyEdited) return;
+    const sessions = project.workSessions;
+    if (sessions.length === 0) return;
+
+    const lines: string[] = [];
+    let totalApproved = 0;
+    let totalClaimed = 0;
+
+    sessions.forEach((session, i) => {
+      const review = sessionReviews[session.id];
+      const approved = review?.hoursApproved ?? session.hoursClaimed;
+      const claimed = session.hoursClaimed;
+      totalApproved += approved;
+      totalClaimed += claimed;
+
+      const date = new Date(session.createdAt).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+      });
+      lines.push(`Session ${i + 1} (${date}) — ${approved}h approved of ${claimed}h claimed`);
+
+      const justification = review?.reviewComments?.trim();
+      if (justification) {
+        lines.push(`Internal Justification: ${justification}`);
+      }
+
+      lines.push('');
+    });
+
+    lines.push(`Total: ${totalApproved}h approved of ${totalClaimed}h claimed`);
+
+    setBuildHoursJustification(lines.join('\n').trim());
+  }, [project, sessionReviews, justificationManuallyEdited]);
 
   const handleAdminAction = async (action: string) => {
     if (!project) return;
@@ -1065,15 +1101,27 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
                 <div className="mb-4">
                   <label className="text-brown-800 text-xs uppercase block mb-2">
-                    Override Hours Justification (optional, sent to Airtable)
+                    Hours Justification (sent to Airtable)
                   </label>
                   <textarea
                     value={buildHoursJustification}
-                    onChange={(e) => setBuildHoursJustification(e.target.value)}
-                    rows={2}
-                    className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
-                    placeholder="Explain why the hours are being overridden..."
+                    onChange={(e) => {
+                      setBuildHoursJustification(e.target.value);
+                      setJustificationManuallyEdited(true);
+                    }}
+                    rows={6}
+                    className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-y"
+                    placeholder="Auto-generated from session reviews..."
                   />
+                  {justificationManuallyEdited && (
+                    <button
+                      type="button"
+                      onClick={() => setJustificationManuallyEdited(false)}
+                      className="text-orange-500 text-xs mt-1 hover:underline cursor-pointer"
+                    >
+                      Reset to auto-generated
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex gap-3">
