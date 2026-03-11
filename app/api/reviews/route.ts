@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl
   const search = url.searchParams.get("search") || ""
   const category = url.searchParams.get("category") || "" // DESIGN or BUILD
+  const guide = url.searchParams.get("guide") || "" // starter project ID filter
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"))
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20")))
   const offset = (page - 1) * limit
@@ -32,6 +33,13 @@ export async function GET(request: NextRequest) {
       { designStatus: "in_review" },
       { buildStatus: "in_review" },
     ]
+  }
+
+  // Filter by starter project guide
+  if (guide === "custom") {
+    projectWhere.starterProjectId = null
+  } else if (guide) {
+    projectWhere.starterProjectId = guide
   }
 
   // Search filter
@@ -107,6 +115,7 @@ export async function GET(request: NextRequest) {
       claimedBySelf: false,
       claimerName: null,
       reviewCount: 0,
+      starterProjectId: project.starterProjectId,
     }
   })
 

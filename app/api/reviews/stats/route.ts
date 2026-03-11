@@ -13,11 +13,12 @@ export async function GET() {
   const pendingProjects = await prisma.project.findMany({
     where: {
       OR: [
-        { designStatus: { in: ["in_review", "update_requested"] } },
-        { buildStatus: { in: ["in_review", "update_requested"] } },
+        { designStatus: "in_review" },
+        { buildStatus: "in_review" },
       ],
     },
-    include: {
+    select: {
+      starterProjectId: true,
       workSessions: { select: { hoursClaimed: true } },
     },
   })
@@ -26,6 +27,13 @@ export async function GET() {
   const totalPendingWorkUnits = pendingProjects.reduce((sum, p) => {
     return sum + p.workSessions.reduce((s, ws) => s + ws.hoursClaimed, 0)
   }, 0)
+
+  // Count per guide (starter project)
+  const guideCounts: Record<string, number> = {}
+  for (const p of pendingProjects) {
+    const key = p.starterProjectId || "custom"
+    guideCounts[key] = (guideCounts[key] || 0) + 1
+  }
 
   // Use ProjectReviewAction (existing table) for reviewer leaderboard stats
   const allReviewActions = await prisma.projectReviewAction.findMany({
@@ -72,5 +80,6 @@ export async function GET() {
     totalPendingWorkUnits: Math.round(totalPendingWorkUnits * 10) / 10,
     topReviewersWeekly: formatLeaderboard(weeklyByReviewer),
     topReviewersAllTime: formatLeaderboard(allTimeByReviewer),
+    guideCounts,
   })
 }

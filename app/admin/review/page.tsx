@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { getTierById } from '@/lib/tiers';
+import { projects as starterProjects } from '@/app/starter-projects/projects';
 
 interface ReviewAuthor {
   id: string;
@@ -53,6 +54,7 @@ interface Stats {
   totalPendingWorkUnits: number;
   topReviewersWeekly: ReviewerStat[];
   topReviewersAllTime: ReviewerStat[];
+  guideCounts: Record<string, number>;
 }
 
 function formatWaitTime(ms: number): string {
@@ -78,6 +80,7 @@ export default function ReviewQueuePage() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [category, setCategory] = useState('');
+  const [guide, setGuide] = useState('');
   const [page, setPage] = useState(1);
   const [statsTab, setStatsTab] = useState<'weekly' | 'allTime'>('weekly');
 
@@ -87,6 +90,7 @@ export default function ReviewQueuePage() {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (category) params.set('category', category);
+      if (guide) params.set('guide', guide);
       params.set('page', page.toString());
       const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) setData(await res.json());
@@ -95,7 +99,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, category, page]);
+  }, [search, category, guide, page]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -218,6 +222,34 @@ export default function ReviewQueuePage() {
             }`}
           >
             Build
+          </button>
+
+          <span className="border-l border-cream-400 mx-1" />
+
+          {starterProjects.map((sp) => (
+            <button
+              key={sp.id}
+              onClick={() => { setGuide(guide === sp.id ? '' : sp.id); setPage(1); }}
+              className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
+                guide === sp.id
+                  ? 'border-orange-500 text-orange-500 bg-orange-500/10'
+                  : 'border-cream-400 text-brown-800 hover:border-orange-500'
+              }`}
+            >
+              {sp.name}
+              {stats?.guideCounts[sp.id] ? ` (${stats.guideCounts[sp.id]})` : ''}
+            </button>
+          ))}
+          <button
+            onClick={() => { setGuide(guide === 'custom' ? '' : 'custom'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
+              guide === 'custom'
+                ? 'border-orange-500 text-orange-500 bg-orange-500/10'
+                : 'border-cream-400 text-brown-800 hover:border-orange-500'
+            }`}
+          >
+            Custom
+            {stats?.guideCounts['custom'] ? ` (${stats.guideCounts['custom']})` : ''}
           </button>
         </div>
 
