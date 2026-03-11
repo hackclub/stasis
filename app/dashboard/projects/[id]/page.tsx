@@ -449,7 +449,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const buildSessions = project?.workSessions.filter(s => s.stage === "BUILD") ?? [];
   
   const canSubmitDesign = project &&
-    (project.designStatus === "draft" || project.designStatus === "rejected") &&
+    (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") &&
     project.description?.trim() &&
     (project.bomItems.length > 0 || project.noBomNeeded) &&
     (project.noBomNeeded || project.bomItems.length === 0 || project.cartScreenshots.length > 0) &&
@@ -466,7 +466,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     
   const canSubmitBuild = project &&
     project.designStatus === "approved" &&
-    (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") &&
+    (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved" || project.buildStatus === "update_requested") &&
     buildSessions.length > 0 &&
     hasNewBuildSessions &&
     isVerified &&
