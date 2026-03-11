@@ -436,6 +436,8 @@ export async function submitYSWSProjectSubmission(data: {
 export async function syncProjectToAirtable(
   userId: string,
   project: { id: string; githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
+  hoursJustification?: string,
+  airtableGrantAmount?: number | null,
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
@@ -447,21 +449,13 @@ export async function syncProjectToAirtable(
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error('User not found');
 
-  // Look up the grant amount from the design approval review action
+  // Look up the grant amount from the design approval review action (fallback for manual sync)
   const designAction = await prisma.projectReviewAction.findFirst({
     where: { projectId: project.id, stage: 'DESIGN', decision: 'APPROVED' },
     orderBy: { createdAt: 'desc' },
     select: { grantAmount: true },
   });
-  const grantAmount = designAction?.grantAmount ?? null;
-
-  // Look up the hours justification from the build approval review action
-  const buildAction = await prisma.projectReviewAction.findFirst({
-    where: { projectId: project.id, stage: 'BUILD', decision: 'APPROVED' },
-    orderBy: { createdAt: 'desc' },
-    select: { hoursJustification: true },
-  });
-  const hoursJustification = buildAction?.hoursJustification ?? null;
+  const grantAmount = airtableGrantAmount !== undefined ? airtableGrantAmount : (designAction?.grantAmount ?? null);
 
   const nameParts = (user.name || '').trim().split(/\s+/);
   const firstName = nameParts[0] || '';
@@ -512,7 +506,7 @@ export async function syncProjectToAirtable(
     birthday: safeDecrypt((user as any).encryptedBirthday),
     totalHours,
     grantAmount,
-    hoursJustification,
+    hoursJustification: hoursJustification ?? null,
   });
 }
 

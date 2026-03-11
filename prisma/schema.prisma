@@ -269,13 +269,12 @@ model ProjectReviewAction {
   project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   stage       ProjectStage
   decision    ReviewDecision
-  comments           String?
-  hoursJustification String?
-  grantAmount        Float?
-  tier               Int?
-  tierBefore         Int?
-  reviewerId         String?
-  createdAt          DateTime       @default(now())
+  comments    String?
+  grantAmount Float?
+  tier        Int?
+  tierBefore  Int?
+  reviewerId  String?
+  createdAt   DateTime       @default(now())
 
   @@index([projectId])
   @@map("project_review_action")

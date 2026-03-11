@@ -31,7 +31,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const { stage, decision, reviewComments, grantAmount, tier, hoursJustification } = body
+  const { stage, decision, reviewComments, grantAmount, tier, hoursJustification, airtableGrantAmount } = body
 
   if (stage !== "design" && stage !== "build") {
     return NextResponse.json(
@@ -240,7 +240,6 @@ export async function POST(
             stage: "BUILD",
             decision: buildReviewDecision,
             comments: sanitizedComments,
-            hoursJustification: typeof hoursJustification === "string" && hoursJustification.trim() ? hoursJustification.trim() : null,
             grantAmount: parsedGrantAmount,
             reviewerId: adminUserId,
           },
@@ -336,8 +335,10 @@ export async function POST(
       }
 
       // Sync to Airtable on build approval (full data now available)
+      const parsedHoursJustification = typeof hoursJustification === "string" && hoursJustification.trim() ? hoursJustification.trim() : undefined
+      const parsedAirtableGrantAmount = typeof airtableGrantAmount === "number" && airtableGrantAmount >= 0 ? airtableGrantAmount : null
       try {
-        await syncProjectToAirtable(project.userId, project)
+        await syncProjectToAirtable(project.userId, project, parsedHoursJustification, parsedAirtableGrantAmount)
       } catch (err) {
         console.error("Failed to sync project to Airtable on build approval:", err)
       }

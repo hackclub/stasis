@@ -157,6 +157,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [designBomGrant, setDesignBomGrant] = useState('');
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [buildHoursJustification, setBuildHoursJustification] = useState('');
+  const [buildAirtableGrantAmount, setBuildAirtableGrantAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [adminActioning, setAdminActioning] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
@@ -364,6 +365,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
         const grantAmount = buildGrantAmount ? parseInt(buildGrantAmount, 10) : null;
         requestBody.grantAmount = decision === 'approved' ? grantAmount : null;
         requestBody.hoursJustification = decision === 'approved' ? (buildHoursJustification.trim() || null) : null;
+        requestBody.airtableGrantAmount = decision === 'approved' ? (buildAirtableGrantAmount ? parseFloat(buildAirtableGrantAmount) : null) : null;
       }
 
       const res = await fetch(`/api/admin/projects/${projectId}/decision`, {
@@ -1166,6 +1168,24 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       placeholder="0"
                     />
                     <span className="text-brown-800 text-sm">bits</span>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-brown-800 text-xs uppercase block mb-2">
+                    Requested Grant Amount (optional, sent to Airtable)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-brown-800 text-sm">$</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={buildAirtableGrantAmount}
+                      onChange={(e) => setBuildAirtableGrantAmount(e.target.value)}
+                      className="w-32 bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
 
