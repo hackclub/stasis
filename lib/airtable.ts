@@ -455,13 +455,13 @@ export async function syncProjectToAirtable(
   });
   const grantAmount = designAction?.grantAmount ?? null;
 
-  // Look up the hours justification from the build approval review action comments
+  // Look up the hours justification from the build approval review action
   const buildAction = await prisma.projectReviewAction.findFirst({
     where: { projectId: project.id, stage: 'BUILD', decision: 'APPROVED' },
     orderBy: { createdAt: 'desc' },
-    select: { comments: true },
+    select: { hoursJustification: true },
   });
-  const hoursJustification = buildAction?.comments ?? null;
+  const hoursJustification = buildAction?.hoursJustification ?? null;
 
   const nameParts = (user.name || '').trim().split(/\s+/);
   const firstName = nameParts[0] || '';

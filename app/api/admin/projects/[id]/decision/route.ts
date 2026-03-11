@@ -31,7 +31,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const { stage, decision, reviewComments, grantAmount, tier } = body
+  const { stage, decision, reviewComments, grantAmount, tier, hoursJustification } = body
 
   if (stage !== "design" && stage !== "build") {
     return NextResponse.json(
@@ -240,6 +240,7 @@ export async function POST(
             stage: "BUILD",
             decision: buildReviewDecision,
             comments: sanitizedComments,
+            hoursJustification: typeof hoursJustification === "string" && hoursJustification.trim() ? hoursJustification.trim() : null,
             grantAmount: parsedGrantAmount,
             reviewerId: adminUserId,
           },

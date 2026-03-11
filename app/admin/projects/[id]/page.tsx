@@ -156,6 +156,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [designTier, setDesignTier] = useState<number | null>(null);
   const [designBomGrant, setDesignBomGrant] = useState('');
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
+  const [buildHoursJustification, setBuildHoursJustification] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [adminActioning, setAdminActioning] = useState(false);
   const [airtableSyncing, setAirtableSyncing] = useState(false);
@@ -362,6 +363,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       } else {
         const grantAmount = buildGrantAmount ? parseInt(buildGrantAmount, 10) : null;
         requestBody.grantAmount = decision === 'approved' ? grantAmount : null;
+        requestBody.hoursJustification = decision === 'approved' ? (buildHoursJustification.trim() || null) : null;
       }
 
       const res = await fetch(`/api/admin/projects/${projectId}/decision`, {
@@ -1177,6 +1179,19 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     rows={3}
                     className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
                     placeholder="Add feedback for the build stage..."
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-brown-800 text-xs uppercase block mb-2">
+                    Override Hours Justification (optional, sent to Airtable)
+                  </label>
+                  <textarea
+                    value={buildHoursJustification}
+                    onChange={(e) => setBuildHoursJustification(e.target.value)}
+                    rows={2}
+                    className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
+                    placeholder="Explain why the hours are being overridden..."
                   />
                 </div>
 
