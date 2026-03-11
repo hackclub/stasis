@@ -336,7 +336,7 @@ export async function POST(
 
       // Sync to Airtable on build approval (full data now available)
       try {
-        await syncProjectToAirtable(project.userId, project, sanitizedComments ?? undefined)
+        await syncProjectToAirtable(project.userId, project)
       } catch (err) {
         console.error("Failed to sync project to Airtable on build approval:", err)
       }

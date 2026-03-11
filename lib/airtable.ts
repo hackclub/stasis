@@ -428,7 +428,7 @@ export async function submitYSWSProjectSubmission(data: {
   if (data.birthday) fields['Birthday'] = data.birthday;
   if (data.totalHours > 0) fields['Optional - Override Hours Spent'] = data.totalHours;
   if (data.hoursJustification) fields['Optional - Override Hours Spent Justification'] = data.hoursJustification;
-  if (data.grantAmount !== null && data.grantAmount > 0) fields['Requested Grant Amount'] = data.grantAmount;
+  if (data.grantAmount !== null) fields['Requested Grant Amount'] = data.grantAmount;
 
   await base(tableName).create([{ fields }]);
 }
@@ -436,7 +436,6 @@ export async function submitYSWSProjectSubmission(data: {
 export async function syncProjectToAirtable(
   userId: string,
   project: { id: string; githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
-  hoursJustification?: string,
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
@@ -455,6 +454,14 @@ export async function syncProjectToAirtable(
     select: { grantAmount: true },
   });
   const grantAmount = designAction?.grantAmount ?? null;
+
+  // Look up the hours justification from the build approval review action comments
+  const buildAction = await prisma.projectReviewAction.findFirst({
+    where: { projectId: project.id, stage: 'BUILD', decision: 'APPROVED' },
+    orderBy: { createdAt: 'desc' },
+    select: { comments: true },
+  });
+  const hoursJustification = buildAction?.comments ?? null;
 
   const nameParts = (user.name || '').trim().split(/\s+/);
   const firstName = nameParts[0] || '';
@@ -505,7 +512,7 @@ export async function syncProjectToAirtable(
     birthday: safeDecrypt((user as any).encryptedBirthday),
     totalHours,
     grantAmount,
-    hoursJustification: hoursJustification ?? null,
+    hoursJustification,
   });
 }
 
