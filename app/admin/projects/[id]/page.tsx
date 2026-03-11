@@ -151,10 +151,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sessionReviews, setSessionReviews] = useState<Record<string, SessionReviewState>>({});
-  const [designComments, setDesignComments] = useState('');
   const [buildComments, setBuildComments] = useState('');
-  const [designTier, setDesignTier] = useState<number | null>(null);
-  const [designBomGrant, setDesignBomGrant] = useState('');
   const [buildGrantAmount, setBuildGrantAmount] = useState('');
   const [buildHoursJustification, setBuildHoursJustification] = useState('');
   const [buildAirtableGrantAmount, setBuildAirtableGrantAmount] = useState('');
@@ -173,22 +170,6 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
         if (res.ok) {
           const data: AdminProject = await res.json();
           setProject(data);
-          setDesignTier(data.tier ?? null);
-
-          // Pre-fill BOM grant from the latest approved design review action,
-          // or fall back to total BOM cost as a starting suggestion
-          const designApprovedAction = data.reviewActions.find(
-            (a) => a.stage === "DESIGN" && a.decision === "APPROVED"
-          );
-          if (designApprovedAction?.grantAmount != null) {
-            setDesignBomGrant(String(designApprovedAction.grantAmount));
-          } else {
-            const totalBomCost = data.bomItems.reduce(
-              (sum, item) => sum + item.costPerItem * item.quantity, 0
-            );
-            if (totalBomCost > 0) setDesignBomGrant(String(Math.round(totalBomCost)));
-          }
-
           const initialReviews: Record<string, SessionReviewState> = {};
           data.workSessions.forEach((session) => {
             initialReviews[session.id] = {
@@ -349,24 +330,16 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
     setSubmitting(true);
     try {
-      const reviewComments = stage === 'design' ? designComments : buildComments;
-
       const requestBody: Record<string, unknown> = {
         stage,
         decision,
-        reviewComments: reviewComments || null,
+        reviewComments: buildComments || null,
       };
 
-      if (stage === 'design') {
-        requestBody.tier = decision === 'approved' ? designTier : undefined;
-        const bomGrant = designBomGrant ? parseInt(designBomGrant, 10) : null;
-        requestBody.grantAmount = decision === 'approved' ? bomGrant : null;
-      } else {
-        const grantAmount = buildGrantAmount ? parseInt(buildGrantAmount, 10) : null;
-        requestBody.grantAmount = decision === 'approved' ? grantAmount : null;
-        requestBody.hoursJustification = decision === 'approved' ? (buildHoursJustification.trim() || null) : null;
-        requestBody.airtableGrantAmount = decision === 'approved' ? (buildAirtableGrantAmount ? parseFloat(buildAirtableGrantAmount) : null) : null;
-      }
+      const grantAmount = buildGrantAmount ? parseInt(buildGrantAmount, 10) : null;
+      requestBody.grantAmount = decision === 'approved' ? grantAmount : null;
+      requestBody.hoursJustification = decision === 'approved' ? (buildHoursJustification.trim() || null) : null;
+      requestBody.airtableGrantAmount = decision === 'approved' ? (buildAirtableGrantAmount ? parseFloat(buildAirtableGrantAmount) : null) : null;
 
       const res = await fetch(`/api/admin/projects/${projectId}/decision`, {
         method: 'POST',
@@ -388,7 +361,6 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleDesignDecision = (decision: 'approved' | 'rejected') => handleStageDecision('design', decision);
   const handleBuildDecision = (decision: 'approved' | 'rejected') => handleStageDecision('build', decision);
 
   const updateSessionReview = (sessionId: string, field: keyof SessionReviewState, value: number | string) => {
@@ -408,9 +380,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
   const totalHoursClaimed = project.workSessions.reduce((acc, s) => acc + s.hoursClaimed, 0);
   const allSessionsReviewed = Object.values(sessionReviews).every((r) => r.isReviewed);
-  const isDesignInReview = project.designStatus === 'in_review' || project.designStatus === 'update_requested';
   const isBuildInReview = project.buildStatus === 'in_review' || project.buildStatus === 'update_requested';
-  const isAnyStageInReview = isDesignInReview || isBuildInReview;
+  const isAnyStageInReview = isBuildInReview;
 
   return (
     <>
@@ -1005,116 +976,6 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {/* Design Approval Section */}
-          {isDesignInReview ? (
-            <div className="bg-purple-50 border-2 border-yellow-500/50 p-6 mb-6">
-              <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Design Approval</h2>
-              
-              {!allSessionsReviewed && (
-                <p className="text-yellow-600 text-sm mb-4">
-                  ⚠ Review all sessions before making a decision
-                </p>
-              )}
-
-              <div className="mb-4">
-                <label className="text-brown-800 text-xs uppercase block mb-2">
-                  Complexity Level <span className="text-cream-600 normal-case">(sets bits awarded on build completion)</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {TIERS.map((tier) => (
-                    <button
-                      key={tier.id}
-                      type="button"
-                      onClick={() => setDesignTier(designTier === tier.id ? null : tier.id)}
-                      className={`px-3 py-2 text-sm text-left cursor-pointer border ${
-                        designTier === tier.id
-                          ? 'bg-yellow-500 text-white border-yellow-500 led-flicker'
-                          : 'bg-cream-100 text-brown-800 hover:bg-cream-200 border-cream-400'
-                      }`}
-                    >
-                      <span className="uppercase font-medium">{tier.name}</span>
-                      <span className="block text-xs mt-0.5 opacity-80">
-                        {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                {designTier === null && (
-                  <p className="text-cream-600 text-xs mt-2">No complexity level selected — 0&nbsp;bits will be awarded on build completion.</p>
-                )}
-              </div>
-
-              <div className="mb-4">
-                <label className="text-brown-800 text-xs uppercase block mb-2">
-                  Approved BOM Grant <span className="text-cream-600 normal-case">(bits, 1 bit = $1 — deducted from complexity level at build)</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    value={designBomGrant}
-                    onChange={(e) => setDesignBomGrant(e.target.value)}
-                    className="w-32 bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                    placeholder="0"
-                  />
-                  <span className="text-brown-800 text-sm">bits</span>
-                  {designTier !== null && (() => {
-                    const tier = getTierById(designTier);
-                    const grant = parseInt(designBomGrant || '0', 10) || 0;
-                    const net = tier ? Math.max(0, tier.bits - grant) : 0;
-                    return tier ? (
-                      <span className="text-cream-600 text-xs">
-                        → {tier.bits} − {grant} = <strong className="text-brown-800">{net}&nbsp;bits net</strong>
-                      </span>
-                    ) : null;
-                  })()}
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="text-brown-800 text-xs uppercase block mb-2">
-                  Design Review Comments (optional)
-                </label>
-                <textarea
-                  value={designComments}
-                  onChange={(e) => setDesignComments(e.target.value)}
-                  rows={3}
-                  className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
-                  placeholder="Add feedback for the design stage..."
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleDesignDecision('rejected')}
-                  disabled={submitting}
-                  className="flex-1 bg-red-600/20 border-2 border-red-600 hover:bg-red-600/30 text-red-500 py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {submitting ? 'Submitting...' : 'Reject Design'}
-                </button>
-                <button
-                  onClick={() => handleDesignDecision('approved')}
-                  disabled={submitting}
-                  className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {submitting ? 'Submitting...' : 'Approve Design'}
-                </button>
-              </div>
-            </div>
-          ) : (project.designStatus === 'approved' || project.designStatus === 'rejected') && (
-            <div className={`border-2 p-6 mb-6 ${
-              project.designStatus === 'approved' 
-                ? 'bg-green-600/10 border-green-600/50' 
-                : 'bg-red-600/10 border-red-600/50'
-            }`}>
-              <p className={`text-xl uppercase tracking-wide ${
-                project.designStatus === 'approved' ? 'text-green-500' : 'text-red-500'
-              }`}>
-                Design {project.designStatus}
-              </p>
-            </div>
-          )}
 
           {/* Build Approval Section - only show when design is approved */}
           {project.designStatus === 'approved' && (
