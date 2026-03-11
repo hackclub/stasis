@@ -7,6 +7,7 @@ import { logAdminAction, AuditAction } from "@/lib/audit"
 import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 import { sendSlackDM } from "@/lib/slack"
+import { syncProjectToAirtable } from "@/lib/airtable"
 
 export async function POST(
   request: NextRequest,
@@ -23,7 +24,7 @@ export async function POST(
   const {
     result,
     feedback,
-    reason: _reason,
+    reason,
     workUnitsOverride,
     tierOverride,
     grantOverride,
@@ -235,6 +236,19 @@ export async function POST(
       sendSlackDM(project.user.slackId, lines.join("\n")).catch((err) =>
         console.error("Failed to send Slack DM:", err)
       )
+    }
+
+    // Sync to Airtable on approval
+    {
+      const bomCost = project!.bomItems
+        .filter((b) => b.status === "approved" || b.status === "pending")
+        .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+      const hoursJustification = typeof reason === "string" && reason.trim() ? reason.trim() : undefined
+      try {
+        await syncProjectToAirtable(project!.userId, project!, hoursJustification, bomCost)
+      } catch (err) {
+        console.error(`Failed to sync project to Airtable on ${stageKey} approval:`, err)
+      }
     }
 
     return NextResponse.json(updatedProject)
