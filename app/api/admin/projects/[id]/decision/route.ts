@@ -185,15 +185,6 @@ export async function POST(
       )
     }
 
-    // Submit to YSWS Airtable on design approval
-    if (decision === "approved") {
-      try {
-        await syncProjectToAirtable(project.userId, project)
-      } catch (err) {
-        console.error("Failed to submit YSWS project to Airtable:", err)
-      }
-    }
-
     return NextResponse.json(updatedProject)
   } else {
     // Build stage review
@@ -341,6 +332,13 @@ export async function POST(
         sendSlackDM(updatedProject.user.slackId, lines.join("\n")).catch((err) =>
           console.error("Failed to send Slack DM for build approval:", err)
         )
+      }
+
+      // Sync to Airtable on build approval (full data now available)
+      try {
+        await syncProjectToAirtable(project.userId, project, sanitizedComments ?? undefined)
+      } catch (err) {
+        console.error("Failed to sync project to Airtable on build approval:", err)
       }
 
       return NextResponse.json(updatedProject)

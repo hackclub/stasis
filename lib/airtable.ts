@@ -396,6 +396,7 @@ export async function submitYSWSProjectSubmission(data: {
   birthday: string | null;
   totalHours: number;
   grantAmount: number | null;
+  hoursJustification: string | null;
 }): Promise<void> {
   const base = getAirtableBase();
   if (!base) {
@@ -426,6 +427,7 @@ export async function submitYSWSProjectSubmission(data: {
   if (data.zip) fields['ZIP / Postal Code'] = data.zip;
   if (data.birthday) fields['Birthday'] = data.birthday;
   if (data.totalHours > 0) fields['Optional - Override Hours Spent'] = data.totalHours;
+  if (data.hoursJustification) fields['Optional - Override Hours Spent Justification'] = data.hoursJustification;
   if (data.grantAmount !== null && data.grantAmount > 0) fields['Requested Grant Amount'] = data.grantAmount;
 
   await base(tableName).create([{ fields }]);
@@ -434,6 +436,7 @@ export async function submitYSWSProjectSubmission(data: {
 export async function syncProjectToAirtable(
   userId: string,
   project: { id: string; githubRepo: string | null; description: string | null; coverImage: string | null; workSessions: { hoursClaimed: number }[] },
+  hoursJustification?: string,
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
@@ -502,6 +505,7 @@ export async function syncProjectToAirtable(
     birthday: safeDecrypt((user as any).encryptedBirthday),
     totalHours,
     grantAmount,
+    hoursJustification: hoursJustification ?? null,
   });
 }
 
