@@ -1713,14 +1713,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           {/* Actions */}
           <div className="flex flex-wrap gap-3 mb-8">
             {/* Design Stage: Submit or Unsubmit */}
-            {(project.designStatus === "draft" || project.designStatus === "rejected") && (
+            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
               <button
                 data-tutorial="submit"
                 onClick={() => setShowDesignSubmitDialog(true)}
                 disabled={submitting || !canSubmitDesign}
                 className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
-                {submitting ? 'Submitting...' : (project.designStatus === "rejected" ? 'Resubmit Design' : 'Submit Design for Review')}
+                {submitting ? 'Submitting...' : (project.designStatus === "draft" ? 'Submit Design for Review' : 'Resubmit Design')}
               </button>
             )}
             {project.designStatus === "in_review" && (
@@ -1734,7 +1734,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
 
             {/* Build Stage: Submit or Unsubmit */}
-            {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved") && (
+            {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved" || project.buildStatus === "update_requested") && (
               <button
                 data-tutorial="submit"
                 onClick={() => setShowBuildSubmitDialog(true)}

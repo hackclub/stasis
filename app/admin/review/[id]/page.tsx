@@ -107,6 +107,7 @@ export default function ReviewDetailPage() {
   const [moveConfirm, setMoveConfirm] = useState(false);
   const [ghChecks, setGhChecks] = useState<Array<{ key: string; label: string; passed: boolean; detail?: string }> | null>(null);
   const [ghChecksLoading, setGhChecksLoading] = useState(false);
+  const [ghChecksError, setGhChecksError] = useState<string | null>(null);
 
   // Form state
   const [feedback, setFeedback] = useState('');
@@ -140,14 +141,21 @@ export default function ReviewDetailPage() {
 
   // Fetch GitHub checks when submission loads
   useEffect(() => {
-    if (!data?.submission.project.githubRepo) return;
+    if (!data?.submission.id) return;
     setGhChecksLoading(true);
+    setGhChecksError(null);
     fetch(`/api/reviews/${id}/checks`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((d) => { if (d) setGhChecks(d.checks); })
-      .catch(() => {})
+      .then(async (res) => {
+        const d = await res.json();
+        if (res.ok && d.checks) {
+          setGhChecks(d.checks);
+        } else {
+          setGhChecksError(d.error || d.detail || `HTTP ${res.status}`);
+        }
+      })
+      .catch((err) => setGhChecksError(String(err)))
       .finally(() => setGhChecksLoading(false));
-  }, [data?.submission.id, data?.submission.project.githubRepo, id]);
+  }, [data?.submission.id, id]);
 
   // Auto-claim on mount
   useEffect(() => {
@@ -444,30 +452,30 @@ export default function ReviewDetailPage() {
       </div>
 
       {/* ── GitHub Checks Card ── */}
-      {project.githubRepo && (
-        <div className="bg-cream-100 border-2 border-cream-400 p-6">
-          <h2 className="text-brown-800 text-sm uppercase tracking-wider mb-4">GitHub Repo Checks</h2>
-          {ghChecksLoading ? (
-            <p className="text-cream-600 text-sm">Running checks...</p>
-          ) : ghChecks ? (
-            <div className="space-y-2">
-              {ghChecks.map((check) => (
-                <div key={check.key} className="flex items-center gap-2 text-sm">
-                  <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
-                    {check.passed ? '\u2713' : '\u2717'}
-                  </span>
-                  <span className="text-brown-800">{check.label}</span>
-                  {check.detail && (
-                    <span className="text-cream-600 text-xs">({check.detail})</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-cream-600 text-sm">Could not load checks</p>
-          )}
-        </div>
-      )}
+      <div className="bg-cream-100 border-2 border-cream-400 p-6">
+        <h2 className="text-brown-800 text-sm uppercase tracking-wider mb-4">GitHub Repo Checks</h2>
+        {ghChecksLoading ? (
+          <p className="text-cream-600 text-sm">Running checks...</p>
+        ) : ghChecks ? (
+          <div className="space-y-2">
+            {ghChecks.map((check) => (
+              <div key={check.key} className="flex items-center gap-2 text-sm">
+                <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
+                  {check.passed ? '\u2713' : '\u2717'}
+                </span>
+                <span className="text-brown-800">{check.label}</span>
+                {check.detail && (
+                  <span className="text-cream-600 text-xs">({check.detail})</span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : ghChecksError ? (
+          <p className="text-red-500 text-sm">Error: {ghChecksError}</p>
+        ) : (
+          <p className="text-cream-600 text-sm">Could not load checks</p>
+        )}
+      </div>
 
       {/* ── Conflict Warning Card ── */}
       {conflicts.length > 0 && (
