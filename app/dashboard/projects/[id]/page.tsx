@@ -972,7 +972,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             />
             
             {/* Design Stage Review Comments */}
-            {project.designStatus === "rejected" && project.designReviewComments && (
+            {(project.designStatus === "rejected" || project.designStatus === "update_requested") && project.designReviewComments && (
               <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
                 <p className="text-red-500/80 text-xs uppercase mb-1">Design Feedback</p>
                 <p className="text-red-600 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
@@ -980,7 +980,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
             
             {/* Build Stage Review Comments */}
-            {project.buildStatus === "rejected" && project.buildReviewComments && (
+            {(project.buildStatus === "rejected" || project.buildStatus === "update_requested") && project.buildReviewComments && (
               <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
                 <p className="text-red-500/80 text-xs uppercase mb-1">Build Feedback</p>
                 <p className="text-red-600 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
@@ -1375,7 +1375,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Total (USD)</th>
                       <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Link</th>
                       <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Distributor</th>
-                      {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                      {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
                         <th className="text-center text-brown-800 uppercase text-xs py-2"></th>
                       )}
                     </tr>
@@ -1396,7 +1396,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                           ) : '-'}
                         </td>
                         <td className="text-brown-800 py-2 pr-3">{item.distributor || '-'}</td>
-                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
                           <td className="py-2 text-center">
                             <button
                               onClick={() => handleDeleteBomItem(item.id)}
@@ -1454,7 +1454,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 {project.cartScreenshots.length === 0 ? (
                   <div className="flex items-center gap-3">
                     <p className="text-cream-600 text-sm">Upload screenshots of your cart with the items you plan to buy.</p>
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
                       <label className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
                         {uploadingCartScreenshot ? 'Uploading...' : 'Upload'}
                         <input
@@ -1474,7 +1474,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         <button type="button" onClick={() => setExpandedScreenshot(url)} className="block w-full h-full border border-cream-400 hover:border-orange-500 transition-colors overflow-hidden cursor-pointer">
                           <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-full object-cover" />
                         </button>
-                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
                           <button
                             type="button"
                             onClick={() => handleDeleteCartScreenshot(url)}
@@ -1485,7 +1485,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         )}
                       </div>
                     ))}
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
                       <label className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
                         {uploadingCartScreenshot ? (
                           <span className="text-cream-600 text-[10px] uppercase">Uploading</span>
@@ -1508,7 +1508,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </div>
             )}
 
-            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
               <form onSubmit={handleAddBomItem} className="border-t border-cream-400 pt-4">
                 <p className="text-brown-800 text-xs uppercase mb-3">Add New Item</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
@@ -1591,7 +1591,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </form>
             )}
 
-            {(project.designStatus === "draft" || project.designStatus === "rejected") && (
+            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
               <div className="border-t border-cream-400 pt-4 mt-4">
                 <button
                   onClick={handleToggleNoBomNeeded}
@@ -1895,7 +1895,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         <button type="button" onClick={() => setExpandedScreenshot(url)} className="w-full cursor-pointer">
                           <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-40 object-cover border border-cream-400 hover:border-orange-500 transition-colors" />
                         </button>
-                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
                           <button
                             onClick={() => handleDeleteCartScreenshot(url)}
                             className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -1907,7 +1907,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     ))}
                   </div>
                 )}
-                {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved") && (
+                {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "approved" || project.designStatus === "update_requested") && (
                   <div className="flex gap-3">
                     <label className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-2 text-center uppercase text-sm tracking-wider transition-colors cursor-pointer">
                       {uploadingCartScreenshot ? 'Uploading...' : '+ Upload Screenshot'}
