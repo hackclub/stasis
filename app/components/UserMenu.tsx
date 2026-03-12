@@ -10,10 +10,11 @@ interface UserMenuProps {
   email?: string | null;
   image?: string | null;
   isAdmin?: boolean;
+  isReviewer?: boolean;
   onSignOut?: () => void;
 }
 
-export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: UserMenuProps) {
+export function UserMenu({ userId, name, email, image, isAdmin, isReviewer, onSignOut }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -105,6 +106,18 @@ export function UserMenu({ userId, name, email, image, isAdmin, onSignOut }: Use
             >
               Replay Project Tutorial
             </button>
+          )}
+          {(isReviewer || isAdmin) && (
+            <>
+              <div className="border-t border-cream-400" />
+              <Link
+                href="/admin/review"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 text-sm text-orange-500 hover:bg-cream-200 uppercase tracking-wide transition-colors font-bold"
+              >
+                Review Queue
+              </Link>
+            </>
           )}
           {isAdmin && (
             <>
