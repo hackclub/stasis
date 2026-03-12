@@ -564,11 +564,6 @@ export function SessionForm({
             return;
         }
 
-        if (selectedCategories.length === 0) {
-            setError('Select at least one category');
-            return;
-        }
-
         if (imageCount < 2) {
             setError('At least 2 images are required — drag, drop, or paste images into the editor');
             return;
@@ -704,28 +699,6 @@ export function SessionForm({
                         </p>
                     )}
 
-                </div>
-
-                {/* Categories */}
-                <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                    <label className="block text-brown-800 text-sm uppercase mb-3">
-                        Categories (select all that apply)
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                        {CATEGORIES.map((cat) => (
-                            <button
-                                key={cat.value}
-                                type="button"
-                                onClick={() => handleCategoryToggle(cat.value)}
-                                className={`px-4 py-2 text-sm uppercase cursor-pointer ${selectedCategories.includes(cat.value)
-                                        ? 'bg-orange-500 text-white font-medium led-flicker'
-                                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
-                                    }`}
-                            >
-                                {cat.label}
-                            </button>
-                        ))}
-                    </div>
                 </div>
 
                 {/* Journal Content */}
