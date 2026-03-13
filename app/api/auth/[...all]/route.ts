@@ -11,7 +11,8 @@ async function GET(request: NextRequest) {
   // (duplicate callback from browser), redirect to dashboard instead.
   const location = response.headers.get("location");
   if (location?.includes("/api/auth/error")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const baseUrl = process.env.BETTER_AUTH_URL || request.url;
+    return NextResponse.redirect(new URL("/dashboard", baseUrl));
   }
 
   return response;

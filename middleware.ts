@@ -67,6 +67,10 @@ export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === "/") {
     const hasSession = request.cookies.has("better-auth.session_token");
     if (hasSession) {
+      const baseUrl = process.env.BETTER_AUTH_URL;
+      if (baseUrl) {
+        return addSecurityHeaders(NextResponse.redirect(new URL("/dashboard", baseUrl)));
+      }
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
       return addSecurityHeaders(NextResponse.redirect(url));
