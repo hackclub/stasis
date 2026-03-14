@@ -164,12 +164,6 @@ export async function PATCH(
   }
 
   const validatedCategories = validateCategories(categories)
-  if (validatedCategories.length === 0) {
-    return NextResponse.json(
-      { error: "At least one category is required" },
-      { status: 400 }
-    )
-  }
 
   const validatedMedia = validateMedia(media)
   const imageCount = validatedMedia.filter((m) => m.type === "IMAGE").length
