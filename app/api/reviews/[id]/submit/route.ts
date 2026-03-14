@@ -293,7 +293,7 @@ export async function POST(
       const hoursJustification = lines.join("\n")
 
       try {
-        await syncProjectToAirtable(project!.userId, project!, hoursJustification, bomCost)
+        await syncProjectToAirtable(project!.userId, project!, hoursJustification, grantOverride ?? bomCost)
       } catch (err) {
         console.error(`Failed to sync project to Airtable on ${stageKey} approval:`, err)
       }
