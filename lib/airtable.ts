@@ -414,31 +414,29 @@ export async function submitYSWSProjectSubmission(data: {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fields: Record<string, any> = {
-    'First Name': data.firstName,
-    'Last Name': data.lastName,
+    'First Name': data.firstName || '',
+    'Last Name': data.lastName || '',
     'Email': data.email,
+    'Code URL': data.githubUrl || '',
+    'Playable URL': data.githubUrl || '',
+    'Description': data.description || '',
+    'Address (Line 1)': data.addressLine1 || '',
+    'Address (Line 2)': data.addressLine2 || '',
+    'City': data.city || '',
+    'State / Province': data.state || '',
+    'Country': data.country || '',
+    'ZIP / Postal Code': data.zip || '',
+    'Birthday': data.birthday || '',
+    'Optional - Override Hours Spent': data.totalHours,
+    'Optional - Override Hours Spent Justification': data.hoursJustification || '',
+    'Requested Grant Amount': data.grantAmount ?? 0,
+    'Complexity Tier': data.complexityTier || '',
+    'Stasis ID': data.stasisId || '',
+    'Slack ID': data.slackId || '',
+    'guide': data.guide || '',
   };
 
-  if (data.githubUrl) {
-    fields['Code URL'] = data.githubUrl;
-    fields['Playable URL'] = data.githubUrl;
-  }
-  if (data.description) fields['Description'] = data.description;
   if (data.bannerUrl) fields['Screenshot'] = [{ url: data.bannerUrl }];
-  if (data.addressLine1) fields['Address (Line 1)'] = data.addressLine1;
-  if (data.addressLine2) fields['Address (Line 2)'] = data.addressLine2;
-  if (data.city) fields['City'] = data.city;
-  if (data.state) fields['State / Province'] = data.state;
-  if (data.country) fields['Country'] = data.country;
-  if (data.zip) fields['ZIP / Postal Code'] = data.zip;
-  if (data.birthday) fields['Birthday'] = data.birthday;
-  if (data.totalHours > 0) fields['Optional - Override Hours Spent'] = data.totalHours;
-  if (data.hoursJustification) fields['Optional - Override Hours Spent Justification'] = data.hoursJustification;
-  if (data.grantAmount !== null) fields['Requested Grant Amount'] = data.grantAmount;
-  if (data.complexityTier) fields['Complexity Tier'] = data.complexityTier;
-  if (data.stasisId) fields['Stasis ID'] = data.stasisId;
-  if (data.slackId) fields['Slack ID'] = data.slackId;
-  if (data.guide) fields['guide'] = data.guide;
 
   await base(tableName).create([{ fields }]);
 }
@@ -451,9 +449,12 @@ export async function syncProjectToAirtable(
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
-  const safeDecrypt = (val: string | null | undefined) => {
+  const safeDecrypt = (fieldName: string, val: string | null | undefined) => {
     if (!val) return null;
-    try { return decryptPII(val); } catch { return null; }
+    try { return decryptPII(val); } catch (err) {
+      console.warn(`Failed to decrypt PII field "${fieldName}" for user ${userId}:`, err);
+      return null;
+    }
   };
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -502,22 +503,22 @@ export async function syncProjectToAirtable(
     description: project.description,
     bannerUrl: project.coverImage,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    addressLine1: safeDecrypt((user as any).encryptedAddressStreet),
+    addressLine1: safeDecrypt('addressStreet', (user as any).encryptedAddressStreet),
     addressLine2: null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    city: safeDecrypt((user as any).encryptedAddressCity),
+    city: safeDecrypt('addressCity', (user as any).encryptedAddressCity),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    state: safeDecrypt((user as any).encryptedAddressState),
+    state: safeDecrypt('addressState', (user as any).encryptedAddressState),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    country: safeDecrypt((user as any).encryptedAddressCountry),
+    country: safeDecrypt('addressCountry', (user as any).encryptedAddressCountry),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    zip: safeDecrypt((user as any).encryptedAddressZip),
+    zip: safeDecrypt('addressZip', (user as any).encryptedAddressZip),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    birthday: safeDecrypt((user as any).encryptedBirthday),
+    birthday: safeDecrypt('birthday', (user as any).encryptedBirthday),
     totalHours,
     grantAmount,
     hoursJustification: hoursJustification ?? null,
-    complexityTier: project.tier ? (getTierById(project.tier)?.name ?? null) : null,
+    complexityTier: project.tier != null ? (getTierById(project.tier)?.name ?? null) : null,
     stasisId: project.id,
     slackId: user.slackId ?? null,
     guide: project.starterProjectId ? (STARTER_PROJECT_NAMES[project.starterProjectId] ?? project.starterProjectId) : null,
