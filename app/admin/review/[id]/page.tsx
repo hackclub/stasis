@@ -127,7 +127,7 @@ export default function ReviewDetailPage() {
         const d = await res.json();
         setData(d);
         setInternalNote(d.reviewerNote || '');
-      } else if (res.status === 404) {
+      } else if (res.status === 404 || res.status === 400) {
         router.push('/admin/review');
       }
     } catch (err) {
@@ -262,13 +262,20 @@ export default function ReviewDetailPage() {
     }
   }
 
-  function skipToNext() {
+  async function skipToNext() {
     fetch(`/api/reviews/${id}/claim`, { method: 'DELETE' }).catch(() => {});
-    if (data?.navigation.nextId) {
-      router.push(`/admin/review/${data.navigation.nextId}`);
-    } else {
-      router.push('/admin/review');
-    }
+    try {
+      const res = await fetch('/api/reviews?limit=10');
+      if (res.ok) {
+        const { items } = await res.json();
+        const next = items.find((p: { id: string }) => p.id !== id);
+        if (next) {
+          router.push(`/admin/review/${next.id}`);
+          return;
+        }
+      }
+    } catch {}
+    router.push('/admin/review');
   }
 
   if (loading || !data) {
