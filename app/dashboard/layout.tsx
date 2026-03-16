@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSession, signIn, signOut } from "@/lib/auth-client";
 import { NoiseOverlay } from '../components/NoiseOverlay';
 import { UserMenu } from '../components/UserMenu';
@@ -21,13 +21,24 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
+  const [isFraudSuspended, setIsFraudSuspended] = useState(false);
+
   useEffect(() => {
     if (session) {
       localStorage.setItem('has_logged_in', 'true');
     }
   }, [session]);
 
-
+  useEffect(() => {
+    if (session) {
+      fetch('/api/user/fraud-status')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.fraudConvicted) setIsFraudSuspended(true);
+        })
+        .catch(() => {});
+    }
+  }, [session]);
 
   const getTabClass = (tabPath: string) => {
     const isActive = tabPath === '/dashboard' 
@@ -139,6 +150,23 @@ export default function DashboardLayout({
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-8">
+          {isFraudSuspended && (
+            <div className="mb-8 bg-red-100 border-4 border-red-500 p-8 text-center">
+              <div className="text-4xl mb-4">⚠️</div>
+              <h2 className="text-red-800 text-2xl uppercase tracking-wider font-bold mb-4">
+                Account Suspended
+              </h2>
+              <p className="text-red-700 text-lg mb-2">
+                Your account has been suspended for suspected fraud.
+              </p>
+              <p className="text-red-700 text-sm">
+                Please ask in{' '}
+                <a href="https://hackclub.slack.com/archives/C08PY70K12V" className="underline font-medium hover:text-red-900">#stasis-support</a>
+                {' '}or email{' '}
+                <a href="mailto:stasis@hackclub.com" className="underline font-medium hover:text-red-900">stasis@hackclub.com</a>
+              </p>
+            </div>
+          )}
           {children}
         </div>
       </div>

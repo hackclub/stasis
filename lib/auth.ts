@@ -148,6 +148,28 @@ export const auth = betterAuth({
             }).catch((err) => console.error('Failed to refresh Slack profile:', err));
           }
 
+          // Check Hackatime trust level and auto-flag fraud if convicted
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { hackatimeUserId: true },
+          });
+          if (dbUser?.hackatimeUserId) {
+            fetch(`https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(dbUser.hackatimeUserId)}/trust_factor`, {
+              headers: process.env.HACKATIME_ADMIN_KEY ? { Authorization: `Bearer ${process.env.HACKATIME_ADMIN_KEY}` } : {},
+              signal: AbortSignal.timeout(10_000),
+            })
+              .then(res => res.ok ? res.json() : null)
+              .then(async (data) => {
+                if (data?.trust_level === 'red') {
+                  await prisma.user.update({
+                    where: { id: userId },
+                    data: { fraudConvicted: true },
+                  });
+                }
+              })
+              .catch((err) => console.error('Failed to check Hackatime trust level:', err));
+          }
+
           // Refresh HCA PII (address + birthday) on every login using the stored access token
           if (process.env.PULL_HCA_PII === 'true') {
             prisma.account.findFirst({

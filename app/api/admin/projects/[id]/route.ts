@@ -57,8 +57,28 @@ export async function GET(
   // Fetch hackatime hours for each linked project
   const user = await prisma.user.findUnique({
     where: { id: project.userId },
-    select: { hackatimeUserId: true },
+    select: { hackatimeUserId: true, fraudConvicted: true },
   })
+
+  // Fetch Hackatime trust level for the project author
+  let hackatimeTrustLevel: string | null = null
+  if (user?.hackatimeUserId) {
+    try {
+      const trustRes = await fetch(
+        `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(user.hackatimeUserId)}/trust_factor`,
+        {
+          headers: process.env.HACKATIME_ADMIN_KEY ? { Authorization: `Bearer ${process.env.HACKATIME_ADMIN_KEY}` } : {},
+          signal: AbortSignal.timeout(10_000),
+        }
+      )
+      if (trustRes.ok) {
+        const trustData = await trustRes.json()
+        hackatimeTrustLevel = trustData.trust_level ?? null
+      }
+    } catch {
+      // ignore fetch/timeout errors
+    }
+  }
 
   const hackatimeProjectsWithHours = await Promise.all(
     project.hackatimeProjects.map(async (hp) => {
@@ -72,7 +92,7 @@ export async function GET(
     })
   )
 
-  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved, hackatimeProjects: hackatimeProjectsWithHours })
+  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved, hackatimeProjects: hackatimeProjectsWithHours, hackatimeTrustLevel, user: { ...project.user, fraudConvicted: user?.fraudConvicted ?? false } })
 }
 
 // PATCH: admin-only actions — hide/unhide and unapprove design/build

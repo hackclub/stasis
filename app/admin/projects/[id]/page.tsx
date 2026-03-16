@@ -66,6 +66,7 @@ interface ProjectUser {
   name: string | null;
   email: string;
   verificationStatus: string | null;
+  fraudConvicted: boolean;
 }
 
 interface ReviewAction {
@@ -115,6 +116,7 @@ interface AdminProject {
   reviewActions: ReviewAction[];
   hiddenFromGallery: boolean;
   hackatimeProjects: HackatimeProjectData[];
+  hackatimeTrustLevel: string | null;
 }
 
 const BADGE_LABELS: Record<BadgeType, string> = {
@@ -163,6 +165,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
   const [hackatimeReviews, setHackatimeReviews] = useState<Record<string, { hoursApproved: number; isReviewed: boolean }>>({});
   const [reviewingHackatime, setReviewingHackatime] = useState<string | null>(null);
+  const [showFraudWarning, setShowFraudWarning] = useState(true);
+  const [flaggingFraud, setFlaggingFraud] = useState(false);
 
   useEffect(() => {
     async function fetchProject() {
@@ -399,6 +403,27 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
   const handleBuildDecision = (decision: 'approved' | 'rejected') => handleStageDecision('build', decision);
 
+  async function markAsFraud() {
+    if (!project) return;
+    if (!confirm('Are you sure you want to mark this user as fraud? This will suspend their account.')) return;
+    setFlaggingFraud(true);
+    try {
+      const res = await fetch(`/api/admin/users/${project.user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fraudConvicted: true }),
+      });
+      if (res.ok) {
+        setProject(prev => prev ? { ...prev, user: { ...prev.user, fraudConvicted: true } } : prev);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to flag user as fraud');
+      }
+    } finally {
+      setFlaggingFraud(false);
+    }
+  }
+
   const updateSessionReview = (sessionId: string, field: keyof SessionReviewState, value: number | string) => {
     setSessionReviews((prev) => ({
       ...prev,
@@ -432,6 +457,46 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="max-w-4xl mx-auto">
+          {/* ── Fraud / Trust Warning ── */}
+          {project.user.fraudConvicted && showFraudWarning && (
+            <div className="mb-6 bg-red-100 border-2 border-red-500 p-6 relative">
+              <button
+                onClick={() => setShowFraudWarning(false)}
+                className="absolute top-2 right-3 text-red-400 hover:text-red-600 text-lg cursor-pointer"
+              >
+                ×
+              </button>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">⚠️</span>
+                <h2 className="text-red-800 text-lg uppercase tracking-wider font-bold">Fraud Alert</h2>
+              </div>
+              <p className="text-red-700 text-sm">
+                This user has been flagged for fraud. Their account is suspended. Exercise extreme caution when reviewing this submission.
+              </p>
+            </div>
+          )}
+
+          {project.hackatimeTrustLevel === 'red' && !project.user.fraudConvicted && (
+            <div className="mb-6 bg-red-50 border-2 border-red-300 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🔴</span>
+                  <div>
+                    <p className="text-red-800 font-medium text-sm uppercase">Hackatime Trust: Convicted</p>
+                    <p className="text-red-700 text-xs mt-1">This user has been convicted on Hackatime for fraud. They should be marked as fraud on this platform too.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={markAsFraud}
+                  disabled={flaggingFraud}
+                  className="px-3 py-1.5 text-xs uppercase bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {flaggingFraud ? 'Flagging...' : 'Mark as Fraud'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Stage Progress */}
           <div className="mb-6 bg-cream-100 border-2 border-cream-400 p-6">
             <StageProgress
@@ -453,6 +518,15 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               <p className="text-brown-800 text-sm">
                 by {project.user.name || project.user.email}
                 {project.user.name && <span className="text-cream-600"> ({project.user.email})</span>}
+                {project.user.fraudConvicted ? (
+                  <span className="ml-2 text-xs bg-red-600 text-white px-2 py-0.5 uppercase">Fraud</span>
+                ) : project.hackatimeTrustLevel === 'red' ? (
+                  <span className="ml-2 text-xs bg-red-100 text-red-800 border border-red-300 px-2 py-0.5 uppercase">Convicted</span>
+                ) : project.hackatimeTrustLevel === 'green' ? (
+                  <span className="ml-2 text-xs bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 uppercase">Trusted</span>
+                ) : (
+                  <span className="ml-2 text-xs bg-cream-200 text-cream-700 border border-cream-400 px-2 py-0.5 uppercase">Unscored</span>
+                )}
                 {project.user.verificationStatus === 'verified' ? (
                   <span className="ml-2 text-xs bg-green-600 text-white px-2 py-0.5 uppercase">IDV Verified</span>
                 ) : (

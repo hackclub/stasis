@@ -20,7 +20,7 @@ export async function GET(
   let project = await prisma.project.findUnique({
     where: { id },
     include: {
-      user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true } },
+      user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true, fraudConvicted: true, verificationStatus: true } },
       workSessions: {
         include: { media: true, timelapses: true },
         orderBy: { createdAt: "desc" },
@@ -44,7 +44,7 @@ export async function GET(
       project = await prisma.project.findUnique({
         where: { id: submission.projectId },
         include: {
-          user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true } },
+          user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true, fraudConvicted: true, verificationStatus: true } },
           workSessions: {
             include: { media: true, timelapses: true },
             orderBy: { createdAt: "desc" },
@@ -95,6 +95,26 @@ export async function GET(
     reviewerNoteContent = reviewerNote?.content || ""
   } catch {
     // Table doesn't exist yet — that's fine
+  }
+
+  // Fetch Hackatime trust level for the project author
+  let hackatimeTrustLevel: string | null = null
+  if (project.user.hackatimeUserId) {
+    try {
+      const trustRes = await fetch(
+        `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(project.user.hackatimeUserId)}/trust_factor`,
+        {
+          headers: process.env.HACKATIME_ADMIN_KEY ? { Authorization: `Bearer ${process.env.HACKATIME_ADMIN_KEY}` } : {},
+          signal: AbortSignal.timeout(10_000),
+        }
+      )
+      if (trustRes.ok) {
+        const trustData = await trustRes.json()
+        hackatimeTrustLevel = trustData.trust_level ?? null
+      }
+    } catch {
+      // ignore fetch/timeout errors
+    }
   }
 
   // Fetch firmware hours from linked hackatime projects
@@ -203,6 +223,7 @@ export async function GET(
     },
     conflicts: conflicts.map((c) => ({ id: c.id, project: { id: c.id, title: c.title } })),
     reviewerNote: reviewerNoteContent,
+    hackatimeTrustLevel,
     navigation: { nextId, prevId },
     isAdmin,
     reviewerId,

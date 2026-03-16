@@ -32,7 +32,7 @@ interface ReviewData {
       bomCost: number;
       costPerHour: number | null;
       bitsPerHour: number | null;
-      user: { id: string; name: string | null; email: string; image: string | null; slackId: string | null };
+      user: { id: string; name: string | null; email: string; image: string | null; slackId: string | null; fraudConvicted: boolean; verificationStatus: string | null };
       workSessions: Array<{
         id: string;
         title: string;
@@ -87,6 +87,7 @@ interface ReviewData {
   };
   conflicts: Array<{ id: string; project: { id: string; title: string } }>;
   reviewerNote: string;
+  hackatimeTrustLevel: string | null;
   navigation: { nextId: string | null; prevId: string | null };
   isAdmin: boolean;
   reviewerId: string;
@@ -118,6 +119,8 @@ export default function ReviewDetailPage() {
   const [categoryOverride, setCategoryOverride] = useState('');
   const [internalNote, setInternalNote] = useState('');
   const noteTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showFraudWarning, setShowFraudWarning] = useState(true);
+  const [flaggingFraud, setFlaggingFraud] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -278,6 +281,27 @@ export default function ReviewDetailPage() {
     router.push('/admin/review');
   }
 
+  async function markAsFraud() {
+    if (!data) return;
+    if (!confirm('Are you sure you want to mark this user as fraud? This will suspend their account.')) return;
+    setFlaggingFraud(true);
+    try {
+      const res = await fetch(`/api/admin/users/${data.submission.project.user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fraudConvicted: true }),
+      });
+      if (res.ok) {
+        await fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to flag user as fraud');
+      }
+    } finally {
+      setFlaggingFraud(false);
+    }
+  }
+
   if (loading || !data) {
     return (
       <div className="text-center py-12">
@@ -286,7 +310,7 @@ export default function ReviewDetailPage() {
     );
   }
 
-  const { submission, conflicts, isAdmin, reviewerId } = data;
+  const { submission, conflicts, hackatimeTrustLevel, isAdmin, reviewerId } = data;
   const project = submission.project;
   const tierInfo = project.tier ? getTierById(project.tier) : null;
   const claimedByOther = submission.claimedByOther;
@@ -311,6 +335,46 @@ export default function ReviewDetailPage() {
           >
             Skip to Next
           </button>
+        </div>
+      )}
+
+      {/* ── Fraud / Trust Warning ── */}
+      {project.user.fraudConvicted && showFraudWarning && (
+        <div className="bg-red-100 border-2 border-red-500 p-6 relative">
+          <button
+            onClick={() => setShowFraudWarning(false)}
+            className="absolute top-2 right-3 text-red-400 hover:text-red-600 text-lg cursor-pointer"
+          >
+            ×
+          </button>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">⚠️</span>
+            <h2 className="text-red-800 text-lg uppercase tracking-wider font-bold">Fraud Alert</h2>
+          </div>
+          <p className="text-red-700 text-sm">
+            This user has been flagged for fraud. Their account is suspended. Exercise extreme caution when reviewing this submission.
+          </p>
+        </div>
+      )}
+
+      {hackatimeTrustLevel === 'red' && !project.user.fraudConvicted && (
+        <div className="bg-red-50 border-2 border-red-300 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔴</span>
+              <div>
+                <p className="text-red-800 font-medium text-sm uppercase">Hackatime Trust: Convicted</p>
+                <p className="text-red-700 text-xs mt-1">This user has been convicted on Hackatime for fraud. They should be marked as fraud on this platform too.</p>
+              </div>
+            </div>
+            <button
+              onClick={markAsFraud}
+              disabled={flaggingFraud}
+              className="px-3 py-1.5 text-xs uppercase bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              {flaggingFraud ? 'Flagging...' : 'Mark as Fraud'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -407,7 +471,18 @@ export default function ReviewDetailPage() {
               <img src={project.user.image} alt="" className="w-8 h-8 rounded-full" />
             )}
             <div>
-              <p className="text-brown-800 text-sm">{project.user.name || project.user.email}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-brown-800 text-sm">{project.user.name || project.user.email}</p>
+                {project.user.fraudConvicted ? (
+                  <span className="text-xs px-2 py-0.5 bg-red-600 text-white uppercase">Fraud</span>
+                ) : hackatimeTrustLevel === 'red' ? (
+                  <span className="text-xs px-2 py-0.5 bg-red-100 text-red-800 border border-red-300 uppercase">Convicted</span>
+                ) : hackatimeTrustLevel === 'green' ? (
+                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border border-green-300 uppercase">Trusted</span>
+                ) : (
+                  <span className="text-xs px-2 py-0.5 bg-cream-200 text-cream-700 border border-cream-400 uppercase">Unscored</span>
+                )}
+              </div>
               <p className="text-cream-600 text-xs">
                 Submitted {new Date(submission.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
