@@ -803,17 +803,25 @@ export default function ReviewDetailPage() {
               />
             </div>
 
+            {project.user.fraudConvicted && (
+              <div className="mb-3 bg-red-50 border border-red-300 p-3">
+                <p className="text-red-800 text-xs uppercase">Fraud-convicted user — only rejection is allowed</p>
+              </div>
+            )}
+
             <div className="flex gap-3 flex-wrap">
               <button
                 onClick={() => submitReview('APPROVED')}
-                disabled={submitting}
+                disabled={submitting || project.user.fraudConvicted}
+                title={project.user.fraudConvicted ? 'Cannot approve fraud-convicted users' : undefined}
                 className="px-4 py-2 text-sm uppercase tracking-wider bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 Approve
               </button>
               <button
                 onClick={() => submitReview('RETURNED')}
-                disabled={submitting}
+                disabled={submitting || project.user.fraudConvicted}
+                title={project.user.fraudConvicted ? 'Cannot return fraud-convicted users' : undefined}
                 className="px-4 py-2 text-sm uppercase tracking-wider bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 Return

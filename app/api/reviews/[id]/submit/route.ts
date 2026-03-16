@@ -102,6 +102,20 @@ export async function POST(
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
+  // Block approving or returning fraud-convicted users' projects
+  if (result !== "REJECTED") {
+    const projectUser = await prisma.user.findUnique({
+      where: { id: project.userId },
+      select: { fraudConvicted: true },
+    })
+    if (projectUser?.fraudConvicted) {
+      return NextResponse.json(
+        { error: "Cannot approve or return projects from fraud-convicted users. Only rejection is allowed." },
+        { status: 403 }
+      )
+    }
+  }
+
   // Determine active stage if not from submission
   if (!stage) {
     const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
