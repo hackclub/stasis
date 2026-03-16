@@ -73,17 +73,26 @@ export async function GET(
 
     const { id } = await params;
 
-    // Get submission with project
-    const submission = await prisma.projectSubmission.findUnique({
+    // Try as project ID first (matches how the review route works), then submission ID
+    let githubRepo: string | null = null;
+    const project = await prisma.project.findUnique({
       where: { id },
-      include: { project: { select: { githubRepo: true } } },
+      select: { githubRepo: true },
     });
 
-    if (!submission) {
-      return NextResponse.json({ error: 'Submission not found — it may have been deleted or already reviewed' }, { status: 404 });
+    if (project) {
+      githubRepo = project.githubRepo;
+    } else {
+      const submission = await prisma.projectSubmission.findUnique({
+        where: { id },
+        include: { project: { select: { githubRepo: true } } },
+      });
+      if (submission) {
+        githubRepo = submission.project.githubRepo;
+      } else {
+        return NextResponse.json({ error: 'Project not found — it may have been deleted' }, { status: 404 });
+      }
     }
-
-    const githubRepo = submission.project.githubRepo;
     const checks: CheckResult[] = [];
 
     const allFailedChecks = (reason: string) => {
