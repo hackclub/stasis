@@ -80,7 +80,7 @@ export async function GET(
     });
 
     if (!submission) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Submission not found — it may have been deleted or already reviewed' }, { status: 404 });
     }
 
     const githubRepo = submission.project.githubRepo;
@@ -108,20 +108,37 @@ export async function GET(
     // Validate repo exists
     const repoRes = await ghFetch(`repos/${owner}/${repo}`);
     const repoValid = repoRes.ok;
+    let repoDetail = `${owner}/${repo}`;
+    if (!repoValid) {
+      if (repoRes.status === 404) {
+        repoDetail = `Repository "${owner}/${repo}" not found — it may be private, deleted, or the URL is incorrect`;
+      } else if (repoRes.status === 403) {
+        repoDetail = `Access denied to "${owner}/${repo}" — rate limit may be exceeded or the repo requires authentication`;
+      } else if (repoRes.status >= 500) {
+        repoDetail = `GitHub API error (${repoRes.status}) — try again in a few minutes`;
+      } else {
+        repoDetail = `Could not access repo "${owner}/${repo}" (HTTP ${repoRes.status})`;
+      }
+    }
     checks.push({
       key: 'checks_01_github_valid',
       label: 'GitHub repo valid',
       passed: repoValid,
-      detail: repoValid ? `${owner}/${repo}` : `Repo not found (${repoRes.status})`,
+      detail: repoDetail,
     });
 
     if (!repoValid) {
-      checks.push({ key: 'checks_02_readme_exists', label: 'README exists', passed: false, detail: 'Repo not accessible' });
-      checks.push({ key: 'checks_03_readme_has_photo', label: 'README has photo', passed: false, detail: 'Repo not accessible' });
-      checks.push({ key: 'checks_05_3d_file', label: '3D model file', passed: false, detail: 'Repo not accessible' });
-      checks.push({ key: 'checks_06_3d_source', label: '3D source file (F3D/STEP)', passed: false, detail: 'Repo not accessible' });
-      checks.push({ key: 'checks_07_firmware_file', label: 'Firmware file', passed: false, detail: 'Repo not accessible' });
-      checks.push({ key: 'checks_08_bom_file', label: 'BOM file', passed: false, detail: 'Repo not accessible' });
+      const failDetail = repoRes.status === 404
+        ? 'Repo not found'
+        : repoRes.status === 403
+          ? 'Access denied'
+          : `GitHub unavailable (${repoRes.status})`;
+      checks.push({ key: 'checks_02_readme_exists', label: 'README exists', passed: false, detail: failDetail });
+      checks.push({ key: 'checks_03_readme_has_photo', label: 'README has photo', passed: false, detail: failDetail });
+      checks.push({ key: 'checks_05_3d_file', label: '3D model file', passed: false, detail: failDetail });
+      checks.push({ key: 'checks_06_3d_source', label: '3D source file (F3D/STEP)', passed: false, detail: failDetail });
+      checks.push({ key: 'checks_07_firmware_file', label: 'Firmware file', passed: false, detail: failDetail });
+      checks.push({ key: 'checks_08_bom_file', label: 'BOM file', passed: false, detail: failDetail });
       return NextResponse.json({ checks });
     }
 
@@ -190,6 +207,9 @@ export async function GET(
     return NextResponse.json({ checks });
   } catch (err) {
     console.error('GitHub checks error:', err);
-    return NextResponse.json({ error: 'Failed to run checks', detail: String(err) }, { status: 500 });
+    const message = err instanceof TypeError && String(err).includes('fetch')
+      ? 'Could not connect to GitHub — the proxy may be down or there is a network issue'
+      : 'Failed to run GitHub repo checks';
+    return NextResponse.json({ error: message, detail: String(err) }, { status: 500 });
   }
 }

@@ -554,7 +554,26 @@ export default function ReviewDetailPage() {
             ))}
           </div>
         ) : ghChecksError ? (
-          <p className="text-red-500 text-sm">Error: {ghChecksError}</p>
+          <div className="text-sm">
+            <p className="text-red-500">{ghChecksError}</p>
+            <button
+              onClick={() => {
+                setGhChecksLoading(true);
+                setGhChecksError(null);
+                fetch(`/api/reviews/${id}/checks`)
+                  .then(async (res) => {
+                    const d = await res.json();
+                    if (res.ok && d.checks) setGhChecks(d.checks);
+                    else setGhChecksError(d.error || d.detail || `HTTP ${res.status}`);
+                  })
+                  .catch((err) => setGhChecksError(String(err)))
+                  .finally(() => setGhChecksLoading(false));
+              }}
+              className="mt-2 text-xs text-brown-600 underline hover:text-brown-800"
+            >
+              Retry checks
+            </button>
+          </div>
         ) : (
           <p className="text-cream-600 text-sm">Could not load checks</p>
         )}
