@@ -572,6 +572,19 @@ model ReviewerNote {
   @@map("reviewer_note")
 }
 
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  dateTime    DateTime
+  linkUrl     String?
+  linkText    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("event")
+}
+
 // Kudos - social appreciation for projects
 model Kudos {
   id        String   @id @default(cuid())

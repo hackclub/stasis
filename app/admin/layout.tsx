@@ -28,10 +28,12 @@ export default function AdminLayout({
   }, [shouldRedirect, router]);
 
   const getTabClass = (tabPath: string) => {
-    const isActive = tabPath === '/admin' 
+    const isActive = tabPath === '/admin'
       ? pathname === '/admin'
-      : pathname.startsWith(tabPath);
-    
+      : tabPath === '/admin/audit'
+        ? pathname === '/admin/audit'
+        : pathname.startsWith(tabPath);
+
     return `px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] ${
       isActive
         ? 'text-orange-500 border-orange-500'
@@ -95,6 +97,11 @@ export default function AdminLayout({
               <Link href="/admin/review" className={getTabClass('/admin/review')}>
                 Review Queue
               </Link>
+              {hasPermission(Permission.REVIEW_PROJECTS) && (
+                <Link href="/admin/audit-reviews" className={getTabClass('/admin/audit-reviews')}>
+                  Audit Reviews
+                </Link>
+              )}
               <Link href="/admin/projects" className={getTabClass('/admin/projects')}>
                 Projects
               </Link>
@@ -136,6 +143,11 @@ export default function AdminLayout({
               {hasPermission(Permission.MANAGE_USERS) && (
                 <Link href="/admin/stats" className={getTabClass('/admin/stats')}>
                   Stats
+                </Link>
+              )}
+              {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/events" className={getTabClass('/admin/events')}>
+                  Events
                 </Link>
               )}
             </div>

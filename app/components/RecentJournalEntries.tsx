@@ -86,9 +86,9 @@ export function RecentJournalEntries() {
   }
 
   return (
-    <div className="bg-cream-100 border-2 border-cream-400 p-4">
-      <h2 className="text-orange-500 text-lg uppercase tracking-wide mb-4">Recent Journal Entries</h2>
-      <div className="space-y-3">
+    <div className="bg-cream-100 border-2 border-cream-400 p-4 max-h-[400px] flex flex-col">
+      <h2 className="text-orange-500 text-lg uppercase tracking-wide mb-4 flex-shrink-0">Recent Journal Entries</h2>
+      <div className="space-y-3 overflow-y-auto overflow-x-hidden flex-1 min-h-0">
         {sessions.map((session) => (
           <Link
             key={session.id}

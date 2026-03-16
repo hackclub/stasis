@@ -147,43 +147,26 @@ export async function GET(
   const latestSubmission = await prisma.projectSubmission.findFirst({
     where: { projectId: project.id, stage: activeStage },
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      notes: true,
-      preReviewed: true,
-      createdAt: true,
-      reviews: {
-        orderBy: { createdAt: "desc" },
-        include: {
-          submission: false,
-        },
-      },
-    },
+    select: { id: true, notes: true, createdAt: true },
   }).catch(() => null)
 
-  // Collect reviewer IDs to resolve names
-  const reviewerIds = new Set<string>()
-  for (const a of project.reviewActions) {
-    if (a.reviewerId) reviewerIds.add(a.reviewerId)
-  }
-  if (latestSubmission?.reviews) {
-    for (const r of latestSubmission.reviews) {
-      if (r.reviewerId) reviewerIds.add(r.reviewerId)
-    }
-  }
-  const reviewerUsers = reviewerIds.size > 0
+  // Fetch reviewer names for past reviews
+  const reviewerIds = project.reviewActions
+    .map((a) => a.reviewerId)
+    .filter((id): id is string => !!id)
+  const reviewerUsers = reviewerIds.length > 0
     ? await prisma.user.findMany({
-        where: { id: { in: [...reviewerIds] } },
+        where: { id: { in: reviewerIds } },
         select: { id: true, name: true },
       })
     : []
   const reviewerNameMap = new Map(reviewerUsers.map((u) => [u.id, u.name]))
 
   // Map existing ProjectReviewAction records to the review format the frontend expects
-  const actionReviews = project.reviewActions.map((action) => ({
+  const reviews = project.reviewActions.map((action) => ({
     id: action.id,
     reviewerId: action.reviewerId || "",
-    reviewerName: action.reviewerId ? reviewerNameMap.get(action.reviewerId) ?? null : null,
+    reviewerName: action.reviewerId ? (reviewerNameMap.get(action.reviewerId) || null) : null,
     result: action.decision === "CHANGE_REQUESTED" ? "RETURNED" : action.decision,
     isAdminReview: true,
     feedback: action.comments || "",
@@ -200,33 +183,6 @@ export async function GET(
     frozenReviewerNote: null,
     createdAt: action.createdAt,
   }))
-
-  // Map SubmissionReview records (first-pass reviews by non-admin reviewers)
-  const submissionReviews = (latestSubmission?.reviews ?? []).map((r) => ({
-    id: r.id,
-    reviewerId: r.reviewerId,
-    reviewerName: reviewerNameMap.get(r.reviewerId) ?? null,
-    result: r.result,
-    isAdminReview: r.isAdminReview,
-    feedback: r.feedback,
-    reason: r.reason,
-    invalidated: r.invalidated,
-    workUnitsOverride: r.workUnitsOverride,
-    tierOverride: r.tierOverride,
-    grantOverride: r.grantOverride,
-    categoryOverride: r.categoryOverride,
-    frozenWorkUnits: r.frozenWorkUnits,
-    frozenEntryCount: r.frozenEntryCount,
-    frozenFundingAmount: r.frozenFundingAmount,
-    frozenTier: r.frozenTier,
-    frozenReviewerNote: r.frozenReviewerNote,
-    createdAt: r.createdAt,
-  }))
-
-  // Combine and sort by date descending
-  const reviews = [...actionReviews, ...submissionReviews].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
 
   // Find next/prev projects for navigation
   const allProjects = await prisma.project.findMany({
@@ -253,7 +209,7 @@ export async function GET(
       id: latestSubmission?.id || project.id,
       stage: activeStage,
       notes: latestSubmission?.notes || (activeStage === "DESIGN" ? project.designSubmissionNotes : project.buildSubmissionNotes),
-      preReviewed: latestSubmission?.preReviewed ?? false,
+      preReviewed: false,
       createdAt: latestSubmission?.createdAt || project.updatedAt,
       project: {
         ...project,
