@@ -165,6 +165,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [importingJournal, setImportingJournal] = useState(false);
 
   const canEdit = project && project.designStatus !== "in_review" && project.buildStatus !== "in_review";
 
@@ -252,6 +253,54 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       console.error('Failed to delete project:', error);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleImportJournal = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !project) return;
+    e.target.value = '';
+    setImportingJournal(true);
+    try {
+      const markdown = await file.text();
+      // Dry run to get entry count
+      const previewRes = await fetch(`/api/projects/${project.id}/sessions/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown, dryRun: true }),
+      });
+      if (!previewRes.ok) {
+        const data = await previewRes.json();
+        alert(data.error || 'Failed to parse journal');
+        return;
+      }
+      const { count } = await previewRes.json();
+      if (!confirm(`Found ${count} journal ${count === 1 ? 'entry' : 'entries'}. Import them?`)) return;
+
+      // Actual import
+      const res = await fetch(`/api/projects/${project.id}/sessions/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Imported ${data.imported} journal ${data.imported === 1 ? 'entry' : 'entries'}`);
+        const [updatedRes, timelineRes] = await Promise.all([
+          fetch(`/api/projects/${projectId}`),
+          fetch(`/api/projects/${projectId}/timeline`),
+        ]);
+        if (updatedRes.ok) setProject(await updatedRes.json());
+        if (timelineRes.ok) setTimelineItems(await timelineRes.json());
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to import journal');
+      }
+    } catch (error) {
+      console.error('Failed to import journal:', error);
+      alert('Failed to import journal');
+    } finally {
+      setImportingJournal(false);
     }
   };
 
@@ -1657,6 +1706,36 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Journal Import/Export */}
+              <div className="border-t border-cream-400 pt-4 mb-5">
+                <p className="text-brown-800 text-xs uppercase mb-2">Journal Import / Export</p>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`/api/projects/${project.id}/sessions/export`}
+                    className="inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export Journal
+                  </a>
+                  <label className={`inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer border border-cream-400 ${importingJournal ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    {importingJournal ? 'Importing...' : 'Import Journal'}
+                    <input
+                      type="file"
+                      accept=".md,.markdown,text/markdown"
+                      onChange={handleImportJournal}
+                      disabled={importingJournal}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <p className="text-cream-600 text-xs mt-1">Export your journal to put it in your GitHub repo! You can also import from Blueprint</p>
               </div>
 
               {/* Project Type - always visible as toggle */}

@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.slack-edge.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'blueprint.hackclub.com',
+      },
     ],
   },
 };
