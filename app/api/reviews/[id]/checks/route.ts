@@ -61,7 +61,8 @@ const IMAGE_PATTERN = /!\[.*?\]\(.*?\)|<img\s+[^>]*src\s*=|\.png|\.jpg|\.jpeg|\.
 const THREE_D_EXTENSIONS = ['.stl', '.obj', '.3mf', '.iges', '.igs'];
 const THREE_D_SOURCE_EXTENSIONS = ['.f3d', '.step', '.stp', '.fcstd', '.scad', '.blend'];
 const FIRMWARE_EXTENSIONS = ['.ino', '.c', '.cpp', '.h', '.py', '.rs', '.uf2', '.hex', '.bin'];
-const BOM_PATTERNS = ['bom', 'bill.of.materials', 'bill_of_materials', 'parts.list', 'parts_list'];
+const PCB_SOURCE_EXTENSIONS = ['.kicad_pcb', '.kicad_sch', '.kicad_pro', '.brd', '.sch', '.pcbdoc', '.schdoc', '.fzz', '.fzpz'];
+const PCB_FAB_EXTENSIONS = ['.gbr', '.gbl', '.gtl', '.gbs', '.gts', '.gbo', '.gto', '.gko', '.drl', '.zip'];
 
 export async function GET(
   _request: Request,
@@ -102,7 +103,8 @@ export async function GET(
       checks.push({ key: 'checks_05_3d_file', label: '3D model file', passed: false, detail: reason });
       checks.push({ key: 'checks_06_3d_source', label: '3D source file (F3D/STEP)', passed: false, detail: reason });
       checks.push({ key: 'checks_07_firmware_file', label: 'Firmware file', passed: false, detail: reason });
-      checks.push({ key: 'checks_08_bom_file', label: 'BOM file', passed: false, detail: reason });
+      checks.push({ key: 'checks_09_pcb_source', label: 'PCB source file', passed: false, detail: reason });
+      checks.push({ key: 'checks_10_pcb_fab', label: 'PCB fabrication files', passed: false, detail: reason });
     };
 
     // Check 1: GitHub URL is valid and repo exists
@@ -147,7 +149,8 @@ export async function GET(
       checks.push({ key: 'checks_05_3d_file', label: '3D model file', passed: false, detail: failDetail });
       checks.push({ key: 'checks_06_3d_source', label: '3D source file (F3D/STEP)', passed: false, detail: failDetail });
       checks.push({ key: 'checks_07_firmware_file', label: 'Firmware file', passed: false, detail: failDetail });
-      checks.push({ key: 'checks_08_bom_file', label: 'BOM file', passed: false, detail: failDetail });
+      checks.push({ key: 'checks_09_pcb_source', label: 'PCB source file', passed: false, detail: failDetail });
+      checks.push({ key: 'checks_10_pcb_fab', label: 'PCB fabrication files', passed: false, detail: failDetail });
       return NextResponse.json({ checks });
     }
 
@@ -204,13 +207,22 @@ export async function GET(
       detail: foundFirmware.length > 0 ? `${foundFirmware.length} file(s)` : 'No firmware files found',
     });
 
-    // Check 8: BOM file
-    const foundBom = filePaths.filter((p) => BOM_PATTERNS.some((pat) => p.includes(pat)));
+    // Check 9: PCB source files (KiCad, Altium, Fritzing)
+    const foundPcbSource = filePaths.filter((p) => PCB_SOURCE_EXTENSIONS.some((ext) => p.endsWith(ext)));
     checks.push({
-      key: 'checks_08_bom_file',
-      label: 'BOM file',
-      passed: foundBom.length > 0,
-      detail: foundBom.length > 0 ? foundBom.slice(0, 3).join(', ') : 'No BOM file found',
+      key: 'checks_09_pcb_source',
+      label: 'PCB source file',
+      passed: foundPcbSource.length > 0,
+      detail: foundPcbSource.length > 0 ? foundPcbSource.slice(0, 3).join(', ') : 'No KiCad/Altium/Fritzing files found',
+    });
+
+    // Check 10: PCB fabrication files (Gerbers, drill files)
+    const foundPcbFab = filePaths.filter((p) => PCB_FAB_EXTENSIONS.some((ext) => p.endsWith(ext)));
+    checks.push({
+      key: 'checks_10_pcb_fab',
+      label: 'PCB fabrication files',
+      passed: foundPcbFab.length > 0,
+      detail: foundPcbFab.length > 0 ? `${foundPcbFab.length} file(s)` : 'No Gerber/drill files found',
     });
 
     return NextResponse.json({ checks });
