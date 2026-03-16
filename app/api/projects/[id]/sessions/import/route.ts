@@ -169,7 +169,7 @@ export async function POST(
           media: {
             create: entry.images.map((url) => ({
               type: "IMAGE" as MediaType,
-              url,
+              url: sanitize(url),
             })),
           },
         },
