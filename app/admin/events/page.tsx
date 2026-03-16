@@ -2,6 +2,60 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+const COMMON_TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern (ET)' },
+  { value: 'America/Chicago', label: 'Central (CT)' },
+  { value: 'America/Denver', label: 'Mountain (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (PT)' },
+  { value: 'America/Anchorage', label: 'Alaska (AKT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii (HT)' },
+  { value: 'UTC', label: 'UTC' },
+  { value: 'Europe/London', label: 'London (GMT/BST)' },
+  { value: 'Europe/Paris', label: 'Central Europe (CET)' },
+  { value: 'Europe/Helsinki', label: 'Eastern Europe (EET)' },
+  { value: 'Asia/Tokyo', label: 'Japan (JST)' },
+  { value: 'Asia/Shanghai', label: 'China (CST)' },
+  { value: 'Asia/Kolkata', label: 'India (IST)' },
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+];
+
+function getLocalTimezone(): string {
+  const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (COMMON_TIMEZONES.some((tz) => tz.value === local)) return local;
+  return 'America/New_York';
+}
+
+/** Convert a datetime-local string + IANA timezone to a UTC ISO string */
+function localToUTC(dateTimeLocal: string, timezone: string): string {
+  // Build an ISO-ish string with no offset — then resolve it in the target tz
+  const fakeDate = new Date(dateTimeLocal); // parsed as local
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(fakeDate);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  // The offset between the tz-formatted time and the input tells us the tz offset
+  const tzDate = new Date(`${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`);
+  const offsetMs = tzDate.getTime() - fakeDate.getTime();
+  // Subtract that offset to get true UTC
+  return new Date(fakeDate.getTime() - offsetMs).toISOString();
+}
+
+/** Convert a UTC ISO string to a datetime-local string in a given timezone */
+function utcToLocal(isoString: string, timezone: string): string {
+  const date = new Date(isoString);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}
+
 interface Event {
   id: string;
   name: string;
@@ -22,6 +76,7 @@ export default function AdminEventsPage() {
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formDateTime, setFormDateTime] = useState('');
+  const [formTimezone, setFormTimezone] = useState(getLocalTimezone);
   const [formLinkUrl, setFormLinkUrl] = useState('');
   const [formLinkText, setFormLinkText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +111,7 @@ export default function AdminEventsPage() {
     setFormName('');
     setFormDescription('');
     setFormDateTime('');
+    setFormTimezone(getLocalTimezone());
     setFormLinkUrl('');
     setFormLinkText('');
     setEditingId(null);
@@ -66,10 +122,7 @@ export default function AdminEventsPage() {
     setEditingId(event.id);
     setFormName(event.name);
     setFormDescription(event.description);
-    // Convert ISO string to datetime-local format
-    const dt = new Date(event.dateTime);
-    const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    setFormDateTime(local);
+    setFormDateTime(utcToLocal(event.dateTime, formTimezone));
     setFormLinkUrl(event.linkUrl ?? '');
     setFormLinkText(event.linkText ?? '');
     setFormError(null);
@@ -97,7 +150,7 @@ export default function AdminEventsPage() {
       const body = {
         name: formName.trim(),
         description: formDescription.trim(),
-        dateTime: new Date(formDateTime).toISOString(),
+        dateTime: localToUTC(formDateTime, formTimezone),
         linkUrl: formLinkUrl.trim() || null,
         linkText: formLinkText.trim() || null,
       };
@@ -170,12 +223,23 @@ export default function AdminEventsPage() {
             </div>
             <div>
               <label className="text-brown-800 text-xs uppercase block mb-1">Date & Time</label>
-              <input
-                type="datetime-local"
-                value={formDateTime}
-                onChange={(e) => setFormDateTime(e.target.value)}
-                className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="datetime-local"
+                  value={formDateTime}
+                  onChange={(e) => setFormDateTime(e.target.value)}
+                  className="flex-1 bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                />
+                <select
+                  value={formTimezone}
+                  onChange={(e) => setFormTimezone(e.target.value)}
+                  className="bg-cream-50 border border-cream-400 text-brown-800 px-2 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                >
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
           <div>
@@ -264,7 +328,7 @@ export default function AdminEventsPage() {
                     <p className="text-cream-600 text-xs truncate max-w-xs">{event.description}</p>
                   </td>
                   <td className="px-4 py-3 text-brown-800 whitespace-nowrap">
-                    {new Date(event.dateTime).toLocaleString()}
+                    {new Date(event.dateTime).toLocaleString(undefined, { timeZoneName: 'short' })}
                   </td>
                   <td className="px-4 py-3">
                     {event.linkUrl ? (
