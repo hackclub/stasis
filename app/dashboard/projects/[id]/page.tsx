@@ -1474,14 +1474,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))}&nbsp;bits
                     </span>
                   </div>
-                  {project.totalHoursClaimed > 0 && (
-                    <div className="flex items-center">
-                      <span className="text-brown-800 text-xs mr-3">BOM cost per hour:</span>
-                      <span className="text-brown-800 text-sm">
-                        ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0) / project.totalHoursClaimed)}/h
-                      </span>
-                    </div>
-                  )}
                   {project.bitsAwarded != null && project.totalHoursApproved > 0 && (
                     <div className="flex items-center">
                       <span className="text-brown-800 text-xs mr-3">Bits per hour:</span>
@@ -1640,8 +1632,42 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </form>
             )}
 
-            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-              <div className="border-t border-cream-400 pt-4 mt-4">
+            <div className="border-t border-cream-400 pt-4 mt-4 flex items-center gap-4">
+              {(project.bomItems ?? []).length > 0 && (
+                <button
+                  onClick={() => {
+                    const items = project.bomItems ?? [];
+                    const header = "Name,Purpose,Cost Per Item (USD),Quantity,Total (USD),Link,Distributor";
+                    const rows = items.map((item) => {
+                      const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+                      return [
+                        escape(item.name),
+                        escape(item.purpose || ""),
+                        item.costPerItem.toFixed(2),
+                        item.quantity,
+                        (item.costPerItem * item.quantity).toFixed(2),
+                        escape(item.link || ""),
+                        escape(item.distributor || ""),
+                      ].join(",");
+                    });
+                    const csv = [header, ...rows].join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${project.title || "project"}-bom.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Export CSV
+                </button>
+              )}
+              {(project.bomItems ?? []).length > 0 && (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
+                <div className="w-px h-4 bg-cream-400" />
+              )}
+              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
                 <button
                   onClick={handleToggleNoBomNeeded}
                   className={`text-sm transition-colors cursor-pointer ${
@@ -1661,8 +1687,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     "I don't need to buy any parts for this project"
                   )}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Complexity Level & Project Type */}
