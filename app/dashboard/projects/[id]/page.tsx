@@ -263,7 +263,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     setImportingJournal(true);
     try {
       const markdown = await file.text();
-      // Dry run to get entry count
       const previewRes = await fetch(`/api/projects/${project.id}/sessions/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -277,7 +276,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       const { count } = await previewRes.json();
       if (!confirm(`Found ${count} journal ${count === 1 ? 'entry' : 'entries'}. Import them?`)) return;
 
-      // Actual import
       const res = await fetch(`/api/projects/${project.id}/sessions/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1761,7 +1759,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     />
                   </label>
                 </div>
-                <p className="text-cream-600 text-xs mt-1">Export your journal to put it in your GitHub repo! You can also import from Blueprint</p>
+                <p className="text-cream-600 text-xs mt-1">Export your journal to put it in your GitHub repo! You can also import from Blueprint.</p>
               </div>
 
               {/* Project Type - always visible as toggle */}

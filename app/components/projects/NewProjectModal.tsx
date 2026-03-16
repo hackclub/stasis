@@ -18,7 +18,7 @@ interface Props {
     starterProjectId: string | null
     githubRepo: string
     tier: number | null
-  }) => Promise<{ error?: string } | void>
+  }) => Promise<{ error?: string; projectId?: string } | void>
   error?: string | null
 }
 
@@ -36,6 +36,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [githubRepo, setGithubRepo] = useState('')
   const [selectedTier, setSelectedTier] = useState<number | null>(1)
   const [alreadyClaimedBadges, setAlreadyClaimedBadges] = useState<BadgeType[]>([])
+  const [journalFile, setJournalFile] = useState<File | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const fetchClaimedBadges = useCallback(async () => {
     try {
@@ -60,6 +62,16 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   useEffect(() => {
     if (!isOpen) {
       setStep(0)
+      setTitle('')
+      setDescription('')
+      setSelectedTags([])
+      setSelectedBadges([])
+      setIsStarter(false)
+      setStarterProjectId('')
+      setGithubRepo('')
+      setSelectedTier(1)
+      setJournalFile(null)
+      setSubmitting(false)
     } else {
       fetchClaimedBadges()
     }
@@ -68,8 +80,8 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   if (!isOpen) return null
 
   const handleTagToggle = (tag: ProjectTag) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
+    setSelectedTags(prev =>
+      prev.includes(tag)
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     )
@@ -89,29 +101,42 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
     e.preventDefault()
     if (!title.trim()) return
     if (isStarter && !starterProjectId) return
+    setSubmitting(true)
 
-    const result = await onSubmit({
-      title: title.trim(),
-      description: description.trim(),
-      tags: selectedTags,
-      badges: selectedBadges,
-      isStarter,
-      starterProjectId: isStarter ? starterProjectId : null,
-      githubRepo: githubRepo.trim(),
-      tier: selectedTier,
-    })
+    try {
+      const result = await onSubmit({
+        title: title.trim(),
+        description: description.trim(),
+        tags: selectedTags,
+        badges: selectedBadges,
+        isStarter,
+        starterProjectId: isStarter ? starterProjectId : null,
+        githubRepo: githubRepo.trim(),
+        tier: selectedTier,
+      })
 
-    if (result && result.error) return
+      if (result && result.error) return
 
-    setTitle('')
-    setDescription('')
-    setSelectedTags([])
-    setSelectedBadges([])
-    setIsStarter(false)
-    setStarterProjectId('')
-    setGithubRepo('')
-    setSelectedTier(1)
-    setStep(0)
+      if (journalFile && result && result.projectId) {
+        const markdown = await journalFile.text()
+        const res = await fetch(`/api/projects/${result.projectId}/sessions/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ markdown }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          alert(`Imported ${data.imported} journal ${data.imported === 1 ? 'entry' : 'entries'}`)
+        } else {
+          const data = await res.json()
+          alert(data.error || 'Project created, but journal import failed')
+        }
+      }
+
+      onClose()
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const starterProject = isStarter && starterProjectId
@@ -120,11 +145,11 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
 
   const canProceedFromStep0 = title.trim().length > 0 && (!isStarter || starterProjectId !== '')
   const canProceedFromStep1 = true
-  const canSubmit = canProceedFromStep0 && (!isStarter || starterProjectId) && selectedTier !== null
+  const canSubmit = canProceedFromStep0 && (!isStarter || starterProjectId) && selectedTier !== null && !submitting
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
+      <div
         className="absolute inset-0 bg-[#3D3229]/80"
         onClick={onClose}
       />
@@ -133,17 +158,17 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
           <h2 className="text-white text-lg uppercase tracking-wide">
             New Project
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-white hover:text-cream-100 transition-colors cursor-pointer"
           >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
               strokeWidth="2"
             >
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -277,6 +302,49 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                     className="w-full bg-cream-200 border-2 border-cream-400 text-brown-800 px-3 py-2 focus:border-orange-500 focus:outline-none transition-colors"
                     placeholder="github.com/user/repo"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-brown-800 text-sm uppercase mb-2">
+                    Import Journal from Blueprint <span className="text-cream-500">(optional)</span>
+                  </label>
+                  <p className="text-cream-600 text-xs mb-2">
+                    Export your journal from Blueprint as a Markdown file, then upload it here to import your entries.
+                  </p>
+                  {journalFile ? (
+                    <div className="flex items-center gap-2 bg-cream-200 border-2 border-cream-400 px-3 py-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600 shrink-0">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      <span className="text-brown-800 text-sm truncate">{journalFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setJournalFile(null)}
+                        className="ml-auto text-cream-600 hover:text-red-600 transition-colors cursor-pointer shrink-0"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer border border-cream-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      Choose File
+                      <input
+                        type="file"
+                        accept=".md,.markdown,text/markdown"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) setJournalFile(file)
+                          e.target.value = ''
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
               </>
             )}
@@ -432,7 +500,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   disabled={!canSubmit}
                   className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:cursor-not-allowed text-white py-3 text-lg uppercase tracking-wider transition-colors cursor-pointer"
                 >
-                  Create Project
+                  {submitting ? 'Creating...' : 'Create Project'}
                 </button>
               </div>
             )}

@@ -11,6 +11,7 @@ import { OnboardingTutorial } from '../components/OnboardingTutorial';
 import { PronounsModal } from '../components/PronounsModal';
 import { EventPicker } from '../components/EventPicker';
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
+import { UpcomingEvents } from '../components/UpcomingEvents';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { QUALIFICATION_BITS_THRESHOLD, isQualified, qualificationProgress, getEventThreshold, EVENT_LABELS, type EventPreference } from "@/lib/tiers"
 import Link from 'next/link';
@@ -143,8 +144,9 @@ export default function ProjectsPage() {
       });
       
       if (res.ok) {
-        setIsModalOpen(false);
+        const project = await res.json();
         fetchProjects();
+        return { projectId: project.id };
       } else {
         const result = await res.json();
         setModalError(result.error || 'Failed to create project');
@@ -235,9 +237,10 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Recent Journal Entries */}
-      <div className="mb-6">
+      {/* Recent Journal Entries & Upcoming Events */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <RecentJournalEntries />
+        <UpcomingEvents />
       </div>
 
       {/* Stats bar */}
