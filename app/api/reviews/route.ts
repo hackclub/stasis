@@ -67,6 +67,10 @@ export async function GET(request: NextRequest) {
         user: { select: { id: true, name: true, email: true, image: true } },
         workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true } },
         bomItems: { select: { id: true, costPerItem: true, quantity: true, status: true } },
+        submissions: {
+          select: { id: true, stage: true, preReviewed: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
       orderBy: { createdAt: "asc" },
       skip: offset,
@@ -87,6 +91,10 @@ export async function GET(request: NextRequest) {
     const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
     const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
     const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : "DESIGN"
+
+    // Check if the latest submission for the active stage has been pre-reviewed
+    const activeSubmission = project.submissions.find((s) => s.stage === activeStage)
+    const preReviewed = activeSubmission?.preReviewed ?? false
 
     const waitingMs = Date.now() - new Date(project.updatedAt).getTime()
 
@@ -110,7 +118,7 @@ export async function GET(request: NextRequest) {
       })(),
       waitingMs,
       createdAt: project.updatedAt,
-      preReviewed: false,
+      preReviewed,
       claimedByOther: false,
       claimedBySelf: false,
       claimerName: null,
@@ -118,6 +126,15 @@ export async function GET(request: NextRequest) {
       starterProjectId: project.starterProjectId,
     }
   })
+
+  // For admins, sort pre-reviewed items to the top
+  if (isAdmin) {
+    items.sort((a, b) => {
+      if (a.preReviewed && !b.preReviewed) return -1
+      if (!a.preReviewed && b.preReviewed) return 1
+      return 0
+    })
+  }
 
   return NextResponse.json({
     items,

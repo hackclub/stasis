@@ -907,14 +907,26 @@ export default function ReviewDetailPage() {
               </div>
             )}
 
+            {!isAdmin && (
+              <div className="mb-3 bg-blue-50 border border-blue-300 p-3">
+                <p className="text-blue-800 text-xs">Your approval will be recorded as a first-pass review. An admin will do the final approval, which triggers Airtable sync and bit grants.</p>
+              </div>
+            )}
+
+            {isAdmin && submission.preReviewed && (
+              <div className="mb-3 bg-orange-50 border border-orange-300 p-3">
+                <p className="text-orange-800 text-xs uppercase">This project has been first-pass reviewed. Check the review history below for details.</p>
+              </div>
+            )}
+
             <div className="flex gap-3 flex-wrap">
               <button
                 onClick={() => submitReview('APPROVED')}
                 disabled={submitting || project.user.fraudConvicted}
-                title={project.user.fraudConvicted ? 'Cannot approve fraud-convicted users' : undefined}
+                title={project.user.fraudConvicted ? 'Cannot approve fraud-convicted users' : isAdmin ? undefined : 'First-pass review — an admin will finalize'}
                 className="px-4 py-2 text-sm uppercase tracking-wider bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
-                Approve
+                {isAdmin ? 'Approve' : 'First-Pass Approve'}
               </button>
               <button
                 onClick={() => submitReview('RETURNED')}

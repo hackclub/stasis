@@ -132,7 +132,72 @@ export async function POST(
 
   // Map result to the existing decision format
   if (result === "APPROVED") {
-    // Use the existing decision endpoint logic
+    // Non-admin reviewers do a first-pass review only — no status change,
+    // no bits, no Airtable sync.  The project stays in review and gets
+    // surfaced to admins at the top of the queue.
+    if (!isAdmin) {
+      const updatedSubmission = await prisma.$transaction(async (tx) => {
+        // Find the active submission for this project+stage
+        const submission = await tx.projectSubmission.findFirst({
+          where: { projectId: project!.id, stage },
+          orderBy: { createdAt: "desc" },
+        })
+
+        if (submission) {
+          await tx.projectSubmission.update({
+            where: { id: submission.id },
+            data: { preReviewed: true },
+          })
+
+          // Create a SubmissionReview record so admins can see the first-pass details
+          await tx.submissionReview.create({
+            data: {
+              submissionId: submission.id,
+              reviewerId,
+              result: "APPROVED",
+              isAdminReview: false,
+              feedback: sanitizedFeedback,
+              reason: typeof body.reason === "string" ? body.reason.trim() || null : null,
+              workUnitsOverride: workUnitsOverride ?? null,
+              tierOverride: tierOverride ?? null,
+              grantOverride: grantOverride ?? null,
+            },
+          })
+        }
+
+        // Create review action for audit trail
+        await tx.projectReviewAction.create({
+          data: {
+            projectId: project!.id,
+            stage,
+            decision: "APPROVED",
+            comments: sanitizedFeedback,
+            grantAmount: grantOverride ?? null,
+            tier: tierOverride ?? null,
+            reviewerId,
+          },
+        })
+
+        return submission
+      })
+
+      await logAdminAction(
+        AuditAction.REVIEWER_APPROVE,
+        reviewerId,
+        authCheck.session.user.email ?? undefined,
+        "Project",
+        project.id,
+        { result, isAdmin: false, firstPass: true, feedback: sanitizedFeedback }
+      )
+
+      return NextResponse.json({
+        firstPassReview: true,
+        message: "First-pass review recorded. An admin will finalize.",
+        submissionId: updatedSubmission?.id,
+      })
+    }
+
+    // ── Admin full approval ──
     const decision = "approved"
 
     const updatedProject = await prisma.$transaction(async (tx) => {
