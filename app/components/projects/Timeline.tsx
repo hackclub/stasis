@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
 import { getTierById } from '@/lib/tiers';
+import { fixMarkdownImages } from '@/lib/markdown';
 
 const MDPreview = dynamic(
   () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
@@ -171,7 +172,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                   </div>
                 </div>
                 <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 [&_.wmde-markdown_h1]:!text-xl [&_.wmde-markdown_h1]:!font-bold [&_.wmde-markdown_h1]:!text-brown-800 [&_.wmde-markdown_h1]:!mb-2" data-color-mode="light">
-                  <MDPreview source={`# ${item.session.title}\n\n${item.session.content || ''}`} />
+                  <MDPreview source={fixMarkdownImages(`# ${item.session.title}\n\n${item.session.content || ''}`)} />
                 </div>
                 {(() => {
                   const extraMedia = item.session.media.filter(m => !item.session.content?.includes(m.url));
@@ -239,7 +240,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                 </div>
                 {item.notes && (
                   <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
-                    <MDPreview source={item.notes} />
+                    <MDPreview source={fixMarkdownImages(item.notes)} />
                   </div>
                 )}
               </div>
@@ -289,7 +290,7 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                 })()}
                 {item.comments && (
                   <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
-                    <MDPreview source={item.comments} />
+                    <MDPreview source={fixMarkdownImages(item.comments)} />
                   </div>
                 )}
               </div>

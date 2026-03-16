@@ -13,6 +13,7 @@ const MDPreview = dynamic(
 import { ProjectTag } from "@/app/generated/prisma/enums";
 import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
 import { getTierById, TIERS } from "@/lib/tiers";
+import { fixMarkdownImages } from '@/lib/markdown';
 import { getBadgeImage } from "@/lib/badges";
 import { formatPrice } from "@/lib/format";
 
@@ -821,7 +822,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
                     {session.content ? (
                       <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 mb-4" data-color-mode="light">
-                        <MDPreview source={session.content} />
+                        <MDPreview source={fixMarkdownImages(session.content)} />
                       </div>
                     ) : (
                       <p className="text-brown-800 text-sm italic mb-4">No content recorded</p>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import type { PublicTimelineItem } from '@/app/api/discover/[id]/timeline/route';
+import { fixMarkdownImages } from '@/lib/markdown';
 
 const MDPreview = dynamic(
   () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
@@ -132,7 +133,7 @@ function PublicTimeline({ items }: Readonly<{ items: PublicTimelineItem[] }>) {
               </div>
               {item.session.content && (
                 <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="light">
-                  <MDPreview source={item.session.content} />
+                  <MDPreview source={fixMarkdownImages(item.session.content)} />
                 </div>
               )}
               {(() => {
@@ -383,7 +384,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
 
         {project.description && (
           <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit]" data-color-mode="light">
-            <MDPreview source={project.description} />
+            <MDPreview source={fixMarkdownImages(project.description)} />
           </div>
         )}
 
