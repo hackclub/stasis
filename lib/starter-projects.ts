@@ -7,6 +7,7 @@ const TIER_MAP: Record<string, number> = {
   'spotify-display': 1,
   'devboard': 2,
   'split-keyboard': 2,
+  'pathfinder': 2,
 };
 
 export const STARTER_PROJECTS = projects.map(p => ({

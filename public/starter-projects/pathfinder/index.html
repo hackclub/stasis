@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pathfinder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+
+<body>
+  <div id="mainPage" class="page">
+    <marquee style="margin-top:1rem; padding-bottom: 1rem;" behavior="scroll" direction="right">
+      Run a Pathfinder meeting, get snacks for a Halloween party! Ends Oct 31st</marquee>
+    <div>
+
+      <button class="button" id="peegee" style="margin-top:2.5rem" onclick="window.location.href='gallery/index.html'">project
+        gallery >>></button>
+    </div>
+
+    <h1 style="text-shadow: 0 0 1rem greenyellow;">Welcome to Pathfinder</h1>
+    <p style="text-shadow: 0 0 1rem black" class="subtitle">make a custom PCB controller board and efidget</p>
+    <p style="margin-top: 0.5rem">(maybe learn hardware skills along the way)</p>
+    <button class="button" onclick="goToPage('mainPage', 'mapPage')">Build your Pathfinder</button>
+    <img src="public/render.png" style="height:417.667px; width:334.667.5px; margin-top:2rem">
+
+
+    <div style="float: left; left: 2rem; position: absolute; top: 80%; width: 15rem;">
+      <div class="highlightBox" style="flex-direction: column;">
+        <p class="highlight" style="padding-top: 0.8rem;">
+          Made by Meghana
+          <a style="color: #025e53" target="_blank" href="https://meghana.co/">meghana.co</a>
+        </p>
+        <p class="highlight">
+          Check out the GitHub repo for this project
+          <a style="color: black;" target="_blank" href="https://github.com/MeghanaM4/pathfinder">here</a>
+        </p>
+      </div>
+    </div>
+
+
+  </div>
+
+  <div id="mapPage">
+    <div
+      style="width: 100vw; text-align: center; display: flex; justify-content: center; align-items: center; position: relative;">
+      <h1>Pathfinder Treasure Map</h1>
+    </div>
+
+    <a class="button" href="https://www.figma.com/slides/bpMcruhywK3fOXJMLUdjI0/Pathfinder-for-Clubs?node-id=2-86&t=2yXYx4GU1Ra6ZOHD-1"
+      style="width: 15rem; font-size: medium; z-index: 3; position: fixed;top: 0.5rem; left: 1rem;">Doing
+      Pathfinder with your club? Follow the slides!
+    </a>
+
+    <button class="button" id="backBtn" onclick="goToPage('mapPage', 'mainPage')">back</button>
+
+    <button class="help-button" id="helpBtn" onclick="showHelp()">?</button>
+
+    <button class="button" id="peegee" onclick="window.location.href='gallery/index.html'">project gallery</button>
+
+
+    <div>
+
+      <div class="stepContainer" style="top:21% ; left:33%;" onclick="goToPage('mapPage', 'step1')">
+        <div class="titleContainer">
+          <h3 class="title">1. set up KiCAD</h3>
+        </div>
+        <div class="step"></div>
+      </div>
+
+      <div class="stepContainer" style="top: 40%; left:44%;" onclick="goToPage('mapPage', 'step2')">
+        <div class="titleContainer">
+          <h3 class="title">2. make schematic</h3>
+        </div>
+        <div class="step"></div>
+      </div>
+
+      <div id="step3Dot" class="stepContainer" style="top: 45%; left: 80%;" onclick="goToPage('mapPage', 'step3')">
+        <div class="titleContainer">
+          <h3 class="title">3. design PCB</h3>
+        </div>
+        <div class="step"></div>
+      </div>
+
+      <div class="stepContainer" style="top: 81%; left: 70%;" onclick="goToPage('mapPage', 'step4')">
+        <div class="titleContainer">
+          <h3 class="title">4. code firmware</h3>
+        </div>
+        <div class="step"></div>
+      </div>
+
+      <div class="stepContainer" style="top: 70%; left: 39%;"
+        onclick="window.location.href='submit.html'">
+        <div class="titleContainer">
+          <h3 class="title">5. submit</h3>
+        </div>
+        <div class="step"></div>
+      </div>
+
+      <div class="stepContainer" style="top: 48%; left: 19%;" onclick="goToPage('mapPage', 'step6')">
+        <div class="titleContainer">
+          <h3 class="title">6. Buy your PCB</h3>
+        </div>
+        <div class="step"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="step1" class="step-page" style="display: none">
+
+    <button class="button" id="backtoMapBtn" onclick="goToPage('step1', 'mapPage')">back to map</button>
+
+    <div class="content-wrapper">
+      <h1 style="padding-top:2rem">Step 1: Setting up KiCAD</h1>
+
+      <div class="image-text-section">
+        <p class="info">Alright, to design your PCB we're going to use a software called KiCAD. Download KiCAD
+          at
+          <a href="https://www.kicad.org/download/" target="_blank" style="color:#f5c04e">kicad.org/download</a>. You'll
+          see something like this:
+        </p>
+        <img src="public\stepimgs\step1.1.png"
+          style="width:500px">
+      </div>
+
+      <div class="image-text-section">
+        <img src="public\stepimgs\step1.2.png"
+          style="width:500px;">
+        <p class="info">Once you've selected your operating system, click "GitHub" from the list
+          of download options
+          and the download should automatically start. Once the download is complete, click it (in your file explorer)
+          and
+          follow its instructions
+          to install it.</p>
+      </div>
+
+      <div class="image-text-section">
+        <p class="info">Okay, cool! You've got KiCAD installed. Open it up real quick just to make
+          sure everything's good. It should look like this.
+        </p>
+        <img src="public\stepimgs\step1.3.png"
+          style="width:400px;">
+      </div>
+
+      <div class="image-text-section">
+        <img src="public\stepimgs\step1.4.png"
+          style="width:400px; border-color: white; border-width: 0.5rem;">
+
+        <div class="image-text-section">
+          <div style="flex-direction: column;">
+            <p class="info">To properly track your time spent on Pathfinder, download Cyao's
+              <a href="https://github.com/hackclub/kicad-wakatime/releases/tag/0.3.0" target="_blank"
+                style="color:#f5c04e">
+                KiCAD Wakatime</a>! Each time you open KiCAD, make sure to open KiCAD wakatime so that
+              it
+              tracks.
+              If you don't open it every time you work on your PCB, it won't track your time.
+            </p>
+            <br>
+            <p class="info">
+              When you create a new
+              project, go to KiCAD Wakatime's settings and set the filepath of your project.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="button" id="nextBtn" style="margin-right: 1rem;" onclick="goToPage('step1', 'step2')">next step
+      >></button>
+  </div>
+
+  <div id="step2" class="step-page" style="display: none">
+    <div class="content-wrapper">
+      <button class="button" id="backtoMapBtn" onclick="goToPage('step2', 'mapPage')">back to map</button>
+
+      <h1 style="padding-top:2rem">Step 2: Make Your Schematic</h1>
+
+      <div class="image-text-section">
+        <p class="info">So, now that we've installed KiCAD, let's start on our PCB. Create a new project by
+          going to "File" in the top navigation bar and clicking "New Project". Go to the projects folder and
+          create a new project. I called mine pathfinder (since it's the original), but you should call yours
+          something different.
+        </p>
+        <img
+          src="public\stepimgs\step2.1.gif"
+          style="width:450px">
+      </div>
+
+      <div class="image-text-section">
+        <img
+          src="public\stepimgs\step2.2.gif"
+          style="width:500px">
+        <div style="flex-direction: column">
+          <p class="info">Now, open the project's schematic by double-clicking the Schematic Editor.
+          </p>
+          <br>
+          <p class="info"> This is a schematic, which is basically a visual representation of our circuit we're going to
+            put on our PCB. It doesn't matter where you put your components or how it's laid out--a schematic is just
+            for wiring.
+          </p>
+        </div>
+      </div>
+
+      <div class="infoBox">
+        <p class="info" style="padding-top:1rem">We're going to be making my Pathfinder (3 buttons and 3 LEDs), but to
+          make a valid submission, you have to change yours up a bit. Maybe you add another button, a buzzer, or maybe
+          even a KNOB (very cool). If you want any help with these add-ons shoot a message in #electronics or DM me
+          @Meghana!
+        </p>
+      </div>
+      <div></div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column">
+          <p class="info">First, let's add the microcontroller. This is the brains of the operation: it does all
+            the processing, computing, and... controlling. The microcontroller is the funky shaped rectangle you
+            saw on the bottom right of my pathfinder. We're using a XIAO RP2040, which is a small but powerful
+            board. It's pretty simple and easy to use, so it's perfect for us.
+          </p>
+          <br>
+          <p class="info"> A microcontroller is a PCB too! It's got a bunch of components, one of which is a
+            chip (in this case the RP2040 chip), which actually does all the work. Everything else on the
+            microcontroller board is an LED, a button, monitors power, or makes sure the chip doesn't overheat.
+          </p>
+        </div>
+
+        <img src="https://www.newark.com/productimages/large/en_US/55AK3428-40.jpg" style="width:250px;height:300px">
+
+      </div>
+
+
+      <div class="image-text-section">
+        <img
+          src="public\stepimgs\step2.3.gif"
+          style="width:500px;height:300px">
+        <p class="info">
+          You can press "A" on your keyboard and open KiCAD's default symbol library, which has thousands of symbols
+          for parts. But the XIAO RP2040 isn't one of those default symbols, so we have to import it ourselves.
+        </p>
+      </div>
+
+      <div class="image-text-section">
+        <p class="info">Some wonderful person has created and uploaded a KiCAD symbol for the XIAO RP2040
+          <a color="black"
+            href="https://github.com/Seeed-Studio/OPL_Kicad_Library/blob/master/Seeed%20Studio%20XIAO%20Series%20Library/Seeed_Studio_XIAO_Series.kicad_sym"
+            target="_blank" style="color:#f5c04e">here</a>. Download the raw file and we're ready to import it.
+        </p>
+        <img
+          src="public\stepimgs\step2.4.gif"
+          style="width:550px">
+      </div>
+
+      <div class="image-text-section">
+        <img
+          src="public\stepimgs\step2.5.gif"
+          style="width:500px">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            Go back to the main KiCAD window (it should still be open), and go to "Preferences" in the top navigation
+            bar.
+            Click "Manage Symbol Libraries" and find the file icon at the bottom of the pop-window that appears.
+          </p>
+          <br>
+          <p class="info">
+            Find the XIAO symbol we just downloaded and click "open". Then, click "OK" in the pop-up window to save.
+          </p>
+          <br>
+          <p class="info">
+            Make sure you click OK, don't just close the window or else it won't save.
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column">
+          <p class="info">We've got the XIAO's symbol! Go back to your schematic and hit "A" on your keyboard.
+            It'll bring up the symbol libraries and if you now search for "XIAO RP2040 DIP" the symbol we need should
+            appear. Magic, right?
+          </p>
+          <br>
+          <p class="info"> You may be wondering, "what's a symbol?". Well if a schematic is a visual
+            repesentation of our entire circuit then a symbol is the visual representation of a component. I'll
+            have 3 components for this tutorial: the XIAO, the buttons, and the LEDs.
+          </p>
+          <br>
+          <p class="info">When you place the XIAO, you'll see a bunch of lines sticking out the sides. Those represent
+            "pins", or connection points of that component. (The gold pads you see on the edges of the XIAO are pins)
+          </p>
+        </div>
+
+        <img
+          src="public\stepimgs\step2.6.gif"
+          style="width:500px">
+      </div>
+
+      <div class="image-text-section">
+        <img style="width:500px"
+          src="public\stepimgs\step2.7.gif">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            The next piece of the puzzle we'll add is the buttons. They're easy because their symbol is default.
+            Go to place a symbol (press "A" on your keyboard) and type in "SW PUSH", and it's the first one that
+            shows up.
+          </p>
+          <br>
+          <p class="info">
+            This symbol is insanely simple. It's 2 pins: voltage in and voltage out. That's because that's all a
+            button needs.
+          </p>
+          <br>
+          <p class="info">
+            If you were using a arcade button or even one of those tiny buttons that come in arduino
+            kits you'd use the same symbol--electrically, they're all the same.
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column">
+          <p class="info">Next step is the LEDs, which is also a custom symbol.
+          </p>
+          <br>
+          <p class="info">You can find the symbol
+            <a style="color:#f5c04e" target="_blank"
+              href="public\stepimgs\L08R5000Q1.zip">here</a>.
+            You'll get a .zip file of the LED's symbol, footprint, and 3D model (we'll get to those last 2
+            later). Extract the zip file into your project folder (or wherever you want, personal choice).
+          </p>
+          <br>
+          <p class="info">Follow the same steps as before to import the symbol (Preferences -> Manage Symbol
+            Libraries -> find the file -> OK), and we're good to place 3 LEDs.
+          </p>
+          <br>
+          <p class="info">Search for "L08R5000Q1" (rolls of the tongue, doesn't it?), and donezo.
+          </p>
+        </div>
+        <img
+          src="public\stepimgs\step2.8.gif"
+          style="width:500px">
+      </div>
+
+      <div class="image-text-section">
+        <img style="width:500px"
+          src="public\stepimgs\step2.9.gif">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            One last component to add: a resistor. We don't want to give 5V straight volts to the LED or else
+            it'll short and be ruined forever.
+          </p>
+          <br>
+          <p class="info">
+            We don't have to do this for the switch, that can operate with 5V.
+          </p>
+          <br>
+          <p class="info">
+            Search for a resistor in the symbol library and connect 1 resistor to the left end of each of your
+            LEDs. Since I have 3 LEDs, I'm placing 3 resistors. You connect components by pressing "W" and wiring
+            their pins together OR by placing their pins on top of each other (see GIF).
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column">
+          <p class="info">
+            Now comes the fun part: wiring. You can hit "W" click around for a green wire to show up. You can
+            connect pins using wire, OR you can use the less messy and awesome method of global tags.
+          </p>
+          <br>
+          <p class="info">
+            If you make a global tag that says "button1" and connect it to your first button, then make a second,
+            identical tag that has the same name and connect it to a pin on your microcontroller, they're connected.
+          </p>
+          <br>
+          <p class="info">
+            What you just did was exactly the same as connecting those 2 pins with a wire, but less messy. Whenever
+            any global tags have the exact same name (case sensitive) they're connected.
+          </p>
+          <br>
+          <p class="info">Having these tags takes up a lot less space, and I'm sure you can imagine how much
+            easier this makes your schematic to read.
+          </p>
+        </div>
+        <img
+          src="public\stepimgs\step2.10.gif"
+          style="width:500px">
+      </div>
+
+      <div class="image-text-section">
+        <img src="public\stepimgs\step2.11.png"
+          style="width:450px">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            Place unique labels for each component and connect each one to a different pin on the XIAO's symbol.
+          </p>
+          <br>
+          <p class="info">
+            Make sure you're only connecting XIAO pins that say GPIO (General Purpose Input/Output), because
+            they're built for inputs (buttons) or outputs (LEDs).
+          </p>
+          <br>
+          <p class="info">
+            5V is a pin that (you guessed it), outputs 5V, 3V3 outputs 3.3V, and GND is ground, which is how
+            the microcontroller deals with all the electrons after they go through your circuit.
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column">
+          <p class="info">
+            Last step, we have to connect the right side of every component to GND. That's pretty much the basics
+            of electronics: voltage in on the left and out to ground on the right.
+          </p>
+          <br>
+          <p class="info">
+            You can place GND symbols ("A" on your keyboard) and it acts like a global label. You could actually
+            just make a global label called "ground" (or anything else) and it'd do the same thing.
+          </p>
+          <br>
+          <p class="info">
+            You also have to connect a GND symbol to the GND pin on the XIAO (remember, they're all connected)
+          </p>
+        </div>
+        <img src="public\stepimgs\step2.12.gif"
+          style="width:500px">
+      </div>
+
+      <div class="image-text-section">
+        <img src="public\stepimgs\step2.13.png"
+          style="width:300px">
+
+        <p class="info">
+          When all's said and done, your schematic should look like this.
+        </p>
+      </div>
+
+      <div class="infoBox" style="margin-bottom: 1rem;">
+        <p class="info" style="text-align: center; padding-top:2rem;">
+          Congrats! You've officially made a PCB schematic!
+        </p>
+      </div>
+
+    </div>
+    <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="goToPage('step2', 'step1')">
+      << prev step</button>
+
+        <button class="button" style="margin-right:1rem;" id="nextBtn" onclick="goToPage('step2', 'step3')">next step
+          >></button>
+  </div>
+
+  <div id="step3" class="step-page" style="display: none">
+    <button class="button" id="backtoMapBtn" onclick="goToPage('step3', 'mapPage')">back to map</button>
+
+    <div class="content-wrapper">
+
+      <h1 style="padding-top:2rem">Step 3: Design your PCB</h1>
+
+      <div></div>
+
+      <div class="image-text-section">
+        <img style="width: 500px"
+          src="public\stepimgs\step3.1.png">
+
+        <div style="flex-direction: column;">
+
+          <p class="info">Since the XIAO we're using isn't one of KiCAD's default parts, we have to download the
+            XIAO's footprint and import it. The same wonderful person has uploaded the footprint to GitHub. Follow
+            <a style="color:#f5c04e" target="_blank"
+              href="https://github.com/Seeed-Studio/OPL_Kicad_Library/blob/master/Seeed%20Studio%20XIAO%20Series%20Library/XIAO-RP2040-DIP.kicad_mod">
+              this</a>
+            link and download the raw file. Find the KiCAD folder on your computer and go to the "footprints"
+            subfolder. Move the file there.
+          </p>
+          <br>
+          <p class="info">
+            A footprint is what the component will look like on the actual PCB. The way you arranged your schematic
+            has no effect on the actual PCB, but the way you make your PCB in the PCB Editor is exactly how it will
+            show up when it goes to get printed.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column;">
+          <p class="info">
+            Next, we have to import the footprint just like we imported the symbol. Go to the main KiCAD window,
+            click "Preferences" in the top nav bar, then click "Manage Footprint Libraries". A pop up window similar
+            to the symbol libraries will show up, and click the file icon at the bottom to import a custom footprint.
+          </p>
+          <br>
+          <p class="info">
+            Now, select the FOLDER where the XIAO's footprint is. You should've moved the XIAO's footprint file to the
+            footprint folder that KiCAD has, so select that one. Every footprint in your "Footprints" folder will
+            be included in your footprint libraries.
+          </p>
+        </div>
+        <img style="width: 550px;"
+          src="public\stepimgs\step3.2.gif">
+      </div>
+
+      <div class="image-text-section">
+        <img style="width: 500px;"
+          src="public\stepimgs\step3.3.png">
+        <div style="flex-direction: column;">
+
+          <p class="info">We also have to add the footprint of the LED (which you already downloaded
+            <a href="public\stepimgs\L08R5000Q1.zip"
+              target="_blank" style="color:#f5c04e">here</a>) Move the footprint you extracted into KiCAD's "Footprints"
+            folder too.
+          </p>
+          <br>
+          <p class="info">
+            Your "Footprints" folder should have these 2 files in it.
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column;">
+          <p class="info">
+            Next, we gotta assign footprints to our symbols. KiCAD knows what components you're using electrically, but
+            it doesn't know
+            the exact part. The symbol for all buttons is the same, but since a tiny Arduino button is physically
+            different than an arcade-style
+            button, we have to led KiCAD know what's actually goint to show up on our PCB.
+          </p>
+          <br>
+          <p class="info">
+            This video will go through assigning your footprints.
+          </p>
+        </div>
+        <iframe width="420px" style="margin-top:1rem; box-shadow: 0.2rem 0.2rem 0.2rem black;" target="_blank"
+          height="315px" src="https://www.youtube.com/embed/WDGZ1q_8jkM">
+        </iframe>
+      </div>
+
+      <div class="infoBox">
+        <p class="info">This video'll teach you all about PCB routing and how you can polish off your PCB</p>
+        <p>stay till the end for a super sick outro</p>
+        <iframe width="420px" style="margin-top:1rem; border-color: #8c2e37; border-width: 0.5rem;" target="_blank"
+          height="315px" src="https://www.youtube.com/embed/MFTP7uMzt1s">
+        </iframe>
+      </div>
+
+      <div></div>
+
+      <div class="image-text-section">
+        <img style="width:600px"
+          src="public\stepimgs\step3.4.gif">
+        <div style="flex-direction: column;">
+          <p class="info">
+            Download these four 3D models so we can put them in our PCB 3D viewer. I got these from
+            <a href="https://grabcad.com/library" style="color:#f5c04e">GrabCAD</a>, you can totally find
+            different ones (or even make your own) if you want.
+          </p>
+          <br>
+          <p class="info">
+            <a style="color:#f5c04e"
+              href="public\stepimgs\Seeed Studio XIAO RP2040 v26.step">
+              XIAO RP2040
+            </a>
+            <br>
+            <br>
+            <a style="color:#f5c04e"
+              href="public\stepimgs\MX .STEP">
+              Cherry MX Switch
+            </a>
+            <br>
+            <br>
+            <a style="color:#f5c04e" href="public\stepimgs\DSA_Keycap_CherryMX.step">
+              Switch Keycap
+            </a>
+            <br>
+            <br>
+            <a style="color:#f5c04e" href="public\stepimgs\Blue_LED_5mm_STEP.STEP">
+              5mm LED
+            </a>
+
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column;">
+          <p class="info">
+            Go to your PCB editor and select a footprint. Hit "E" on your keyboard (or right click and choose
+            "Properties"). Click
+            the "3D Models" tab on the menu that pops up and find the file icon.
+          </p>
+          <br>
+          <p class="info">
+            Select the CAD model for that component and you should see it show up in the preview. You'll probably have
+            to do some rotating and offsets to make sure everything lines up properly.
+          </p>
+        </div>
+        <img style="height: 250px;"
+          src="public\stepimgs\step3.5.gif">
+      </div>
+
+      <div class="image-text-section">
+        <img style="height: 300px; width: 550px;"
+          src="public\stepimgs\step3.6.gif">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            For your switches (buttons), you'll add the model of the switch AND the model of the keycap. You
+            can add one at a time (file icon -> select file x2).
+          </p>
+          <br>
+          <p class="info">
+            When you're done adding the model for all the components, open the 3D Viewer and you'll see a shiny new
+            PCB!
+          </p>
+        </div>
+      </div>
+
+      <div class="infoBox" style="text-align: center;">
+        <p class="info" style="text-align: center;">
+          Woohoo, you're ready to start coding!
+        </p>
+      </div>
+
+    </div>
+    <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="goToPage('step3', 'step2')">
+      << prev step</button>
+        <button class="button" id="nextBtn" style="margin-right: 1rem;" onclick="goToPage('step3', 'step4')">next step
+          >></button>
+  </div>
+
+  <div id="step4" class="step-page" style="display: none">
+    <div class="content-wrapper">
+      <h1 style="padding-top:2rem">Step 4: Code your Firmware</h1>
+      <button class="button" id="backtoMapBtn" onclick="goToPage('step4', 'mapPage')">back to map</button>
+
+
+      <div class="infoBox" style="flex-direction: column;">
+        <p class="info">
+          You're nearing the last leg. It's now time to code your firmware. We'll be coding in C++, specifically in
+          Arduino code. To be
+          able to compile and flash your code onto your PCB, download the
+          <a href="https://www.arduino.cc/en/software/" target="_blank" style="color:#8c2e37;">Arduino IDE</a> and use
+          <a href="https://wiki.seeedstudio.com/XIAO-RP2040-with-Arduino/" target="_blank" style="color:#8c2e37">this
+            guide</a> to add your XIAO RP2040
+          board to it.
+        </p>
+
+        <p class="info">
+          You can set up Arduino Hackatime
+          <a href="https://wakatime.com/arduino-ide" target="_blank" style="color:#8c2e37">here</a>, and use it to track
+          your time.
+        </p>
+
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column;">
+          <p class="info">
+            This assigns pin numbers for all the components. Check your PCB Editor and the XIAO RP2040's pinout
+            to see what pins your LEDs and buttons are connected to. If you mess up these numbers the microcontroller
+            will be reading voltages from the wrong pins and directing voltage to the wrong pins (so it looks like
+            nothing
+            is happening).
+          </p>
+          <br>
+          <p class="info">
+            These numbers 90% won't work for you, so make sure you double-check the XIAO
+            RP2040's pinout and your PCB editor.
+          </p>
+
+        </div>
+
+        <!-- From Uiverse.io by Yaya12085 -->
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+
+          </div>
+          <div class="editor-content">
+            <code class="code">
+          <p><span class="color-0">int </span> <span>BUT1 = D0;</span></p>
+          <p><span class="color-0">int </span> <span>BUT2 = D1;</span></p>
+          <p><span class="color-0">int </span> <span>BUT3 = D2;</span></p>
+
+          <br>
+
+          <p><span class="color-0">int </span> <span>LED1 = D3;</span></p>
+          <p><span class="color-0">int </span> <span>LED2 = D4;</span></p>
+          <p><span class="color-0">int </span> <span>LED3 = D5;</span></p>
+        </code>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="image-text-section">
+
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+
+          </div>
+
+          <div class="editor-content">
+            <code class="code">
+          <p>
+            <span class="color-0">void </span>
+            <span class="color-1">setup</span><span>() {</span>
+          </p>
+
+          <div class="property">
+            <p><span class="color-1">pinMode</span><span>(BUT1, INPUT_PULLUP);</span></p>
+            <p><span class="color-1">pinMode</span><span>(BUT2, INPUT_PULLUP);</span></p>
+            <p><span class="color-1">pinMode</span><span>(BUT3, INPUT_PULLUP);</span></p>
+            <br>
+            <p><span class="color-1">pinMode</span><span>(LED1, OUTPUT);</span></p>
+            <p><span class="color-1">pinMode</span><span>(LED2, OUTPUT);</span></p>
+            <p><span class="color-1">pinMode</span><span>(LED3, OUTPUT);</span></p>
+            <br>
+            
+            <p><span class="color-0">long </span> <span>startTime = </span> <span class="color-1">millis</span><span>();</span></p>
+          </div>
+
+          <p><span>}</span></p>
+            <br>
+          
+          </code>
+          </div>
+
+        </div>
+
+        <div style="flex-direction: column;">
+          <p class="info">In Arduino, you need to declare whether your component is an <strong>input</strong>
+            or an <strong>output</strong>. This is so the microcontroller knows whether it needs to send current/voltage
+            out of the pin or read voltage coming out of the pin. This also sets up pull-up resistors.
+          </p>
+          <br>
+          <p class="info">Buttons are input. The user does an action and microcontroller needs to look out for
+            a voltage sent from the button.
+          </p>
+          <br>
+          <p class="info">LEDs are outputs. The pins connected to the LED need to have voltage driven
+            out of them.
+          </p>
+          <br>
+          <p class="info">We're also logging official start time with the millis() function. millis() returns
+            the time in milliseconds after the program has started.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="infoBox">
+        <p class="info" style="text-align: center;">
+          Remember: this is a tutorial of MY firmware. To be a valid submission, you must make your own. Try and play
+          around with different
+          secret controls and timings. Maybe you could add a secret clock hidden in the LED blinks, maybe your LEDs
+          spout morse code
+          according to specific button taps, who knows.
+        </p>
+
+      </div>
+
+      <div class="image-text-section">
+        <p class="info">
+          I want to track when each button is pressed, so I'm making a variable I can assign the millis() function
+          to later.
+        </p>
+
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+          </div>
+          <div class="editor-content">
+            <code class="code">
+        <p>
+          <span class="color-0">void </span>
+          <span class="color-1">loop</span><span>() {</span>
+        </p>
+
+        <div class="property">
+          <span class="color-0">long </span><span>but1time;</span>
+        </p>
+        <p class="property">
+          <span class="color-0">long </span><span>but2time;</span>
+        </p>
+        <p class="property">
+          <span class="color-0">long </span><span>but3time = </span><span class="color-3">0</span><span>;</span>
+        </div>
+
+      </code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code Block 4: Button 1 logic -->
+      <div class="image-text-section">
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+          </div>
+          <div class="editor-content">
+            <code class="code">
+        <p>
+          <span class="color-2">if</span>
+          <span>(</span><span class="color-1">digitalRead</span><span>(BUT1) == HIGH) {</span>
+        </p>
+
+        <div class="property">
+          <span>but1time = </span>
+          <span class="color-1">millis</span><span>();</span>
+          <span class="color-1">digitalWrite</span><span>(LED1, HIGH);</span>
+        </div>
+
+        <p>
+          <span>} </span>
+          <span class="color-2">else </span>
+          <span>{</span>
+        </p>
+
+        <div class="property">
+          <span class="color-1">digitalWrite</span><span>(LED1, LOW);</span>
+        </p>
+      </div><span>}</span></p>
+
+      </code>
+          </div>
+        </div>
+        <div style="flex-direction: column;">
+          <p class="info">
+            digitalRead(pin#) reads the voltage of the given pin number at that point (so in a loop it'll be checking
+            constantly). digitalRead will return HIGH if the button is pressed and LOW if the button is now.
+            digitalWrite(pin#)
+            directs voltage to the given pin, so the component attached to it will receive 3.3V.
+
+          </p>
+          <br>
+          <p class="info">
+            This code
+            block says, "if the button is pressed, set but1time to the current time and turn on LED1. If it's not being
+            pressed, then turn LED1 off."
+          </p>
+          <br>
+          <p class="info">
+            Buttons and LEDs are digital components, so that's why it's digitalRead and digitalWrite. If you wanted the
+            LED
+            to slowly fade in, you would use a for loop and analogWrite(pin#, value). value can be any int between 0-255
+            with 255 being
+            the brightest.
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <p class="info">
+          Just like button 1, this saves the time that button 2 was pressed but doesn't light up the LED.
+        </p>
+
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+          </div>
+          <div class="editor-content">
+            <code class="code">
+
+        <p>
+          <span class="color-2">if </span>
+          <span>(</span><span class="color-1">digitalRead</span>
+          <span>(BUT2) == HIGH) {</span>
+        </p>
+
+        <div class="property">
+          <span>but2time = </span>
+          <span class="color-1">millis</span><span>();</span>
+        </div>
+
+        <p><span>}</span></p>
+      </code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code Block 6: Two-button timing logic -->
+      <div class="image-text-section">
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+          </div>
+          <div class="editor-content">
+            <code class="code">
+        <p>
+          <span class="color-2">if </span><span>(</span><span class="color-1">abs</span><span>(but2time - but1time) <= </span><span class="color-3">2000</span><span>) {</span>
+        </p>
+        <p class="property">
+          <span class="color-1">digitalWrite</span><span>(LED2, HIGH);</span>
+        </p>
+        <p>
+          <span>} </span>
+          <span class="color-2">else </span>
+          <span>{</span>
+        </p>
+        <p class="property">
+          <span class="color-1">digitalWrite</span><span>(LED2, LOW);</span>
+        </p>
+        <p><span>}</span></p>
+      </code>
+          </div>
+        </div>
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            If button 1 and button 2 were pressed within 2 seconds of each other, then LED 2 lights up.
+          </p>
+          <br>
+          <p class="info">
+            The else makes sure LED 2 turns off when the time exceeds 2000ms
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column;">
+          <p class="info">
+            This keeps track of how long button 3 has been pressed by adding 1 every time a loop goes by. loop()
+            is executed constantly, and if you add one every time button 3 is pressed you can set a minimum time for the
+            LED to light up.
+          </p>
+          <br>
+          <p class="info">
+            If a loop goes by and button 3 is not pressed, it sets the button 3 time back to 0.
+          </p>
+        </div>
+
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+          </div>
+          <div class="editor-content">
+            <code class="code">
+        <p>
+          <span class="color-2">if </span><span>(</span><span class="color-1">digitalRead</span>
+          <span>(BUT3) == HIGH) {</span>
+        </p>
+
+        <div class="property">
+          <span>but3time++;</span>
+        </div>
+
+        <p>
+          <span>} </span>
+          <span class="color-2">else </span>
+          <span>{</span>
+        </p>
+
+        <div class="property">
+          <span>but3time = </span>
+          <span class="color-3">0</span>
+          <span>;</span>
+        </div>
+
+        <p><span>}</span></p>
+      </code>
+          </div>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div class="code-editor">
+          <div class="header">
+            <span class="titleCode">pathfinder.ino</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+              onclick="goToPage('step4', 'mapPage')">
+              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+              </g>
+            </svg>
+          </div>
+          <div class="editor-content">
+            <code class="code">
+        <p>
+          <span class="color-2">if </span>
+          <span>(but3time >= </span>
+          <span class="color-3">800</span>
+          <span>) {</span>
+        </p>
+
+        <div class="property">
+          <span class="color-1">digitalWrite</span>
+          <span>(LED3, HIGH);</span>
+        </div>
+        
+        <p>
+          <span>} </span>
+          <span class="color-2">else </span>
+          <span>{</span>
+        </p>
+
+        <div class="property">
+          <span class="color-1">digitalWrite</span>
+          <span>(LED3, LOW);</span>
+        </div>
+
+        <p><span>}</span></p>
+        <br>
+        <p><span>}</span></p>
+      </code>
+          </div>
+        </div>
+        <p class="info">
+          If button 3 is pressed for more than 800 loops then turn LED3 on.
+        </p>
+      </div>
+
+      <div class="infoBox" style="margin-bottom: 1rem;">
+        <p class="info" style="padding-top:1rem">
+          These are all the basic functions you need to know in order to make Pathfinder firmware. Yes, they're
+          simple, but there are so many combinations of things you can do that the possibilities are endless. People
+          have done reaction time games, simon says, and so much more.
+        </p>
+        <p class="info">
+          Check out the <a style="color:#8c2e37" target="_blank" href="https://pathfinder.hackclub.com/gallery">project
+            gallery</a> if you need inspiration!
+        </p>
+      </div>
+      <div></div>
+
+    </div>
+
+    <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="goToPage('step4', 'step3')">
+      << prev step</button>
+
+        <button class="button" id="nextBtn" style="margin-right: 1rem;"
+          onclick="window.location.href='submit.html'">
+          submit!!</button>
+  </div>
+
+  <div id="step6" class="step-page" style="display: none">
+    <div class="content-wrapper">
+      <h1 style="padding-top:2rem">Step 6: Buy your PCB off JLCPCB</h1>
+      <button class="button" id="backtoMapBtn" onclick="goToPage('step4', 'mapPage')">back to map</button>
+
+
+      <div class="infoBox" style="flex-direction: column;">
+        <p class="info">
+          IMPORTANT: I'm showing you how to buy off of JLCPCB. If the order comes out to be too expensive,
+          there is probably a cheaper alternative for your country.
+        </p>
+        <p class="info">
+          If you need help finding a good PCB distributor, ask in the #electronics channel on the Slack or
+          DM me (@Meghana).
+        </p>
+
+      </div>
+
+      <div class="image-text-section">
+        <img style="width:500px"
+          src="public\stepimgs\step6.1.gif">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            First, we need to get the files for our PCB so it can be printed and cut. We can't just upload our
+            KiCAD
+            project files because they aren't standard and don't have the right information that a PCB
+            distributor needs.
+          </p>
+          <br>
+          <p class="info">
+            The files we do need are called gerber and dril files. Funny names, I know, it's awesome. Open up
+            your KiCAD PCB Editor, go to File -> Fabrication Outputs -> Gerbers (.gbr)
+          </p>
+          <br>
+          <p class="info">
+            Then, click "Plot". This should make a ton of .gbr files and one .gbrjob file show up in your
+            project folder.
+          </p>
+
+        </div>
+
+
+      </div>
+
+      <div class="image-text-section">
+
+        <div style="flex-direction: column;">
+          <p class="info">Go to your project folder and make a folder called "prod" (short for production).
+            Move all the gerber files to this folder
+          </p>
+        </div>
+
+        <img style="height:300px;"
+          src="public\stepimgs\step6.2.gif">
+
+      </div>
+
+      <div class="image-text-section">
+
+        <img style="width:500px"
+          src="public\stepimgs\step6.3.gif">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            Now we need the .dril files (dril files show where holes are in the PCB. Drill. Get it?). Go back to
+            your PCB Editor, go to File -> Export -> Fabrication Outputs -> Drill Files (.dril) and click the file
+            icon on the window that pops up to select the "prod" folder you just made.
+          </p>
+          <br>
+          <p class="info">
+            Hit "Generate" to put the dril files in the prod folder.
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            Go to your File Explorer and select your prod folder. Now, find the option to ZIP your folder
+            (it might be something called "Compress to ZIP")
+          </p>
+          <br>
+          <p class="info">
+            Some PCB distributors only take zip files (cause they're smaller).
+          </p>
+        </div>
+
+        <img style="width:500px"
+          src="public\stepimgs\step6.4.gif">
+
+      </div>
+
+      <div class="image-text-section">
+
+        <img style="width:500px"
+          src="public\stepimgs\step6.5.gif">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            Now, go to
+            <a style="color:#f5c04e" target="_blank" href="https://jlcpcb.com/">JLCPCB.com</a> (you should make an
+            account)
+            and click "Order now" in the top right.
+          </p>
+          <br>
+          <p class="info">
+            Hit the massive "Add gerber file" button and upload your prod.zip folder
+          </p>
+        </div>
+
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column;">
+          <p class="info">
+            After it's done uploading, you should see a preview of your PCB. (If you don't, you probably
+            didn't download the right files)
+          </p>
+          <br>
+          <p class="info">
+            If you scroll down, you're going to see a lot of options. We don't care about most of them.
+            The minimum number of PCBs you can order on JLCPCB is 5, so you'll actually receive 5 PCBs
+            even though you only have the parts to build one Pathfinder.
+          </p>
+        </div>
+
+        <img style="width:500px"
+          src="public\stepimgs\step6.6.gif">
+      </div>
+
+      <div class="image-text-section">
+
+        <img style="width:500px"
+          src="public\stepimgs\step6.7.gif">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            Change your PCB Thickness to 0.8mm, this makes the PCB cheaper and doesn't compromise the
+            strength of it.
+          </p>
+          <br>
+          <p class="info">
+            You can also change the color of your PCB. If it doesn't add to the cost of your PCB, you're
+            free to change it to whatever you want.
+          </p>
+          <br>
+          <p class="info">
+            We don't care about anything else, so click "Save to Cart" on the left.
+          </p>
+        </div>
+      </div>
+
+      <div class="image-text-section">
+        <div style="flex-direction: column;">
+          <p class="info">
+            Click your cart in the top right, select the checkbox next your PCB, and click "Secure Checkout"
+          </p>
+          <br>
+          <p class="info">
+            Make sure your shipping info is all correct, and make sure your Billing Address is the one on your
+            HCB card (usually the Santa Monica Blvd address)
+          </p>
+          <br>
+          <p class="info">
+            For Shipping Method, the cheapest option is Global Standard Direct Line (you can go through
+            all of the options and make sure). If your total is significantly more than $5, DM Meghana.
+          </p>
+          <br>
+          <p class="info">
+            Click Pay Directly and then submit your order.
+          </p>
+        </div>
+
+        <img style="width:500px"
+          src="public\stepimgs\step6.8.gif">
+      </div>
+
+      <div class="image-text-section">
+
+        <img style="width:500px"
+          src="public\stepimgs\step6.9.png">
+
+        <div style="flex-direction: column;">
+          <p class="info">
+            Fill out your HCB card's payment information and make sure to find coupons that get your
+            price down (I found a $6 one that made my whole order $4.41)
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="goToPage('step4', 'step3')">
+      << prev step</button>
+
+
+  </div>
+
+
+  </div>
+
+  <div class="popup-overlay" id="helpPopup">
+    <div class="popup-content">
+      <button class="close-button" onclick="hideHelp()">×</button>
+      <h2>What is Pathfinder?</h2>
+      <p>Make a custom PCB with 4 buttons and 4 LEDs and get the parts to build it!</p>
+
+      <h3>How does it work?</h3>
+      <p>Your Pathfinder will be a small controller pad that you can code to do some pretty awesome stuff.
+        With Pathfinder you'll learn
+      </p>
+      <ul>
+        <li>How to make a PCB schematic</li>
+        <li>How to design a PCB and route it</li>
+        <li>How to code using arduino</li>
+        <li>How basic input/output circuitry works</li>
+        <li>How to order a PCB from a manufacturer</li>
+      </ul>
+
+      <h3>Why?</h3>
+      <p>It's all about restrictions: how awesome can you make something that only has 4 buttons and 4 lights?
+        Pathfinder is the first installment of <a href="https://meghana.co">Meghana's</a> mission
+        to get more teenagers into hardware.</p>
+
+      <h3>Need Help?</h3>
+      <p>If you get stuck, chuck a message in the #pathfinder channel on the Hack Club Slack!</p>
+
+      <h3>The Philosophy</h3>
+      <p>
+        Hardware is intimating. To non-technical people, it's a giant mountain that seems impossible to navigate.
+        For software geeks, it's a field they put off exploring because it's "not their thing". Everything I do aims
+        to prove them wrong. Anyone can do hardware.
+      </p>
+    </div>
+  </div>
+
+  <script>
+
+    const allPages = ['mainPage', 'mapPage', 'step1', 'step2', 'step3', 'step4', 'step6'];
+
+    function goToPage(current, next) {
+
+      allPages.forEach(page => {
+        const el = document.getElementById(page);
+        if (el)
+          el.style.display = 'none';
+
+      });
+
+      const nextPage = document.getElementById(next);
+
+      if (nextPage)
+        nextPage.style.display = 'block';
+      else
+        console.error('Element not found:', next);
+
+      document.body.scrollTop = 0;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      new TreasureMapLine();
+    });
+
+    window.addEventListener('resize', () => {
+      setTimeout(() => {
+        new TreasureMapLine();
+      }, 100);
+    });
+
+    function showHelp() {
+      document.getElementById('helpPopup').classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function hideHelp() {
+      document.getElementById('helpPopup').classList.remove('show');
+      document.body.style.overflow = 'auto';
+    }
+
+    document.getElementById('helpPopup').addEventListener('click', function (e) {
+      if (e.target === this) {
+        hideHelp();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        hideHelp();
+      }
+    });
+
+  </script>
+</body>
+
+</html>

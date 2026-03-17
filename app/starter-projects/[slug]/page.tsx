@@ -1,7 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { NoiseOverlay } from '../../components/NoiseOverlay';
 import { projects, type StarterProject } from '../projects';
@@ -29,7 +29,11 @@ export default function StarterProjectPage({
 }>) {
   const { slug } = use(params);
   const project = projects.find((p: StarterProject) => p.id === slug);
-  
+
+  if (slug === 'pathfinder') {
+    redirect('/starter-projects/pathfinder/index.html');
+  }
+
   if (!project || !projectModules[slug]) {
     notFound();
   }

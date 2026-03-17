@@ -70,4 +70,13 @@ export const projects: StarterProject[] = [
     hasTutorial: true,
     image: 'squeak.webp',
   },
+  {
+    id: 'pathfinder',
+    name: 'Pathfinder',
+    hours: 10,
+    short_description: 'Make a custom PCB controller board and fidget — learn hardware skills along the way.',
+    badges: ['MCU', 'CAD'],
+    hasTutorial: true,
+    image: 'pathfinder.png',
+  },
 ];

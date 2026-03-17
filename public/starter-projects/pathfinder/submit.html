@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit Your Pathfinder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/x-icon" href="public/favicon.png">
+  <style>
+    .submit-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .steps {
+      width: 100%;
+      max-width: 700px;
+      margin-top: 2rem;
+      text-align: left;
+    }
+
+    .step-item {
+      background-color: #692129;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0.3rem 0.3rem 0.3rem black;
+    }
+
+    .step-item h2 {
+      color: #f4bf4f;
+      margin-bottom: 0.5rem;
+      font-size: 1.3rem;
+    }
+
+    .step-item p {
+      line-height: 1.6;
+      font-size: 1rem;
+    }
+
+    .step-item a {
+      color: #98d3eb;
+      text-decoration: underline;
+    }
+
+    .step-item a:hover {
+      color: #f4bf4f;
+    }
+
+    .step-item code {
+      background-color: #241f1f;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+
+    .back-link {
+      color: #f4bf4f;
+      text-decoration: none;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .cta-button {
+      display: inline-block;
+      background-color: #f4bf4f;
+      font-family: 'Ubuntu Mono', monospace;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.3rem;
+      text-decoration: none;
+      margin-top: 1.5rem;
+      box-shadow: 0.2rem 0.2rem 0.2rem black;
+      transition: background 0.3s;
+    }
+
+    .cta-button:hover {
+      background-color: #692229;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="submit-page">
+    <a href="index.html" class="back-link">&larr; Back to Pathfinder</a>
+    <h1 style="text-shadow: 0 0 1rem greenyellow;">Submit Your Pathfinder on Stasis</h1>
+    <p class="subtitle">Here's how to get your Pathfinder project reviewed and funded through Stasis.</p>
+
+    <div class="steps">
+      <div class="step-item">
+        <h2>1. Create an account on Stasis</h2>
+        <p>Head to <a href="/dashboard">stasis</a> and sign in with your Hack Club account. If you don't have one yet, you'll be able to create one during sign-in.</p>
+      </div>
+
+      <div class="step-item">
+        <h2>2. Create a new project</h2>
+        <p>From your dashboard, click <strong>"New Project"</strong>. Give it a name, select <strong>Pathfinder</strong> as the starter project, and add a short description of what you're building.</p>
+      </div>
+
+      <div class="step-item">
+        <h2>3. Submit your design for review</h2>
+        <p>Upload your KiCad schematic and PCB files to a GitHub repo and link it in your project. Add a Bill of Materials (BOM) with the parts you need. Then hit <strong>"Submit for Design Review"</strong>. A reviewer will check your schematic and PCB layout.</p>
+      </div>
+
+      <div class="step-item">
+        <h2>4. Buy your PCB!</h2>
+        <p>Once your project is approved, you'll get an email with an HCB grant card so you can buy your PCB. <a href="index.html#step6">Click here</a> to learn how to buy your PCB once you get your card!</p>
+      </div>
+
+      <div class="step-item">
+        <h2>5. Don't forget to journal your building as well</h2>
+        <p>Remember you still need to journal building your project! Include photos/videos of your finished project in your GitHub repo and submit your project again. Only when you do this will you get your bits :)</p>
+      </div>
+
+      <a href="/dashboard" class="cta-button">Go to Stasis Dashboard &rarr;</a>
+    </div>
+  </div>
+</body>
+
+</html>
