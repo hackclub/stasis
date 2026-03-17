@@ -133,16 +133,26 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchProjects = useCallback(async (cursor?: string) => {
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchProjects = useCallback(async (cursor?: string, search?: string) => {
     const isInitial = !cursor;
     if (isInitial) setLoading(true);
     else setLoadingMore(true);
 
     try {
-      const url = cursor ? `/api/discover?cursor=${cursor}` : '/api/discover';
+      const params = new URLSearchParams();
+      if (cursor) params.set('cursor', cursor);
+      if (search) params.set('search', search);
+      const url = `/api/discover${params.toString() ? `?${params}` : ''}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -159,11 +169,11 @@ export default function DiscoverPage() {
 
   useEffect(() => {
     if (session) {
-      fetchProjects();
+      fetchProjects(undefined, debouncedSearch);
     } else if (!isPending) {
       setLoading(false);
     }
-  }, [session, isPending, fetchProjects]);
+  }, [session, isPending, fetchProjects, debouncedSearch]);
 
   useEffect(() => {
     if (!nextCursor || loadingMore) return;
@@ -171,7 +181,7 @@ export default function DiscoverPage() {
     observerRef.current = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting && nextCursor) {
-          fetchProjects(nextCursor);
+          fetchProjects(nextCursor, debouncedSearch);
         }
       },
       { threshold: 0.1 }
@@ -182,7 +192,7 @@ export default function DiscoverPage() {
     }
 
     return () => observerRef.current?.disconnect();
-  }, [nextCursor, loadingMore, fetchProjects]);
+  }, [nextCursor, loadingMore, fetchProjects, debouncedSearch]);
 
   if (loading) {
     return (
@@ -201,6 +211,16 @@ export default function DiscoverPage() {
         <p className="text-brown-800 text-sm">
           Get inspired by seeing what others are building.
         </p>
+      </div>
+
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search projects or people..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-4 py-2 bg-cream-100 border-2 border-cream-400 text-brown-800 placeholder:text-cream-500 focus:outline-none focus:border-orange-500 transition-colors"
+        />
       </div>
 
       {projects.length === 0 ? (

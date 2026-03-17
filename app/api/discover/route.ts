@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   
   const { searchParams } = new URL(request.url);
   const cursor = searchParams.get("cursor");
+  const search = searchParams.get("search")?.trim() || "";
   const limitParam = parseInt(searchParams.get("limit") || "", 10);
   const limit = Math.min(
     Number.isNaN(limitParam) ? DEFAULT_LIMIT : limitParam,
@@ -31,6 +32,14 @@ export async function GET(request: NextRequest) {
       workSessions: {
         some: {},
       },
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: "insensitive" as const } },
+          { description: { contains: search, mode: "insensitive" as const } },
+          { user: { name: { contains: search, mode: "insensitive" as const } } },
+          { user: { slackDisplayName: { contains: search, mode: "insensitive" as const } } },
+        ],
+      }),
     },
     include: {
       user: {
