@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'blueprint.hackclub.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.hackclub.com',
+      },
     ],
   },
 };
