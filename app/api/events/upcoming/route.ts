@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const events = await prisma.event.findMany({
-    where: { dateTime: { gt: new Date() } },
+    where: { dateTime: { gt: new Date(Date.now() - 12 * 3600000) } },
     orderBy: { dateTime: "asc" },
     take: 10,
   })

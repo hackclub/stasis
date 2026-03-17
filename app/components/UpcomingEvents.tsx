@@ -16,7 +16,7 @@ function formatRelativeFuture(dateStr: string): { label: string; urgent: boolean
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
 
-  if (diffMs <= 0) return { label: 'Now', urgent: true };
+  if (diffMs <= 0) return { label: 'Happening now', urgent: true };
 
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
