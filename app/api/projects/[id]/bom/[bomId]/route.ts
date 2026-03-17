@@ -32,9 +32,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.designStatus === "in_review") {
+  if (project.designStatus === "in_review" || project.designStatus === "approved") {
     return NextResponse.json(
-      { error: "Cannot update BOM items while design is in review" },
+      { error: "Cannot update BOM items after design approval or while in review" },
       { status: 403 }
     )
   }
@@ -49,13 +49,6 @@ export async function PATCH(
 
   if (bomItem.projectId !== id) {
     return NextResponse.json({ error: "BOM item does not belong to this project" }, { status: 400 })
-  }
-
-  if (bomItem.status !== "pending") {
-    return NextResponse.json(
-      { error: "Can only update pending BOM items" },
-      { status: 403 }
-    )
   }
 
   const body = await request.json()
@@ -135,9 +128,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (project.designStatus === "in_review") {
+  if (project.designStatus === "in_review" || project.designStatus === "approved") {
     return NextResponse.json(
-      { error: "Cannot delete BOM items while design is in review" },
+      { error: "Cannot delete BOM items after design approval or while in review" },
       { status: 403 }
     )
   }
@@ -152,13 +145,6 @@ export async function DELETE(
 
   if (bomItem.projectId !== id) {
     return NextResponse.json({ error: "BOM item does not belong to this project" }, { status: 400 })
-  }
-
-  if (bomItem.status !== "pending") {
-    return NextResponse.json(
-      { error: "Can only delete pending BOM items" },
-      { status: 403 }
-    )
   }
 
   await prisma.bOMItem.delete({ where: { id: bomId } })
