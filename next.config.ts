@@ -27,6 +27,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'cdn.hackclub.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'user-cdn.hackclub-assets.com',
+      },
     ],
   },
 };
