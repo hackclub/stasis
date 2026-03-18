@@ -60,7 +60,13 @@ export async function POST(
       )
     }
   }
-  const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0 ? grantAmount : null
+  // For design approvals, default grant to BOM cost if not explicitly provided
+  const bomCostTotal = project.bomItems
+    .filter((b) => b.status === "approved" || b.status === "pending")
+    .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+  const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0
+    ? grantAmount
+    : (stage === "design" && decision === "approved" ? Math.round(bomCostTotal * 100) / 100 || null : null)
 
   // tier: set at design approval to lock in the bit grant for build completion
   let parsedTier: number | null | undefined = undefined

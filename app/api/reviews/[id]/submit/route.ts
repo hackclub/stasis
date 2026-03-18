@@ -130,6 +130,12 @@ export async function POST(
   const sanitizedFeedback = sanitize(feedback.trim())
   const stageKey = stage.toLowerCase() as "design" | "build"
 
+  // For design approvals, default grant to BOM cost if not explicitly overridden
+  const bomCostTotal = project.bomItems
+    .filter((b) => b.status === "approved" || b.status === "pending")
+    .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+  const effectiveGrant = grantOverride ?? (stageKey === "design" ? Math.round(bomCostTotal * 100) / 100 : null)
+
   // Map result to the existing decision format
   if (result === "APPROVED") {
     // Non-admin reviewers do a first-pass review only — no status change,
@@ -160,7 +166,7 @@ export async function POST(
               reason: typeof body.reason === "string" ? body.reason.trim() || null : null,
               workUnitsOverride: workUnitsOverride ?? null,
               tierOverride: tierOverride ?? null,
-              grantOverride: grantOverride ?? null,
+              grantOverride: effectiveGrant ?? null,
             },
           })
         }
@@ -172,7 +178,7 @@ export async function POST(
             stage,
             decision: "APPROVED",
             comments: sanitizedFeedback,
-            grantAmount: grantOverride ?? null,
+            grantAmount: effectiveGrant ?? null,
             tier: tierOverride ?? null,
             reviewerId,
           },
@@ -269,13 +275,13 @@ export async function POST(
           })
         }
 
-        if (grantOverride && grantOverride > 0) {
+        if (effectiveGrant && effectiveGrant > 0) {
           await appendLedgerEntry(tx, {
             userId: project!.userId,
             projectId: project!.id,
-            amount: grantOverride,
+            amount: effectiveGrant,
             type: CurrencyTransactionType.ADMIN_GRANT,
-            note: `Additional grant on build approval (${grantOverride} bits)`,
+            note: `Additional grant on build approval (${effectiveGrant} bits)`,
             createdBy: reviewerId,
           })
         }
@@ -290,7 +296,7 @@ export async function POST(
           stage,
           decision: "APPROVED",
           comments: sanitizedFeedback,
-          grantAmount: grantOverride ?? null,
+          grantAmount: effectiveGrant ?? null,
           tier: tierOverride ?? null,
           reviewerId,
         },
@@ -372,7 +378,7 @@ export async function POST(
       const hoursJustification = lines.join("\n")
 
       try {
-        await syncProjectToAirtable(project!.userId, project!, hoursJustification, grantOverride ?? bomCost)
+        await syncProjectToAirtable(project!.userId, project!, hoursJustification, effectiveGrant ?? bomCost)
       } catch (err) {
         console.error(`Failed to sync project to Airtable on ${stageKey} approval:`, err)
       }

@@ -75,6 +75,7 @@ export default function AdminProjectsPage() {
   const [tierFilter, setTierFilter] = useState('');
   const [starterFilter, setStarterFilter] = useState('');
   const [hiddenFilter, setHiddenFilter] = useState('');
+  const [zeroGrant, setZeroGrant] = useState(false);
   const [page, setPage] = useState(1);
 
   const fetchProjects = useCallback(async () => {
@@ -87,6 +88,7 @@ export default function AdminProjectsPage() {
       if (tierFilter) params.set('tier', tierFilter);
       if (starterFilter) params.set('starter', starterFilter);
       if (hiddenFilter) params.set('hidden', hiddenFilter);
+      if (zeroGrant) params.set('zeroGrant', 'true');
       params.set('page', page.toString());
       const res = await fetch(`/api/admin/projects/list?${params}`);
       if (res.ok) setData(await res.json());
@@ -95,7 +97,7 @@ export default function AdminProjectsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, designStatus, buildStatus, tierFilter, starterFilter, hiddenFilter, page]);
+  }, [search, designStatus, buildStatus, tierFilter, starterFilter, hiddenFilter, zeroGrant, page]);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
@@ -113,10 +115,11 @@ export default function AdminProjectsPage() {
     setTierFilter('');
     setStarterFilter('');
     setHiddenFilter('');
+    setZeroGrant(false);
     setPage(1);
   };
 
-  const hasFilters = search || designStatus || buildStatus || tierFilter || starterFilter || hiddenFilter;
+  const hasFilters = search || designStatus || buildStatus || tierFilter || starterFilter || hiddenFilter || zeroGrant;
 
   return (
     <>
@@ -219,6 +222,15 @@ export default function AdminProjectsPage() {
               <FilterButton active={hiddenFilter === ''} onClick={() => { setHiddenFilter(''); setPage(1); }} label="All" />
               <FilterButton active={hiddenFilter === 'false'} onClick={() => { setHiddenFilter('false'); setPage(1); }} label="Visible" />
               <FilterButton active={hiddenFilter === 'true'} onClick={() => { setHiddenFilter('true'); setPage(1); }} label="Hidden" />
+            </div>
+          </div>
+
+          {/* $0 Grant */}
+          <div className="flex items-center gap-2">
+            <span className="text-brown-800 text-xs uppercase tracking-wider">Grant:</span>
+            <div className="flex gap-1">
+              <FilterButton active={!zeroGrant} onClick={() => { setZeroGrant(false); setPage(1); }} label="All" />
+              <FilterButton active={zeroGrant} onClick={() => { setZeroGrant(true); setPage(1); }} label="$0 Grant" />
             </div>
           </div>
         </div>

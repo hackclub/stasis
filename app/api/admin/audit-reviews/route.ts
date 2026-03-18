@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   const startDate = searchParams.get("startDate")
   const endDate = searchParams.get("endDate")
   const search = searchParams.get("search")
+  const zeroGrant = searchParams.get("zeroGrant")
 
   // Build where clause for ProjectReviewAction
   const where: Record<string, unknown> = {}
@@ -53,6 +54,20 @@ export async function GET(request: NextRequest) {
     where.project = {
       title: { contains: search, mode: "insensitive" },
     }
+  }
+
+  if (zeroGrant === "true") {
+    // Only match the latest design-approved action per project with $0/null grant
+    const zeroGrantActions = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM (
+        SELECT DISTINCT ON ("projectId") id, "grantAmount"
+        FROM "project_review_action"
+        WHERE stage = 'DESIGN' AND decision = 'APPROVED'
+        ORDER BY "projectId", "createdAt" DESC
+      ) latest
+      WHERE "grantAmount" IS NULL OR "grantAmount" = 0
+    `
+    where.id = { in: zeroGrantActions.map((r) => r.id) }
   }
 
   const [actions, total, reviewerUsers] = await Promise.all([

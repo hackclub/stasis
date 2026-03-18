@@ -757,7 +757,7 @@ export default function ReviewDetailPage() {
                   type="number"
                   value={grantOverride}
                   onChange={(e) => setGrantOverride(e.target.value)}
-                  placeholder="Override grant amount"
+                  placeholder={`Default: BOM cost ($${(data?.submission?.project?.bomCost ?? 0).toFixed(2)})`}
                   className="w-full px-3 py-1.5 text-sm border border-cream-400 bg-cream-50 text-brown-800 focus:outline-none focus:border-orange-500"
                 />
                 {grantOverride && (

@@ -166,6 +166,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
   const [hackatimeReviews, setHackatimeReviews] = useState<Record<string, { hoursApproved: number; isReviewed: boolean }>>({});
   const [reviewingHackatime, setReviewingHackatime] = useState<string | null>(null);
+  const [editGrantAmount, setEditGrantAmount] = useState('');
+  const [editingGrant, setEditingGrant] = useState(false);
+  const [savingGrant, setSavingGrant] = useState(false);
   const [showFraudWarning, setShowFraudWarning] = useState(true);
   const [flaggingFraud, setFlaggingFraud] = useState(false);
 
@@ -356,6 +359,51 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       alert('Failed to review hackatime project');
     } finally {
       setReviewingHackatime(null);
+    }
+  };
+
+  const handleUpdateGrant = async () => {
+    if (!project) return;
+    const amount = parseFloat(editGrantAmount);
+    if (isNaN(amount) || amount < 0) {
+      alert('Grant amount must be a non-negative number');
+      return;
+    }
+    if (!confirm(`Update BOM grant to $${amount.toFixed(2)}?`)) return;
+    setSavingGrant(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_grant', grantAmount: amount }),
+      });
+      if (res.ok) {
+        setProject(prev => {
+          if (!prev) return prev;
+          const updatedActions = prev.reviewActions.map(a => {
+            if (a.stage === 'DESIGN' && a.decision === 'APPROVED') {
+              return { ...a, grantAmount: amount };
+            }
+            return a;
+          });
+          return { ...prev, reviewActions: updatedActions };
+        });
+        setEditingGrant(false);
+        // Sync updated grant to Airtable
+        try {
+          await fetch(`/api/admin/projects/${projectId}/sync-to-airtable`, { method: 'POST' });
+        } catch {
+          // ignore — grant was saved, Airtable sync is best-effort
+        }
+        alert('Grant amount updated and synced to Airtable');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update grant amount');
+      }
+    } catch {
+      alert('Failed to update grant amount');
+    } finally {
+      setSavingGrant(false);
     }
   };
 
@@ -1230,6 +1278,61 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               </div>
             )
           )}
+
+          {/* BOM Grant editor — visible whenever design is approved */}
+          {isAdmin && (() => {
+            const designAction = project.reviewActions.find(
+              (a) => a.stage === 'DESIGN' && a.decision === 'APPROVED'
+            );
+            if (!designAction) return null;
+            return (
+              <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
+                <p className="text-brown-800 text-xs uppercase mb-2">BOM Grant (Design Approval)</p>
+                {editingGrant ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-brown-800 text-sm">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editGrantAmount}
+                      onChange={(e) => setEditGrantAmount(e.target.value)}
+                      className="w-32 bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                    />
+                    <button
+                      onClick={handleUpdateGrant}
+                      disabled={savingGrant}
+                      className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {savingGrant ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingGrant(false)}
+                      disabled={savingGrant}
+                      className="text-cream-600 hover:text-brown-800 px-3 py-2 text-sm uppercase tracking-wider cursor-pointer disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-brown-800">
+                      ${(designAction.grantAmount ?? 0).toFixed(2)}
+                    </p>
+                    <button
+                      onClick={() => {
+                        setEditGrantAmount((designAction.grantAmount ?? 0).toString());
+                        setEditingGrant(true);
+                      }}
+                      className="text-orange-500 text-xs hover:underline cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
       </div>
 
       {/* Expanded Screenshot Overlay */}

@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   const tierFilter = url.get("tier") || ""
   const starterFilter = url.get("starter") || ""
   const hiddenFilter = url.get("hidden") || ""
+  const zeroGrant = url.get("zeroGrant")
   const sort = url.get("sort") || "createdAt"
   const order = url.get("order") === "asc" ? "asc" : "desc"
 
@@ -62,6 +63,23 @@ export async function GET(request: NextRequest) {
     where.hiddenFromGallery = true
   } else if (hiddenFilter === "false") {
     where.hiddenFromGallery = false
+  }
+
+  if (zeroGrant === "true") {
+    // Find projects where the LATEST design-approved action has $0 or null grant
+    const zeroGrantCheck = await prisma.$queryRaw<Array<{ projectId: string }>>`
+      SELECT "projectId" FROM (
+        SELECT DISTINCT ON ("projectId") "projectId", "grantAmount"
+        FROM "project_review_action"
+        WHERE stage = 'DESIGN' AND decision = 'APPROVED'
+        ORDER BY "projectId", "createdAt" DESC
+      ) latest
+      WHERE "grantAmount" IS NULL OR "grantAmount" = 0
+    `
+    andClauses.push({
+      designStatus: "approved",
+      id: { in: zeroGrantCheck.map((r) => r.projectId) },
+    })
   }
 
   if (andClauses.length > 0) {

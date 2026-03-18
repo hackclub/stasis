@@ -170,6 +170,44 @@ export async function GET(
     })
   }
 
+  // Include grant change audit log entries
+  const grantChangeLogs = await prisma.auditLog.findMany({
+    where: {
+      targetType: "Project",
+      targetId: projectId,
+      action: "ADMIN_APPROVE_DESIGN",
+      metadata: { path: ["action"], equals: "update_grant" },
+    },
+    orderBy: { createdAt: "asc" },
+  })
+
+  for (const log of grantChangeLogs) {
+    const meta = log.metadata as Record<string, unknown> | null
+    const actor = log.actorId ? reviewerMap.get(log.actorId) ?? { id: log.actorId, name: log.actorEmail, image: null } : null
+    timeline.push({
+      type: "action",
+      createdAt: log.createdAt,
+      stage: "DESIGN",
+      result: null,
+      decision: "GRANT_UPDATED",
+      feedback: null,
+      reason: null,
+      comments: `Grant changed from $${meta?.oldGrantAmount ?? '?'} to $${meta?.newGrantAmount ?? '?'}`,
+      reviewer: actor,
+      invalidated: false,
+      isAdminReview: true,
+      frozenWorkUnits: null,
+      frozenTier: null,
+      frozenFundingAmount: null,
+      tierOverride: null,
+      grantOverride: null,
+      workUnitsOverride: null,
+      grantAmount: typeof meta?.newGrantAmount === "number" ? meta.newGrantAmount : null,
+      tier: null,
+      tierBefore: null,
+    })
+  }
+
   timeline.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
   return NextResponse.json({

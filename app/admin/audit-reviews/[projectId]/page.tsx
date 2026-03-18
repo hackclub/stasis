@@ -23,6 +23,7 @@ const DECISION_COLORS: Record<string, string> = {
   APPROVED: 'bg-green-200 text-green-800',
   CHANGE_REQUESTED: 'bg-orange-200 text-orange-800',
   REJECTED: 'bg-red-200 text-red-800',
+  GRANT_UPDATED: 'bg-yellow-200 text-yellow-800',
 };
 
 interface TimelineEntry {

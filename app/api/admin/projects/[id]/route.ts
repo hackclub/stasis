@@ -164,5 +164,35 @@ export async function PATCH(
     return NextResponse.json({ buildStatus: "in_review" })
   }
 
+  if (action === "update_grant") {
+    const { grantAmount } = body
+    if (typeof grantAmount !== "number" || grantAmount < 0) {
+      return NextResponse.json({ error: "grantAmount must be a non-negative number" }, { status: 400 })
+    }
+
+    const designAction = await prisma.projectReviewAction.findFirst({
+      where: { projectId: id, stage: "DESIGN", decision: "APPROVED" },
+      orderBy: { createdAt: "desc" },
+    })
+
+    if (!designAction) {
+      return NextResponse.json({ error: "No approved design review action found" }, { status: 404 })
+    }
+
+    const oldAmount = designAction.grantAmount
+    await prisma.projectReviewAction.update({
+      where: { id: designAction.id },
+      data: { grantAmount },
+    })
+
+    await logAdminAction(AuditAction.ADMIN_APPROVE_DESIGN, adminId, adminEmail, "Project", id, {
+      action: "update_grant",
+      oldGrantAmount: oldAmount,
+      newGrantAmount: grantAmount,
+    })
+
+    return NextResponse.json({ success: true, oldGrantAmount: oldAmount, newGrantAmount: grantAmount })
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 })
 }

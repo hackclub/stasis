@@ -75,6 +75,7 @@ export default function AuditReviewsPage() {
   const [endDate, setEndDate] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [zeroGrant, setZeroGrant] = useState(false);
   const [page, setPage] = useState(1);
 
   const fetchReviews = useCallback(async () => {
@@ -88,6 +89,7 @@ export default function AuditReviewsPage() {
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
       if (search) params.set('search', search);
+      if (zeroGrant) params.set('zeroGrant', 'true');
 
       const res = await fetch(`/api/admin/audit-reviews?${params}`);
       if (res.ok) {
@@ -101,7 +103,7 @@ export default function AuditReviewsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, reviewerFilter, resultFilter, stageFilter, startDate, endDate, search]);
+  }, [page, reviewerFilter, resultFilter, stageFilter, startDate, endDate, search, zeroGrant]);
 
   useEffect(() => {
     fetchReviews();
@@ -113,7 +115,7 @@ export default function AuditReviewsPage() {
     setPage(1);
   };
 
-  const hasFilters = reviewerFilter || resultFilter || stageFilter || startDate || endDate || search;
+  const hasFilters = reviewerFilter || resultFilter || stageFilter || startDate || endDate || search || zeroGrant;
 
   return (
     <>
@@ -153,6 +155,19 @@ export default function AuditReviewsPage() {
                 {val || 'All Stages'}
               </button>
             ))}
+
+            <span className="border-l border-cream-400 mx-1" />
+
+            <button
+              onClick={() => { setZeroGrant(!zeroGrant); setPage(1); }}
+              className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
+                zeroGrant
+                  ? 'border-orange-500 text-orange-500 bg-orange-500/10'
+                  : 'border-cream-400 text-brown-800 hover:border-orange-500'
+              }`}
+            >
+              $0 Grant
+            </button>
           </div>
 
           <p className="text-brown-800 text-sm uppercase">
@@ -211,6 +226,7 @@ export default function AuditReviewsPage() {
                 setEndDate('');
                 setSearch('');
                 setSearchInput('');
+                setZeroGrant(false);
                 setPage(1);
               }}
               className="px-4 py-2 text-sm uppercase text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
