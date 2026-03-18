@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes Project Gallery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../gallerystyles.css" />
+    <link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+
+<body>
+    <div class="header">
+        <a href="../index.html" class="back-button">← Back to Hermes Flightpath</a>
+        <h1>Hermes Projects Gallery</h1>
+        <p>check out the amazing hermes boards teenagers have made from all over the world!</p>
+    </div>
+
+    <div class="gallery-grid" id="gallery">
+
+    </div>
+
+    <div class="loading" id="loading">Loading projects...</div>
+    <div class="error-message" id="error" style="display: none;"></div>
+    <div class="gallery-grid" id="gallery"></div>
+
+    <div style="display: flex; justify-content: center; align-items: center;">
+        <div id="make-yours" style="margin-top:2rem;" class="makeYours">make yours at
+            <a style="color:white" href="https://pathfinder.hackclub.com/" target="_blank">
+                hermes.hackclub.com</a>!
+        </div>
+    </div>
+
+    <script src="../gallery.js">
+    </script>
+</body>
+
+</html>

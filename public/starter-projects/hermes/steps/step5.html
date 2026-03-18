@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hermes: Coding Your Firmware</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles.css" />
+</head>
+
+<body>
+    <div class="step-page">
+        <button class="button" id="backBtn" onclick="window.location.href='../flightpath/index.html'">back to map</button>
+
+        <div class="content-wrapper">
+            <h1 style="padding-top:2rem">Step 5: Code Your Firmware</h1>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        When you're using I2C, each device has an address. This is so the microcontroller knows where to
+                        send
+                        and receive the information (I wouldn't want to pull data from the screen and send it to the
+                        sensor).
+                    </p>
+                    <br>
+                    <p class="info">
+                        To check your components' addresses, go to their datasheet and ctrl-f "address". My MPU-6500 has
+                        a default address of
+                        1101000, which is [0x68] in hex (that's what Arduino and C++ use).
+                    </p>
+                </div>
+
+                <img src="../public/stepimgs/step5.1.gif"
+                    style="width:500px">
+            </div>
+
+            <div
+                style="background-color: #638a47; border-radius: 1rem; padding-right: 0.5rem; padding-left: 0.5rem; padding-bottom: 0.7rem;">
+                <div style="flex-direction: column;">
+                    <p
+                        style="color: white; padding-left: 1rem; padding-top: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        You'll also probably see a method to set a different address.
+                        This is to make sure that, in case two components have the same default address, you can change
+                        one. On the MPU-6500, if you send
+                        voltage to the AD0 pin (that's the AD0 = 1), you'll get an address of 1101001 ([0x69] in hex).
+                    </p>
+                </div>
+            </div>
+            <div></div>
+
+            <div class="image-text-section">
+                <!-- From Uiverse.io by Yaya12085 -->
+                <div class="code-editor">
+                    <div class="header">
+                        <span class="titleCode">hermes.ino</span>
+
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+                            onclick="window.location.href='../flightpath/index.html'">
+                            <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+                            <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p><span class="color-0">#include </span> <span class="color-1">&lt;Wire.h&gt;</span></p>
+                        <br>
+                        <p><span class="color-0">#define </span> <span class="color-2">MPU_ADDR</span> <span>0x</span><span class="color-1">68</span></p>
+                        <p><span class="color-0">#define </span> <span class="color-2">OLED_ADDR</span> <span>0x</span><span class="color-1">3C</span></p>
+                        </code>
+                    </div>
+
+                </div>
+
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        There's a couple of new things you need to know about coding with I2C in Arduino. (If you
+                        haven't already, set up the XIAO RP2040 board in the Arduino IDE <a
+                            href="https://wiki.seeedstudio.com/XIAO-RP2040-with-Arduino/" target="_blank"
+                            style="color:#8c2e37">here</a>).
+                    </p>
+                    <br>
+                    <p class="info">
+                        <strong>Wire.h </strong>is the Arduino library for I2C, and it's how we'll be reading and writing data from the
+                        sensor to another display.
+                    </p>
+                </div>
+
+
+            </div>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Before you can communicate with any I2C devices, you need to initialize the Wire library with
+                        <strong>Wire.begin()</strong>.
+                    </p>
+                    <br>
+                    <p class="info">
+                        The XIAO RP2040 uses pins A4 (SDA) and A5 (SCL) for I2C communication by default.
+                        <strong>Wire.begin()</strong> sets these up automatically.
+                    </p>
+                </div>
+
+                <div class="code-editor" style="width: 450px;">
+                    <div class="header">
+                        <span class="titleCode">setup</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon">
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p><span class="color-0">void </span><span class="color-2">setup</span><span>()</span> <span>{</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Serial</span>.<span class="color-2">begin</span>(<span class="color-1">9600</span>);</p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">begin</span>();</p>
+                        <p><span>}</span></p>
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="image-text-section">
+                <!-- From Uiverse.io by Yaya12085 -->
+                <div class="code-editor" style="width: 700px;">
+                    <div class="header">
+                        <span class="titleCode">Wire methods</span>
+
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon"
+                            onclick="window.location.href='../flightpath/index.html'">
+                            <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+                            <g stroke-linejoin="round" stroke-linecap="round" id="SVGRepo_tracerCarrier"></g>
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">beginTransmission</span>(<span class="color-2">MPU_ADDR</span>);</p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">43</span>);</p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">endTransmission</span>(<span class="color-0">false</span>);</p>
+                        </code>
+                    </div>
+                </div>
+
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Just like digitalRead and digitalWrite read and write values from inputs and outputs,
+                        we can use <strong>Wire.read()</strong> and <strong>Wire.write(value)</strong> to receive and send data from components.
+                    </p>
+                    <br>
+                    <p class="info">
+                        But before you do that, you have to do <strong>Wire.beginTransmission(address)</strong>, and if you want to
+                        switch the device the microcontroller is communicating with, you have to do
+                        <strong>Wire.endTransmission()</strong> and then <strong>Wire.beginTransmission(address2)</strong>
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="image-text-section">
+                <img src="../public/stepimgs/step5.2.gif"
+                    style="width:500px">
+
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Most I2C sensors need to be "woken up" and configured before they start sending data.
+                        This is usually by writing a hex value to a certain register (mini I2C address).
+                    </p>
+                    <br>
+                    <p class="info">
+                        Ctrl-f "Sleep Mode" or "Power Management" in your datasheet to find the right register.
+                        For the MPU-6500 the register is [0x6B], but every sensor is different.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Some sensors have a separate "Register Map" document, so if your datasheet doesn't have
+                        a register map in it, Google [sensor name] + "register map"
+                    </p>
+                </div>
+
+
+            </div>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Sensor registers are addresses you use to get data and interact with the sensor's specific functions
+                        (like sleep and calibration). Not to be confused with I2C addresses, which are assigned to the entire 
+                        sensor.
+                    </p>
+                    <br>
+                    <p class="info">
+                        According to my sensor's register map doc, we need to write [0x00] to register [0x6B]
+                        (PWR_MGMT_1) to wake it up.
+                    </p>
+                </div>
+
+                <img src="../public/stepimgs/step5.3.gif"
+                    style="width:500px">
+            </div>
+
+            <div class="image-text-section">
+                <div class="code-editor" style="width: 500px;">
+                    <div class="header">
+                        <span class="titleCode">Sensor boot-up</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon">
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p><span class="color-0">void </span><span class="color-2">initMPU</span><span>()</span> <span>{</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">beginTransmission</span>(<span class="color-2">MPU_ADDR</span>);</p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">6B</span>);   <span>//sleep mode address</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">00</span>);   <span>//hex to start sensor</span></p>
+                        <br>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">1B</span>);   <span>//calibration address</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">00</span>);   <span>//hex for +/- 250 range</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">endTransmission</span>();</p>
+                        <p>}</p>
+                        </code>
+                    </div>
+                </div>
+
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        <strong>OPTIONAL: </strong>Looking through the register map, I can also configure the gyroscope
+                        sensitivity. Register [0x1B]
+                        controls the range - [0x00] gives us ±250 degrees per second, which probably good for now.
+                        Calibration
+                        can be fine-tuned when you get your PCB in-person.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Ctrl-f "Calibration" or read through the register on the doc to find out if/how you can
+                        calibrate
+                        your sensor.
+                    </p>
+                </div>
+            </div>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Why did we call <strong>Wire.write()</strong> twice? In I2C, you need to specify the sensor's address
+                        (beginTransmission), process your message (Wire.write), and then decide whether to send it now
+                        or keep writing more (endTransmission true/false).
+                    </p>
+                </div>
+
+                <div class="code-editor" style="width: 520px;">
+                    <div class="header">
+                        <span class="titleCode">Understanding Wire.write()</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon">
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p><span class="color-2">Wire</span>.<span class="color-2">beginTransmission</span>(<span class="color-2">MPU_ADDR</span>);</p>
+                        <p><span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">6B</span>);<span class="color-3"> //register</span></p>
+                        <p><span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">00</span>);<span class="color-3"> //value to write</span></p>
+                        <p><span class="color-2">Wire</span>.<span class="color-2">endTransmission</span>();<span class="color-3"> //end communication</span></p>
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="image-text-section">
+                <div class="code-editor" style="width: 600px;">
+                    <div class="header">
+                        <span class="titleCode">endTransmission Parameters</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon">
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p><span class="color-3">//send and close</span></p>
+                        <p><span class="color-2">Wire</span>.<span class="color-2">endTransmission</span>();<span class="color-3"> //same as true</span></p>
+                        <br>
+                        <p><span class="color-3">//keep connection open</span></p>
+                        <p><span class="color-2">Wire</span>.<span class="color-2">endTransmission</span>(<span class="color-0">false</span>);</p>
+                        </code>
+                    </div>
+                </div>
+
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        endTransmission() has a hidden parameter that defaults to true. This parameter controls whether
+                        to send a "stop condition" on the I2C bus.
+                    </p>
+                    <br>
+                    <p class="info">
+                        endTransmission(true): "I'm done talking." Use this when you don't need to talk to that
+                        register anymore--like when you've initialized your sensor.
+                    </p>
+                    <br>
+                    <p class="info">
+                        endTransmission(false): "I wanna say more." Use this before requestFrom() so you can
+                        immediately read data from the same register you just pointed to.
+                    </p>
+                </div>
+            </div>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Now the fun part, getting data. Sensors output their data on registers, which are like mini I2C
+                        addresses. You can read different registers to get different information. Remember: both I2C
+                        addresses and registers are hexadecimal.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Read through your register map and search for output registers. Looking at the register map,
+                        the MPU-6500 stores gyro data on registers [0x43]-[0x48].
+                    </p>
+                </div>
+
+                <img src="../public/stepimgs/step5.4.gif"
+                    style="width:500px">
+            </div>
+
+            <div class="image-text-section">
+                <div class="code-editor" style="width: 520px;">
+                    <div class="header">
+                        <span class="titleCode">getting data</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon">
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p><span class="color-0">void </span><span class="color-2">readGyro</span><span>()</span> <span>{</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">beginTransmission</span>(<span class="color-2">MPU_ADDR</span>);</p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">write</span>(<span>0x</span><span class="color-1">43</span>);<span class="color-3"> //GYRO_XOUT_H</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">endTransmission</span>(<span class="color-0">false</span>);</p>
+                        <br>
+                        <p>&nbsp;&nbsp;<span class="color-3">//request 6 bytes (1 per register)</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">Wire</span>.<span class="color-2">requestFrom</span>(<span class="color-2">MPU_ADDR</span>, <span class="color-1">6</span>);</p>
+                        </code>
+                    </div>
+                </div>
+
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        To read info from a register that gives you data, you need to do <strong>Wire.write(register1)</strong>, send
+                        that to the sensor,
+                        then do <strong>Wire.requestFrom(I2C_ADDR, NUM_BYTES, true)</strong> to request data from that register (and any
+                        more that you may need). Since my gyroscope is 3 axes and each axis has
+                        two registers each, I need to request 6 bytes. If your sensor only outputs data using 2
+                        registers, then NUM_BYTES = 2.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Sensors send data in bytes (8 bits each), but gyroscope values are 16-bit
+                        numbers.
+                        The sensor splits each reading into two bytes - a "high byte" and a "low byte".
+                    </p>
+                    <br>
+                    <p class="info">
+                        Doing <strong>Wire.write([0x43])</strong> then doing endTransmission(false), and calling requestFrom(MPU_ADDR, 6,
+                        true), tells the sensor to start at [0x43], restart to start reading data, and then
+                        read the next 6 registers (one byte per register).
+                    </p>
+                </div>
+            </div>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        The MPU-6500 stores gyroscope data
+                        in registers [0x43] to [0x48]. Each axis (X, Y, Z) uses two bytes (high and low).
+                    </p>
+                    <br>
+                    <p class="info">
+                        To read data, we point to the starting register, then request multiple bytes.
+                        That's why we did Wire.write (point) then Wire.requestFrom (requesting bytes).
+                    </p>
+                </div>
+
+                <div class="code-editor">
+                    <div class="header">
+                        <span class="titleCode">translating data</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon">
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class="editor-content" style="width:max-content">
+                        <code class="code">
+                        <p>&nbsp;&nbsp;<span class="color-0">int16_t </span><span>gyroX</span>, <span>gyroY</span>, <span>gyroZ</span>;</p>
+                        <p>&nbsp;&nbsp;<span>gyroX = </span>(<span class="color-2">Wire</span>.<span class="color-2">read</span>() << <span class="color-1">8</span>) | <span class="color-2">Wire</span>.<span class="color-2">read</span>();</p>
+                        <p>&nbsp;&nbsp;<span>gyroY = </span>(<span class="color-2">Wire</span>.<span class="color-2">read</span>() << <span class="color-1">8</span>) | <span class="color-2">Wire</span>.<span class="color-2">read</span>();</p>
+                        <p>&nbsp;&nbsp;<span>gyroZ = </span>(<span class="color-2">Wire</span>.<span class="color-2">read</span>() << <span class="color-1">8</span>) | <span class="color-2">Wire</span>.<span class="color-2">read</span>();</p>
+                        <p>}</p>
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background-color: #638a47; border-radius: 1rem; padding: 1rem; margin: 2rem 0;">
+                <p
+                    style="color: white; margin-top:1rem; padding: 0 1rem; font-size: 1.1rem; text-align: left; margin-bottom: 1rem;">
+                    When the sensor sends you two bytes, they look like this:
+                </p>
+                <div
+                    style="background-color: rgba(0,0,0,0.3); width:fit-content; padding: 1rem; border-radius: 0.5rem; margin: 1rem; font-family: monospace; margin-left: auto; margin-right: auto;">
+                    <p style="color: #7ec9cc; text-align: center; margin-bottom: 0.5rem;">High Byte = 0b11010110 (214 in
+                        decimal)</p>
+                    <p style="color: #7ec9cc; text-align: center;">Low Byte = 0b10001100 (140 in decimal)</p>
+                </div>
+                <p style="color: white; padding: 0 1rem; font-size: 1.1rem; text-align: left; margin-bottom: 1rem; ">
+                    But we need them as ONE 16-bit number: 0b1101011010001100
+                </p>
+                <p style="color: white; padding: 0 1rem; font-size: 1.1rem; text-align: left; margin-bottom: 1rem;">
+                    <strong>Step 1 - Left Shift (<<) </strong> Move high byte 8 positions left
+                </p>
+                <div
+                    style="background-color: rgba(0,0,0,0.3); width:fit-content; padding: 1rem; border-radius: 0.5rem; margin: 1rem; font-family: monospace; margin-left: auto; margin-right: auto;">
+                    <p style="color: #7ec9cc; text-align: center; margin-bottom: 0.5rem;">11010110 <<
+                            8=1101011000000000</p>
+                            <p style="color: white; text-align: center; font-size: 0.9rem;">(Added 8 zeros to the right)
+                            </p>
+                </div>
+                <p style="color: white; padding: 0 1rem; font-size: 1.1rem; text-align: left; margin-bottom: 1rem;">
+                    <strong>Step 2 - OR Operation (|):</strong> Combine with low byte
+                </p>
+                <div
+                    style="background-color: rgba(0,0,0,0.3); width:fit-content; padding: 1rem; border-radius: 0.5rem; margin: 1rem; font-family: monospace; margin-left: auto; margin-right: auto;">
+                    <p style="color: #7ec9cc; text-align: center; margin-bottom: 0.3rem;">1101011000000000 (high <<
+                            8)</p>
+                            <p style="color: white; text-align: center; margin-bottom: 0.3rem;">|</p>
+                            <p style="color: #7ec9cc; text-align: center; margin-bottom: 0.3rem;">0000000010001100 (low)
+                            </p>
+                            <p style="color: white; text-align: center; margin-bottom: 0.3rem;">= </p>
+                            <p style="color: #e3e3e3; text-align: center; font-weight: bold;">1101011010001100</p>
+                </div>
+                <p style="color: white; padding: 0 1rem; margin-bottom:1rem; font-size: 1.1rem; text-align: left;">
+                    OR combines bits: if EITHER position has a 1, the result has a 1. Since high and low bytes occupy
+                    different positions, they merge perfectly!
+                </p>
+            </div>
+
+            <div class="image-text-section">
+                <div class="code-editor" style="width: 600px;">
+                    <div class="header">
+                        <span class="titleCode">loop()</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="icon">
+                            <g id="SVGRepo_iconCarrier">
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M6 6L18 18"></path>
+                                <path stroke-linecap="round" stroke-width="2" stroke="#4C4F5A" d="M18 6L6 18"></path>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class="editor-content" style="width: max-content;">
+                        <code class="code">
+                        <p><span class="color-0">float </span><span>rotationZ = </span><span class="color-1">0</span>;</p>
+                        <p><span class="color-0">unsigned long </span><span>lastTime = </span><span class="color-1">0</span>;</p>
+                        <br>
+                        <p><span class="color-0">void </span><span class="color-2">loop</span><span>()</span> <span>{</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">readGyro</span>();</p>
+                        <br>
+                        <p>&nbsp;&nbsp;<span class="color-3">//converting to degrees/second</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-0">float </span><span>gyroRate = gyroZ / </span><span class="color-1">131.0</span>;</p>
+                        <br>
+                        <p>&nbsp;&nbsp;<span class="color-3">//calculating time elapsed</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-0">unsigned long </span><span>now = </span><span class="color-2">millis</span>();</p>
+                        <p>&nbsp;&nbsp;<span class="color-0">float </span><span>dt = (now - lastTime) / </span><span class="color-1">1000.0</span>;</p>
+                        <br>
+                        <p>&nbsp;&nbsp;<span class="color-3">//math to get total rotation</span></p>
+                        <p>&nbsp;&nbsp;<span>rotationZ += gyroRate * dt;</span></p>
+                        <br>
+                        <p>&nbsp;&nbsp;<span class="color-2">displayRotation</span>(rotationZ);</p>
+                        <p>&nbsp;&nbsp;<span>lastTime = now;</span></p>
+                        <p>&nbsp;&nbsp;<span class="color-2">delay</span>(<span class="color-1">10</span>);</p>
+                        <p>}</p>
+                        </code>
+                    </div>
+                </div>
+
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        In your loop(), call your readSensor() function and have a small delay. Mine has some math so I
+                        can
+                        calculate rotation and display it on my OLED display.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Let's go through a checklist and make sure we have everything.
+                    </p>
+                </div>
+            </div>
+
+            <div class="image-text-section">
+                <div class="flex-direction: column"
+                    style="background-color: #e8c547; padding: 1rem 1rem; border-radius: 1rem;">
+                    <h2 style="text-align: left; margin-left:5rem">Hermes Firmware Checklist</h2>
+                    <p class="info">
+                        1. Include Wire.h and declare sensor's I2C address
+                        <br><br>
+                        2. In setup(), begin Wire and serial
+                        <br><br>
+                        3. Wake up sensor
+                        <br><br>
+                        4. <strong>OPTIONAL: </strong>Calibrate sensor
+                        <br><br>
+                        5. In sensorRead(), use Wire.write and Wire.requestFrom to get data in byte format
+                        <br><br>
+                        6. Use bit-shifting to convert 8-bit format to 16-bit format
+                        <br><br>
+                        7. Call sensorRead() in loop()
+                        <br><br>
+                        8. <strong>OPTIONAL: </strong>Display data on screen
+                    </p>
+                </div>
+            </div>
+
+            <div
+                style="background-color: #638a47; border-radius: 1rem; padding-right: 0.5rem; margin-bottom: 2rem; padding-left: 0.5rem; padding-bottom: 0.7rem;">
+                <div style="flex-direction: column;">
+                    <p
+                        style="color: white; padding-left: 1rem; padding-top: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        Congrats! You've officially made your Hermes! You've just built an insanely technical piece of
+                        machinery, give yourself a pat on the back. If you're unsure about any of the firmware you
+                        wrote,
+                        shoot a message in #pathfinder or in #hardware! Also make sure to check out the 
+                        <a href="https://github.com/MeghanaM4/Hermes" style="color:#e8c547">Hermes git repo</a> to see all the code put together!
+                    </p>
+                    <br>
+                    <p
+                        style="color: white; padding-left: 1rem; padding-top: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        Otherwise, if you're done, then head on over to the submission page!
+                    </p>
+                </div>
+            </div>
+            <div></div>
+
+        </div>
+
+        <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="window.location.href='step4.html'">
+            << prev step</button>
+
+        <button class="button" id="nextBtn" style="margin-right: 1rem;"
+            onclick="window.location.href='../submit.html'">submit!!!
+            >></button>
+    </div>
+</body>
+
+</html>

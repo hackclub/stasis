@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hermes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles.css" />
+</head>
+
+<body>
+    <div class="mapPage">
+
+        <h1>Hermes Flight Path</h1>
+
+        <div>
+            <div>
+                <button class="button" id="backBtn" onclick="window.location.href='../index.html'">back</button>
+            </div>
+
+            <div>
+                <button style="margin-top:5rem;" class="button" id="peegee" onclick="window.location.href='../gallery/index.html'">project gallery</button>
+            </div>
+
+            <div style="margin-top:6rem;">
+                <button class="help-button" id="helpBtn" onclick="showHelp()">?</button>
+            </div>
+        </div>
+
+        <svg id="treasure-line" xmlns="http://www.w3.org/2000/svg">
+        </svg>
+
+
+        <div>
+            <div>
+                <div class="stepContainer" style="top:25% ; left:10%;"
+                    onclick="window.location.href='../steps/step1.html'">
+                    <div class="step">
+                        <div class="titleContainer">
+                            <h3 class="title">1. kicad wakatime setup</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stepContainer" style="top: 45%; left:30%;"
+                    onclick="window.location.href='../steps/step2.html'">
+                    <div class="step">
+                        <div class="titleContainer">
+                            <h3 class="title">2. configure sensor</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stepContainer" style="top: 30%; left: 50%;"
+                    onclick="window.location.href='../steps/step3.html'">
+                    <div class="step">
+                        <div class="titleContainer">
+                            <h3 class="title">3. make schematic</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stepContainer" style="top: 45%; left: 70%;"
+                    onclick="window.location.href='../steps/step4.html'">
+                    <div class="step">
+                        <div class="titleContainer">
+                            <h3 class="title">4. design PCB</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stepContainer" style="top: 70%; left: 85%;"
+                    onclick="window.location.href='../steps/step5.html'">
+                    <div class="step">
+                        <div class="titleContainer">
+                            <h3 class="title">5. code firmware</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stepContainer" style="top: 85%; left: 55%;"
+                    onclick="window.location.href='../submit.html'">
+                    <div class="step">
+                        <div class="titleContainer">
+                            <h3 class="title">6. submit project</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="float: left; left: 2rem; position: absolute; top: 80%; width: 15rem; margin-bottom:1rem;    ">
+            <div class="highlightBox"
+                style="flex-direction: column; box-shadow: 0.5rem 0.5rem 0.5rem rgba(0, 0, 0, 0.5);">
+            </div>
+        </div>
+    </div>
+
+    <div class="popup-overlay" id="helpPopup">
+        <div class="popup-content">
+            <button class="close-button" onclick="hideHelp()">×</button>
+            <h2>What is Hermes?</h2>
+            <p>Spend 5 hours making a custom PCB with an on-board sensor and display, and get money to build it!</p>
+
+            <h3>How does it work?</h3>
+            <p>To participate in Hermes, you need to have completed
+                <a href="https://pathfinder.hackclub.com">Pathfinder</a>, which taught you the basics of PCB
+                design. With Hermes, you'll learn how to
+            </p>
+            <ul>
+                <li>Decide which sensors to use in your PCB</li>
+                <li>Decipher datasheets</li>
+                <li>Route complex PCBs</li>
+                <li>Use I2C communication between components</li>
+                <li>Order PCBA from JLCPCB</li>
+            </ul>
+
+            <h3>Why?</h3>
+            <p>Hermes is the second installment of <a href="https://meghana.co">Meghana's</a> mission
+                to get more teenagers into hardware. Hardware is the (superior) and often neglected sibling
+                of software.</p>
+
+            <h3>Prerequisites</h3>
+            <p>Before starting Hermes, make sure you've completed <a href="https://pathfinder.hackclub.com"
+                    target="_blank">Pathfinder</a> at pathfinder.hackclub.com</p>
+
+            <h3>Need Help?</h3>
+            <p>If you get stuck, chuck a message in the #pathfinder channel on the Hack Club slack!</p>
+
+            <h3>The Philosophy</h3>
+            <p>
+                Hardware is intimating. To non-technical people, it's a giant mountain that seems impossible to
+                navigate.
+                For software geeks, it's a field they put off exploring because it's "not their thing". Everything I do
+                aims
+                to prove them wrong. Anyone can do hardware.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        class TreasureMapLine {
+            constructor() {
+                this.svg = document.getElementById('treasure-line');
+                this.steps = [];
+                this.init();
+            }
+
+            init() {
+                setTimeout(() => {
+                    this.getStepPositions();
+                    this.drawTreasureLine();
+                }, 100);
+            }
+
+            getStepPositions() {
+                const stepContainers = document.querySelectorAll('.stepContainer');
+                this.steps = [];
+
+                stepContainers.forEach((container, index) => {
+                    const rect = container.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+
+                    this.steps.push({
+                        x: centerX,
+                        y: centerY,
+                        index: index
+                    });
+                });
+            }
+
+            addTreasureMapWobble(x, y, intensity = 5) {
+                const wobbleX = (Math.random() - 0.5) * intensity;
+                const wobbleY = (Math.random() - 0.5) * intensity;
+                return {
+                    x: x + wobbleX,
+                    y: y + wobbleY
+                };
+            }
+
+            createSmoothPath(points) {
+                if (points.length < 2) return '';
+
+                let path = `M ${points[0].x} ${points[0].y}`;
+
+                for (let i = 1; i < points.length; i++) {
+                    const current = points[i];
+                    const previous = points[i - 1];
+
+                    const dx = current.x - previous.x;
+                    const dy = current.y - previous.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    const controlDistance = distance * 0.4;
+
+                    const perpX = -dy / distance;
+                    const perpY = dx / distance;
+
+                    const control1X = previous.x + dx * 0.25 + perpX * controlDistance;
+                    const control1Y = previous.y + dy * 0.25 + perpY * controlDistance;
+
+                    const control2X = previous.x + dx * 0.75 - perpX * controlDistance;
+                    const control2Y = previous.y + dy * 0.75 - perpY * controlDistance;
+
+                    const wobbledControl1 = this.addTreasureMapWobble(control1X, control1Y, 20);
+                    const wobbledControl2 = this.addTreasureMapWobble(control2X, control2Y, 20);
+                    const wobbledCurrent = this.addTreasureMapWobble(current.x, current.y, 3);
+
+                    path += ` C ${wobbledControl1.x} ${wobbledControl1.y} ${wobbledControl2.x} ${wobbledControl2.y} ${wobbledCurrent.x} ${wobbledCurrent.y}`;
+                }
+
+                return path;
+            }
+
+            drawTreasureLine() {
+                if (this.steps.length < 2) return;
+
+                this.svg.innerHTML = '';
+
+                const pathData = this.createSmoothPath(this.steps);
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('class', 'treasure-path');
+                this.svg.appendChild(path);
+
+                this.steps.forEach((step, index) => {
+                    if (index < this.steps.length - 1) {
+                        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        circle.setAttribute('cx', step.x);
+                        circle.setAttribute('cy', step.y);
+                        circle.setAttribute('class', 'treasure-dot');
+                        circle.style.animationDelay = `${index * 0.5}s`;
+                        this.svg.appendChild(circle);
+                    }
+                });
+
+                const finalStep = this.steps[this.steps.length - 1];
+                const treasureX = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                treasureX.setAttribute('x', finalStep.x);
+                treasureX.setAttribute('y', finalStep.y);
+                treasureX.setAttribute('class', 'treasure-x');
+                treasureX.textContent = '✗';
+                treasureX.style.animationDelay = `${this.steps.length * 0.5}s`;
+                this.svg.appendChild(treasureX);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new TreasureMapLine();
+        });
+
+        window.addEventListener('resize', () => {
+            setTimeout(() => {
+                new TreasureMapLine();
+            }, 100);
+        });
+
+        function showHelp() {
+            document.getElementById('helpPopup').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideHelp() {
+            document.getElementById('helpPopup').classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('helpPopup').addEventListener('click', function (e) {
+            if (e.target === this) {
+                hideHelp();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                hideHelp();
+            }
+        });
+    </script>
+
+</body>
+
+</html>

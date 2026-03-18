@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hermes: Making Your Schematic</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles.css" />
+</head>
+
+<body>
+    <div class="step-page">
+        <button class="button" id="backBtn" onclick="window.location.href='../flightpath/index.html'">back to map</button>
+
+        <div class="content-wrapper">
+            <h1 style="padding-top:2rem">Step 3: Make Your Schematic</h1>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Most parts on JLCPCB have symbols and footprints linked on their info page, but they're
+                        made by EasyEDA and you need to pay for an account (boo). If you google your part name +
+                        kicad symbol you'll probably see a SnapMagic link (you'll have to make a SnapMagic account).
+                    </p>
+                    <br>
+                    <p class="info">
+                        It doesn't matter where you get your symbol and footprint from, or even if you get them from 2
+                        separate
+                        places, they'll be pretty accurate. If you're having trouble finding them, shoot a message in
+                        the #electronics and #hermes channels.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Import the footprint and symbol into KiCAD. (if you don't know how, you should do
+                        <a href="https://pathfinder.hackclub.com" target="_blank" style="color:#8c2e37">Pathfinder</a>!)
+                    </p>
+                </div>
+
+                <img src="../public/stepimgs/step3.1.gif"
+                    style="width:500px;">
+            </div>
+
+            <div class="image-text-section">
+                <img src="../public/stepimgs/step3.2.gif"
+                    style="width:500px;">
+
+                <div class="flex-direction: column">
+                    <p class="info">
+                        Open up KiCAD's schematic editor and place your sensor's symbol. Most likely, your sensor
+                        is a square with a bunch of pins sticking out each side. Your symbol won't look like this,
+                        but make sure the pins on the symbol match the ones on the pinout table.
+                    </p>
+                    <br>
+                    <p class="info">
+                        We're going to be using the XIAO RP2040 microcontroller, just like <a
+                            href="https://pathfinder.hackclub.com" target="_blank" style="color:#8c2e37">Pathfinder</a>
+                        (so you should already have
+                        that downloaded and imported). Place that into your schematic as well. Later, you'll have to
+                        copy over the XIAO's footprint into your Hermes footprint folder, but after that you're golden.
+                    </p>
+                </div>
+            </div>
+
+            <div
+                style="background-color: #638a47; border-radius: 1rem; padding-top:1.3rem; padding-right: 0.5rem; padding-left: 0.5rem; padding-bottom: 0.7rem;">
+                <div style="flex-direction: column;">
+                    <p
+                        style="color: white; padding-left: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        In my Hermes, I used a 0.96" OLED screen so I could display my sensor's information (they're
+                        also
+                        communicating using I2C), so if you wanted to use a screen, 7 segment display, or something else
+                        (post what part you're using in
+                        <a href="https://hackclub.slack.com/archives/C0943DE80E4" target="_blank"
+                            style="color:#e8c547">#hermes</a>!!),
+                        you totally can. Just make sure it's I2C enabled, read the datasheet for that
+                        part, and follow its pinout table.
+                    </p>
+                </div>
+            </div>
+
+            <div></div>
+
+            <div class="image-text-section">
+                <img src="../public/stepimgs/step3.3.gif"
+                    style="width:500px;">
+                <div class="flex-direction: column">
+                    <p class="info">
+                        I2C is great because there's only 2 pins, AND because the wiring is insanely simple.
+                        All SDA pins connect and all SCL pins connect. No matter how many components you have,
+                        all SDA pins connect and all SCL pins connect.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Make a Global Label for SDA and one for SCL (doesn't have to be those specific names,
+                        you could use bleep and blork), and connect it to each of your components' SCL and SDA
+                        pins.
+                    </p>
+                </div>
+            </div>
+
+            <div class="infoBox" style="margin-bottom: 2rem;">
+                <p class="info" style="color: white; padding-top:1.2rem">
+                    You HAVE to connect a 4.7k resistor to the SDA and SCL pins on your XIAO. These are
+                    pull-up resistors. I2C is open drain, which means it can only pull voltage low. To make sure
+                    data isn't "floating" (neither high nor low, 1 or 0), you have to connect pull-UP resistors that
+                    will
+                    bring the voltage high. It takes a bit to understand, so I'd recommend googling it for a bit.
+            </div>
+            <div></div>
+
+            <div class="image-text-section">
+                <div class="flex-direction: column">
+                    <p class="info">
+                        For the rest of your schematic, your sensor's datasheet will be your best friend. It'll
+                        tell you what each pin does, where you have to connect it, and if you need capacitors,
+                        resistors, or any other add-ons that you may not have known otherwise.
+                    </p>
+                </div>
+                <img src="../public/stepimgs/step3.4.gif"
+                    style="width:400px;">
+            </div>
+
+            <div
+                style="background-color: #638a47; border-radius: 1rem; padding-top: 1.5rem; padding-right: 0.5rem; padding-left: 0.5rem; padding-bottom: 0.7rem;">
+                <div style="flex-direction: column;">
+                    <p
+                        style="color: white; padding-left: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        For example, I had no idea the MPU-6500 needed 3 capacitors. After reading through the pinout
+                        table and seeing a bunch of weird pins (FSYNC and VDDIO), I scrolled down and it showed me a
+                        sample
+                        circuit for the sensor, where I saw what each pin should be connected to and where I had to use
+                        capacitors. While your datasheet may not have a sample circuit, it's common to catch little
+                        details
+                        like that while you're wiring your schematic.
+                    </p>
+                    <p
+                        style="color: white; padding-left: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        All the pins that the datasheet isn't specific enough for you can google for, like interrupt
+                        pins. Interrupt pins are a common feature on sensors; they send a signal to the MCU when the
+                        sensor
+                        detects a change. This stops the microcontroller from having to check the data input pins of the
+                        sensor
+                        every like 2 milliseconds.
+                    </p>
+                </div>
+            </div>
+            <div></div>
+
+            <div class="image-text-section">
+                <div class="flex-direction: column">
+                    <p class="info">
+                        This is what my finished schematic looks like! I copied the datasheet's sample circuit for
+                        the capacitor placement, attached the interrupt pin to a GPIO pin on the XIAO (like you should
+                        too),
+                        followed the reserved pins' instructions, and googled whatever else I needed (like what to
+                        connect
+                        VDDIO to).
+                    </p>
+                    <br>
+                    <p class="info">
+                        At first glance, this looks complicated as heck. But once you look at each individual pin,
+                        it'll start to make sense. (and if it doesn't, drop a message in the <a
+                            href="https://hackclub.slack.com/archives/C0943DE80E4" target="_blank"
+                            style="color:#8c2e37">#pathfinder</a> channel on slack!)
+                    </p>
+                </div>
+                <img src="../public/stepimgs/step3.5.gif"
+                    style="width:500px;">
+            </div>
+
+            <div
+                style="background-color: #638a47; border-radius: 1rem; padding-right: 0.5rem; padding-top:1rem; margin-bottom: 2rem; padding-left: 0.5rem; padding-bottom: 1rem;">
+                <div style="flex-direction: column;">
+                    <p
+                        style="color: white; padding-left: 1rem; padding-top: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        After you spend 5 hours on your Hermes board and submit, you'll get $20 to buy your PCB and all your parts. Each
+                        additional
+                        hour you spend on your PCB and firmware you'll get $5 more to spend on any parts you might want.
+                    </p>
+                    <p
+                        style="color: white; padding-left: 1rem; padding-top: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        I bought a sensor and an OLED display, maybe you get a sensor and a knob (to control
+                        sensivity?), or a
+                        sensor and switch to control settings. Maybe you get an OLED screen and 2 switches, the sky's
+                        the limit.
+                        You'll buy the XIAO and any other non-SMD parts you use on Digikey, Aliexpress, or a local parts
+                        supplier.
+                    </p>
+                </div>
+            </div>
+            <div></div>
+
+        </div>
+
+        <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="window.location.href='step2.html'">
+            << prev step</button>
+
+        <button class="button" id="nextBtn" style="margin-right: 1rem;" onclick="window.location.href='step4.html'">next
+            step
+            >></button>
+    </div>
+</body>
+
+</html>

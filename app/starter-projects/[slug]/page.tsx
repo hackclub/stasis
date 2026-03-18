@@ -34,6 +34,10 @@ export default function StarterProjectPage({
     redirect('/starter-projects/pathfinder/index.html');
   }
 
+  if (slug === 'hermes') {
+    redirect('/starter-projects/hermes/index.html');
+  }
+
   if (!project || !projectModules[slug]) {
     notFound();
   }

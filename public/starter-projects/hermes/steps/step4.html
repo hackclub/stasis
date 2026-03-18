@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hermes: Designing Your PCB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles.css" />
+</head>
+
+<body>
+    <div class="step-page">
+        <button class="button" id="backBtn" onclick="window.location.href='../flightpath/index.html'">back to map</button>
+
+        <div class="content-wrapper">
+            <h1 style="padding-top:2rem">Step 4: Design Your PCB</h1>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">
+                        Now for the easy part. You've already learned how to do basic routing from the
+                        <a href="https://www.youtube.com/watch?v=MFTP7uMzt1s" target="_blank" style="color:#8c2e37">
+                            Pathfinder video I made</a>. And routing your Hermes board shouldn't be that different.
+                        Follow your ratlines, use vias (appropriately, I shouldn't see 20 vias on your PCB), and add fun
+                        silkscreen to make your PCB look awesome.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Make sure to run DRC often to make sure you're on the right track! (Tools -> Design Rules
+                        Checker)
+                    </p>
+                </div>
+
+                <img src="../public/stepimgs/step4.1.png"
+                    style="width:200px">
+            </div>
+
+            <div class="image-text-section">
+                <img src="../public/stepimgs/step4.2.gif"
+                    style="width:400px">
+                <div style="flex-direction: column;">
+                    <p class="info"> When you're finishing up your placement and routing, make sure to put the
+                        Hermes logo on your PCB's silkscreen (along with you and your board's name). You can find
+                        the Hermes logo
+                        <a target="_blank" style="color:#8c2e37"
+                            href="../public/stepimgs/hermesfavi.png">here</a>.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Download it and open KiCAD's image converter to convert it to a silkscreen footprint. You'll
+                        probably
+                        have to change the size of the image to fit your configuration.
+                    </p>
+                </div>
+
+
+            </div>
+
+            <div class="infoBox" style="border-width: 0.3rem; border-style: dashed; margin-bottom: 2rem;">
+                <p class="info" style="color: white; padding-top:0.2rem">
+                    STOP! Checkpoint! After you're done routing, post a screenshot of your PCB design in
+                    <a href="https://hackclub.slack.com/archives/C0943DE80E4" target="_blank"
+                        style="color:#e8c547">#pathfinder</a>.
+                    This is so I can make sure people are on the right track (and that you don't have any
+                    glaring issues)
+                </p>
+            </div>
+            <div></div>
+
+            <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="window.location.href='step3.html'">
+            << prev step</button>
+
+            <button class="button" id="nextBtn" style="margin-right: 1rem;"
+                onclick="window.location.href='step5.html'">next
+                step
+                >></button>
+        </div>
+</body>
+
+</html>

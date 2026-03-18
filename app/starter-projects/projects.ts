@@ -79,4 +79,13 @@ export const projects: StarterProject[] = [
     hasTutorial: true,
     image: 'pathfinder.png',
   },
+  {
+    id: 'hermes',
+    name: 'Hermes',
+    hours: 5,
+    short_description: 'Make a PCB with an in-built sensor and transmit data using I2C.',
+    badges: ['I2C', 'MCU'],
+    hasTutorial: true,
+    image: 'hermes.png',
+  },
 ];

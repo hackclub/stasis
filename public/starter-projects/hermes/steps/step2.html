@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hermes: Configuring Your Sensor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles.css" />
+</head>
+
+<body>
+    <div class="step-page">
+        <button class="button" id="backBtn" onclick="window.location.href='../flightpath/index.html'">back to map</button>
+
+        <div class="content-wrapper">
+            <h1 style="padding-top:2rem">Step 2: Configure Your Sensor</h1>
+
+            <div class="image-text-section">
+                <div style="flex-direction: column;">
+                    <p class="info">Before we start making our PCB, we've gotta choose a sensor to put on your board.
+                        For my Hermes board, I used a gyroscope so I could mount it on my bike and see how smooth my
+                        biking is. You can choose from hundreds of different types of sensors to fit what you wanna do
+                        with your Hermes!
+                    </p>
+                    <br>
+                    <p class="info">
+                        Visit <a href="https://jlcpcb.com/parts" target="_blank"
+                            style="color:#8c2e37">JLCPCB.com/parts</a>
+                        and search for sensors. You could use a humidity sensor, light sensor (photoresistor), a touch
+                        sensor, or even
+                        a Geiger counter (which tracks radiation)! The possibilities are endless.
+                    </p>
+                </div>
+
+                <img src="../public/stepimgs/step2.1.gif"
+                    style="width:500px;">
+            </div>
+
+            <div class="image-text-section">
+                <img src="../public/stepimgs/step2.2.gif"
+                    style="width:500px;">
+                <div class="flex-direction: column">
+                    <p class="info">
+                        When you're browsing for sensors, you'll see a lot of filters. We don't care about most of
+                        these (mostly because they're inaccurate). We need only I2C sensors, but if you select that
+                        filter and
+                        there's only like 2 available sensors that show up, something's probably wrong. You can totally
+                        use them, especially
+                        if they're in stock and cheap, but most of the time they're not, so we'll have to do some manual
+                        digging.
+                    </p>
+                    <br>
+                    <p class="info">
+                        I2C is a method of communication between electrical components. In this case, we're going
+                        to be communicating between a sensor and a microcontroller. You could communicate between a
+                        sensor and a sensor, a microcontroller and a microcontroller, or even both at the same time.
+                    </p>
+                </div>
+            </div>
+
+            <div style="background-color: #638a47; border-radius: 1rem; padding-right: 0.5rem; padding-left: 0.5rem; padding-bottom: 0.7rem;">
+                <div style="flex-direction: column;">
+                    <p style="color: white; padding-left: 1rem; padding-top: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        There's 2 main communication protocols we care about: SPI and I2C (pronounced eye-squared-see).
+                        SPI is older, more finicky, and uses more pins, so we're using I2C. SPI generally has 4 pins,
+                        MISO (Master In, Slave Out), MOSI (Master Out, Slave In), SCK (serial clock), and CS (chip
+                        select). These
+                        are data pins and you don't have to worry about them right now, but you should totally google
+                        around and find
+                        out some more.
+                    </p>
+                    <p  style="color: white; padding-left: 1rem; padding-bottom: 1rem; font-size: 1.2rem; text-align: left; border-radius: 0.5rem;">
+                        I2C's pins are SDA and SCL. SDA is serial data (handles data transfer between components),
+                        and SCL is serial clock (handles timing of information). SCL is important cause information
+                        doesn't make any sense if you receive it out of order.
+                    </p>
+                </div>
+            </div>
+            <div></div>
+
+            <div class="image-text-section">
+                <div class="flex-direction: column">
+                    <p class="info">
+                        In the checkbox section below the filters, check the box for "Economic" PCBA type. Some
+                        soldering
+                        methods are harder to automate than others, so JLCPCB splits these parts into Economic and
+                        Standard.
+                        Economic can be like $5 and Standard can be like $200. So make sure that you're only using
+                        Economic
+                        components.
+                    </p>
+                    <br>
+                    <p class="info">
+                        You should also filter to make sure it's In Stock, so check that box as well.
+                    </p>
+                </div>
+                <img src="../public/stepimgs/step2.3.gif"
+                    style="width:400px;">
+            </div>
+
+            <div class="image-text-section">
+                <img src="../public/stepimgs/step2.4.gif"
+                    style="width:500px;">
+                <div class="flex-direction: column">
+                    <p class="info">
+                        Now we have to make sure that the sensor supports I2C. Click your first result and open up its
+                        datasheet. A datasheet is a sheet about a components
+                        data (pretty self-explanatory.) If your results are super expensive (>$5), you can sort by price
+                        ascending.
+                    </p>
+                    <br>
+                    <p class="info">
+                        In the component's datasheet, scroll down to the table of contents and ctrl-f search for "pin".
+                        Find the pinout or pin description, which is a table that tells you what each pin
+                        does and where to connect it to, which is SUPER COOL and SUPER CONVENIENT.
+                    </p>
+                </div>
+            </div>
+
+            <div class="image-text-section">
+                <div class="flex-direction: column">
+                    <p class="info">
+                        Make sure your pinout table has SDA and SCL pins. If it doesn't, then it doesn't support I2C.
+                        Some sensors have both SPI and I2C pins, and that's fine (we'll only be using the I2C ones).
+                    </p>
+                    <br>
+                    <p class="info">
+                        You can also just ctrl-f I2C and see what pops up, but you'll need the pinout table anyway
+                        for your schematic.
+                    </p>
+                    <br>
+                    <p class="info">
+                        Once you've found a sensor you like, has Economic PCBA, and supports I2C, you're set! I'm choosing
+                        the MPU-6500 because I've worked with MPUs before and it's expensive enough that it'll be good quality.
+                    </p>
+                </div>
+                <img src="../public/stepimgs/step2.5.gif"
+                    style="width:400px;">
+            </div>
+
+            <div class="infoBox" style="border-width: 0.3rem; border-style: dashed;">
+                <p class="info" style="color: white; padding-top:0.2rem">
+                    STOP! Before you continue any further, post the type of sensor you're using, what you're going to
+                    use it
+                    for, and a screenshot of the part you're using in the
+                    <a href="https://hackclub.slack.com/archives/C0943DE80E4" target="_blank"
+                        style="color:#e8c547">#pathfinder</a>
+                    channel on the Hack Club slack. Your post should look something like
+                    <a href="https://hackclub.slack.com/archives/C0943DE80E4/p1754104574093309" target="_blank" style="color:#e8c547">this</a>.
+                </p>
+            </div>
+            <div></div>
+        </div>
+
+        <button class="button" id="prevBtn" style="margin-left: 1rem;" onclick="window.location.href='step1.html'">
+            << prev step</button>
+
+        <button class="button" id="nextBtn" style="margin-right: 1rem;" onclick="window.location.href='step3.html'">next
+            step
+            >></button>
+    </div>
+</body>
+
+</html>

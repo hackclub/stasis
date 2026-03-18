@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hermes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/x-icon" href="public/imgs/hermesFavi.png">
+</head>
+
+<body>
+    <div id="mainPage" class="page">
+        <a href="/starter-projects" style="position:absolute;top:1rem;left:1rem;color:#faffdc;text-decoration:none;font-family:'Ubuntu Mono',monospace;font-size:1rem;z-index:10;">&larr; Go back to Starter Projects menu</a>
+        <h1 style="text-shadow: 0 0 1rem #ffd700;">Welcome to Hermes</h1>
+
+        <p style="text-shadow: 0 0 1rem rgba(0,0,0,0.3)" class="subtitle">
+            make a PCB with an in-built sensor and transmit data
+        </p>
+        <p style="margin-top: 0.5rem">(take your controller pad to the next level with I2C)</p>
+        <button class="button" onclick="window.location.href='flightpath/index.html'">Fly with Hermes</button>
+        <img src="public/imgs/render2.png" style="width:60vw; z-index:3; margin-top:2rem; display:block; margin-left:auto; margin-right:auto;">
+
+        <div style="float: left; left: 2rem; position: absolute; top: 80%; width: 15rem; z-index: 2;">
+            <div class="highlightBox" style="flex-direction: column;">
+                <p class="highlight" style="padding-top: 0.8rem;">
+                    Made by Meghana
+                    <a style="color: #e6a23c" href="https://meghana.co/">meghana.co</a>
+                </p>
+                <p class="highlight">
+                    Check out the GitHub repo for this project
+                    <a style="color: #e6a23c;" href="https://github.com/MeghanaM4/hermes">here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goToPage(currentPage, targetPage) {
+            document.getElementById(currentPage).style.display = 'none';
+            document.getElementById(targetPage).style.display = currentPage === 'mainPage' || targetPage === 'mainPage' ? 'flex' : 'block';
+        }
+    </script>
+
+</body>
+
+</html>
