@@ -175,6 +175,11 @@ export default function ReviewDetailPage() {
       return;
     }
 
+    if (!reason.trim()) {
+      alert('Internal justification is required.');
+      return;
+    }
+
     if ((result === 'APPROVED' || result === 'REJECTED') && !confirm(`Are you sure you want to ${result.toLowerCase()} this submission?`)) {
       return;
     }
@@ -184,7 +189,7 @@ export default function ReviewDetailPage() {
       const body: Record<string, unknown> = {
         result,
         feedback: feedback.trim(),
-        reason: reason.trim() || undefined,
+        reason: reason.trim(),
       };
       if (workUnitsOverride) body.workUnitsOverride = parseFloat(workUnitsOverride);
       if (tierOverride) body.tierOverride = parseInt(tierOverride);
@@ -781,12 +786,13 @@ export default function ReviewDetailPage() {
             </div>
 
             <div className="mb-4">
-              <label className="text-cream-600 text-xs uppercase block mb-1">Internal Justification</label>
+              <label className="text-cream-600 text-xs uppercase block mb-1">Internal Justification <span className="text-red-500">*</span></label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full h-20 px-3 py-2 text-sm border border-cream-400 bg-cream-50 text-brown-800 focus:outline-none focus:border-orange-500 resize-y"
-                placeholder="Internal reason for your decision (not shown to submitter)..."
+                placeholder="Internal reason for your decision (required, not shown to submitter)..."
+                required
               />
             </div>
 
