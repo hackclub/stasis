@@ -438,6 +438,21 @@ export async function submitYSWSProjectSubmission(data: {
 
   if (data.bannerUrl) fields['Screenshot'] = [{ url: data.bannerUrl }];
 
+  // Check for existing record by Stasis ID to avoid duplicates
+  if (data.stasisId) {
+    const existing = await base(tableName)
+      .select({
+        filterByFormula: `{Stasis ID} = '${data.stasisId.replace(/'/g, "\\'")}'`,
+        maxRecords: 1,
+      })
+      .firstPage();
+
+    if (existing.length > 0) {
+      await base(tableName).update(existing[0].id, fields);
+      return;
+    }
+  }
+
   await base(tableName).create([{ fields }]);
 }
 
