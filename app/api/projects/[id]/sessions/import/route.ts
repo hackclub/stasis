@@ -36,15 +36,18 @@ function parseMarkdown(markdown: string): ParsedSession[] {
     const title = headingLine.substring(dashIndex + 3).trim()
     if (!title) continue
 
-    // Parse date like "1/27/2026 9 AM", "2/22/2026 5:01 AM", "1/27/2026 10 PM"
+    // Parse date like "1/27/2026 9 AM", "2/22/2026 5:01 AM", "1/27/2026 10 PM", or "12/22/2025" (no time)
     const dateMatch = dateTimePart.match(
-      /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2})(?::(\d{2}))?\s*(AM|PM))?$/i
     )
     if (!dateMatch) continue
     const [, month, day, year, rawHour, minutes, ampm] = dateMatch
-    let hour = parseInt(rawHour)
-    if (ampm.toUpperCase() === "PM" && hour !== 12) hour += 12
-    if (ampm.toUpperCase() === "AM" && hour === 12) hour = 0
+    let hour = 12 // default to noon when no time specified
+    if (rawHour) {
+      hour = parseInt(rawHour)
+      if (ampm?.toUpperCase() === "PM" && hour !== 12) hour += 12
+      if (ampm?.toUpperCase() === "AM" && hour === 12) hour = 0
+    }
     const createdAt = new Date(
       parseInt(year), parseInt(month) - 1, parseInt(day),
       hour, parseInt(minutes || "0")
