@@ -869,7 +869,7 @@ export default function ReviewDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="text-cream-600 text-xs uppercase block mb-1">Grant Override (bits)</label>
+                <label className="text-cream-600 text-xs uppercase block mb-1">Grant Override ($USD)</label>
                 <input
                   type="number"
                   value={grantOverride}
