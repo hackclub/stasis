@@ -4,13 +4,12 @@ import { fetchHackatimeProjectSeconds } from './hackatime';
 import { getTierById } from './tiers';
 import { STARTER_PROJECT_NAMES } from './starter-projects';
 
-function usePostgres(): boolean {
+function isPostgresMode(): boolean {
   return process.env.RSVP_USE_POSTGRES === 'true';
 }
 
 function escapeAirtableValue(value: string): string {
   // Strip control characters, then escape backslashes and single quotes
-  // eslint-disable-next-line no-control-regex
   return value.replace(/[\x00-\x1F\x7F]/g, '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
@@ -88,7 +87,7 @@ export async function airtableEnsureRSVPExists(email: string, name: string): Pro
 }
 
 export async function markAccountCreationFinished(email: string): Promise<boolean> {
-  if (usePostgres()) {
+  if (isPostgresMode()) {
     const rsvp = await prisma.tempRsvp.findUnique({ where: { email } });
     if (!rsvp) return false;
     await prisma.tempRsvp.update({ where: { email }, data: { finishedAccount: true } });
@@ -129,7 +128,7 @@ export async function createRSVP(data: {
   referredBy?: string | null;
   signupPage?: string | null;
 }) {
-  if (usePostgres()) {
+  if (isPostgresMode()) {
     await prisma.tempRsvp.create({
       data: {
         email: data.email,
@@ -175,7 +174,7 @@ export async function createRSVP(data: {
 }
 
 export async function findRSVPByEmail(email: string): Promise<boolean> {
-  if (usePostgres()) {
+  if (isPostgresMode()) {
     const rsvp = await prisma.tempRsvp.findUnique({ where: { email } });
     return !!rsvp;
   }
@@ -199,7 +198,7 @@ export async function findRSVPByEmail(email: string): Promise<boolean> {
 }
 
 export async function ensureRSVPExists(email: string, name?: string): Promise<void> {
-  if (usePostgres()) {
+  if (isPostgresMode()) {
     const nameParts = (name || '').trim().split(/\s+/);
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
@@ -251,7 +250,7 @@ export async function ensureRSVPExists(email: string, name?: string): Promise<vo
 }
 
 export async function updateRSVPName(email: string, fullName: string): Promise<boolean> {
-  if (usePostgres()) {
+  if (isPostgresMode()) {
     const rsvp = await prisma.tempRsvp.findUnique({ where: { email } });
     if (!rsvp) return false;
     const nameParts = fullName.trim().split(/\s+/);
@@ -329,7 +328,7 @@ export function eventPreferenceToDisplayName(event: string): string {
 export async function updateTargetEvent(email: string, event: string): Promise<boolean> {
   const displayName = eventPreferenceToDisplayName(event);
 
-  if (usePostgres()) {
+  if (isPostgresMode()) {
     // No target event field in TempRsvp — will be synced to Airtable later
     return true;
   }

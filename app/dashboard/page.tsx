@@ -48,21 +48,6 @@ export default function ProjectsPage() {
   const [userPronouns, setUserPronouns] = useState<string | null>(null);
   const [showPronounsModal, setShowPronounsModal] = useState(false);
 
-  if (!isPending && !session) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-        <h1 className="text-brown-800 text-2xl uppercase tracking-wide mb-4">You&apos;re logged out</h1>
-        <p className="text-brown-800 mb-6">Do you want to log in?</p>
-        <button
-          onClick={() => authClient.signIn.oauth2({ providerId: 'hca', callbackURL: '/dashboard' })}
-          className="bg-orange-500 hover:bg-orange-400 text-white px-6 py-3 text-sm uppercase tracking-wide transition-colors"
-        >
-          Log in with Hack Club
-        </button>
-      </div>
-    );
-  }
-
   const fetchProjects = useCallback(async () => {
     try {
       const [projectsRes, currencyRes, eventPrefRes, pronounsRes, tutorialRes] = await Promise.all([
@@ -124,6 +109,21 @@ export default function ProjectsPage() {
       setLoading(false);
     }
   }, [session, fetchProjects]);
+
+  if (!isPending && !session) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+        <h1 className="text-brown-800 text-2xl uppercase tracking-wide mb-4">You&apos;re logged out</h1>
+        <p className="text-brown-800 mb-6">Do you want to log in?</p>
+        <button
+          onClick={() => authClient.signIn.oauth2({ providerId: 'hca', callbackURL: '/dashboard' })}
+          className="bg-orange-500 hover:bg-orange-400 text-white px-6 py-3 text-sm uppercase tracking-wide transition-colors"
+        >
+          Log in with Hack Club
+        </button>
+      </div>
+    );
+  }
 
   const handleCreateProject = async (data: {
     title: string

@@ -63,7 +63,7 @@ export function ScrambleTransition({
   const scrambleChars = () => {
     if (!isAnimatingRef.current) return;
 
-    const elapsed = Date.now() - animationStartTimeRef.current;
+    const elapsed = Date.now() - animationStartTimeRef.current; // eslint-disable-line react-hooks/purity -- called from gsap ticker, not during render
     const progress = Math.min(elapsed / (duration * 1000), 1);
     const easedProgress = easeOutCubic(progress);
     
@@ -114,7 +114,7 @@ export function ScrambleTransition({
     previousTextRef.current = from;
     targetTextRef.current = to;
     isAnimatingRef.current = true;
-    animationStartTimeRef.current = Date.now();
+    animationStartTimeRef.current = Date.now(); // eslint-disable-line react-hooks/purity -- called from event handler, not during render
     
     initializeTransition(from, to);
     

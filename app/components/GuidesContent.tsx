@@ -92,9 +92,9 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
   const setActiveGuidePage = controlledPage ? () => {} : setInternalPage;
 
   const faqComponents = useMemo<MDXComponents>(() => {
-    let currentSection = '';
+    let currentSection = ''; // eslint-disable-line react-hooks/immutability -- intentional mutable tracking of MDX render order
     return {
-      h2: ({ children }) => { currentSection = String(children); return null; },
+      h2: ({ children }) => { currentSection = String(children); return null; }, // eslint-disable-line react-hooks/immutability
       h3: ({ children }) => currentSection === faqTab ? (
         <h3 className="text-brown-800 text-base md:text-lg mb-2 mt-4">{children as React.ReactNode}</h3>
       ) : null,
@@ -269,7 +269,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                 <>
                   {!basePath && (
                     <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-600 text-sm">
-                      This guide is also available at <a href="/help/parents" className="underline">stasis.hackclub.com/help/parents</a> for sharing with parents who don&apos;t have a Stasis account.
+                      This guide is also available at <Link href="/help/parents" className="underline">stasis.hackclub.com/help/parents</Link> for sharing with parents who don&apos;t have a Stasis account.
                     </div>
                   )}
                   <div className="p-4 bg-orange-500/10 border border-orange-500/30 text-orange-600 text-sm">
