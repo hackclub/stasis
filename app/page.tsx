@@ -585,6 +585,27 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPre
               <DottedLine orientation="horizontal" />
             </div>
 
+            {/* Can't Attend IRL? */}
+            <section className="space-y-3 md:space-y-4 md:px-5 py-1">
+              <h2 className="text-[24px] uppercase text-brown-800">
+                <ScrambleText>{">>: Can't Attend IRL?"}</ScrambleText>
+              </h2>
+              <p className="text-[14px] md:text-[18px] leading-snug text-brown-800">
+                <ScrambleText>No worries! Whether or not you attend, by making hardware projects you can <span class="text-orange-500">pick items from our shop</span>, like:</ScrambleText>
+              </p>
+              <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-brown-800 relative">
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>3D printers (Bambu Lab)</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>Oscilloscopes</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>Dev boards & components</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>And more!</ScrambleText></span></li>
+                <img src="/bambu-orange.png" alt="" className="absolute bottom-0 right-0 translate-x-3/4  h-24 rotate-[16deg] pointer-events-none select-none" />
+              </ul>
+            </section>
+
+            <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
+              <DottedLine orientation="horizontal" />
+            </div>
+
             <ASCIIArt art={asciiArt.fish} horizontalPosition={65} verticalOffset="55rem" />
             <ASCIIArt art={asciiArt.cat} horizontalPosition={85} verticalOffset="62rem" />
             <ASCIIArt art={asciiArt.roflcopter} horizontalPosition={35} verticalOffset="85rem" />
