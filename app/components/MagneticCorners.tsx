@@ -103,9 +103,20 @@ export function MagneticCorners({
       `}</style>
       <div
         ref={containerRef}
-        className={`magnetic-corners-wrapper relative inline-block ${isActive ? 'active cursor-pointer' : ''} ${className || ''}`}
+        className={`magnetic-corners-wrapper relative inline-block ${isActive ? 'active' : ''} ${className || ''}`}
         onClick={isActive ? handleHitboxClick : undefined}
       >
+        {/* Invisible hitbox that extends to activation distance for cursor: pointer */}
+        <div
+          className="absolute z-[1] cursor-pointer"
+          style={{
+            top: `-${activationDistance}px`,
+            left: `-${activationDistance}px`,
+            right: `-${activationDistance}px`,
+            bottom: `-${activationDistance}px`,
+          }}
+          onClick={handleHitboxClick}
+        />
         {children}
         
         {mode === 'border' ? (
