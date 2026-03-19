@@ -591,7 +591,7 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPre
                 <ScrambleText>{">>: Can't Attend IRL?"}</ScrambleText>
               </h2>
               <p className="text-[14px] md:text-[18px] leading-snug text-brown-800">
-                <ScrambleText>No worries! Whether or not you attend, by making hardware projects you can <span class="text-orange-500">pick items from our shop</span>, like:</ScrambleText>
+                <ScrambleText>No worries! Whether or not you attend, by making hardware projects you can</ScrambleText>{' '}<span className="text-orange-500"><ScrambleText>pick items from our shop</ScrambleText></span><ScrambleText>, like:</ScrambleText>
               </p>
               <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-brown-800 relative">
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>3D printers (Bambu Lab)</ScrambleText></span></li>
