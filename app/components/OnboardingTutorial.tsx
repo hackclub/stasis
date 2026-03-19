@@ -179,7 +179,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onEven
   // Sync initialEvent when it arrives asynchronously (e.g. after API fetch)
   useEffect(() => {
     if (initialEvent && !hasManuallySelected.current) {
-      setSelectedEvent(initialEvent);
+      setSelectedEvent(initialEvent); // eslint-disable-line react-hooks/set-state-in-effect -- sync prop to state
     }
   }, [initialEvent]);
 
@@ -203,8 +203,8 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onEven
 
   useEffect(() => {
     if (forceShow) {
-      setIsVisible(true);
-      setCurrentStep(0);
+      setIsVisible(true); // eslint-disable-line react-hooks/set-state-in-effect -- sync prop to state
+      setCurrentStep(0); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
 
@@ -271,21 +271,19 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onEven
   }, [currentStep, TUTORIAL_STEPS]);
 
   // Throttled version for scroll/resize events
-  const throttledUpdateRect = useMemo(() => {
-    let rafId: number | null = null;
-    return () => {
-      if (rafId) return;
-      rafId = requestAnimationFrame(() => {
-        updateRectOnly();
-        rafId = null;
-      });
-    };
+  const rafIdRef = useRef<number | null>(null);
+  const throttledUpdateRect = useCallback(() => {
+    if (rafIdRef.current) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      updateRectOnly();
+      rafIdRef.current = null;
+    });
   }, [updateRectOnly]);
 
   useEffect(() => {
     if (!isVisible) return;
 
-    updateHighlight();
+    updateHighlight(); // eslint-disable-line react-hooks/set-state-in-effect -- update highlight position on step change
     window.addEventListener('resize', throttledUpdateRect);
     window.addEventListener('scroll', throttledUpdateRect);
 

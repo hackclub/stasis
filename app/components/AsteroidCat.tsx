@@ -29,6 +29,7 @@ const AsteroidCat = forwardRef<AsteroidCatRef>((_, ref) => {
   const [isLandingFlash, setIsLandingFlash] = useState(false);
 
   const particleIdCounter = useRef(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const OnekoRef = useRef<any>(null);
 
   useEffect(() => {
@@ -147,6 +148,7 @@ const AsteroidCat = forwardRef<AsteroidCatRef>((_, ref) => {
   }, [spawnSmokeParticle]);
 
   const shakeScreen = useCallback(async (catElement?: HTMLElement) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pageWrapper = (window as any).__stasisPageWrapper;
     
     const amplitude = { value: 1 };
@@ -272,6 +274,7 @@ const AsteroidCat = forwardRef<AsteroidCatRef>((_, ref) => {
         
         spawnImpactCloud(targetX, targetY);
         
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let cat: any = null;
         const Oneko = OnekoRef.current;
         if (Oneko) {

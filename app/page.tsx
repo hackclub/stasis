@@ -101,8 +101,10 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPre
 
   useEffect(() => {
     if (pageWrapperRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).__stasisPageWrapper = pageWrapperRef.current;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return () => { delete (window as any).__stasisPageWrapper; };
   }, []);
 

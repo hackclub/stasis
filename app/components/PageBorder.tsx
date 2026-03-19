@@ -66,6 +66,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
         konamiCompletedRef.current = true;
         setKonamiCompleted(true);
         resetKonami(true);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const asteroidCat = (window as any).__stasisAsteroidCat;
         asteroidCat?.trigger();
       }
@@ -82,8 +83,10 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
 
   const handleKonamiInputRef = useRef(handleKonamiInput);
   const resetKonamiRef = useRef(resetKonami);
-  handleKonamiInputRef.current = handleKonamiInput;
-  resetKonamiRef.current = resetKonami;
+  useEffect(() => {
+    handleKonamiInputRef.current = handleKonamiInput;
+    resetKonamiRef.current = resetKonami;
+  });
 
   useEffect(() => {
     // const timer = setTimeout(() => {
@@ -169,7 +172,7 @@ export default function PageBorder({ inset = '3rem', mobileInset = '1rem', onFoo
 
 useEffect(() => {
   if (allContentLoaded) {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- trigger mount animation after content loads
     setTimeout(() => {
       setFooterLoaded(true);
       if (footerRef.current) {

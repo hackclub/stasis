@@ -108,6 +108,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-4 sm:gap-6">
             <UserMenu
               userId={session.user.id}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               name={(session.user as any).slackDisplayName || session.user.name || session.user.email || ''}
               email={session.user.email}
               image={session.user.image}

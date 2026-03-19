@@ -12,7 +12,7 @@ export function DottedLine({ orientation = 'horizontal' }: Props) {
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
-    setOffset(Math.random() * 1202);
+    setOffset(Math.random() * 1202); // eslint-disable-line react-hooks/set-state-in-effect -- client-only random offset to avoid hydration mismatch
   }, []);
 
   return (
