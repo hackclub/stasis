@@ -356,7 +356,7 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPre
 
               <ASCIIArt art={asciiArt.hackclub} horizontalPosition={80} verticalOffset="5rem" />
               <ASCIIArt art={asciiArt.earth} horizontalPosition={35} verticalOffset="12rem" />
-              {event === 'opensauce' && <ASCIIArt art={asciiArt.opensauce2} horizontalPosition={18} verticalOffset="100rem" />}
+              <ASCIIArt art={asciiArt.opensauce2} horizontalPosition={18} verticalOffset="100rem" />
 
               <HoverScramble
               segments={event === 'opensauce' ? [
