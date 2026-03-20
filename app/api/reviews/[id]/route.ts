@@ -65,8 +65,8 @@ export async function GET(
   }
 
   // Determine active stage
-  const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
-  const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+  const designInReview = project.designStatus === "in_review"
+  const buildInReview = project.buildStatus === "in_review"
   const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : null
 
   if (!activeStage) {
@@ -188,8 +188,8 @@ export async function GET(
   const allProjects = await prisma.project.findMany({
     where: {
       OR: [
-        { designStatus: { in: ["in_review", "update_requested"] } },
-        { buildStatus: { in: ["in_review", "update_requested"] } },
+        { designStatus: "in_review" },
+        { buildStatus: "in_review" },
       ],
     },
     select: { id: true },

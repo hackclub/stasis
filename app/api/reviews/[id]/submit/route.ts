@@ -126,8 +126,8 @@ export async function POST(
 
   // Determine active stage if not from submission
   if (!stage) {
-    const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
-    const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+    const designInReview = project.designStatus === "in_review"
+    const buildInReview = project.buildStatus === "in_review"
     stage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : null
   }
 
@@ -139,7 +139,7 @@ export async function POST(
   // even when stage was derived from a submission ID (prevents reviewing
   // already-approved/rejected projects via stale submission links)
   const currentStatus = stage === "DESIGN" ? project.designStatus : project.buildStatus
-  if (currentStatus !== "in_review" && currentStatus !== "update_requested") {
+  if (currentStatus !== "in_review") {
     return NextResponse.json(
       { error: `Project ${stage.toLowerCase()} is no longer in review (status: ${currentStatus})` },
       { status: 400 }
