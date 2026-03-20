@@ -31,11 +31,16 @@ export async function PATCH(request: NextRequest) {
     data: { bio: sanitizedBio },
     select: {
       id: true,
+      slackDisplayName: true,
       name: true,
       image: true,
       bio: true,
     },
   })
 
-  return NextResponse.json(user)
+  return NextResponse.json({
+    ...user,
+    name: user.slackDisplayName || user.name,
+    slackDisplayName: undefined,
+  })
 }
