@@ -29,8 +29,8 @@ export async function resolveSubmissionId(id: string): Promise<string | null> {
   })
   if (!project) return null
 
-  const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
-  const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+  const designInReview = project.designStatus === "in_review"
+  const buildInReview = project.buildStatus === "in_review"
   const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : null
 
   if (!activeStage) return null

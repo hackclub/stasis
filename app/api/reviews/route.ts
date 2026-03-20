@@ -88,8 +88,8 @@ export async function GET(request: NextRequest) {
       .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
 
     // Determine which stage is in review
-    const designInReview = project.designStatus === "in_review" || project.designStatus === "update_requested"
-    const buildInReview = project.buildStatus === "in_review" || project.buildStatus === "update_requested"
+    const designInReview = project.designStatus === "in_review"
+    const buildInReview = project.buildStatus === "in_review"
     const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : "DESIGN"
 
     // Check if the latest submission for the active stage has been pre-reviewed

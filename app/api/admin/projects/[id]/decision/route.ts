@@ -85,7 +85,7 @@ export async function POST(
 
   if (stage === "design") {
     // Design stage review
-    if (project.designStatus !== "in_review" && project.designStatus !== "update_requested") {
+    if (project.designStatus !== "in_review") {
       return NextResponse.json(
         { error: "Design is not pending review" },
         { status: 400 }
@@ -201,7 +201,7 @@ export async function POST(
       )
     }
 
-    if (project.buildStatus !== "in_review" && project.buildStatus !== "update_requested") {
+    if (project.buildStatus !== "in_review") {
       return NextResponse.json(
         { error: "Build is not pending review" },
         { status: 400 }
