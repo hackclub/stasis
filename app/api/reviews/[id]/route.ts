@@ -157,10 +157,10 @@ export async function GET(
   const reviewerUsers = reviewerIds.length > 0
     ? await prisma.user.findMany({
         where: { id: { in: reviewerIds } },
-        select: { id: true, name: true },
+        select: { id: true, name: true, slackDisplayName: true },
       })
     : []
-  const reviewerNameMap = new Map(reviewerUsers.map((u) => [u.id, u.name]))
+  const reviewerNameMap = new Map(reviewerUsers.map((u) => [u.id, u.slackDisplayName || u.name]))
 
   // Map existing ProjectReviewAction records to the review format the frontend expects
   const reviews = project.reviewActions.map((action) => ({
