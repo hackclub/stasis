@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { requirePermission } from "@/lib/admin-auth"
+import { requireAnyPermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { getTierById } from "@/lib/tiers"
 
@@ -8,7 +8,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
-  const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
+  const authCheck = await requireAnyPermission(Permission.REVIEW_PROJECTS, Permission.VIEW_AUDIT_REVIEWS)
   if (authCheck.error) return authCheck.error
 
   const { projectId } = await params

@@ -114,6 +114,7 @@ export default function DashboardLayout({
               image={session.user.image}
               isAdmin={hasRole(Role.ADMIN)}
               isReviewer={hasRole(Role.REVIEWER)}
+              isAuditor={hasRole(Role.AUDITOR)}
               onSignOut={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/' } } })}
             />
             {hasRole(Role.SIDEKICK) && (

@@ -27,7 +27,7 @@ interface Project {
 
 interface UserRole {
   id: string;
-  role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK';
+  role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR' | 'AUDITOR';
   grantedAt: string;
 }
 
@@ -71,7 +71,7 @@ interface UserPurchase {
   purchasedAt: string;
 }
 
-const AVAILABLE_ROLES: Array<'ADMIN' | 'REVIEWER' | 'SIDEKICK'> = ['ADMIN', 'REVIEWER', 'SIDEKICK'];
+const AVAILABLE_ROLES: Array<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR' | 'AUDITOR'> = ['ADMIN', 'REVIEWER', 'SIDEKICK', 'AUDITOR'];
 
 const PRONOUN_OPTIONS = [
   { label: 'he/him', value: 'he/him' },
@@ -89,11 +89,12 @@ export default function AdminUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [filterFraud, setFilterFraud] = useState<boolean | null>(null);
-  const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | null>(null);
+  const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR' | 'AUDITOR' | null>(null);
   const [filterAddress, setFilterAddress] = useState<boolean | null>(null);
   const [filterPronouns, setFilterPronouns] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
+  const [roleConfirm, setRoleConfirm] = useState<{ user: AdminUser; adding: string[]; removing: string[] } | null>(null);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ message: string; total: number } | null>(null);
   const [refreshingAvatars, setRefreshingAvatars] = useState(false);
@@ -201,10 +202,10 @@ export default function AdminUsersPage() {
 
   const users = data?.items ?? [];
 
-  const hasRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') =>
+  const hasRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR') =>
     user.roles?.some(r => r.role === role) ?? false;
 
-  const getRoleInfo = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') =>
+  const getRoleInfo = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR') =>
     user.roles?.find(r => r.role === role);
 
   const getPendingRoles = (user: AdminUser): string[] => {
@@ -218,7 +219,7 @@ export default function AdminUsersPage() {
     return getPendingRoles(user).includes(role);
   };
 
-  const togglePendingRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK') => {
+  const togglePendingRole = (user: AdminUser, role: 'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR') => {
     setPendingRoles(prev => {
       const currentPending = prev[user.id];
       const current = currentPending !== undefined
@@ -238,9 +239,21 @@ export default function AdminUsersPage() {
     return JSON.stringify([...currentRoles].sort()) !== JSON.stringify([...pending].sort());
   };
 
-  const saveRoles = async (user: AdminUser) => {
+  const saveRoles = (user: AdminUser) => {
     const roles = pendingRoles[user.id];
     if (roles === undefined) return;
+    const currentRoles: string[] = user.roles?.map(r => r.role) ?? [];
+    const adding = roles.filter(r => !currentRoles.includes(r));
+    const removing = currentRoles.filter(r => !roles.includes(r));
+    setRoleConfirm({ user, adding, removing });
+  };
+
+  const confirmSaveRoles = async () => {
+    if (!roleConfirm) return;
+    const { user } = roleConfirm;
+    const roles = pendingRoles[user.id];
+    if (roles === undefined) return;
+    setRoleConfirm(null);
     await updateUser(user.id, { roles });
     setPendingRoles(prev => {
       const next = { ...prev };
@@ -362,6 +375,16 @@ export default function AdminUsersPage() {
                 }`}
               >
                 Sidekick Role
+              </button>
+              <button
+                onClick={() => handleFilterChange(setFilterRole as never, filterRole, 'AUDITOR')}
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                  filterRole === 'AUDITOR'
+                    ? 'bg-teal-600 text-white led-flicker'
+                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
+                }`}
+              >
+                Auditor Role
               </button>
               <span className="text-cream-400">|</span>
               <button
@@ -498,6 +521,11 @@ export default function AdminUsersPage() {
                             {hasRole(user, 'SIDEKICK') && (
                               <span className="text-xs bg-purple-600 text-white px-2 py-0.5 uppercase">
                                 Sidekick
+                              </span>
+                            )}
+                            {hasRole(user, 'AUDITOR') && (
+                              <span className="text-xs bg-teal-600 text-white px-2 py-0.5 uppercase">
+                                Auditor
                               </span>
                             )}
                             {user.fraudConvicted && (
@@ -640,7 +668,7 @@ export default function AdminUsersPage() {
                                   />
                                   <div>
                                     <span className={`text-sm ${
-                                      role === 'ADMIN' ? 'text-orange-500' : role === 'SIDEKICK' ? 'text-purple-600' : 'text-blue-600'
+                                      role === 'ADMIN' ? 'text-orange-500' : role === 'SIDEKICK' ? 'text-purple-600' : role === 'AUDITOR' ? 'text-teal-600' : 'text-blue-600'
                                     }`}>
                                       {role}
                                     </span>
@@ -847,6 +875,74 @@ export default function AdminUsersPage() {
               </div>
             )}
             </>
+          )}
+
+          {/* Role Change Confirmation Modal */}
+          {roleConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setRoleConfirm(null)} />
+              <div className="relative bg-cream-100 border-4 border-red-600 p-6 max-w-md w-full mx-4 shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl flex-shrink-0">
+                    ⚠
+                  </div>
+                  <div>
+                    <h2 className="text-lg uppercase tracking-wide text-red-600 font-bold">
+                      Warning: Role Change
+                    </h2>
+                    <p className="text-sm text-brown-800">
+                      This action modifies permissions for <strong>{roleConfirm.user.name || roleConfirm.user.email}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-300 p-4 mb-4 space-y-2">
+                  {roleConfirm.adding.length > 0 && (
+                    <div>
+                      <p className="text-xs uppercase text-red-600 font-bold mb-1">Granting Roles:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {roleConfirm.adding.map(role => (
+                          <span key={role} className="text-sm bg-red-600 text-white px-2 py-0.5 uppercase">
+                            + {role}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {roleConfirm.removing.length > 0 && (
+                    <div>
+                      <p className="text-xs uppercase text-cream-600 font-bold mb-1">Removing Roles:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {roleConfirm.removing.map(role => (
+                          <span key={role} className="text-sm bg-cream-400 text-brown-800 px-2 py-0.5 uppercase line-through">
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-xs text-red-600 uppercase tracking-wider mb-4">
+                  Role changes take effect immediately and grant access to sensitive admin functionality. Please verify this is intentional.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setRoleConfirm(null)}
+                    className="flex-1 px-4 py-2.5 text-sm uppercase bg-cream-300 text-brown-800 hover:bg-cream-400 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmSaveRoles}
+                    className="flex-1 px-4 py-2.5 text-sm uppercase bg-red-600 text-white hover:bg-red-500 transition-colors cursor-pointer font-bold"
+                  >
+                    Confirm Role Change
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Purchases Modal */}

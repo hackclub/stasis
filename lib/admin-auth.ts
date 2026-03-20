@@ -35,6 +35,22 @@ export async function requirePermission(permission: Permission) {
   return { session, roles }
 }
 
+export async function requireAnyPermission(...permissions: Permission[]) {
+  const session = await auth.api.getSession({ headers: await headers() })
+
+  if (!session) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
+  }
+
+  const roles = await getUserRoles(session.user.id)
+
+  if (!permissions.some(p => hasPermission(roles, p))) {
+    return { error: NextResponse.json({ error: `Forbidden: One of ${permissions.join(", ")} permissions required` }, { status: 403 }) }
+  }
+
+  return { session, roles }
+}
+
 export async function requireRole(role: Role) {
   const session = await auth.api.getSession({ headers: await headers() })
   

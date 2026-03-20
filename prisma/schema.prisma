@@ -377,6 +377,7 @@ enum Role {
   ADMIN
   REVIEWER
   SIDEKICK
+  AUDITOR
 }
 
 model UserRole {

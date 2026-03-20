@@ -11,10 +11,11 @@ interface UserMenuProps {
   image?: string | null;
   isAdmin?: boolean;
   isReviewer?: boolean;
+  isAuditor?: boolean;
   onSignOut?: () => void;
 }
 
-export function UserMenu({ userId, name, email, image, isAdmin, isReviewer, onSignOut }: UserMenuProps) {
+export function UserMenu({ userId, name, email, image, isAdmin, isReviewer, isAuditor, onSignOut }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -116,6 +117,25 @@ export function UserMenu({ userId, name, email, image, isAdmin, isReviewer, onSi
                 className="block px-4 py-2 text-sm text-orange-500 hover:bg-cream-200 uppercase tracking-wide transition-colors font-bold"
               >
                 Review Queue
+              </Link>
+            </>
+          )}
+          {isAuditor && !isAdmin && !isReviewer && (
+            <>
+              <div className="border-t border-cream-400" />
+              <Link
+                href="/admin/audit-reviews"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 text-sm text-orange-500 hover:bg-cream-200 uppercase tracking-wide transition-colors font-bold"
+              >
+                Audit Reviews
+              </Link>
+              <Link
+                href="/admin/audit"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 text-sm text-orange-500 hover:bg-cream-200 uppercase tracking-wide transition-colors font-bold"
+              >
+                Audit Log
               </Link>
             </>
           )}

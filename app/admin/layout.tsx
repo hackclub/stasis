@@ -97,7 +97,7 @@ export default function AdminLayout({
               <Link href="/admin/review" className={getTabClass('/admin/review')}>
                 Review Queue
               </Link>
-              {hasPermission(Permission.REVIEW_PROJECTS) && (
+              {(hasPermission(Permission.REVIEW_PROJECTS) || hasPermission(Permission.VIEW_AUDIT_REVIEWS)) && (
                 <Link href="/admin/audit-reviews" className={getTabClass('/admin/audit-reviews')}>
                   Audit Reviews
                 </Link>
