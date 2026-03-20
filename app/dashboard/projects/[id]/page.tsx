@@ -141,6 +141,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   });
   const [addingBom, setAddingBom] = useState(false);
   const [deletingBomId, setDeletingBomId] = useState<string | null>(null);
+  const [editingBomItem, setEditingBomItem] = useState<BOMItem | null>(null);
+  const [editBomForm, setEditBomForm] = useState({ name: '', purpose: '', costPerItem: '', quantity: '', link: '', distributor: '' });
+  const [savingBomEdit, setSavingBomEdit] = useState(false);
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
@@ -645,6 +648,55 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       alert('Failed to delete BOM item');
     } finally {
       setDeletingBomId(null);
+    }
+  };
+
+  const openEditBomItem = (item: BOMItem) => {
+    setEditingBomItem(item);
+    setEditBomForm({
+      name: item.name,
+      purpose: item.purpose || '',
+      costPerItem: String(item.costPerItem),
+      quantity: String(item.quantity),
+      link: item.link || '',
+      distributor: item.distributor || '',
+    });
+  };
+
+  const handleSaveBomEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project || !editingBomItem || !editBomForm.name || !editBomForm.costPerItem || !editBomForm.quantity) return;
+
+    setSavingBomEdit(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/bom/${editingBomItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editBomForm.name,
+          purpose: editBomForm.purpose || null,
+          costPerItem: parseFloat(editBomForm.costPerItem),
+          quantity: parseInt(editBomForm.quantity, 10),
+          link: editBomForm.link || null,
+          distributor: editBomForm.distributor || null,
+        }),
+      });
+
+      if (res.ok) {
+        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        if (updatedRes.ok) {
+          setProject(await updatedRes.json());
+        }
+        setEditingBomItem(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update BOM item');
+      }
+    } catch (error) {
+      console.error('Failed to update BOM item:', error);
+      alert('Failed to update BOM item');
+    } finally {
+      setSavingBomEdit(false);
     }
   };
 
@@ -1445,13 +1497,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         <td className="text-brown-800 py-2 pr-3">{item.distributor || '-'}</td>
                         {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
                           <td className="py-2 text-center">
-                            <button
-                              onClick={() => handleDeleteBomItem(item.id)}
-                              disabled={deletingBomId === item.id}
-                              className="text-red-500 hover:text-red-400 disabled:text-cream-400 transition-colors cursor-pointer"
-                            >
-                              {deletingBomId === item.id ? '...' : '✕'}
-                            </button>
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => openEditBomItem(item)}
+                                className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer text-xs uppercase tracking-wider"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteBomItem(item.id)}
+                                disabled={deletingBomId === item.id}
+                                className="text-red-500 hover:text-red-400 disabled:text-cream-400 transition-colors cursor-pointer"
+                              >
+                                {deletingBomId === item.id ? '...' : '✕'}
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -1857,6 +1917,96 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </button>
             )}
           </div>
+
+          {/* Edit BOM Item Modal */}
+          {editingBomItem && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setEditingBomItem(null)}>
+              <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Edit BOM Item</h3>
+                <form onSubmit={handleSaveBomEdit}>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Name *</label>
+                      <input
+                        type="text"
+                        value={editBomForm.name}
+                        onChange={(e) => setEditBomForm({ ...editBomForm, name: e.target.value })}
+                        required
+                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Purpose</label>
+                      <input
+                        type="text"
+                        value={editBomForm.purpose}
+                        onChange={(e) => setEditBomForm({ ...editBomForm, purpose: e.target.value })}
+                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={editBomForm.costPerItem}
+                        onChange={(e) => setEditBomForm({ ...editBomForm, costPerItem: e.target.value })}
+                        required
+                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Quantity *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editBomForm.quantity}
+                        onChange={(e) => setEditBomForm({ ...editBomForm, quantity: e.target.value })}
+                        required
+                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Link</label>
+                      <input
+                        type="url"
+                        value={editBomForm.link}
+                        onChange={(e) => setEditBomForm({ ...editBomForm, link: e.target.value })}
+                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Distributor</label>
+                      <input
+                        type="text"
+                        value={editBomForm.distributor}
+                        onChange={(e) => setEditBomForm({ ...editBomForm, distributor: e.target.value })}
+                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEditingBomItem(null)}
+                      className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider text-sm transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingBomEdit || !editBomForm.name || !editBomForm.costPerItem || !editBomForm.quantity}
+                      className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider text-sm transition-colors cursor-pointer"
+                    >
+                      {savingBomEdit ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Design Submit Confirmation Dialog */}
           {showDesignSubmitDialog && (
