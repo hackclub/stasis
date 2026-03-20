@@ -135,6 +135,17 @@ export async function POST(
     return NextResponse.json({ error: "Project is not in review" }, { status: 400 })
   }
 
+  // Always validate that the project is still in review for the determined stage,
+  // even when stage was derived from a submission ID (prevents reviewing
+  // already-approved/rejected projects via stale submission links)
+  const currentStatus = stage === "DESIGN" ? project.designStatus : project.buildStatus
+  if (currentStatus !== "in_review" && currentStatus !== "update_requested") {
+    return NextResponse.json(
+      { error: `Project ${stage.toLowerCase()} is no longer in review (status: ${currentStatus})` },
+      { status: 400 }
+    )
+  }
+
   const sanitizedFeedback = sanitize(feedback.trim())
   const stageKey = stage.toLowerCase() as "design" | "build"
 
