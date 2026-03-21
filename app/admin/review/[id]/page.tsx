@@ -913,7 +913,7 @@ export default function ReviewDetailPage() {
             </div>
 
             <div className="mb-4">
-              <label className="text-cream-600 text-xs uppercase block mb-1">Internal Justification</label>
+              <label className="text-cream-600 text-xs uppercase block mb-1">Internal Justification (required for approval)</label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
