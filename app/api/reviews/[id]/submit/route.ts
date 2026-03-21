@@ -49,8 +49,8 @@ export async function POST(
     )
   }
 
-  // Internal justification required
-  if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
+  // Internal justification required for approvals only
+  if (result === "APPROVED" && (!reason || typeof reason !== "string" || reason.trim().length === 0)) {
     return NextResponse.json(
       { error: "Internal justification is required" },
       { status: 400 }
