@@ -11,9 +11,10 @@ import Link from 'next/link';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import type { TimelineItem } from '@/app/api/projects/[id]/timeline/route';
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, bomItemTotal } from "@/lib/format";
 import { TIERS } from "@/lib/tiers";
 import { STARTER_PROJECTS } from "@/lib/starter-projects";
+import { BomCsvImportModal } from '@/app/components/projects/BomCsvImportModal';
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
@@ -46,8 +47,8 @@ interface BOMItem {
   id: string;
   name: string;
   purpose: string | null;
-  costPerItem: number;
-  quantity: number;
+  quantity: number | null;
+  totalCost: number;
   link: string | null;
   distributor: string | null;
   status: "pending" | "approved" | "rejected";
@@ -119,7 +120,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
-  const sessionVerified = (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
+  const skipVerification = process.env.NEXT_PUBLIC_SKIP_YSWS_VERIFICATION_CHECK === 'true';
+  const sessionVerified = skipVerification || (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
   const [isVerified, setIsVerified] = useState(sessionVerified);
   const [hasAddress, setHasAddress] = useState(true); // default true so it doesn't block when PII is disabled
   const [loading, setLoading] = useState(true);
@@ -127,6 +129,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [uploading, setUploading] = useState(false);
   const [showDesignSubmitDialog, setShowDesignSubmitDialog] = useState(false);
   const [showBuildSubmitDialog, setShowBuildSubmitDialog] = useState(false);
+  const [submissionNotes, setSubmissionNotes] = useState('');
   const [showDesignUnsubmitDialog, setShowDesignUnsubmitDialog] = useState(false);
   const [showBuildUnsubmitDialog, setShowBuildUnsubmitDialog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -134,16 +137,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [bomForm, setBomForm] = useState({
     name: '',
     purpose: '',
-    costPerItem: '',
     quantity: '',
+    totalCost: '',
     link: '',
     distributor: '',
   });
   const [addingBom, setAddingBom] = useState(false);
   const [deletingBomId, setDeletingBomId] = useState<string | null>(null);
   const [editingBomItem, setEditingBomItem] = useState<BOMItem | null>(null);
-  const [editBomForm, setEditBomForm] = useState({ name: '', purpose: '', costPerItem: '', quantity: '', link: '', distributor: '' });
+  const [editBomForm, setEditBomForm] = useState({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' });
   const [savingBomEdit, setSavingBomEdit] = useState(false);
+  const [showBomImport, setShowBomImport] = useState(false);
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
@@ -419,17 +423,19 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const handleSubmitStage = async (stage: "design" | "build") => {
     if (!project) return;
+    const notes = submissionNotes.trim();
     if (stage === "design") {
       setShowDesignSubmitDialog(false);
     } else {
       setShowBuildSubmitDialog(false);
     }
+    setSubmissionNotes('');
     setSubmitting(true);
     try {
       const res = await fetch(`/api/projects/${project.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage }),
+        body: JSON.stringify({ stage, submissionNotes: notes || undefined }),
       });
       
       if (res.ok) {
@@ -590,7 +596,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const handleAddBomItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!project || !bomForm.name || !bomForm.costPerItem || !bomForm.quantity) return;
+    if (!project || !bomForm.name || !bomForm.totalCost) return;
     
     setAddingBom(true);
     try {
@@ -600,8 +606,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({
           name: bomForm.name,
           purpose: bomForm.purpose || null,
-          costPerItem: parseFloat(bomForm.costPerItem),
-          quantity: parseInt(bomForm.quantity, 10),
+          quantity: bomForm.quantity ? parseInt(bomForm.quantity, 10) : null,
+          totalCost: parseFloat(bomForm.totalCost),
           link: bomForm.link || null,
           distributor: bomForm.distributor || null,
         }),
@@ -612,7 +618,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         if (updatedRes.ok) {
           setProject(await updatedRes.json());
         }
-        setBomForm({ name: '', purpose: '', costPerItem: '', quantity: '', link: '', distributor: '' });
+        setBomForm({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' });
       } else {
         const data = await res.json();
         alert(data.error || 'Failed to add BOM item');
@@ -656,8 +662,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     setEditBomForm({
       name: item.name,
       purpose: item.purpose || '',
-      costPerItem: String(item.costPerItem),
-      quantity: String(item.quantity),
+      quantity: item.quantity != null ? String(item.quantity) : '',
+      totalCost: String(item.totalCost),
       link: item.link || '',
       distributor: item.distributor || '',
     });
@@ -665,7 +671,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const handleSaveBomEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!project || !editingBomItem || !editBomForm.name || !editBomForm.costPerItem || !editBomForm.quantity) return;
+    if (!project || !editingBomItem || !editBomForm.name || !editBomForm.totalCost) return;
 
     setSavingBomEdit(true);
     try {
@@ -675,8 +681,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({
           name: editBomForm.name,
           purpose: editBomForm.purpose || null,
-          costPerItem: parseFloat(editBomForm.costPerItem),
-          quantity: parseInt(editBomForm.quantity, 10),
+          quantity: editBomForm.quantity ? parseInt(editBomForm.quantity, 10) : null,
+          totalCost: parseFloat(editBomForm.totalCost),
           link: editBomForm.link || null,
           distributor: editBomForm.distributor || null,
         }),
@@ -1458,7 +1464,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             
             <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
               <p className="text-blue-600 text-sm">
-                Your project&apos;s complexity level determines its <span className="font-medium">bit</span> allocation (<span className="font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials.
+                Your project&apos;s complexity level determines its <span className="font-medium">bit</span> allocation (<span className="font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials. <span className="font-medium">Include shipping and tax in your BOM</span>, as the grant card will be loaded with this exact amount.
               </p>
             </div>
 
@@ -1469,7 +1475,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     <tr className="border-b border-cream-400">
                       <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Name</th>
                       <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Purpose</th>
-                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Cost (USD)</th>
                       <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Qty</th>
                       <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Total (USD)</th>
                       <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Link</th>
@@ -1484,9 +1489,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       <tr key={item.id} className="border-b border-cream-300">
                         <td className="text-brown-800 py-2 pr-3">{item.name}</td>
                         <td className="text-brown-800 py-2 pr-3">{item.purpose || '-'}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.costPerItem)}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.costPerItem * item.quantity)}</td>
+                        <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity ?? '-'}</td>
+                        <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.totalCost)}</td>
                         <td className="py-2 pr-3">
                           {item.link ? (
                             <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
@@ -1523,13 +1527,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <div className="flex items-center">
                     <span className="text-brown-800 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
                     <span className="text-brown-800 font-medium">
-                      ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))}
+                      ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0))}
                     </span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-brown-800 text-xs mr-3">Estimated cost in bits:</span>
                     <span className="text-brown-800 text-sm">
-                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + item.costPerItem * item.quantity, 0))}&nbsp;bits
+                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0))}&nbsp;bits
                     </span>
                   </div>
                   {project.bitsAwarded != null && project.totalHoursApproved > 0 && (
@@ -1634,28 +1638,26 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     />
                   </div>
                   <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={bomForm.costPerItem}
-                      onChange={(e) => setBomForm({ ...bomForm, costPerItem: e.target.value })}
-                      required
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Quantity *</label>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Quantity</label>
                     <input
                       type="number"
                       min="1"
                       value={bomForm.quantity}
                       onChange={(e) => setBomForm({ ...bomForm, quantity: e.target.value })}
-                      required
                       className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Total Cost (USD)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={bomForm.totalCost}
+                      onChange={(e) => setBomForm({ ...bomForm, totalCost: e.target.value })}
+                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      placeholder="0.00"
                     />
                   </div>
                   <div>
@@ -1682,7 +1684,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </div>
                 <button
                   type="submit"
-                  disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.costPerItem || !bomForm.quantity || !bomForm.distributor}
+                  disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.totalCost || !bomForm.distributor}
                   className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
                 >
                   {addingBom ? 'Adding...' : '+ Add Item'}
@@ -1695,15 +1697,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <button
                   onClick={() => {
                     const items = project.bomItems ?? [];
-                    const header = "Name,Purpose,Cost Per Item (USD),Quantity,Total (USD),Link,Distributor";
+                    const header = "Name,Purpose,Quantity,Total Cost (USD),Link,Distributor";
                     const rows = items.map((item) => {
                       const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
                       return [
                         escape(item.name),
                         escape(item.purpose || ""),
-                        item.costPerItem.toFixed(2),
-                        item.quantity,
-                        (item.costPerItem * item.quantity).toFixed(2),
+                        item.quantity ?? "",
+                        item.totalCost.toFixed(2),
                         escape(item.link || ""),
                         escape(item.distributor || ""),
                       ].join(",");
@@ -1722,7 +1723,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   Export CSV
                 </button>
               )}
-              {(project.bomItems ?? []).length > 0 && (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
+              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
+                <button
+                  onClick={() => setShowBomImport(true)}
+                  className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Import CSV
+                </button>
+              )}
+              {((project.bomItems ?? []).length > 0 || (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested")) && (
                 <div className="w-px h-4 bg-cream-400" />
               )}
               {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
@@ -1747,6 +1756,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </button>
               )}
             </div>
+            {showBomImport && project && (
+              <BomCsvImportModal
+                projectId={project.id}
+                onClose={() => setShowBomImport(false)}
+                onImported={async () => {
+                  const res = await fetch(`/api/projects/${projectId}`);
+                  if (res.ok) setProject(await res.json());
+                }}
+              />
+            )}
           </div>
 
           {/* Complexity Level & Project Type */}
@@ -1945,25 +1964,23 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       />
                     </div>
                     <div>
-                      <label className="text-brown-800 text-xs uppercase block mb-1">Cost Per Item (USD) *</label>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={editBomForm.costPerItem}
-                        onChange={(e) => setEditBomForm({ ...editBomForm, costPerItem: e.target.value })}
-                        required
-                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-brown-800 text-xs uppercase block mb-1">Quantity *</label>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Quantity</label>
                       <input
                         type="number"
                         min="1"
                         value={editBomForm.quantity}
                         onChange={(e) => setEditBomForm({ ...editBomForm, quantity: e.target.value })}
-                        required
+                        className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Total Cost (USD)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={editBomForm.totalCost}
+                        onChange={(e) => setEditBomForm({ ...editBomForm, totalCost: e.target.value })}
                         className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       />
                     </div>
@@ -1997,7 +2014,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </button>
                     <button
                       type="submit"
-                      disabled={savingBomEdit || !editBomForm.name || !editBomForm.costPerItem || !editBomForm.quantity}
+                      disabled={savingBomEdit || !editBomForm.name || !editBomForm.totalCost}
                       className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider text-sm transition-colors cursor-pointer"
                     >
                       {savingBomEdit ? 'Saving...' : 'Save Changes'}
@@ -2016,16 +2033,27 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <p className="text-brown-800 text-sm leading-relaxed mb-4">
                   Your design, BOM, and complexity level will be reviewed. Once approved, your badges will be granted and you&apos;ll receive a grant card to purchase materials!
                 </p>
-                <p className="text-red-500 text-sm font-medium mb-6">
+                <p className="text-red-500 text-sm font-medium mb-4">
                   IMPORTANT: Before submitting, please make sure to read the{' '}
                   <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
                     submission guidelines
                   </Link>
                   .
                 </p>
+                <div className="mb-4">
+                  <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
+                  <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
+                  <textarea
+                    value={submissionNotes}
+                    onChange={(e) => setSubmissionNotes(e.target.value)}
+                    placeholder=""
+                    className="w-full bg-cream-200 border border-cream-400 text-brown-800 p-2 text-sm resize-vertical min-h-[80px] placeholder:text-brown-400"
+                    maxLength={1000}
+                  />
+                </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowDesignSubmitDialog(false)}
+                    onClick={() => { setShowDesignSubmitDialog(false); setSubmissionNotes(''); }}
                     className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Cancel
@@ -2049,16 +2077,27 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <p className="text-brown-800 text-sm leading-relaxed mb-4">
                   Your build work will be reviewed. Once approved, you&apos;ll earn the <span className="text-orange-500 font-medium">bits</span> for this project&apos;s complexity level!
                 </p>
-                <p className="text-red-500 text-sm font-medium mb-6">
+                <p className="text-red-500 text-sm font-medium mb-4">
                   IMPORTANT: Before submitting, please make sure to read the{' '}
                   <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
                     submission guidelines
                   </Link>
                   .
                 </p>
+                <div className="mb-4">
+                  <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
+                  <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
+                  <textarea
+                    value={submissionNotes}
+                    onChange={(e) => setSubmissionNotes(e.target.value)}
+                    placeholder=""
+                    className="w-full bg-cream-200 border border-cream-400 text-brown-800 p-2 text-sm resize-vertical min-h-[80px] placeholder:text-brown-400"
+                    maxLength={1000}
+                  />
+                </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowBuildSubmitDialog(false)}
+                    onClick={() => { setShowBuildSubmitDialog(false); setSubmissionNotes(''); }}
                     className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Cancel

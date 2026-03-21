@@ -56,8 +56,8 @@ export async function PATCH(
   const updateData: {
     name?: string
     purpose?: string | null
-    costPerItem?: number
-    quantity?: number
+    quantity?: number | null
+    totalCost?: number
     link?: string | null
     distributor?: string | null
   } = {}
@@ -71,23 +71,26 @@ export async function PATCH(
   if (body.purpose !== undefined) {
     updateData.purpose = body.purpose ? sanitize(body.purpose) : null
   }
-  if (body.costPerItem !== undefined) {
-    if (typeof body.costPerItem !== "number" || body.costPerItem < 0) {
-      return NextResponse.json({ error: "costPerItem must be a non-negative number" }, { status: 400 })
-    }
-    updateData.costPerItem = body.costPerItem
-  }
   if (body.quantity !== undefined) {
-    if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity) || body.quantity < 1) {
+    if (body.quantity === null) {
+      updateData.quantity = null
+    } else if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity) || body.quantity < 1) {
       return NextResponse.json({ error: "quantity must be a positive integer" }, { status: 400 })
+    } else {
+      updateData.quantity = body.quantity
     }
-    updateData.quantity = body.quantity
   }
   if (body.link !== undefined) {
     updateData.link = body.link && isValidUrl(body.link) ? sanitize(body.link) : null
   }
   if (body.distributor !== undefined) {
     updateData.distributor = body.distributor ? sanitize(body.distributor) : null
+  }
+  if (body.totalCost !== undefined) {
+    if (typeof body.totalCost !== "number" || body.totalCost < 0) {
+      return NextResponse.json({ error: "totalCost must be a non-negative number" }, { status: 400 })
+    }
+    updateData.totalCost = body.totalCost
   }
 
   if (Object.keys(updateData).length === 0) {

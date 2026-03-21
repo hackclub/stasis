@@ -146,7 +146,7 @@ export async function GET() {
     }),
 
     prisma.$queryRaw<{ total_cost: number }[]>`
-      SELECT COALESCE(SUM("costPerItem" * quantity), 0)::float as total_cost
+      SELECT COALESCE(SUM("totalCost"), 0)::float as total_cost
       FROM bom_item
       WHERE status = 'approved'
     `,

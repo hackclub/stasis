@@ -141,48 +141,77 @@ export async function GET(
   const minWorkUnits = entryCount > 0 ? Math.min(...workSessions.map((s) => s.hoursClaimed)) : 0
   const bomCost = project.bomItems
     .filter((b) => b.status === "approved" || b.status === "pending")
-    .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+    .reduce((sum, b) => sum + b.totalCost, 0)
 
   // Get submission notes if available
   const latestSubmission = await prisma.projectSubmission.findFirst({
     where: { projectId: project.id, stage: activeStage },
     orderBy: { createdAt: "desc" },
-    select: { id: true, notes: true, createdAt: true },
+    select: { id: true, notes: true, createdAt: true, preReviewed: true },
   }).catch(() => null)
 
+  // Fetch SubmissionReview records for the latest submission (has isAdminReview flag)
+  const submissionReviews = latestSubmission
+    ? await prisma.submissionReview.findMany({
+        where: { submissionId: latestSubmission.id },
+        orderBy: { createdAt: "desc" },
+      }).catch(() => [] as Array<{ id: string; submissionId: string; reviewerId: string; result: string; isAdminReview: boolean; feedback: string; reason: string | null; invalidated: boolean; workUnitsOverride: number | null; tierOverride: number | null; grantOverride: number | null; categoryOverride: string | null; frozenWorkUnits: number | null; frozenEntryCount: number | null; frozenFundingAmount: number | null; frozenTier: number | null; frozenReviewerNote: string | null; createdAt: Date }>)
+    : []
+
+  // Build a set of reviewer+decision pairs from SubmissionReview records
+  // to determine isAdminReview for matching ProjectReviewAction records
+  const submissionReviewKeys = new Set(
+    submissionReviews.map((sr) => `${sr.reviewerId}:${sr.result === "RETURNED" ? "CHANGE_REQUESTED" : sr.result}`)
+  )
+  const submissionReviewAdminMap = new Map(
+    submissionReviews.map((sr) => [
+      `${sr.reviewerId}:${sr.result === "RETURNED" ? "CHANGE_REQUESTED" : sr.result}`,
+      sr.isAdminReview,
+    ])
+  )
+
   // Fetch reviewer names for past reviews
-  const reviewerIds = project.reviewActions
-    .map((a) => a.reviewerId)
-    .filter((id): id is string => !!id)
-  const reviewerUsers = reviewerIds.length > 0
+  const allReviewerIds = [
+    ...project.reviewActions.map((a) => a.reviewerId),
+    ...submissionReviews.map((sr) => sr.reviewerId),
+  ].filter((id): id is string => !!id)
+  const reviewerUsers = allReviewerIds.length > 0
     ? await prisma.user.findMany({
-        where: { id: { in: reviewerIds } },
+        where: { id: { in: [...new Set(allReviewerIds)] } },
         select: { id: true, name: true, slackDisplayName: true },
       })
     : []
   const reviewerNameMap = new Map(reviewerUsers.map((u) => [u.id, u.slackDisplayName || u.name]))
 
   // Map existing ProjectReviewAction records to the review format the frontend expects
-  const reviews = project.reviewActions.map((action) => ({
-    id: action.id,
-    reviewerId: action.reviewerId || "",
-    reviewerName: action.reviewerId ? (reviewerNameMap.get(action.reviewerId) || null) : null,
-    result: action.decision === "CHANGE_REQUESTED" ? "RETURNED" : action.decision,
-    isAdminReview: true,
-    feedback: action.comments || "",
-    reason: null,
-    invalidated: false,
-    workUnitsOverride: null,
-    tierOverride: action.tier,
-    grantOverride: action.grantAmount ? Math.round(action.grantAmount) : null,
-    categoryOverride: null,
-    frozenWorkUnits: null,
-    frozenEntryCount: null,
-    frozenFundingAmount: null,
-    frozenTier: action.tierBefore,
-    frozenReviewerNote: null,
-    createdAt: action.createdAt,
-  }))
+  const reviews = project.reviewActions.map((action) => {
+    const key = `${action.reviewerId}:${action.decision}`
+    const hasSubmissionReview = submissionReviewKeys.has(key)
+    const isAdminReview = hasSubmissionReview
+      ? (submissionReviewAdminMap.get(key) ?? true)
+      : true // legacy records without SubmissionReview are assumed admin
+
+    return {
+      id: action.id,
+      reviewerId: action.reviewerId || "",
+      reviewerName: action.reviewerId ? (reviewerNameMap.get(action.reviewerId) || null) : null,
+      result: action.decision === "CHANGE_REQUESTED" ? "RETURNED" : action.decision,
+      isAdminReview,
+      feedback: action.comments || "",
+      reason: null,
+      invalidated: false,
+      workUnitsOverride: null,
+      tierOverride: action.tier,
+      grantOverride: action.grantAmount ? Math.round(action.grantAmount) : null,
+      categoryOverride: null,
+      frozenWorkUnits: null,
+      frozenEntryCount: null,
+      frozenFundingAmount: null,
+      frozenTier: action.tierBefore,
+      frozenReviewerNote: null,
+      createdAt: action.createdAt,
+    }
+  })
 
   // Find next/prev projects for navigation
   const allProjects = await prisma.project.findMany({
@@ -209,7 +238,7 @@ export async function GET(
       id: latestSubmission?.id || project.id,
       stage: activeStage,
       notes: latestSubmission?.notes || (activeStage === "DESIGN" ? project.designSubmissionNotes : project.buildSubmissionNotes),
-      preReviewed: false,
+      preReviewed: latestSubmission?.preReviewed ?? false,
       createdAt: latestSubmission?.createdAt || project.updatedAt,
       project: {
         ...project,

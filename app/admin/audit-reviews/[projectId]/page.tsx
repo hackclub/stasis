@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getTierById } from '@/lib/tiers';
+import { bomItemTotal } from '@/lib/format';
 
 const TIER_COLORS: Record<number, string> = {
   1: 'bg-gray-200 text-gray-800',
@@ -75,8 +76,8 @@ interface ProjectData {
   bomItems: Array<{
     id: string;
     name: string;
-    costPerItem: number;
-    quantity: number;
+    quantity: number | null;
+    totalCost: number;
     status: string;
     link: string | null;
   }>;
@@ -245,8 +246,8 @@ export default function ProjectReviewHistoryPage() {
                 </span>
                 <span className="text-brown-800">{item.name}</span>
                 <span className="text-brown-800">
-                  ${(item.costPerItem * item.quantity).toFixed(2)}
-                  {item.quantity > 1 && ` (${item.quantity}x $${item.costPerItem.toFixed(2)})`}
+                  ${bomItemTotal(item).toFixed(2)}
+                  {item.quantity != null && item.quantity > 1 && ` (${item.quantity}x)`}
                 </span>
               </div>
             ))}

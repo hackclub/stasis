@@ -79,10 +79,10 @@ export async function POST(
   if (!body.name || typeof body.name !== "string") {
     return NextResponse.json({ error: "name is required" }, { status: 400 })
   }
-  if (typeof body.costPerItem !== "number" || body.costPerItem < 0) {
-    return NextResponse.json({ error: "costPerItem must be a non-negative number" }, { status: 400 })
+  if (body.totalCost == null || typeof body.totalCost !== "number" || body.totalCost < 0) {
+    return NextResponse.json({ error: "totalCost must be a non-negative number" }, { status: 400 })
   }
-  if (typeof body.quantity !== "number" || !Number.isInteger(body.quantity) || body.quantity < 1) {
+  if (body.quantity != null && (typeof body.quantity !== "number" || !Number.isInteger(body.quantity) || body.quantity < 1)) {
     return NextResponse.json({ error: "quantity must be a positive integer" }, { status: 400 })
   }
 
@@ -90,8 +90,8 @@ export async function POST(
     data: {
       name: sanitize(body.name),
       purpose: body.purpose ? sanitize(body.purpose) : null,
-      costPerItem: body.costPerItem,
-      quantity: body.quantity,
+      quantity: body.quantity ?? null,
+      totalCost: body.totalCost,
       link: body.link && isValidUrl(body.link) ? sanitize(body.link) : null,
       distributor: body.distributor ? sanitize(body.distributor) : null,
       projectId: id,
