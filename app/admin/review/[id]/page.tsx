@@ -218,6 +218,7 @@ export default function ReviewDetailPage() {
         result,
         feedback: feedback.trim(),
         reason: reason.trim() || undefined,
+        submissionId: data?.submission.id,
       };
       if (workUnitsOverride) body.workUnitsOverride = parseFloat(workUnitsOverride);
       if (tierOverride) body.tierOverride = parseInt(tierOverride);

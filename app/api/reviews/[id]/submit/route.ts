@@ -29,6 +29,7 @@ export async function POST(
     tierOverride,
     grantOverride,
     categoryOverride,
+    submissionId: clientSubmissionId,
   } = body
 
   // Validate result
@@ -144,6 +145,22 @@ export async function POST(
       { error: `Project ${stage.toLowerCase()} is no longer in review (status: ${currentStatus})` },
       { status: 400 }
     )
+  }
+
+  // Verify the submission the reviewer saw still exists (guards against
+  // unsubmit-resubmit race: user withdraws and resubmits while reviewer
+  // has a stale page open)
+  if (clientSubmissionId && typeof clientSubmissionId === "string") {
+    const submissionStillExists = await prisma.projectSubmission.findUnique({
+      where: { id: clientSubmissionId },
+      select: { id: true },
+    })
+    if (!submissionStillExists) {
+      return NextResponse.json(
+        { error: "This submission has been withdrawn. Please refresh the page and review the latest submission." },
+        { status: 409 }
+      )
+    }
   }
 
   const sanitizedFeedback = sanitize(feedback.trim())
