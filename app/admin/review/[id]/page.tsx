@@ -941,12 +941,6 @@ export default function ReviewDetailPage() {
               </div>
             )}
 
-            {!isAdmin && (
-              <div className="mb-3 bg-blue-50 border border-blue-300 p-3">
-                <p className="text-blue-800 text-xs">Your approval will be recorded as a first-pass review. An admin will do the final approval, which triggers Airtable sync and bit grants.</p>
-              </div>
-            )}
-
             {isAdmin && submission.preReviewed && !modifyingPreReview ? (() => {
               const firstPassReview = submission.reviews.find((r) => !r.isAdminReview && r.result === 'APPROVED' && !r.invalidated);
               if (!firstPassReview) return null;
