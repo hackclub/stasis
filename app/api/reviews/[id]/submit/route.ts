@@ -207,19 +207,6 @@ export async function POST(
           })
         }
 
-        // Create review action for audit trail
-        await tx.projectReviewAction.create({
-          data: {
-            projectId: project!.id,
-            stage,
-            decision: "APPROVED",
-            comments: sanitizedFeedback,
-            grantAmount: effectiveGrant ?? null,
-            tier: tierOverride ?? null,
-            reviewerId,
-          },
-        })
-
         return submission
       })
 
