@@ -30,6 +30,7 @@ export async function POST(
     grantOverride,
     categoryOverride,
     submissionId: clientSubmissionId,
+    firstPassReviewerId,
   } = body
 
   // Validate result
@@ -312,7 +313,11 @@ export async function POST(
         updateData.bitsAwarded = bitsAwarded
       }
 
-      // Create review action record
+      // Create review action record — attribute to the original first-pass
+      // reviewer when the admin is sending their review as-is
+      const timelineReviewerId = (typeof firstPassReviewerId === "string" && firstPassReviewerId)
+        ? firstPassReviewerId
+        : reviewerId
       await tx.projectReviewAction.create({
         data: {
           projectId: project!.id,
@@ -321,7 +326,7 @@ export async function POST(
           comments: sanitizedFeedback,
           grantAmount: effectiveGrant ?? null,
           tier: tierOverride ?? null,
-          reviewerId,
+          reviewerId: timelineReviewerId,
         },
       })
 
