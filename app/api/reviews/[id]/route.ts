@@ -184,34 +184,65 @@ export async function GET(
   const reviewerNameMap = new Map(reviewerUsers.map((u) => [u.id, u.slackDisplayName || u.name]))
 
   // Map existing ProjectReviewAction records to the review format the frontend expects
-  const reviews = project.reviewActions.map((action) => {
-    const key = `${action.reviewerId}:${action.decision}`
-    const hasSubmissionReview = submissionReviewKeys.has(key)
-    const isAdminReview = hasSubmissionReview
-      ? (submissionReviewAdminMap.get(key) ?? true)
-      : true // legacy records without SubmissionReview are assumed admin
+  const reviewActionKeys = new Set(
+    project.reviewActions.map((a) => `${a.reviewerId}:${a.decision}`)
+  )
+  const reviews = [
+    ...project.reviewActions.map((action) => {
+      const key = `${action.reviewerId}:${action.decision}`
+      const hasSubmissionReview = submissionReviewKeys.has(key)
+      const isAdminReview = hasSubmissionReview
+        ? (submissionReviewAdminMap.get(key) ?? true)
+        : true // legacy records without SubmissionReview are assumed admin
 
-    return {
-      id: action.id,
-      reviewerId: action.reviewerId || "",
-      reviewerName: action.reviewerId ? (reviewerNameMap.get(action.reviewerId) || null) : null,
-      result: action.decision === "CHANGE_REQUESTED" ? "RETURNED" : action.decision,
-      isAdminReview,
-      feedback: action.comments || "",
-      reason: null,
-      invalidated: false,
-      workUnitsOverride: null,
-      tierOverride: action.tier,
-      grantOverride: action.grantAmount ? Math.round(action.grantAmount) : null,
-      categoryOverride: null,
-      frozenWorkUnits: null,
-      frozenEntryCount: null,
-      frozenFundingAmount: null,
-      frozenTier: action.tierBefore,
-      frozenReviewerNote: null,
-      createdAt: action.createdAt,
-    }
-  })
+      return {
+        id: action.id,
+        reviewerId: action.reviewerId || "",
+        reviewerName: action.reviewerId ? (reviewerNameMap.get(action.reviewerId) || null) : null,
+        result: action.decision === "CHANGE_REQUESTED" ? "RETURNED" : action.decision,
+        isAdminReview,
+        feedback: action.comments || "",
+        reason: null as string | null,
+        invalidated: false,
+        workUnitsOverride: null as number | null,
+        tierOverride: action.tier,
+        grantOverride: action.grantAmount ? Math.round(action.grantAmount) : null,
+        categoryOverride: null as string | null,
+        frozenWorkUnits: null as number | null,
+        frozenEntryCount: null as number | null,
+        frozenFundingAmount: null as number | null,
+        frozenTier: action.tierBefore,
+        frozenReviewerNote: null as string | null,
+        createdAt: action.createdAt,
+      }
+    }),
+    // Include first-pass SubmissionReview records that have no matching ProjectReviewAction
+    ...submissionReviews
+      .filter((sr) => {
+        const mappedDecision = sr.result === "RETURNED" ? "CHANGE_REQUESTED" : sr.result
+        return !reviewActionKeys.has(`${sr.reviewerId}:${mappedDecision}`)
+      })
+      .map((sr) => ({
+        id: sr.id,
+        reviewerId: sr.reviewerId,
+        reviewerName: reviewerNameMap.get(sr.reviewerId) || null,
+        result: sr.result,
+        isAdminReview: sr.isAdminReview,
+        feedback: sr.feedback || "",
+        reason: sr.reason,
+        invalidated: sr.invalidated,
+        workUnitsOverride: sr.workUnitsOverride,
+        tierOverride: sr.tierOverride,
+        grantOverride: sr.grantOverride,
+        categoryOverride: sr.categoryOverride,
+        frozenWorkUnits: sr.frozenWorkUnits,
+        frozenEntryCount: sr.frozenEntryCount,
+        frozenFundingAmount: sr.frozenFundingAmount,
+        frozenTier: sr.frozenTier,
+        frozenReviewerNote: sr.frozenReviewerNote,
+        createdAt: sr.createdAt,
+      })),
+  ]
 
   // Find next/prev projects for navigation
   const allProjects = await prisma.project.findMany({

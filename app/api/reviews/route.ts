@@ -42,6 +42,13 @@ export async function GET(request: NextRequest) {
     projectWhere.starterProjectId = guide
   }
 
+  // Non-admins should not see pre-reviewed projects (those are waiting for admin finalization)
+  if (!isAdmin) {
+    projectWhere.submissions = {
+      none: { preReviewed: true },
+    }
+  }
+
   // Search filter
   if (search) {
     // Wrap existing OR in AND to combine with search

@@ -123,6 +123,7 @@ export default function ReviewDetailPage() {
   const noteTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showFraudWarning, setShowFraudWarning] = useState(true);
   const [flaggingFraud, setFlaggingFraud] = useState(false);
+  const [modifyingPreReview, setModifyingPreReview] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -202,8 +203,16 @@ export default function ReviewDetailPage() {
     noteTimeout.current = setTimeout(() => saveNote(value), 1000);
   }
 
-  async function submitReview(result: string) {
-    if (!feedback.trim()) {
+  async function submitReview(result: string, overrides?: {
+    feedback?: string;
+    reason?: string;
+    workUnitsOverride?: number;
+    tierOverride?: number;
+    grantOverride?: number;
+    firstPassReviewerId?: string;
+  }) {
+    const effectiveFeedback = overrides?.feedback ?? feedback.trim();
+    if (!effectiveFeedback) {
       alert('Feedback for submitter is required.');
       return;
     }
@@ -216,14 +225,18 @@ export default function ReviewDetailPage() {
     try {
       const body: Record<string, unknown> = {
         result,
-        feedback: feedback.trim(),
-        reason: reason.trim() || undefined,
+        feedback: effectiveFeedback,
+        reason: overrides?.reason ?? (reason.trim() || undefined),
         submissionId: data?.submission.id,
       };
-      if (workUnitsOverride) body.workUnitsOverride = parseFloat(workUnitsOverride);
-      if (tierOverride) body.tierOverride = parseInt(tierOverride);
-      if (grantOverride) body.grantOverride = parseInt(grantOverride);
+      if (overrides?.workUnitsOverride != null) body.workUnitsOverride = overrides.workUnitsOverride;
+      else if (workUnitsOverride) body.workUnitsOverride = parseFloat(workUnitsOverride);
+      if (overrides?.tierOverride != null) body.tierOverride = overrides.tierOverride;
+      else if (tierOverride) body.tierOverride = parseInt(tierOverride);
+      if (overrides?.grantOverride != null) body.grantOverride = overrides.grantOverride;
+      else if (grantOverride) body.grantOverride = parseInt(grantOverride);
       if (categoryOverride && data?.isAdmin) body.categoryOverride = categoryOverride;
+      if (overrides?.firstPassReviewerId) body.firstPassReviewerId = overrides.firstPassReviewerId;
 
       const res = await fetch(`/api/reviews/${id}/submit`, {
         method: 'POST',
@@ -934,44 +947,151 @@ export default function ReviewDetailPage() {
               </div>
             )}
 
-            {isAdmin && submission.preReviewed && (
-              <div className="mb-3 bg-orange-50 border border-orange-300 p-3">
-                <p className="text-orange-800 text-xs uppercase">This project has been first-pass reviewed. Check the review history below for details.</p>
-              </div>
-            )}
+            {isAdmin && submission.preReviewed && !modifyingPreReview ? (() => {
+              const firstPassReview = submission.reviews.find((r) => !r.isAdminReview && r.result === 'APPROVED' && !r.invalidated);
+              if (!firstPassReview) return null;
+              const fpTierInfo = (firstPassReview.tierOverride ?? project.tier) ? getTierById(firstPassReview.tierOverride ?? project.tier!) : null;
+              const fpGrant = firstPassReview.grantOverride ?? Math.round(project.bomCost * 100) / 100;
+              return (
+                <div>
+                  <div className="mb-4 bg-orange-50 border border-orange-300 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-orange-800 text-xs uppercase font-medium">
+                        First-pass review by {firstPassReview.reviewerName || 'Reviewer'}
+                      </p>
+                      <span className="text-cream-600 text-xs">
+                        {new Date(firstPassReview.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <button
-                onClick={() => submitReview('APPROVED')}
-                disabled={submitting || project.user.fraudConvicted}
-                title={project.user.fraudConvicted ? 'Cannot approve fraud-convicted users' : isAdmin ? undefined : 'First-pass review — an admin will finalize'}
-                className="px-4 py-2 text-sm uppercase tracking-wider bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {isAdmin ? 'Approve' : 'First-Pass Approve'}
-              </button>
-              <button
-                onClick={() => submitReview('RETURNED')}
-                disabled={submitting || project.user.fraudConvicted}
-                title={project.user.fraudConvicted ? 'Cannot return fraud-convicted users' : undefined}
-                className="px-4 py-2 text-sm uppercase tracking-wider bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Return
-              </button>
-              <button
-                onClick={() => submitReview('REJECTED')}
-                disabled={submitting}
-                className="px-4 py-2 text-sm uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Permanently Reject
-              </button>
-              <button
-                onClick={skipToNext}
-                disabled={submitting}
-                className="px-4 py-2 text-sm uppercase tracking-wider border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Skip
-              </button>
-            </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 bg-cream-200 p-3">
+                      <div>
+                        <p className="text-cream-600 text-xs uppercase">Hours</p>
+                        <p className="text-brown-800 text-sm font-medium">
+                          {firstPassReview.workUnitsOverride !== null ? (
+                            <><span className="text-orange-600">{firstPassReview.workUnitsOverride}h</span> / {project.totalWorkUnits}h</>
+                          ) : (
+                            <>{project.totalWorkUnits}h</>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-cream-600 text-xs uppercase">Tier</p>
+                        <p className="text-brown-800 text-sm font-medium">
+                          {fpTierInfo ? `${fpTierInfo.name} (${fpTierInfo.bits} bits)` : 'None'}
+                          {firstPassReview.tierOverride !== null && <span className="text-orange-600 text-xs ml-1">(override)</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-cream-600 text-xs uppercase">Grant</p>
+                        <p className="text-brown-800 text-sm font-medium">
+                          ${fpGrant.toFixed(2)}
+                          {firstPassReview.grantOverride !== null && <span className="text-orange-600 text-xs ml-1">(override)</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-cream-600 text-xs uppercase">Result</p>
+                        <p className="text-green-700 text-sm font-medium uppercase">{firstPassReview.result}</p>
+                      </div>
+                    </div>
+
+                    {firstPassReview.feedback && (
+                      <div className="mb-3">
+                        <p className="text-cream-600 text-xs uppercase">Feedback for submitter</p>
+                        <p className="text-brown-800 text-sm whitespace-pre-wrap">{firstPassReview.feedback}</p>
+                      </div>
+                    )}
+
+                    {firstPassReview.reason && (
+                      <div>
+                        <p className="text-cream-600 text-xs uppercase">Internal justification</p>
+                        <p className="text-brown-800 text-sm whitespace-pre-wrap">{firstPassReview.reason}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 flex-wrap">
+                    <button
+                      onClick={() => submitReview('APPROVED', {
+                        feedback: firstPassReview.feedback || undefined,
+                        reason: firstPassReview.reason || undefined,
+                        workUnitsOverride: firstPassReview.workUnitsOverride ?? undefined,
+                        tierOverride: firstPassReview.tierOverride ?? undefined,
+                        grantOverride: firstPassReview.grantOverride ?? undefined,
+                        firstPassReviewerId: firstPassReview.reviewerId || undefined,
+                      })}
+                      disabled={submitting || project.user.fraudConvicted}
+                      title={project.user.fraudConvicted ? 'Cannot approve fraud-convicted users' : undefined}
+                      className="px-4 py-2 text-sm uppercase tracking-wider bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      Send Review
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFeedback(firstPassReview.feedback || '');
+                        setReason(firstPassReview.reason || '');
+                        if (firstPassReview.workUnitsOverride !== null) setWorkUnitsOverride(String(firstPassReview.workUnitsOverride));
+                        if (firstPassReview.tierOverride !== null) setTierOverride(String(firstPassReview.tierOverride));
+                        if (firstPassReview.grantOverride !== null) setGrantOverride(String(firstPassReview.grantOverride));
+                        setModifyingPreReview(true);
+                      }}
+                      className="px-4 py-2 text-sm uppercase tracking-wider border border-orange-500 text-orange-500 hover:bg-orange-500/10 cursor-pointer"
+                      title="Replace the first-pass review with your own"
+                    >
+                      Modify (write your own)
+                    </button>
+                    <button
+                      onClick={skipToNext}
+                      disabled={submitting}
+                      className="px-4 py-2 text-sm uppercase tracking-wider border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              );
+            })() : (
+              <>
+                {!isAdmin && (
+                  <div className="mb-3 bg-blue-50 border border-blue-300 p-3">
+                    <p className="text-blue-800 text-xs">Your approval will be recorded as a first-pass review. An admin will do the final approval, which triggers Airtable sync and bit grants.</p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 flex-wrap">
+                  <button
+                    onClick={() => submitReview('APPROVED')}
+                    disabled={submitting || project.user.fraudConvicted}
+                    title={project.user.fraudConvicted ? 'Cannot approve fraud-convicted users' : isAdmin ? undefined : 'First-pass review — an admin will finalize'}
+                    className="px-4 py-2 text-sm uppercase tracking-wider bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {isAdmin ? 'Approve' : 'First-Pass Approve'}
+                  </button>
+                  <button
+                    onClick={() => submitReview('RETURNED')}
+                    disabled={submitting || project.user.fraudConvicted}
+                    title={project.user.fraudConvicted ? 'Cannot return fraud-convicted users' : undefined}
+                    className="px-4 py-2 text-sm uppercase tracking-wider bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Return
+                  </button>
+                  <button
+                    onClick={() => submitReview('REJECTED')}
+                    disabled={submitting}
+                    className="px-4 py-2 text-sm uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Permanently Reject
+                  </button>
+                  <button
+                    onClick={skipToNext}
+                    disabled={submitting}
+                    className="px-4 py-2 text-sm uppercase tracking-wider border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Skip
+                  </button>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
