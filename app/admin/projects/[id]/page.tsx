@@ -15,7 +15,7 @@ import { STARTER_PROJECT_NAMES } from "@/lib/starter-projects";
 import { getTierById, TIERS } from "@/lib/tiers";
 import { fixMarkdownImages } from '@/lib/markdown';
 import { getBadgeImage } from "@/lib/badges";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, bomItemTotal } from "@/lib/format";
 
 type BadgeType = 
   | "I2C" | "SPI" | "WIFI" | "BLUETOOTH" | "OTHER_RF"
@@ -45,8 +45,8 @@ interface BOMItem {
   id: string;
   name: string;
   purpose: string;
-  costPerItem: number;
-  quantity: number;
+  quantity: number | null;
+  totalCost: number;
   link: string;
   distributor: string;
   status: "pending" | "approved" | "rejected";
@@ -1040,10 +1040,10 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               
               {/* Cost Summary */}
               {(() => {
-                const totalCost = project.bomItems.reduce((sum, item) => sum + item.costPerItem * item.quantity, 0);
+                const totalCost = project.bomItems.reduce((sum, item) => sum + bomItemTotal(item), 0);
                 const approvedCost = project.bomItems
                   .filter((item) => item.status === 'approved')
-                  .reduce((sum, item) => sum + item.costPerItem * item.quantity, 0);
+                  .reduce((sum, item) => sum + bomItemTotal(item), 0);
                 const costPerHour = totalHoursClaimed > 0 ? totalCost / totalHoursClaimed : null;
                 const tier = project.tier ? getTierById(project.tier) : null;
                 const bomGrant = project.reviewActions.find(
@@ -1098,9 +1098,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       <tr key={item.id} className="border-b border-cream-400 last:border-b-0">
                         <td className="text-brown-800 px-4 py-3">{item.name}</td>
                         <td className="text-brown-800 px-4 py-3">{item.purpose}</td>
-                        <td className="text-brown-800 text-right px-4 py-3">${formatPrice(item.costPerItem)}</td>
-                        <td className="text-brown-800 text-right px-4 py-3">{item.quantity}</td>
-                        <td className="text-brown-800 text-right px-4 py-3">${formatPrice(item.costPerItem * item.quantity)}</td>
+                        <td className="text-brown-800 text-right px-4 py-3">{item.quantity ?? '-'}</td>
+                        <td className="text-brown-800 text-right px-4 py-3">${formatPrice(item.totalCost)}</td>
                         <td className="px-4 py-3">
                           <a
                             href={item.link}

@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
               select: { hoursClaimed: true, hoursApproved: true },
             },
             bomItems: {
-              select: { costPerItem: true, quantity: true, status: true },
+              select: { totalCost: true, status: true },
             },
           },
         },
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     )
     const bomCost = project.bomItems
       .filter((item) => item.status !== "rejected")
-      .reduce((sum, item) => sum + item.costPerItem * item.quantity, 0)
+      .reduce((sum, item) => sum + item.totalCost, 0)
     const costPerHour = totalHours > 0 ? bomCost / totalHours : 0
     const effectiveTier = action.tier ?? project.tier
     const tierInfo = effectiveTier ? getTierById(effectiveTier) : null

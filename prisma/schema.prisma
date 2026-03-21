@@ -343,8 +343,9 @@ model BOMItem {
   id             String        @id @default(cuid())
   name           String
   purpose        String?
-  costPerItem    Float
-  quantity       Int
+  costPerItem    Float?
+  quantity       Int?
+  totalCost      Float
   link           String?
   distributor    String?
   status         BOMItemStatus @default(pending)

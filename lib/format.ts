@@ -10,3 +10,10 @@ export function formatPrice(value: number): string {
   }
   return value.toFixed(2);
 }
+
+/**
+ * Compute the total cost for a BOM item.
+ */
+export function bomItemTotal(item: { totalCost: number }): number {
+  return item.totalCost;
+}

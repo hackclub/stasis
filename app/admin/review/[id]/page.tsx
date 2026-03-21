@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getTierById, TIERS } from '@/lib/tiers';
+import { bomItemTotal } from '@/lib/format';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -48,8 +49,8 @@ interface ReviewData {
         id: string;
         name: string;
         purpose: string | null;
-        costPerItem: number;
-        quantity: number;
+        quantity: number | null;
+        totalCost: number;
         link: string | null;
         status: string;
       }>;
@@ -778,7 +779,7 @@ export default function ReviewDetailPage() {
                     {item.purpose && <span className="text-cream-600 text-xs ml-2">({item.purpose})</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-brown-800">${(item.costPerItem * item.quantity).toFixed(2)}</span>
+                    <span className="text-brown-800">${bomItemTotal(item).toFixed(2)}</span>
                     <span className={`text-xs px-1 ${
                       item.status === 'approved' ? 'bg-green-100 text-green-800' :
                       item.status === 'rejected' ? 'bg-red-100 text-red-800' :

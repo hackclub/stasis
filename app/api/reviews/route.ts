@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       include: {
         user: { select: { id: true, name: true, email: true, image: true } },
         workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true } },
-        bomItems: { select: { id: true, costPerItem: true, quantity: true, status: true } },
+        bomItems: { select: { id: true, totalCost: true, status: true } },
         submissions: {
           select: { id: true, stage: true, preReviewed: true },
           orderBy: { createdAt: "desc" },
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     const entryCount = project.workSessions.length
     const bomCost = project.bomItems
       .filter((b) => b.status === "approved" || b.status === "pending")
-      .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+      .reduce((sum, b) => sum + b.totalCost, 0)
 
     // Determine which stage is in review
     const designInReview = project.designStatus === "in_review"

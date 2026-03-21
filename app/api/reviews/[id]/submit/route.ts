@@ -152,7 +152,7 @@ export async function POST(
   // For design approvals, default grant to BOM cost if not explicitly overridden
   const bomCostTotal = project.bomItems
     .filter((b) => b.status === "approved" || b.status === "pending")
-    .reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+    .reduce((sum, b) => sum + b.totalCost, 0)
   const effectiveGrant = grantOverride ?? (stageKey === "design" ? Math.round(bomCostTotal * 100) / 100 : null)
 
   // Map result to the existing decision format
@@ -347,7 +347,7 @@ export async function POST(
     // Sync to Airtable on approval
     {
       const approvedBom = project!.bomItems.filter((b) => b.status === "approved" || b.status === "pending")
-      const bomCost = approvedBom.reduce((sum, b) => sum + b.costPerItem * b.quantity, 0)
+      const bomCost = approvedBom.reduce((sum, b) => sum + b.totalCost, 0)
 
       // Build hours justification with comprehensive project stats
       const sessions = project!.workSessions
@@ -377,8 +377,10 @@ export async function POST(
       if (approvedBom.length > 0) {
         lines.push(`BOM (${approvedBom.length} item${approvedBom.length === 1 ? "" : "s"}, $${bomCost.toFixed(2)} total):`)
         for (const item of approvedBom) {
-          const itemTotal = item.costPerItem * item.quantity
-          lines.push(`  - ${item.name}: ${item.quantity}x $${item.costPerItem.toFixed(2)} = $${itemTotal.toFixed(2)}${item.status === "pending" ? " (pending)" : ""}`)
+          const detail = item.quantity != null && item.quantity > 1
+            ? `${item.quantity}x = $${item.totalCost.toFixed(2)}`
+            : `$${item.totalCost.toFixed(2)}`
+          lines.push(`  - ${item.name}: ${detail}${item.status === "pending" ? " (pending)" : ""}`)
         }
         lines.push("")
       } else {
@@ -406,8 +408,70 @@ export async function POST(
     return NextResponse.json(updatedProject)
   } else {
     // RETURNED or REJECTED
-    const newStatus = result === "REJECTED" ? "rejected" : "update_requested"
     const legacyDecision = result === "REJECTED" ? "REJECTED" : "CHANGE_REQUESTED"
+
+    // Non-admin reviewers record a first-pass review only — no status change,
+    // no Slack DM.  The project stays in review for an admin to finalize.
+    if (!isAdmin) {
+      const updatedSubmission = await prisma.$transaction(async (tx) => {
+        const submission = await tx.projectSubmission.findFirst({
+          where: { projectId: project!.id, stage },
+          orderBy: { createdAt: "desc" },
+        })
+
+        if (submission) {
+          await tx.projectSubmission.update({
+            where: { id: submission.id },
+            data: { preReviewed: true },
+          })
+
+          await tx.submissionReview.create({
+            data: {
+              submissionId: submission.id,
+              reviewerId,
+              result: result as "RETURNED" | "REJECTED",
+              isAdminReview: false,
+              feedback: sanitizedFeedback,
+              reason: typeof body.reason === "string" ? body.reason.trim() || null : null,
+              workUnitsOverride: workUnitsOverride ?? null,
+              tierOverride: tierOverride ?? null,
+              grantOverride: effectiveGrant ?? null,
+            },
+          })
+        }
+
+        await tx.projectReviewAction.create({
+          data: {
+            projectId: project!.id,
+            stage,
+            decision: legacyDecision,
+            comments: sanitizedFeedback,
+            reviewerId,
+          },
+        })
+
+        return submission
+      })
+
+      const auditAction = result === "REJECTED" ? AuditAction.REVIEWER_REJECT : AuditAction.REVIEWER_RETURN
+      await logAdminAction(
+        auditAction,
+        reviewerId,
+        authCheck.session.user.email ?? undefined,
+        "Project",
+        project.id,
+        { result, isAdmin: false, firstPass: true, feedback: sanitizedFeedback }
+      )
+
+      return NextResponse.json({
+        firstPassReview: true,
+        message: "First-pass review recorded. An admin will finalize.",
+        submissionId: updatedSubmission?.id,
+      })
+    }
+
+    // ── Admin finalization of RETURNED / REJECTED ──
+    const newStatus = result === "REJECTED" ? "rejected" : "update_requested"
 
     const statusField = stageKey === "design" ? "designStatus" : "buildStatus"
     const commentsField = stageKey === "design" ? "designReviewComments" : "buildReviewComments"

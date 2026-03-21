@@ -36,7 +36,7 @@ export async function GET(
         select: {
           id: true,
           name: true,
-          costPerItem: true,
+          totalCost: true,
           quantity: true,
           status: true,
           link: true,
@@ -86,7 +86,7 @@ export async function GET(
   )
   const bomCost = project.bomItems
     .filter((item) => item.status !== "rejected")
-    .reduce((sum, item) => sum + item.costPerItem * item.quantity, 0)
+    .reduce((sum, item) => sum + item.totalCost, 0)
   const tierInfo = project.tier ? getTierById(project.tier) : null
   const tierBits = tierInfo?.bits ?? 0
   const bitsPerHour = totalHours > 0 ? Math.round(tierBits / totalHours) : null

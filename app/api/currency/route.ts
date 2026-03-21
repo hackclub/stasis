@@ -36,14 +36,14 @@ export async function GET() {
         status: "approved",
         project: { userId },
       },
-      select: { costPerItem: true, quantity: true },
+      select: { totalCost: true },
     }),
   ])
 
   const bitsEarned = earned._sum.amount ?? 0
   const bitsDeducted = Math.abs(deducted._sum.amount ?? 0)
   const bitsBalance = bitsEarned - bitsDeducted
-  const bomCost = bomResult.reduce((acc, item) => acc + item.costPerItem * item.quantity, 0)
+  const bomCost = bomResult.reduce((acc, item) => acc + item.totalCost, 0)
 
   return NextResponse.json({ bitsEarned, bitsDeducted, bitsBalance, bomCost })
 }

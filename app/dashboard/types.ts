@@ -24,8 +24,8 @@ export interface ProjectBadge {
 export interface BomItem {
   id: string
   name: string
-  costPerItem: number
-  quantity: number
+  quantity: number | null
+  totalCost: number
 }
 
 export interface Project {
