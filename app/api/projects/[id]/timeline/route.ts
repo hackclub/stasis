@@ -49,6 +49,7 @@ export type TimelineItem =
       tierBefore: number | null
       reviewerName: string | null
       reviewerImage: string | null
+      reviewerSlackId: string | null
     }
 
 export async function GET(
@@ -119,18 +120,18 @@ export async function GET(
   const reviewers = reviewerIds.length > 0
     ? await prisma.user.findMany({
         where: { id: { in: reviewerIds } },
-        select: { id: true, name: true, image: true, slackDisplayName: true },
+        select: { id: true, name: true, image: true, slackDisplayName: true, slackId: true },
       })
     : []
 
-  let reviewerMap: Map<string, { name: string | null; image: string | null }>
+  let reviewerMap: Map<string, { name: string | null; image: string | null; slackId: string | null }>
 
   if (isPrivileged) {
-    reviewerMap = new Map(reviewers.map((r) => [r.id, { name: r.name, image: r.image }]))
+    reviewerMap = new Map(reviewers.map((r) => [r.id, { name: r.name, image: r.image, slackId: r.slackId }]))
   } else {
     // For non-admin/non-reviewer users, show Slack display name only for privacy
     reviewerMap = new Map(
-      reviewers.map((r) => [r.id, { name: r.slackDisplayName || "Reviewer", image: null }])
+      reviewers.map((r) => [r.id, { name: r.slackDisplayName || "Reviewer", image: null, slackId: r.slackId }])
     )
   }
 
@@ -192,6 +193,7 @@ export async function GET(
       tierBefore: ra.tierBefore,
       reviewerName: reviewer?.name ?? null,
       reviewerImage: reviewer?.image ?? null,
+      reviewerSlackId: reviewer?.slackId ?? null,
     })
   }
 

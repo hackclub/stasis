@@ -264,7 +264,22 @@ export function Timeline({ items, projectId }: Readonly<{ items: TimelineItem[];
                         : `requested changes for ${item.stage.toLowerCase()}`}
                     </span>
                   </div>
-                  <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
+                  <div className="flex items-center gap-2">
+                    {item.reviewerSlackId && (
+                      <a
+                        href={`https://hackclub.slack.com/team/${item.reviewerSlackId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-orange-500 border border-orange-500 hover:bg-orange-500 hover:text-white transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        DM on Slack
+                      </a>
+                    )}
+                    <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
+                  </div>
                 </div>
                 {item.grantAmount !== null && (
                   <p className="text-green-600 text-sm font-medium">
