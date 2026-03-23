@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState, type ReactNode, type CSSProperties } from 'react';
+import { useRef, useLayoutEffect, useState, type ReactNode, type CSSProperties } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -18,67 +18,76 @@ const EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 /**
  * Smoothly animates its size when children change dimensions.
  *
- * Inner div uses `width: fit-content` so it always sizes to its content
- * regardless of the outer div's constraints. The outer div clips via
- * overflow-hidden and animates width/height.
- *
- * Transitions are managed entirely via React state — no direct DOM style
- * writes — so they never conflict with React-managed style props.
+ * Inner div uses `width: fit-content` so it always sizes to its content.
+ * Outer div clips via overflow-hidden and animates width/height.
+ * All transitions managed via React state — no direct DOM writes.
  */
 export function AnimatedResize({ children, className = '', style: externalStyle, duration = 200, positionTransition }: Readonly<Props>) {
   const innerRef = useRef<HTMLDivElement>(null);
   const lastSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
-  const animating = useRef(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirst = useRef(true);
-  const [phase, setPhase] = useState<'idle' | 'lock' | 'animate'>('idle');
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-  const lockSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  const rafIds = useRef<number[]>([]);
+  const timeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const animate = useCallback(() => {
+  const [displaySize, setDisplaySize] = useState<{ w: number; h: number } | null>(null);
+  const [phase, setPhase] = useState<'idle' | 'lock' | 'animate'>('idle');
+  const [lockSize, setLockSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+
+  // Cleanup on unmount
+  useLayoutEffect(() => {
+    return () => {
+      rafIds.current.forEach(id => cancelAnimationFrame(id));
+      rafIds.current = [];
+      if (timeoutId.current) clearTimeout(timeoutId.current);
+    };
+  }, []);
+
+  // Measure and animate on children change
+  useLayoutEffect(() => {
     const inner = innerRef.current;
-    if (!inner || animating.current) return;
+    if (!inner) return;
 
     const newW = inner.offsetWidth;
     const newH = inner.offsetHeight;
 
+    // Skip if no meaningful change
     if (Math.abs(lastSize.current.w - newW) < 2 && Math.abs(lastSize.current.h - newH) < 2) return;
 
     if (isFirst.current) {
       isFirst.current = false;
       lastSize.current = { w: newW, h: newH };
-      setSize({ w: newW, h: newH });
+      setDisplaySize({ w: newW, h: newH });
       return;
     }
 
-    animating.current = true;
-    lockSize.current = { ...lastSize.current };
+    // Cancel any in-flight animation
+    rafIds.current.forEach(id => cancelAnimationFrame(id));
+    rafIds.current = [];
+    if (timeoutId.current) clearTimeout(timeoutId.current);
+
+    const oldW = lastSize.current.w;
+    const oldH = lastSize.current.h;
     lastSize.current = { w: newW, h: newH };
 
-    // Phase 1: lock at old size
+    // Phase 1: lock at old size (no size transition)
+    setLockSize({ w: oldW, h: oldH });
     setPhase('lock');
 
-    // Phase 2: after browser paints the lock, start animation
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setSize({ w: newW, h: newH });
+    // Phase 2: after browser paints the lock, start the animation
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        setDisplaySize({ w: newW, h: newH });
         setPhase('animate');
 
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => {
-          animating.current = false;
+        timeoutId.current = setTimeout(() => {
+          timeoutId.current = null;
           setPhase('idle');
-          // Check if content changed during animation
-          animate();
         }, duration + 20);
       });
+      rafIds.current.push(raf2);
     });
-  }, [duration]);
-
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => animate());
-    return () => cancelAnimationFrame(raf);
-  }, [children, animate]);
+    rafIds.current.push(raf1);
+  }, [children, duration]);
 
   // Build transition string
   const transitionParts: string[] = [];
@@ -91,13 +100,13 @@ export function AnimatedResize({ children, className = '', style: externalStyle,
     transitionParts.push(`height ${duration}ms ${EASING}`);
   }
 
-  const displayW = phase === 'lock' ? lockSize.current.w : size?.w;
-  const displayH = phase === 'lock' ? lockSize.current.h : size?.h;
+  const w = phase === 'lock' ? lockSize.w : displaySize?.w;
+  const h = phase === 'lock' ? lockSize.h : displaySize?.h;
 
   const outerStyle: CSSProperties = {
     ...externalStyle,
-    ...(displayW != null && { width: displayW }),
-    ...(displayH != null && { height: displayH }),
+    ...(w != null && { width: w }),
+    ...(h != null && { height: h }),
     ...(transitionParts.length > 0 && { transition: transitionParts.join(', ') }),
   };
 
