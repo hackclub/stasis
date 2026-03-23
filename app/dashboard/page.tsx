@@ -11,6 +11,7 @@ import { OnboardingTutorial } from '../components/OnboardingTutorial';
 import { PronounsModal } from '../components/PronounsModal';
 import { GoalPicker } from '../components/GoalPicker';
 import { PrizeGoalPicker } from '../components/PrizeGoalPicker';
+import { AnimatedResize } from '../components/AnimatedResize';
 import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { UpcomingEvents } from '../components/UpcomingEvents';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
@@ -490,67 +491,68 @@ export default function ProjectsPage() {
       {showGoalPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setShowGoalPicker(false)} />
-          <div className={`relative bg-cream-100 border-2 border-brown-800 p-6 w-[95vw] mx-4 shadow-lg overflow-y-auto max-h-[calc(100vh-2rem)] ${goalPickerMode === 'goal' ? 'max-w-[1160px]' : 'max-w-[780px]'}`}>
-
-            {goalPickerMode === 'goal' ? (
-              <>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-brown-800 text-lg uppercase tracking-wide">Pick Your Goal</h3>
-                  <button
-                    onClick={() => setShowGoalPicker(false)}
-                    className="w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
-                  >
-                    &times;
-                  </button>
-                </div>
-
-                <p className="text-brown-800 text-sm leading-relaxed mb-5">
-                  Pick which goal you want to work toward. You can switch at any time, and if you buy a ticket for one event, you can keep earning bits to qualify for the other one too!
-                </p>
-
-                <GoalPicker selectedGoal={pickerSelection} onSelect={setPickerSelection} />
-
-                <div className="flex gap-3 mt-5">
-                  <button
-                    onClick={() => setShowGoalPicker(false)}
-                    className="flex-1 bg-cream-300 hover:bg-cream-400 px-4 py-2 text-center cursor-pointer transition-colors"
-                  >
-                    <span className="text-brown-800 uppercase tracking-wide text-sm">Cancel</span>
-                  </button>
-                  <button
-                    onClick={confirmGoalChange}
-                    disabled={!pickerSelection}
-                    className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 text-center cursor-pointer transition-colors"
-                  >
-                    <span
-                      key={pickerSelection === 'prizes' ? 'pick-prizes' : 'confirm'}
-                      className="text-cream-100 uppercase tracking-wide text-sm inline-block animate-[flicker_0.3s_ease-in-out]"
+          <AnimatedResize className="relative bg-cream-100 border-2 border-brown-800 shadow-lg mx-4 max-h-[calc(100vh-2rem)]" duration={200}>
+            <div className={`p-6 overflow-y-auto max-h-[calc(100vh-2rem)] ${goalPickerMode === 'goal' ? 'w-[min(1160px,95vw)]' : 'w-[min(780px,95vw)]'}`}>
+              {goalPickerMode === 'goal' ? (
+                <>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-brown-800 text-lg uppercase tracking-wide">Pick Your Goal</h3>
+                    <button
+                      onClick={() => setShowGoalPicker(false)}
+                      className="w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
                     >
-                      {pickerSelection === 'prizes' ? 'Pick Prizes' : 'Confirm'}
-                    </span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-brown-800 text-lg uppercase tracking-wide">Pick Your Prizes</h3>
-                  <button
-                    onClick={() => setShowGoalPicker(false)}
-                    className="w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
-                  >
-                    &times;
-                  </button>
-                </div>
+                      &times;
+                    </button>
+                  </div>
 
-                <PrizeGoalPicker
-                  initialSelection={goalPrizes.map(p => p.shopItemId)}
-                  onConfirm={handleModalPrizeConfirm}
-                  onBack={() => setGoalPickerMode('goal')}
-                />
-              </>
-            )}
-          </div>
+                  <p className="text-brown-800 text-sm leading-relaxed mb-5">
+                    Pick which goal you want to work toward. You can switch at any time, and if you buy a ticket for one event, you can keep earning bits to qualify for the other one too!
+                  </p>
+
+                  <GoalPicker selectedGoal={pickerSelection} onSelect={setPickerSelection} />
+
+                  <div className="flex gap-3 mt-5">
+                    <button
+                      onClick={() => setShowGoalPicker(false)}
+                      className="flex-1 bg-cream-300 hover:bg-cream-400 px-4 py-2 text-center cursor-pointer transition-colors"
+                    >
+                      <span className="text-brown-800 uppercase tracking-wide text-sm">Cancel</span>
+                    </button>
+                    <button
+                      onClick={confirmGoalChange}
+                      disabled={!pickerSelection}
+                      className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 text-center cursor-pointer transition-colors"
+                    >
+                      <span
+                        key={pickerSelection === 'prizes' ? 'pick-prizes' : 'confirm'}
+                        className="text-cream-100 uppercase tracking-wide text-sm inline-block animate-[flicker_0.3s_ease-in-out]"
+                      >
+                        {pickerSelection === 'prizes' ? 'Pick Prizes' : 'Confirm'}
+                      </span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-brown-800 text-lg uppercase tracking-wide">Pick Your Prizes</h3>
+                    <button
+                      onClick={() => setShowGoalPicker(false)}
+                      className="w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
+                    >
+                      &times;
+                    </button>
+                  </div>
+
+                  <PrizeGoalPicker
+                    initialSelection={goalPrizes.map(p => p.shopItemId)}
+                    onConfirm={handleModalPrizeConfirm}
+                    onBack={() => setGoalPickerMode('goal')}
+                  />
+                </>
+              )}
+            </div>
+          </AnimatedResize>
         </div>
       )}
     </>

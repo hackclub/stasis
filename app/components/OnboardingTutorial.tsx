@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from 'react';
 import { GoalPicker } from './GoalPicker';
 import { PrizeGoalPicker } from './PrizeGoalPicker';
+import { AnimatedResize } from './AnimatedResize';
 import type { GoalPreference } from '@/lib/tiers';
 
 interface TutorialStep {
@@ -386,84 +387,70 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoal
   const step = TUTORIAL_STEPS[currentStep];
   const isCenter = step.position === 'center' || !highlightRect;
 
-  const tooltipPosition = useMemo(() => {
+  // Estimate tooltip size for position calculations
+  const tooltipSizeEstimate = useMemo(() => {
+    if (isGoalPickerStep) return { w: Math.min(1160, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 1160), h: 500 };
+    if (isPrizePickerStep) return { w: Math.min(780, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 780), h: 500 };
+    return { w: Math.min(440, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 440), h: 240 };
+  }, [isGoalPickerStep, isPrizePickerStep]);
+
+  const tooltipPosition = useMemo((): CSSProperties => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const tw = tooltipSizeEstimate.w;
+    const th = tooltipSizeEstimate.h;
+
     if (isCenter || !highlightRect) {
       return {
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
+        top: `${Math.max(16, (vh - th) / 2)}px`,
+        left: `${Math.max(16, (vw - tw) / 2)}px`,
       };
     }
 
     const padding = 32;
-    const tooltipWidth = 440;
-    const tooltipHeight = 240;
-    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-
     const spaceAbove = highlightRect.top;
-    const spaceBelow = viewportHeight - highlightRect.bottom;
-
+    const spaceBelow = vh - highlightRect.bottom;
     const extraOffset = (step.id === 'actions' || step.id === 'submit') ? 100 : 0;
 
     const horizontalCenter = Math.max(
       padding,
       Math.min(
-        highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2,
-        viewportWidth - tooltipWidth - padding
+        highlightRect.left + highlightRect.width / 2 - tw / 2,
+        vw - tw - padding
       )
     );
 
+    let top: number;
+    let left: number;
+
     if (step.position === 'right') {
-      return {
-        top: `${highlightRect.top + highlightRect.height / 2}px`,
-        left: `${Math.min(highlightRect.right + padding, viewportWidth - tooltipWidth - padding)}px`,
-        transform: 'translateY(-50%)',
-      };
-    }
-
-    if (step.position === 'left') {
-      return {
-        top: `${highlightRect.top + highlightRect.height / 2}px`,
-        left: `${Math.max(padding, highlightRect.left - tooltipWidth - padding)}px`,
-        transform: 'translateY(-50%)',
-      };
-    }
-
-    if (step.position === 'top' && spaceAbove >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.top - tooltipHeight - padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
-    }
-
-    if (step.position === 'bottom' && spaceBelow >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.bottom + padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
-    }
-
-    if (spaceBelow >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.bottom + padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
-    }
-
-    if (spaceAbove >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.top - tooltipHeight - padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
+      top = highlightRect.top + highlightRect.height / 2 - th / 2;
+      left = Math.min(highlightRect.right + padding, vw - tw - padding);
+    } else if (step.position === 'left') {
+      top = highlightRect.top + highlightRect.height / 2 - th / 2;
+      left = Math.max(padding, highlightRect.left - tw - padding);
+    } else if (step.position === 'top' && spaceAbove >= th + padding) {
+      top = highlightRect.top - th - padding - extraOffset;
+      left = horizontalCenter;
+    } else if (step.position === 'bottom' && spaceBelow >= th + padding) {
+      top = highlightRect.bottom + padding - extraOffset;
+      left = horizontalCenter;
+    } else if (spaceBelow >= th + padding) {
+      top = highlightRect.bottom + padding - extraOffset;
+      left = horizontalCenter;
+    } else if (spaceAbove >= th + padding) {
+      top = highlightRect.top - th - padding - extraOffset;
+      left = horizontalCenter;
+    } else {
+      top = Math.max(16, (vh - th) / 2);
+      left = Math.max(16, (vw - tw) / 2);
     }
 
     return {
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
+      top: `${Math.max(8, top)}px`,
+      left: `${Math.max(8, left)}px`,
     };
-  }, [isCenter, highlightRect, step.id, step.position]);
+  }, [isCenter, highlightRect, step.id, step.position, tooltipSizeEstimate]);
 
   if (!isVisible) return null;
 
@@ -516,88 +503,92 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoal
       )}
 
       {/* Tooltip */}
-      <div
-        className={`absolute bg-cream-100 border-2 border-orange-500 p-6 shadow-2xl ${
-          isGoalPickerStep ? 'max-w-[1160px] w-[95vw]' : isPrizePickerStep ? 'max-w-[780px] w-[95vw]' : 'max-w-110 w-full'
-        }`}
+      <AnimatedResize
+        className="absolute bg-cream-100 border-2 border-orange-500 shadow-2xl"
         style={tooltipPosition}
+        positionTransition={300}
+        duration={200}
       >
-        {/* Progress indicator */}
-        <div className="flex gap-1 mb-4">
-          {TUTORIAL_STEPS.map((_, index) => (
-            <div
-              key={index}
-              className={`h-1 flex-1 transition-colors ${
-                index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Step counter */}
-        <p className="text-cream-500 text-xs uppercase tracking-wider mb-2">
-          Step {currentStep + 1} of {TUTORIAL_STEPS.length}
-        </p>
-
-        {/* Title */}
-        <h3 className="text-brown-800 text-lg font-medium mb-3">
-          {step.title}
-        </h3>
-
-        {/* Goal picker step */}
-        {isGoalPickerStep ? (
-          <div>
-            <p className="text-brown-800 text-sm leading-relaxed mb-5">
-              Through Stasis, you can work toward different goals! Pick which one you want to work toward — you&apos;ll earn bits by building hardware projects. You can change your selection at any time.
-            </p>
-
-            <GoalPicker selectedGoal={selectedGoal} onSelect={wrappedSetSelectedGoal} />
+        <div className={`p-6 ${
+          isGoalPickerStep ? 'w-[min(1160px,95vw)]' : isPrizePickerStep ? 'w-[min(780px,95vw)]' : 'w-[min(440px,95vw)]'
+        }`}>
+          {/* Progress indicator */}
+          <div className="flex gap-1 mb-4">
+            {TUTORIAL_STEPS.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1 flex-1 transition-colors ${
+                  index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
+                }`}
+              />
+            ))}
           </div>
-        ) : isPrizePickerStep ? (
-          <PrizeGoalPicker
-            initialSelection={selectedPrizeIds}
-            onConfirm={handlePrizeConfirm}
-            onBack={handlePrizeBack}
-          />
-        ) : (
-          /* Normal step content */
-          <p className="text-brown-800 text-sm leading-relaxed mb-6">
-            {renderContent(step.content)}
-          </p>
-        )}
 
-        {/* Navigation - hide for prize picker (it has its own buttons) */}
-        {!isPrizePickerStep && (
-          <div className={`flex items-center justify-between ${isGoalPickerStep ? 'mt-5' : ''}`}>
-            <div className="flex gap-2">
-              <button
-                onClick={handleNext}
-                disabled={isGoalPickerStep && !selectedGoal}
-                className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {nextButtonText}
-              </button>
-              {currentStep > 0 && (
+          {/* Step counter */}
+          <p className="text-cream-500 text-xs uppercase tracking-wider mb-2">
+            Step {currentStep + 1} of {TUTORIAL_STEPS.length}
+          </p>
+
+          {/* Title */}
+          <h3 className="text-brown-800 text-lg font-medium mb-3">
+            {step.title}
+          </h3>
+
+          {/* Goal picker step */}
+          {isGoalPickerStep ? (
+            <div>
+              <p className="text-brown-800 text-sm leading-relaxed mb-5">
+                Through Stasis, you can work toward different goals! Pick which one you want to work toward — you&apos;ll earn bits by building hardware projects. You can change your selection at any time.
+              </p>
+
+              <GoalPicker selectedGoal={selectedGoal} onSelect={wrappedSetSelectedGoal} />
+            </div>
+          ) : isPrizePickerStep ? (
+            <PrizeGoalPicker
+              initialSelection={selectedPrizeIds}
+              onConfirm={handlePrizeConfirm}
+              onBack={handlePrizeBack}
+            />
+          ) : (
+            /* Normal step content */
+            <p className="text-brown-800 text-sm leading-relaxed mb-6">
+              {renderContent(step.content)}
+            </p>
+          )}
+
+          {/* Navigation - hide for prize picker (it has its own buttons) */}
+          {!isPrizePickerStep && (
+            <div className={`flex items-center justify-between ${isGoalPickerStep ? 'mt-5' : ''}`}>
+              <div className="flex gap-2">
                 <button
-                  onClick={handlePrev}
-                  className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                  onClick={handleNext}
+                  disabled={isGoalPickerStep && !selectedGoal}
+                  className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Back
+                  {nextButtonText}
+                </button>
+                {currentStep > 0 && (
+                  <button
+                    onClick={handlePrev}
+                    className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Back
+                  </button>
+                )}
+              </div>
+
+              {currentStep < TUTORIAL_STEPS.length - 1 && (
+                <button
+                  onClick={handleSkip}
+                  className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
+                >
+                  Skip tutorial
                 </button>
               )}
             </div>
-
-            {currentStep < TUTORIAL_STEPS.length - 1 && (
-              <button
-                onClick={handleSkip}
-                className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
-              >
-                Skip tutorial
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </AnimatedResize>
     </div>
   );
 }
