@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { updateTargetEvent } from "@/lib/airtable"
+import { updateTargetGoal } from "@/lib/airtable"
 
-const VALID_EVENTS = ["stasis", "opensauce"]
+// Legacy route — kept for backward compatibility, prefer /api/user/goal-preference
+const VALID_GOALS = ["stasis", "opensauce", "prizes"]
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -29,8 +30,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const { event } = body
 
-  if (!VALID_EVENTS.includes(event)) {
-    return NextResponse.json({ error: "Invalid event" }, { status: 400 })
+  if (!VALID_GOALS.includes(event)) {
+    return NextResponse.json({ error: "Invalid goal" }, { status: 400 })
   }
 
   const user = await prisma.user.update({
@@ -39,9 +40,9 @@ export async function POST(request: NextRequest) {
     select: { email: true },
   })
 
-  // Update Airtable target event in the background
-  updateTargetEvent(user.email, event).catch((err) =>
-    console.error("Failed to update Airtable target event:", err)
+  // Update Airtable target goal in the background
+  updateTargetGoal(user.email, event).catch((err) =>
+    console.error("Failed to update Airtable target goal:", err)
   )
 
   return NextResponse.json({ success: true })

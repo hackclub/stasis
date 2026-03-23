@@ -107,6 +107,11 @@ export async function POST(request: NextRequest) {
         currentBalance -= item.bitsCost
       }
 
+      // Auto-remove purchased item from goal prizes
+      await tx.userGoalPrize.deleteMany({
+        where: { userId, shopItemId: itemId },
+      })
+
       return { id: lastTransactionId, item: item.name, bitsSpent: totalCost, newBalance: currentBalance }
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

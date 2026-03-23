@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { auth } from '@/lib/auth';
-import { markAccountCreationFinished, updateRSVPName, updateTargetEvent } from '@/lib/airtable';
+import { markAccountCreationFinished, updateRSVPName, updateTargetGoal } from '@/lib/airtable';
 import prisma from '@/lib/prisma';
 
 export async function GET() {
@@ -28,21 +28,21 @@ export async function GET() {
       console.error('Airtable update error:', error);
     }
 
-    // Set event preference from signup source (default to stasis for pre-Open Sauce signups)
+    // Set goal preference from signup source (default to stasis for pre-Open Sauce signups)
     const cookieStore = await cookies();
     const signupPage = cookieStore.get('signup_page')?.value;
-    const eventPreference = signupPage === 'Open Sauce' ? 'opensauce' : 'stasis';
+    const goalPreference = signupPage === 'Open Sauce' ? 'opensauce' : 'stasis';
     try {
       await prisma.user.update({
         where: { id: session.user.id },
-        data: { eventPreference },
+        data: { eventPreference: goalPreference },
       });
-      // Sync target event to Airtable
-      updateTargetEvent(session.user.email, eventPreference).catch((err) =>
-        console.error('Failed to update Airtable target event:', err)
+      // Sync target goal to Airtable
+      updateTargetGoal(session.user.email, goalPreference).catch((err) =>
+        console.error('Failed to update Airtable target goal:', err)
       );
     } catch (error) {
-      console.error('Failed to set event preference:', error);
+      console.error('Failed to set goal preference:', error);
     }
     if (signupPage) {
       cookieStore.delete('signup_page');

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { EVENT_LABELS, type EventPreference } from '@/lib/tiers';
+import { GOAL_LABELS, type GoalPreference } from '@/lib/tiers';
 
 interface ProjectBadge {
   id: string;
@@ -716,8 +716,8 @@ export default function AdminUsersPage() {
                           <p className="text-brown-800">{user.pronouns || '—'}</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Target Event</p>
-                          <p className="text-brown-800">{user.eventPreference ? EVENT_LABELS[user.eventPreference as EventPreference] : '—'}</p>
+                          <p className="text-cream-600 uppercase text-xs mb-1">Target Goal</p>
+                          <p className="text-brown-800">{user.eventPreference ? GOAL_LABELS[user.eventPreference as GoalPreference] : '—'}</p>
                         </div>
                       </div>
 

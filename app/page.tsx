@@ -13,13 +13,13 @@ import { ImageCarousel } from './components/ImageCarousel';
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
 import { authClient, useSession } from '@/lib/auth-client';
-import type { EventPreference } from '@/lib/tiers';
+import type { GoalPreference } from '@/lib/tiers';
 
 
 const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
 const SIGNUP_GOAL = 3000;
 
-const getFaqs = (event: EventPreference) => [
+const getFaqs = (event: GoalPreference) => [
   {
     question: event === 'opensauce' ? "How do I get a ticket to Open Sauce?" : "How do I qualify for Stasis?",
     answer: event === 'opensauce'
@@ -66,7 +66,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
   return <span ref={ref} className={className}>{children}</span>;
 }
 
-export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPreference }: { skipRedirect?: boolean; event?: EventPreference } = {}) {
+export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPreference }: { skipRedirect?: boolean; event?: GoalPreference } = {}) {
   const signupPage = event === 'opensauce' ? 'Open Sauce' : 'Stasis';
   const searchParams = useSearchParams();
   const router = useRouter();
