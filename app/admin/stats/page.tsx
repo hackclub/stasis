@@ -52,6 +52,20 @@ interface Stats {
     qualifiedOpenSauce: number;
     totalUsersWithBits: number;
   };
+  funnel: { step: string; count: number }[];
+  weeklyTrends: { week: string; projects: number; reviews: number; bits: number; hours: number }[];
+  reviewTurnaround: {
+    avgDesignHours: number;
+    avgBuildHours: number;
+    medianDesignHours: number;
+    medianBuildHours: number;
+  };
+  balanceDistribution: { bucket: string; count: number }[];
+  projectPipeline: {
+    avgDaysToDesignReview: number;
+    avgDaysToBuildReview: number;
+    avgDaysTotal: number;
+  };
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -103,6 +117,18 @@ const BADGE_LABELS: Record<string, string> = {
   SOLDERING: 'Soldering',
   WOODWORKING: 'Woodworking',
 };
+
+const FUNNEL_LABELS: Record<string, string> = {
+  signed_up: 'Signed Up',
+  created_project: 'Created Project',
+  design_submitted: 'Design Submitted',
+  design_approved: 'Design Approved',
+  build_submitted: 'Build Submitted',
+  build_approved: 'Build Approved',
+  qualified: 'Qualified (350b)',
+};
+
+const FUNNEL_ORDER = ['signed_up', 'created_project', 'design_submitted', 'design_approved', 'build_submitted', 'build_approved', 'qualified'];
 
 function Bar({ value, max, color = 'bg-orange-500' }: { value: number; max: number; color?: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -195,6 +221,155 @@ export default function StatsPage() {
           value={stats.economy.netCirculating.toLocaleString()}
           sub={`${stats.economy.totalDistributed.toLocaleString()} distributed`}
         />
+      </div>
+
+      {/* User Funnel */}
+      {stats.funnel.length > 0 && (
+        <Section title="User Funnel">
+          <div className="space-y-2">
+            {FUNNEL_ORDER.map((step, i) => {
+              const row = stats.funnel.find((f) => f.step === step);
+              const count = row?.count ?? 0;
+              const firstCount = stats.funnel.find((f) => f.step === FUNNEL_ORDER[0])?.count ?? 1;
+              const prevCount = i > 0 ? (stats.funnel.find((f) => f.step === FUNNEL_ORDER[i - 1])?.count ?? 1) : count;
+              const dropoff = i > 0 && prevCount > 0 ? Math.round((count / prevCount) * 100) : 100;
+              const pctOfTotal = firstCount > 0 ? Math.round((count / firstCount) * 100) : 0;
+              return (
+                <div key={step}>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-brown-800 w-40">{FUNNEL_LABELS[step] ?? step}</span>
+                    <span className="text-brown-800 font-mono w-14 text-right">{count}</span>
+                    <div className="flex-1 h-6 bg-cream-200 border border-cream-400 relative">
+                      <div
+                        className="h-full bg-orange-500 transition-all"
+                        style={{ width: `${pctOfTotal}%` }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-mono text-brown-800">
+                        {pctOfTotal}%
+                      </span>
+                    </div>
+                    {i > 0 && (
+                      <span className={`text-xs font-mono w-16 text-right ${dropoff < 50 ? 'text-red-600' : 'text-brown-800/60'}`}>
+                        {dropoff}% kept
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {/* Weekly Trends */}
+      {stats.weeklyTrends.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Section title="Weekly Projects & Reviews">
+            <div className="space-y-1">
+              {stats.weeklyTrends.map((w) => {
+                const maxP = Math.max(...stats.weeklyTrends.map((t) => t.projects), 1);
+                const maxR = Math.max(...stats.weeklyTrends.map((t) => t.reviews), 1);
+                const maxVal = Math.max(maxP, maxR, 1);
+                return (
+                  <div key={w.week} className="flex items-center gap-2 text-xs">
+                    <span className="text-brown-800 font-mono w-20">{w.week.slice(5)}</span>
+                    <div className="flex-1 flex gap-0.5 h-4">
+                      <div className="h-full bg-orange-500" style={{ width: `${(w.projects / maxVal) * 100}%` }} title={`${w.projects} projects`} />
+                      <div className="h-full bg-green-600" style={{ width: `${(w.reviews / maxVal) * 100}%` }} title={`${w.reviews} reviews`} />
+                    </div>
+                    <span className="text-brown-800 font-mono w-20 text-right text-xs">{w.projects}p / {w.reviews}r</span>
+                  </div>
+                );
+              })}
+              <div className="flex gap-4 mt-2 text-xs text-brown-800/60">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-orange-500 inline-block" /> Projects</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-600 inline-block" /> Reviews</span>
+              </div>
+            </div>
+          </Section>
+
+          <Section title="Weekly Bits & Hours">
+            <div className="space-y-1">
+              {stats.weeklyTrends.map((w) => {
+                const maxB = Math.max(...stats.weeklyTrends.map((t) => t.bits), 1);
+                const maxH = Math.max(...stats.weeklyTrends.map((t) => t.hours), 1);
+                return (
+                  <div key={w.week} className="flex items-center gap-2 text-xs">
+                    <span className="text-brown-800 font-mono w-20">{w.week.slice(5)}</span>
+                    <div className="flex-1 space-y-0.5">
+                      <div className="h-2 bg-cream-200 border border-cream-400">
+                        <div className="h-full bg-yellow-600" style={{ width: `${(w.bits / maxB) * 100}%` }} />
+                      </div>
+                      <div className="h-2 bg-cream-200 border border-cream-400">
+                        <div className="h-full bg-blue-500" style={{ width: `${(w.hours / maxH) * 100}%` }} />
+                      </div>
+                    </div>
+                    <span className="text-brown-800 font-mono w-28 text-right text-xs">{w.bits}b / {w.hours}h</span>
+                  </div>
+                );
+              })}
+              <div className="flex gap-4 mt-2 text-xs text-brown-800/60">
+                <span className="flex items-center gap-1"><span className="w-3 h-2 bg-yellow-600 inline-block" /> Bits</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-2 bg-blue-500 inline-block" /> Hours</span>
+              </div>
+            </div>
+          </Section>
+        </div>
+      )}
+
+      {/* Review Performance & Project Pipeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Section title="Review Turnaround">
+          <div className="space-y-3">
+            <div>
+              <div className="text-brown-800 text-xs uppercase tracking-wider">Design Reviews</div>
+              <div className="text-orange-500 text-xl font-mono">{stats.reviewTurnaround.avgDesignHours}h avg</div>
+              <div className="text-brown-800/60 text-xs">{stats.reviewTurnaround.medianDesignHours}h median</div>
+            </div>
+            <div>
+              <div className="text-brown-800 text-xs uppercase tracking-wider">Build Reviews</div>
+              <div className="text-orange-500 text-xl font-mono">{stats.reviewTurnaround.avgBuildHours}h avg</div>
+              <div className="text-brown-800/60 text-xs">{stats.reviewTurnaround.medianBuildHours}h median</div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Project Pipeline">
+          <div className="space-y-3">
+            <div>
+              <div className="text-brown-800 text-xs uppercase tracking-wider">Create → Design Review</div>
+              <div className="text-orange-500 text-xl font-mono">{stats.projectPipeline.avgDaysToDesignReview}d</div>
+            </div>
+            <div>
+              <div className="text-brown-800 text-xs uppercase tracking-wider">Design → Build Review</div>
+              <div className="text-orange-500 text-xl font-mono">{stats.projectPipeline.avgDaysToBuildReview}d</div>
+            </div>
+            <div>
+              <div className="text-brown-800 text-xs uppercase tracking-wider">Total Lifecycle</div>
+              <div className="text-orange-500 text-xl font-mono">{stats.projectPipeline.avgDaysTotal}d</div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Balance Distribution">
+          {stats.balanceDistribution.length > 0 ? (
+            <div className="space-y-1">
+              {stats.balanceDistribution.map((b) => {
+                const maxBucket = Math.max(...stats.balanceDistribution.map((d) => d.count), 1);
+                return (
+                  <div key={b.bucket} className="flex items-center gap-2 text-sm">
+                    <span className="text-brown-800 w-16 font-mono">{b.bucket}</span>
+                    <span className="text-brown-800 font-mono w-10 text-right">{b.count}</span>
+                    <Bar value={b.count} max={maxBucket} color={b.bucket === '350-499' || b.bucket === '500+' ? 'bg-green-600' : 'bg-orange-500'} />
+                  </div>
+                );
+              })}
+              <div className="text-brown-800/60 text-xs mt-2">Green = qualified for Stasis (350+)</div>
+            </div>
+          ) : (
+            <p className="text-brown-800/60 text-sm">No balance data yet</p>
+          )}
+        </Section>
       </div>
 
       {/* Detail Sections */}
