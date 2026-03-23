@@ -8,6 +8,7 @@ import { NoiseOverlay } from './components/NoiseOverlay';
 import { MagneticCorners } from './components/MagneticCorners';
 import { HoverScramble } from './components/HoverScramble';
 import { ASCIIArt } from './components/ASCIIArt';
+import { ImageCarousel } from './components/ImageCarousel';
 
 import { asciiArt } from '@/lib/ascii-art';
 import { useScramble } from '@/lib/scramble';
@@ -593,15 +594,9 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as EventPre
                 <ScrambleText>{">>: Can't Attend IRL?"}</ScrambleText>
               </h2>
               <p className="text-[14px] md:text-[18px] leading-snug text-brown-800">
-                <ScrambleText>No worries! Whether or not you attend, by making hardware projects you can</ScrambleText>{' '}<span className="text-orange-500"><ScrambleText>pick items from our shop</ScrambleText></span><ScrambleText>, like:</ScrambleText>
+                <ScrambleText>No worries! Whether or not you attend, by making hardware projects you can</ScrambleText>{' '}<span className="text-orange-500"><ScrambleText>pick items from our shop</ScrambleText></span><ScrambleText>, like 3d printers, oscilloscopes, dev boards, & more:</ScrambleText>
               </p>
-              <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-brown-800 relative">
-                <li className="flex gap-2"><span>•</span><span><ScrambleText>3D printers (Bambu Lab)</ScrambleText></span></li>
-                <li className="flex gap-2"><span>•</span><span><ScrambleText>Oscilloscopes</ScrambleText></span></li>
-                <li className="flex gap-2"><span>•</span><span><ScrambleText>Dev boards & components</ScrambleText></span></li>
-                <li className="flex gap-2"><span>•</span><span><ScrambleText>And more!</ScrambleText></span></li>
-                <img src="/bambu-orange.png" alt="" className="absolute bottom-0 right-0 translate-x-3/4  h-24 rotate-[16deg] pointer-events-none select-none" />
-              </ul>
+              <ImageCarousel />
             </section>
 
             <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
