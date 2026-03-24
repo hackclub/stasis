@@ -222,7 +222,7 @@ function HorizontalFunnel({ funnel, title, labels, order, bare }: {
   });
 
   const n = steps.length;
-  const svgH = 120;
+  const svgH = 80;
   const firstColW = 100;
   const segW = containerWidth > 0 && n > 1 ? (containerWidth - firstColW) / (n - 1) : 100;
   const minHeightPct = 8;
