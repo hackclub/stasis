@@ -1,3 +1,6 @@
-# allow crawling everything by default
 User-agent: *
-Disallow:
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /superadmin
+Disallow: /api
+Sitemap: https://stasis.hackclub.com/sitemap.xml
