@@ -69,22 +69,25 @@ export type Tier = (typeof TIERS)[number]
 // Total bits a user must earn (from project profits) to qualify.
 export const QUALIFICATION_BITS_THRESHOLD = 350
 
-// Event-specific thresholds
-export const EVENT_THRESHOLDS = {
+// Goal-specific thresholds (for event goals only; prizes goal uses dynamic threshold)
+export const GOAL_THRESHOLDS = {
   stasis: 350,
   opensauce: 250,
 } as const
 
-export type EventPreference = keyof typeof EVENT_THRESHOLDS
+export type GoalPreference = 'stasis' | 'opensauce' | 'prizes'
 
-export const EVENT_LABELS: Record<EventPreference, string> = {
+export const GOAL_LABELS: Record<GoalPreference, string> = {
   stasis: 'Stasis',
   opensauce: 'Open Sauce',
+  prizes: 'Prizes',
 }
 
-/** Get the qualification threshold for a given event preference. */
-export function getEventThreshold(event: EventPreference | null | undefined): number {
-  return EVENT_THRESHOLDS[event ?? 'stasis']
+/** Get the qualification threshold for a given goal preference. */
+export function getGoalThreshold(goal: GoalPreference | null | undefined, maxPrizePrice?: number): number {
+  if (goal === 'prizes') return maxPrizePrice ?? 0
+  const g = goal ?? 'stasis'
+  return GOAL_THRESHOLDS[g as keyof typeof GOAL_THRESHOLDS] ?? GOAL_THRESHOLDS.stasis
 }
 
 // --- Helpers ---
