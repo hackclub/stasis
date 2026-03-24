@@ -321,21 +321,23 @@ export async function getReferrerByNumber(referrerNumber: number): Promise<{
   };
 }
 
-export function eventPreferenceToDisplayName(event: string): string {
-  return event === 'opensauce' ? 'Open Sauce' : 'Stasis';
+export function goalPreferenceToDisplayName(goal: string): string {
+  if (goal === 'opensauce') return 'Open Sauce';
+  if (goal === 'prizes') return 'Prizes';
+  return 'Stasis';
 }
 
-export async function updateTargetEvent(email: string, event: string): Promise<boolean> {
-  const displayName = eventPreferenceToDisplayName(event);
+export async function updateTargetGoal(email: string, goal: string): Promise<boolean> {
+  const displayName = goalPreferenceToDisplayName(goal);
 
   if (isPostgresMode()) {
-    // No target event field in TempRsvp — will be synced to Airtable later
+    // No target goal field in TempRsvp — will be synced to Airtable later
     return true;
   }
 
   const base = getAirtableBase();
   if (!base) {
-    console.warn('Airtable credentials not configured, skipping target event update');
+    console.warn('Airtable credentials not configured, skipping target goal update');
     return false;
   }
 

@@ -76,6 +76,7 @@ model User {
   kudosGiven             Kudos[]
   sidekickAssignments    SidekickAssignment[] @relation("SidekickAssignments")
   assignedSidekick       SidekickAssignment?  @relation("AssignedSidekick")
+  goalPrizes             UserGoalPrize[]
 
   @@map("user")
 }
@@ -602,4 +603,14 @@ model Kudos {
   @@map("kudos")
 }
 
+model UserGoalPrize {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItemId String
+  createdAt  DateTime @default(now())
 
+  @@unique([userId, shopItemId])
+  @@index([userId])
+  @@map("user_goal_prize")
+}

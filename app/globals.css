@@ -111,6 +111,16 @@ a:focus-visible {
 	animation: led-flicker-on 0.2s ease-out;
 }
 
+/* Text flicker for button label transitions */
+@keyframes flicker {
+	0%   { opacity: 0; }
+	20%  { opacity: 0.8; }
+	40%  { opacity: 0.3; }
+	60%  { opacity: 1; }
+	80%  { opacity: 0.6; }
+	100% { opacity: 1; }
+}
+
 /* Grid texture sliding background for shop items */
 @keyframes grid-slide {
 	from { background-position: 0 0; }
