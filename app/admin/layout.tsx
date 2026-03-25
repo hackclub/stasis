@@ -150,6 +150,11 @@ export default function AdminLayout({
                   Events
                 </Link>
               )}
+              {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/slack" className={getTabClass('/admin/slack')}>
+                  Slack
+                </Link>
+              )}
             </div>
           </div>
         </div>

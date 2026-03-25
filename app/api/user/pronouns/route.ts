@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { assignSidekick } from "@/lib/sidekick"
+import { inviteToSecretSpot } from "@/lib/slack"
 
 const VALID_PRONOUNS = ["he/him", "she/her", "they/them"]
 
@@ -48,6 +49,19 @@ export async function POST(request: NextRequest) {
       await assignSidekick(session.user.id, pronouns)
     } catch (error) {
       console.error("Failed to assign sidekick after pronouns:", error)
+    }
+  }
+
+  // Invite she/her users to #stasis-secret-spot
+  if (pronouns === "she/her") {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { slackId: true },
+    })
+    if (user?.slackId) {
+      inviteToSecretSpot(user.slackId).catch((err) =>
+        console.error("Failed to invite to secret spot:", err)
+      )
     }
   }
 

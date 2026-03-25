@@ -78,6 +78,30 @@ export async function inviteToSlackChannels(slackId: string): Promise<void> {
   }
 }
 
+const SECRET_SPOT_CHANNEL = "C0ANV6PL1AN";
+
+export async function inviteToSecretSpot(slackId: string): Promise<void> {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return;
+
+  try {
+    const res = await fetch("https://slack.com/api/conversations.invite", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ channel: SECRET_SPOT_CHANNEL, users: slackId }),
+    });
+    const data = await res.json();
+    if (!data.ok && data.error !== "already_in_channel") {
+      console.error(`Failed to invite ${slackId} to secret spot:`, data.error);
+    }
+  } catch (error) {
+    console.error(`Failed to invite ${slackId} to secret spot:`, error);
+  }
+}
+
 export async function getSlackDisplayName(slackId: string): Promise<string | null> {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) {
