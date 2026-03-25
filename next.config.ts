@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'user-cdn.hackclub-assets.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'files.catbox.moe',
+      },
     ],
   },
 };
