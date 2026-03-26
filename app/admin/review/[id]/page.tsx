@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getTierById, TIERS } from '@/lib/tiers';
 import { bomItemTotal } from '@/lib/format';
@@ -100,7 +100,19 @@ interface ReviewData {
 export default function ReviewDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const filterCategory = searchParams.get('category') || '';
+  const filterGuide = searchParams.get('guide') || '';
+
+  // Build query string for filter-aware navigation
+  const filterQS = (() => {
+    const qp = new URLSearchParams();
+    if (filterCategory) qp.set('category', filterCategory);
+    if (filterGuide) qp.set('guide', filterGuide);
+    const s = qp.toString();
+    return s ? `?${s}` : '';
+  })();
 
   const [data, setData] = useState<ReviewData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +140,7 @@ export default function ReviewDetailPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reviews/${id}`);
+      const res = await fetch(`/api/reviews/${id}${filterQS}`);
       if (res.ok) {
         const d = await res.json();
         setData(d);
@@ -141,7 +153,7 @@ export default function ReviewDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, router]);
+  }, [id, router, filterQS]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -247,7 +259,7 @@ export default function ReviewDetailPage() {
       if (res.ok) {
         // Navigate to next or back to queue
         if (data?.navigation.nextId) {
-          router.push(`/admin/review/${data.navigation.nextId}`);
+          router.push(`/admin/review/${data.navigation.nextId}${filterQS}`);
         } else {
           router.push('/admin/review');
         }
@@ -283,13 +295,23 @@ export default function ReviewDetailPage() {
 
   async function skipToNext() {
     fetch(`/api/reviews/${id}/claim`, { method: 'DELETE' }).catch(() => {});
+    // Use navigation.nextId if available (respects current filter)
+    if (data?.navigation.nextId) {
+      router.push(`/admin/review/${data.navigation.nextId}${filterQS}`);
+      return;
+    }
+    // Fallback: fetch from queue with same filters
     try {
-      const res = await fetch('/api/reviews?limit=10');
+      const params = new URLSearchParams();
+      if (filterCategory) params.set('category', filterCategory);
+      if (filterGuide) params.set('guide', filterGuide);
+      params.set('limit', '10');
+      const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) {
         const { items } = await res.json();
         const next = items.find((p: { id: string }) => p.id !== id);
         if (next) {
-          router.push(`/admin/review/${next.id}`);
+          router.push(`/admin/review/${next.id}${filterQS}`);
           return;
         }
       }
@@ -333,7 +355,7 @@ export default function ReviewDetailPage() {
   const claimExpiry = submission.claim ? new Date(submission.claim.expiresAt) : null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* ── Claim Warning Banner ── */}
       {claimedByOther && (
         <div className="bg-red-50 border-2 border-red-300 p-4 flex items-center justify-between">
@@ -396,12 +418,12 @@ export default function ReviewDetailPage() {
 
       {/* ── Navigation Bar ── */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Link
             href="/admin/review"
             className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-400 text-brown-800 hover:border-orange-500 transition-colors"
           >
-            Back
+            Back to Queue
           </Link>
           <button
             onClick={skipToNext}
@@ -409,6 +431,11 @@ export default function ReviewDetailPage() {
           >
             Skip
           </button>
+          {(filterCategory || filterGuide) && (
+            <span className="px-2 py-0.5 text-xs uppercase tracking-wider bg-orange-500/10 border border-orange-500 text-orange-500">
+              Filtering: {filterCategory || filterGuide || 'All'}
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
           {project.githubRepo && (

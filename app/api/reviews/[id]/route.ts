@@ -245,15 +245,30 @@ export async function GET(
       })),
   ]
 
-  // Find next/prev projects for navigation
+  // Find next/prev projects for navigation (respecting optional filters)
+  const navCategory = _request.nextUrl.searchParams.get("category") || ""
+  const navGuide = _request.nextUrl.searchParams.get("guide") || ""
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const navWhere: any = { deletedAt: null }
+  if (navCategory === "DESIGN") {
+    navWhere.designStatus = "in_review"
+  } else if (navCategory === "BUILD") {
+    navWhere.buildStatus = "in_review"
+  } else {
+    navWhere.OR = [
+      { designStatus: "in_review" },
+      { buildStatus: "in_review" },
+    ]
+  }
+  if (navGuide === "custom") {
+    navWhere.starterProjectId = null
+  } else if (navGuide) {
+    navWhere.starterProjectId = navGuide
+  }
+
   const allProjects = await prisma.project.findMany({
-    where: {
-      deletedAt: null,
-      OR: [
-        { designStatus: "in_review" },
-        { buildStatus: "in_review" },
-      ],
-    },
+    where: navWhere,
     select: { id: true },
     orderBy: { createdAt: "asc" },
   })

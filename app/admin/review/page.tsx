@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getTierById } from '@/lib/tiers';
 import { projects as starterProjects } from '@/app/starter-projects/projects';
 
@@ -74,6 +75,7 @@ const TIER_COLORS: Record<number, string> = {
 };
 
 export default function ReviewQueuePage() {
+  const router = useRouter();
   const [data, setData] = useState<QueueResponse | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,34 @@ export default function ReviewQueuePage() {
   const [guide, setGuide] = useState('');
   const [page, setPage] = useState(1);
   const [statsTab, setStatsTab] = useState<'weekly' | 'allTime'>('weekly');
+  const [navigating, setNavigating] = useState(false);
+
+  // Navigate into the review flow with a filter applied
+  async function startFilteredReview(filterCategory: string, filterGuide: string) {
+    setNavigating(true);
+    try {
+      const params = new URLSearchParams();
+      if (filterCategory) params.set('category', filterCategory);
+      if (filterGuide) params.set('guide', filterGuide);
+      params.set('limit', '1');
+      const res = await fetch(`/api/reviews?${params}`);
+      if (res.ok) {
+        const { items } = await res.json();
+        if (items.length > 0) {
+          const qp = new URLSearchParams();
+          if (filterCategory) qp.set('category', filterCategory);
+          if (filterGuide) qp.set('guide', filterGuide);
+          router.push(`/admin/review/${items[0].id}?${qp}`);
+          return;
+        }
+      }
+      alert('No submissions match that filter.');
+    } catch {
+      alert('Failed to load review queue.');
+    } finally {
+      setNavigating(false);
+    }
+  }
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
@@ -192,11 +222,12 @@ export default function ReviewQueuePage() {
 
       {/* Toolbar */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <span className="text-xs text-brown-800 uppercase tracking-wider mr-1">Filter:</span>
           <button
-            onClick={() => { setCategory(''); setPage(1); }}
+            onClick={() => { setCategory(''); setGuide(''); setPage(1); }}
             className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-              category === ''
+              category === '' && guide === ''
                 ? 'border-orange-500 text-orange-500 bg-orange-500/10'
                 : 'border-cream-400 text-brown-800 hover:border-orange-500'
             }`}
@@ -204,9 +235,9 @@ export default function ReviewQueuePage() {
             All
           </button>
           <button
-            onClick={() => { setCategory('DESIGN'); setPage(1); }}
+            onClick={() => { setCategory('DESIGN'); setGuide(''); setPage(1); }}
             className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-              category === 'DESIGN'
+              category === 'DESIGN' && guide === ''
                 ? 'border-orange-500 text-orange-500 bg-orange-500/10'
                 : 'border-cream-400 text-brown-800 hover:border-orange-500'
             }`}
@@ -214,9 +245,9 @@ export default function ReviewQueuePage() {
             Design
           </button>
           <button
-            onClick={() => { setCategory('BUILD'); setPage(1); }}
+            onClick={() => { setCategory('BUILD'); setGuide(''); setPage(1); }}
             className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-              category === 'BUILD'
+              category === 'BUILD' && guide === ''
                 ? 'border-orange-500 text-orange-500 bg-orange-500/10'
                 : 'border-cream-400 text-brown-800 hover:border-orange-500'
             }`}
@@ -229,7 +260,7 @@ export default function ReviewQueuePage() {
           {starterProjects.map((sp) => (
             <button
               key={sp.id}
-              onClick={() => { setGuide(guide === sp.id ? '' : sp.id); setPage(1); }}
+              onClick={() => { setCategory(''); setGuide(guide === sp.id ? '' : sp.id); setPage(1); }}
               className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
                 guide === sp.id
                   ? 'border-orange-500 text-orange-500 bg-orange-500/10'
@@ -241,7 +272,7 @@ export default function ReviewQueuePage() {
             </button>
           ))}
           <button
-            onClick={() => { setGuide(guide === 'custom' ? '' : 'custom'); setPage(1); }}
+            onClick={() => { setCategory(''); setGuide(guide === 'custom' ? '' : 'custom'); setPage(1); }}
             className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
               guide === 'custom'
                 ? 'border-orange-500 text-orange-500 bg-orange-500/10'
@@ -250,6 +281,16 @@ export default function ReviewQueuePage() {
           >
             Custom
             {stats?.guideCounts['custom'] ? ` (${stats.guideCounts['custom']})` : ''}
+          </button>
+
+          <span className="border-l border-cream-400 mx-1" />
+
+          <button
+            onClick={() => startFilteredReview(category, guide)}
+            disabled={navigating}
+            className="px-4 py-1.5 text-xs uppercase tracking-wider border border-orange-500 bg-orange-500 text-white hover:bg-orange-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {navigating ? 'Loading...' : 'Start Reviewing'}
           </button>
         </div>
 
