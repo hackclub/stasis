@@ -6,7 +6,7 @@ const TIER_MAP: Record<string, number> = {
   'squeak': 1,
   'spotify-display': 1,
   'devboard': 2,
-  'split-keyboard': 2,
+  'split-keyboard': 3,
   'pathfinder': 1,
   'hermes': 1,
 };
