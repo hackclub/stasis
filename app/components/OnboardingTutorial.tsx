@@ -509,7 +509,7 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoal
         positionTransition={300}
         duration={200}
       >
-        <div className={`p-6 ${
+        <div className={`p-6 overflow-y-auto max-h-[calc(100vh-2rem)] ${
           isGoalPickerStep ? 'w-[min(1160px,95vw)]' : isPrizePickerStep ? 'w-[min(780px,95vw)]' : 'w-[min(440px,95vw)]'
         }`}>
           {/* Progress indicator */}

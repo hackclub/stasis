@@ -117,6 +117,7 @@ interface AdminProject {
   reviewActions: ReviewAction[];
   hiddenFromGallery: boolean;
   deletedAt: string | null;
+  deletedBy: { id: string; name: string | null } | null;
   hackatimeProjects: HackatimeProjectData[];
   hackatimeTrustLevel: string | null;
 }
@@ -554,7 +555,10 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             <div className="mb-6 bg-red-100 border-2 border-red-500 p-4">
               <div className="flex items-center gap-2">
                 <span className="text-red-800 font-bold text-sm uppercase tracking-wider">This project is deleted</span>
-                <span className="text-red-600 text-xs">— soft-deleted on {new Date(project.deletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <span className="text-red-600 text-xs">
+                  — deleted on {new Date(project.deletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {project.deletedBy?.name && ` by ${project.deletedBy.name}`}
+                </span>
               </div>
             </div>
           )}

@@ -9,6 +9,7 @@ export async function GET() {
 
   const projects = await prisma.project.findMany({
     where: {
+      deletedAt: null,
       OR: [
         { designStatus: "in_review" },
         { buildStatus: "in_review" },

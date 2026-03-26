@@ -61,20 +61,23 @@ export async function GET() {
     projectPipeline,
   ] = await Promise.all([
     // --- Projects ---
-    prisma.project.count(),
+    prisma.project.count({ where: { deletedAt: null } }),
 
     prisma.project.groupBy({
       by: ["designStatus"],
+      where: { deletedAt: null },
       _count: { _all: true },
     }),
 
     prisma.project.groupBy({
       by: ["buildStatus"],
+      where: { deletedAt: null },
       _count: { _all: true },
     }),
 
     prisma.project.groupBy({
       by: ["tier"],
+      where: { deletedAt: null },
       _count: { _all: true },
     }),
 
@@ -83,6 +86,7 @@ export async function GET() {
 
     prisma.project.groupBy({
       by: ["userId"],
+      where: { deletedAt: null },
     }).then((rows) => rows.length),
 
     prisma.user.count({ where: { fraudConvicted: true } }),
@@ -98,14 +102,19 @@ export async function GET() {
 
     // --- Time tracking ---
     prisma.workSession.aggregate({
+      where: { project: { deletedAt: null } },
       _sum: { hoursClaimed: true, hoursApproved: true },
     }),
 
-    prisma.workSession.count(),
+    prisma.workSession.count({
+      where: { project: { deletedAt: null } },
+    }),
 
     prisma.$queryRaw<{ category: string; count: bigint }[]>`
-      SELECT unnest(categories::text[]) as category, COUNT(*)::bigint as count
-      FROM work_session
+      SELECT unnest(ws.categories::text[]) as category, COUNT(*)::bigint as count
+      FROM work_session ws
+      JOIN project p ON ws."projectId" = p.id
+      WHERE p."deletedAt" IS NULL
       GROUP BY category
       ORDER BY count DESC
     `,
@@ -132,6 +141,7 @@ export async function GET() {
     // --- Badges ---
     prisma.projectBadge.groupBy({
       by: ["badge"],
+      where: { project: { deletedAt: null } },
       _count: { _all: true },
       orderBy: { _count: { badge: "desc" } },
     }),
@@ -154,13 +164,15 @@ export async function GET() {
     // --- BOM ---
     prisma.bOMItem.groupBy({
       by: ["status"],
+      where: { project: { deletedAt: null } },
       _count: { _all: true },
     }),
 
     prisma.$queryRaw<{ total_cost: number }[]>`
-      SELECT COALESCE(SUM("totalCost"), 0)::float as total_cost
-      FROM bom_item
-      WHERE status = 'approved'
+      SELECT COALESCE(SUM(b."totalCost"), 0)::float as total_cost
+      FROM bom_item b
+      JOIN project p ON b."projectId" = p.id
+      WHERE b.status = 'approved' AND p."deletedAt" IS NULL
     `,
 
     // --- Qualification ---
@@ -197,15 +209,15 @@ export async function GET() {
     prisma.$queryRaw<{ step: string; count: bigint }[]>`
       SELECT 'signed_up' as step, COUNT(*)::bigint as count FROM "user"
       UNION ALL
-      SELECT 'created_project', COUNT(DISTINCT "userId")::bigint FROM project
+      SELECT 'created_project', COUNT(DISTINCT "userId")::bigint FROM project WHERE "deletedAt" IS NULL
       UNION ALL
-      SELECT 'design_submitted', COUNT(DISTINCT "userId")::bigint FROM project WHERE "designStatus" != 'draft'
+      SELECT 'design_submitted', COUNT(DISTINCT "userId")::bigint FROM project WHERE "deletedAt" IS NULL AND "designStatus" != 'draft'
       UNION ALL
-      SELECT 'design_approved', COUNT(DISTINCT "userId")::bigint FROM project WHERE "designStatus" = 'approved'
+      SELECT 'design_approved', COUNT(DISTINCT "userId")::bigint FROM project WHERE "deletedAt" IS NULL AND "designStatus" = 'approved'
       UNION ALL
-      SELECT 'build_submitted', COUNT(DISTINCT "userId")::bigint FROM project WHERE "buildStatus" != 'draft'
+      SELECT 'build_submitted', COUNT(DISTINCT "userId")::bigint FROM project WHERE "deletedAt" IS NULL AND "buildStatus" != 'draft'
       UNION ALL
-      SELECT 'build_approved', COUNT(DISTINCT "userId")::bigint FROM project WHERE "buildStatus" = 'approved'
+      SELECT 'build_approved', COUNT(DISTINCT "userId")::bigint FROM project WHERE "deletedAt" IS NULL AND "buildStatus" = 'approved'
       UNION ALL
       SELECT 'qualified', COUNT(*)::bigint FROM (
         SELECT "userId" FROM currency_transaction GROUP BY "userId" HAVING SUM(amount) >= 350
@@ -243,7 +255,7 @@ export async function GET() {
       project_counts AS (
         SELECT DATE_TRUNC('week', "createdAt") AS week, COUNT(*)::bigint AS cnt
         FROM project
-        WHERE "createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks')
+        WHERE "createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks') AND "deletedAt" IS NULL
         GROUP BY week
       ),
       review_counts AS (
@@ -259,9 +271,10 @@ export async function GET() {
         GROUP BY week
       ),
       hours_counts AS (
-        SELECT DATE_TRUNC('week', "createdAt") AS week, COALESCE(SUM("hoursApproved"), 0)::float AS cnt
-        FROM work_session
-        WHERE "createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks')
+        SELECT DATE_TRUNC('week', ws."createdAt") AS week, COALESCE(SUM(ws."hoursApproved"), 0)::float AS cnt
+        FROM work_session ws
+        JOIN project p ON ws."projectId" = p.id
+        WHERE ws."createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks') AND p."deletedAt" IS NULL
         GROUP BY week
       )
       SELECT
@@ -335,6 +348,7 @@ export async function GET() {
         COALESCE(AVG(EXTRACT(EPOCH FROM ("buildReviewedAt" - "designReviewedAt")) / 86400.0) FILTER (WHERE "buildReviewedAt" IS NOT NULL AND "designReviewedAt" IS NOT NULL), 0)::float AS avg_to_build_review,
         COALESCE(AVG(EXTRACT(EPOCH FROM ("buildReviewedAt" - "createdAt")) / 86400.0) FILTER (WHERE "buildReviewedAt" IS NOT NULL), 0)::float AS avg_total
       FROM project
+      WHERE "deletedAt" IS NULL
     `,
   ])
 

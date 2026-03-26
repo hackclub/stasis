@@ -71,6 +71,7 @@ model User {
   sessions           Session[]
   accounts           Account[]
   projects           Project[]
+  deletedProjects    Project[]     @relation("deletedProjects")
   roles                  UserRole[]
   currencyTransactions   CurrencyTransaction[]
   kudosGiven             Kudos[]
@@ -203,6 +204,8 @@ model Project {
   bitsAwarded           Int?          // Set atomically at build approval; null until then
   hiddenFromGallery     Boolean       @default(false)
   deletedAt             DateTime?
+  deletedById           String?
+  deletedBy             User?         @relation("deletedProjects", fields: [deletedById], references: [id], onDelete: SetNull)
 
   // Stage-based status tracking
   designStatus          ProjectStatus @default(draft)
