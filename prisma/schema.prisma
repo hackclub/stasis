@@ -23,6 +23,7 @@ enum ProjectStage {
 
 enum CurrencyTransactionType {
   PROJECT_APPROVED  // Bits credited when a project build is approved
+  DESIGN_APPROVED   // Pending bits credited when a project design is approved (converted on build approval)
   ADMIN_GRANT       // Reviewer manually credits bits
   ADMIN_DEDUCTION   // Reviewer manually debits bits (correction, etc.)
   SHOP_PURCHASE     // User spends bits on a shop item

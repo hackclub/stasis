@@ -53,6 +53,7 @@ export default function ProjectsPage() {
   }, []);
 
   const [bitsBalance, setBitsBalance] = useState<number | null>(null);
+  const [pendingBits, setPendingBits] = useState<number>(0);
   const [goalPreference, setGoalPreference] = useState<GoalPreference>('stasis');
   const [goalPrizes, setGoalPrizes] = useState<GoalPrize[]>([]);
   const [showGoalPicker, setShowGoalPicker] = useState(false);
@@ -75,8 +76,9 @@ export default function ProjectsPage() {
         setProjects(await projectsRes.json());
       }
       if (currencyRes.ok) {
-        const { bitsBalance } = await currencyRes.json();
+        const { bitsBalance, pendingBits: pending } = await currencyRes.json();
         setBitsBalance(bitsBalance);
+        setPendingBits(pending ?? 0);
       }
       if (goalPrefRes.ok) {
         const { goal, goalPrizes: prizes } = await goalPrefRes.json();
@@ -182,6 +184,7 @@ export default function ProjectsPage() {
   const pendingBadges = allBadges.filter(b => b.grantedAt === null);
 
   const actualBits = bitsBalance ?? 0;
+  const confirmedBits = actualBits - pendingBits;
 
   // Progress bar calculations
   const isPrizesGoal = goalPreference === 'prizes';
@@ -194,6 +197,7 @@ export default function ProjectsPage() {
     : getGoalThreshold(goalPreference);
   const qualified = actualBits >= goalThreshold && goalThreshold > 0;
   const progress = goalThreshold > 0 ? Math.min(1, actualBits / goalThreshold) : 0;
+  const confirmedProgress = goalThreshold > 0 ? Math.min(1, confirmedBits / goalThreshold) : 0;
 
   const openGoalPicker = () => {
     setPickerSelection(goalPreference);
@@ -311,17 +315,30 @@ export default function ProjectsPage() {
         {/* Bits Progress */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-brown-800 text-xs uppercase tracking-wide">
-              Bits Earned ({actualBits}/{goalThreshold})
-            </p>
+            <div>
+              <p className="text-brown-800 text-xs uppercase tracking-wide">
+                Bits Earned ({actualBits}/{goalThreshold})
+              </p>
+              {pendingBits > 0 && (
+                <p className="text-cream-600 text-xs">{pendingBits.toLocaleString()} bits pending</p>
+              )}
+            </div>
             {qualified && <span className="text-green-500 text-xs">✓</span>}
           </div>
           <div className={`relative ${isPrizesGoal && sortedPrizes.length > 0 ? 'mr-[20px]' : ''}`}>
             <div className="h-8 bg-cream-200 border-2 border-cream-400 relative overflow-hidden">
+              {/* Confirmed bits (orange) */}
               <div
-                className="h-full bg-orange-500 transition-all duration-500"
-                style={{ width: `${progress * 100}%` }}
+                className="absolute inset-y-0 left-0 bg-orange-500 transition-all duration-500"
+                style={{ width: `${confirmedProgress * 100}%` }}
               />
+              {/* Pending bits (gray) */}
+              {pendingBits > 0 && (
+                <div
+                  className="absolute inset-y-0 bg-cream-500 transition-all duration-500"
+                  style={{ left: `${confirmedProgress * 100}%`, width: `${(progress - confirmedProgress) * 100}%` }}
+                />
+              )}
               {/* Vertical marker lines inside the bar for each prize */}
               {isPrizesGoal && sortedPrizes.length > 0 && goalThreshold > 0 && sortedPrizes.map((prize) => {
                 const pct = (prize.price / goalThreshold) * 100;

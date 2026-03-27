@@ -45,6 +45,13 @@ export async function GET(
     where: { userId: id },
     _sum: { amount: true },
   })
+  // Use raw SQL with text cast to avoid enum validation error if migration hasn't run
+  const pendingRows = await prisma.$queryRaw<{ pending: bigint | null }[]>`
+    SELECT COALESCE(SUM(amount), 0) as pending
+    FROM currency_transaction
+    WHERE "userId" = ${id} AND type::text = 'DESIGN_APPROVED'
+  `
+  const pendingBitsAmount = Number(pendingRows[0]?.pending ?? 0)
 
   // Aggregate work sessions by date for activity heatmap
   const workSessions = await prisma.workSession.findMany({
@@ -96,6 +103,7 @@ export async function GET(
   return NextResponse.json({
     user: displayUser,
     bitsBalance: bitsResult._sum.amount ?? 0,
+    pendingBits: pendingBitsAmount,
     badges,
     projects,
     activity,

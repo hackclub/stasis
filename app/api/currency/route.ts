@@ -44,11 +44,19 @@ export async function GET() {
     }),
   ])
 
+  // Use raw SQL with text cast to avoid enum validation error if migration hasn't run
+  const pendingRows = await prisma.$queryRaw<{ pending: bigint | null }[]>`
+    SELECT COALESCE(SUM(amount), 0) as pending
+    FROM currency_transaction
+    WHERE "userId" = ${userId} AND type::text = 'DESIGN_APPROVED'
+  `
+  const pendingBits = Number(pendingRows[0]?.pending ?? 0)
+
   const bitsEarned = earned._sum.amount ?? 0
   const bitsDeducted = Math.abs(deducted._sum.amount ?? 0)
   const bitsBalance = bitsEarned - bitsDeducted
   const bomItemsCost = bomResult.reduce((acc, item) => acc + item.totalCost, 0)
   const bomCost = bomItemsCost + (taxShippingResult._sum.bomTax ?? 0) + (taxShippingResult._sum.bomShipping ?? 0)
 
-  return NextResponse.json({ bitsEarned, bitsDeducted, bitsBalance, bomCost })
+  return NextResponse.json({ bitsEarned, bitsDeducted, bitsBalance, pendingBits, bomCost })
 }

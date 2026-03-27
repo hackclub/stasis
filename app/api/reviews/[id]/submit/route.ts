@@ -247,12 +247,30 @@ export async function POST(
         updateData.tier = tierOverride
       }
 
-      // Design approval: approve BOM items
+      // Design approval: approve BOM items + award pending bits
       if (stageKey === "design") {
         await tx.bOMItem.updateMany({
           where: { projectId: project!.id, status: "pending" },
           data: { status: "approved", reviewedAt: new Date(), reviewedBy: reviewerId },
         })
+
+        // Award pending bits (DESIGN_APPROVED) based on tier minus BOM cost
+        const effectiveTierDesign = tierOverride ?? project!.tier
+        const tierBitsDesign = effectiveTierDesign ? getTierBits(effectiveTierDesign) : 0
+        const bomCostDesign = Math.round(effectiveGrant ?? 0)
+        const pendingBits = tierBitsDesign > 0 ? Math.max(0, tierBitsDesign - bomCostDesign) : 0
+
+        if (pendingBits > 0) {
+          const tierNameDesign = getTierById(effectiveTierDesign!)!.name
+          await appendLedgerEntry(tx, {
+            userId: project!.userId,
+            projectId: project!.id,
+            amount: pendingBits,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Design approved — ${tierNameDesign} (${tierBitsDesign} − ${bomCostDesign} BOM = ${pendingBits} pending bits)`,
+            createdBy: reviewerId,
+          })
+        }
       }
 
       // Build approval: approve sessions, grant badges, award bits
@@ -275,6 +293,23 @@ export async function POST(
           where: { projectId: project!.id, grantedAt: null },
           data: { grantedAt: new Date(), grantedBy: reviewerId },
         })
+
+        // Cancel pending bits (DESIGN_APPROVED) before awarding confirmed bits
+        const pendingSum = await tx.currencyTransaction.aggregate({
+          where: { userId: project!.userId, projectId: project!.id, type: "DESIGN_APPROVED" },
+          _sum: { amount: true },
+        })
+        const pendingToCancel = pendingSum._sum.amount ?? 0
+        if (pendingToCancel !== 0) {
+          await appendLedgerEntry(tx, {
+            userId: project!.userId,
+            projectId: project!.id,
+            amount: -pendingToCancel,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Pending bits converted — build approved`,
+            createdBy: reviewerId,
+          })
+        }
 
         const effectiveTier = tierOverride ?? project!.tier
         const tierBits = effectiveTier ? getTierBits(effectiveTier) : 0
@@ -360,14 +395,11 @@ export async function POST(
       const bomShip = project!.bomShipping ?? 0
       const bomCost = bomItemsCost + bomTax + bomShip
 
-      // Build hours justification with comprehensive project stats
       const sessions = project!.workSessions
       const designSessions = sessions.filter((s) => s.stage === "DESIGN")
       const buildSessions = sessions.filter((s) => s.stage === "BUILD")
       const designHours = designSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
       const buildHours = buildSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
-      const totalHours = sessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
-      const entryCount = sessions.length
 
       const tierInfo = project!.tier ? getTierById(project!.tier) : null
       const badges = project!.badges
@@ -376,14 +408,47 @@ export async function POST(
       const dateStr = new Date().toISOString().slice(0, 10)
       const reasonText = typeof reason === "string" && reason.trim() ? reason.trim() : null
 
+      const isBuildApproval = stageKey === "build"
+
+      // For build approvals, count only build-stage hours
+      const relevantSessions = isBuildApproval ? buildSessions : sessions
+      const relevantHours = isBuildApproval ? buildHours : (designHours + buildHours)
+      const relevantCount = relevantSessions.length
+
       const lines: string[] = []
+
+      if (isBuildApproval) {
+        lines.push(`**Build Review**`)
+        lines.push("")
+
+        // Include design review justification
+        const designReviewAction = await prisma.projectReviewAction.findFirst({
+          where: { projectId: project!.id, stage: "DESIGN", decision: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          select: { comments: true, createdAt: true, reviewerId: true },
+        })
+        if (designReviewAction) {
+          const designReviewer = designReviewAction.reviewerId
+            ? await prisma.user.findUnique({ where: { id: designReviewAction.reviewerId }, select: { name: true, email: true } })
+            : null
+          const designDate = designReviewAction.createdAt.toISOString().slice(0, 10)
+          lines.push(`--- Design Review (approved ${designDate} by ${designReviewer?.name || designReviewer?.email || "Unknown"}) ---`)
+          if (designReviewAction.comments) lines.push(designReviewAction.comments)
+          lines.push(`  Design hours: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
+          lines.push("")
+          lines.push(`--- Build Review ---`)
+        }
+      }
+
       lines.push(`Project: "${project!.title}" (${stageKey} approval)`)
       lines.push(`User: ${project!.user.name || "Unknown"}`)
       if (tierInfo) lines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
       lines.push("")
-      lines.push(`This user logged ${totalHours.toFixed(1)} hours across ${entryCount} journal entr${entryCount === 1 ? "y" : "ies"}.`)
-      if (designSessions.length > 0) lines.push(`  Design: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
-      if (buildSessions.length > 0) lines.push(`  Build: ${buildHours.toFixed(1)}h across ${buildSessions.length} entr${buildSessions.length === 1 ? "y" : "ies"}`)
+      lines.push(`This user logged ${relevantHours.toFixed(1)} ${isBuildApproval ? "build " : ""}hours across ${relevantCount} journal entr${relevantCount === 1 ? "y" : "ies"}.`)
+      if (!isBuildApproval) {
+        if (designSessions.length > 0) lines.push(`  Design: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
+        if (buildSessions.length > 0) lines.push(`  Build: ${buildHours.toFixed(1)}h across ${buildSessions.length} entr${buildSessions.length === 1 ? "y" : "ies"}`)
+      }
       lines.push("")
       if (approvedBom.length > 0 || bomTax > 0 || bomShip > 0) {
         const costParts = [`$${bomItemsCost.toFixed(2)} parts`]
@@ -413,7 +478,7 @@ export async function POST(
       const hoursJustification = lines.join("\n")
 
       try {
-        await syncProjectToAirtable(project!.userId, project!, hoursJustification, effectiveGrant ?? bomCost)
+        await syncProjectToAirtable(project!.userId, project!, hoursJustification, effectiveGrant ?? bomCost, isBuildApproval ? { buildOnly: true } : undefined)
       } catch (err) {
         console.error(`Failed to sync project to Airtable on ${stageKey} approval:`, err)
       }
@@ -441,6 +506,25 @@ export async function POST(
           reviewerId,
         },
       })
+
+      // Cancel pending bits on build rejection
+      if (stageKey === "build" && result === "REJECTED") {
+        const pendingSum = await tx.currencyTransaction.aggregate({
+          where: { userId: project!.userId, projectId: project!.id, type: "DESIGN_APPROVED" },
+          _sum: { amount: true },
+        })
+        const pendingToCancel = pendingSum._sum.amount ?? 0
+        if (pendingToCancel !== 0) {
+          await appendLedgerEntry(tx, {
+            userId: project!.userId,
+            projectId: project!.id,
+            amount: -pendingToCancel,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Pending bits cancelled — build rejected`,
+            createdBy: reviewerId,
+          })
+        }
+      }
 
       return tx.project.update({
         where: { id: project!.id },

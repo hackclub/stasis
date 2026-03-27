@@ -459,9 +459,10 @@ export async function submitYSWSProjectSubmission(data: {
 
 export async function syncProjectToAirtable(
   userId: string,
-  project: { id: string; tier?: number | null; githubRepo: string | null; description: string | null; coverImage: string | null; starterProjectId?: string | null; workSessions: { hoursClaimed: number }[] },
+  project: { id: string; tier?: number | null; githubRepo: string | null; description: string | null; coverImage: string | null; starterProjectId?: string | null; workSessions: { hoursClaimed: number; stage?: string }[] },
   hoursJustification?: string,
   airtableGrantAmount?: number | null,
+  options?: { buildOnly?: boolean },
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
@@ -487,7 +488,10 @@ export async function syncProjectToAirtable(
   const nameParts = (user.name || '').trim().split(/\s+/);
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
-  const workSessionHours = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0);
+  const filteredSessions = options?.buildOnly
+    ? project.workSessions.filter((s) => s.stage === 'BUILD')
+    : project.workSessions;
+  const workSessionHours = filteredSessions.reduce((sum, s) => sum + s.hoursClaimed, 0);
 
   // Sum firmware time from linked hackatime projects,
   // preferring admin-reviewed hoursApproved over raw API hours

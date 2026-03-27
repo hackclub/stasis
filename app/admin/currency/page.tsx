@@ -7,7 +7,7 @@ interface LedgerEntry {
   userId: string;
   projectId: string | null;
   amount: number;
-  type: 'PROJECT_APPROVED' | 'ADMIN_GRANT' | 'ADMIN_DEDUCTION' | 'SHOP_PURCHASE';
+  type: 'PROJECT_APPROVED' | 'DESIGN_APPROVED' | 'ADMIN_GRANT' | 'ADMIN_DEDUCTION' | 'SHOP_PURCHASE';
   note: string | null;
   balanceBefore: number;
   balanceAfter: number;
@@ -18,6 +18,7 @@ interface LedgerEntry {
 
 const TYPE_LABELS: Record<LedgerEntry['type'], string> = {
   PROJECT_APPROVED: 'Project Approved',
+  DESIGN_APPROVED: 'Design Approved (Pending)',
   ADMIN_GRANT: 'Admin Grant',
   ADMIN_DEDUCTION: 'Admin Deduction',
   SHOP_PURCHASE: 'Shop Purchase',
@@ -220,6 +221,8 @@ export default function BitsLedgerPage() {
                     <span className={`px-2 py-0.5 text-xs uppercase border ${
                       entry.type === 'PROJECT_APPROVED'
                         ? 'bg-green-100 border-green-600 text-green-700'
+                        : entry.type === 'DESIGN_APPROVED'
+                        ? 'bg-gray-100 border-gray-500 text-gray-700'
                         : entry.type === 'ADMIN_GRANT'
                         ? 'bg-orange-500/10 border-orange-500/50 text-orange-500'
                         : entry.type === 'SHOP_PURCHASE'
