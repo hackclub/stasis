@@ -19,6 +19,14 @@ import type { GoalPreference } from '@/lib/tiers';
 const PRELAUNCH_MODE = process.env.NEXT_PUBLIC_PRELAUNCH_MODE === 'true';
 const SIGNUP_GOAL = 3000;
 
+const certLogos = [
+  { src: '/mit-orange.png', alt: 'MIT', href: 'https://www.mit.edu' },
+  { src: '/github-orange.png', alt: 'GitHub', href: 'https://github.com' },
+  { src: '/amd-orange.png', alt: 'AMD', href: 'https://www.amd.com' },
+  { src: '/gwc-orange.png', alt: 'Girls Who Code', href: 'https://girlswhocode.com' },
+  { src: '/CAC-orange.png', alt: 'Congressional App Challenge', href: 'https://www.congressionalappchallenge.us' },
+];
+
 const getFaqs = (event: GoalPreference) => [
   {
     question: event === 'opensauce' ? "How do I get a ticket to Open Sauce?" : "How do I qualify for Stasis?",
@@ -608,6 +616,43 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
             <ASCIIArt art={asciiArt.roflcopter} horizontalPosition={35} verticalOffset="85rem" />
             <ASCIIArt art={asciiArt.duck} horizontalPosition={90} verticalOffset="90rem" />
             <ASCIIArt art={asciiArt.donut} horizontalPosition={12} verticalOffset="48rem" />
+
+            {/* Earn a Certificate */}
+            <section className="space-y-3 md:space-y-4 md:px-5 py-1">
+              <h2 className="text-[24px] uppercase text-brown-800">
+                <ScrambleText>{">>: Earn a Certificate"}</ScrambleText>
+              </h2>
+              <p className="text-[14px] md:text-[18px] leading-snug text-brown-800">
+                <ScrambleText>Complete 3 projects and earn a hardware engineering certificate.</ScrambleText>
+              </p>
+              <div className="pt-1">
+                <div className="relative mt-4">
+                  {/* RECOGNIZED BY heading - overlaps top edge of bracket box */}
+                  <div className="absolute -top-[12px] left-0 right-0 flex items-center justify-center gap-3 z-10">
+                    <div className="w-[20px] h-px bg-[#d95d39]" />
+                    <span className="text-xl uppercase tracking-wider text-[#d95d39] px-1">Recognized by</span>
+                    <div className="w-[20px] h-px bg-[#d95d39]" />
+                  </div>
+                  {/* Corner brackets */}
+                  <div className="absolute left-0 top-0 w-[18px] h-[18px] border-l-[3px] border-t-[3px] border-[#d95d39]" />
+                  <div className="absolute right-0 top-0 w-[18px] h-[18px] border-r-[3px] border-t-[3px] border-[#d95d39]" />
+                  <div className="absolute left-0 bottom-0 w-[18px] h-[18px] border-l-[3px] border-b-[3px] border-[#d95d39]" />
+                  <div className="absolute right-0 bottom-0 w-[18px] h-[18px] border-r-[3px] border-b-[3px] border-[#d95d39]" />
+                  {/* Logos */}
+                  <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5 px-6 py-5 pt-7">
+                    {certLogos.map((logo, i) => (
+                      <a key={i} href={logo.href} target="_blank" rel="noopener noreferrer">
+                        <img src={logo.src} alt={logo.alt} className="h-8 md:h-10 w-auto object-contain transition-opacity duration-150 hover:opacity-70" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
+              <DottedLine orientation="horizontal" />
+            </div>
 
             {/* FAQ */}
             <section className="text-brown-800 py-1 md:px-5 space-y-3 md:space-y-4 mb-8 md:mb-12 text-[14px] md:text-[18px] ">
