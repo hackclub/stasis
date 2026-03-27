@@ -23,8 +23,15 @@ export async function GET(request: NextRequest) {
   const offset = (page - 1) * limit
 
   // Query projects directly — works whether or not ProjectSubmission rows exist
+  const showFraud = url.searchParams.get("showFraud") === "true"
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const projectWhere: any = { deletedAt: null }
+
+  // Exclude fraud-convicted users by default
+  if (!showFraud) {
+    projectWhere.user = { fraudConvicted: false }
+  }
 
   // Filter by stage/status
   if (category === "DESIGN") {
