@@ -8,18 +8,26 @@ import Overview from '../dashboard/help/content/overview.mdx';
 import AboutCost from '../dashboard/help/content/about-cost.mdx';
 import SubmissionGuidelines from '../dashboard/help/content/submission-guidelines.mdx';
 import Parents from '../dashboard/help/content/parents.mdx';
+import DesignResources from '../dashboard/help/content/design-resources.mdx';
+import DesignTips from '../dashboard/help/content/design-tips.mdx';
+import SourcingParts from '../dashboard/help/content/sourcing-parts.mdx';
+import ProjectIdeas from '../dashboard/help/content/project-ideas.mdx';
 
-export type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents';
+export type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents' | 'design-resources' | 'design-tips' | 'sourcing-parts' | 'project-ideas';
 
 interface GuidesContentProps {
   activePage?: GuidePage;
   basePath?: string;
 }
 
-export const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; section: 'guides' | 'faq' }[] = [
+export const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; section: 'guides' | 'faq' | 'design' }[] = [
   { id: 'overview', label: 'Overview', section: 'guides' },
   { id: 'submission-guidelines', label: 'Submission Guidelines', section: 'guides' },
   { id: 'about-cost', label: 'About Cost', section: 'guides' },
+  { id: 'design-resources', label: 'Resource Collection', heading: 'Resource Collection', section: 'design' },
+  { id: 'design-tips', label: 'Design Tips', heading: 'Design Tips', section: 'design' },
+  { id: 'sourcing-parts', label: 'Sourcing Parts', heading: 'Sourcing Parts', section: 'design' },
+  { id: 'project-ideas', label: 'Project Ideas/Inspo', heading: 'Project Ideas/Inspo', section: 'design' },
   { id: 'faq', label: 'General FAQ', heading: 'Frequently Asked Questions', section: 'faq' },
   { id: 'parents', label: 'Parent Guide', heading: 'Guide for Parents', section: 'faq' },
 ];
@@ -81,6 +89,10 @@ const PAGE_CONTENT: Record<GuidePage, React.ComponentType<any>> = {
   'overview': Overview,
   'submission-guidelines': SubmissionGuidelines,
   'about-cost': AboutCost,
+  'design-resources': DesignResources,
+  'design-tips': DesignTips,
+  'sourcing-parts': SourcingParts,
+  'project-ideas': ProjectIdeas,
   'faq': FAQ,
   'parents': Parents,
 };
@@ -122,8 +134,10 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
 
   const currentPage = GUIDE_PAGES.find(p => p.id === activeGuidePage);
   const guidePages = GUIDE_PAGES.filter(p => p.section === 'guides');
+  const designPages = GUIDE_PAGES.filter(p => p.section === 'design');
   const faqPages = GUIDE_PAGES.filter(p => p.section === 'faq');
   const ActiveContent = PAGE_CONTENT[activeGuidePage];
+  const isDesignPage = designPages.some(p => p.id === activeGuidePage);
 
   return (
     <div className="relative flex flex-col md:block">
@@ -236,6 +250,24 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                 </button>
               );
             })}
+            <div className="border-t border-cream-400 my-3" />
+            <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">Design resources</p>
+            {designPages.map((page) => {
+              const className = `w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer block ${
+                activeGuidePage === page.id
+                  ? 'text-orange-500 bg-cream-200'
+                  : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
+              }`;
+              return basePath ? (
+                <Link key={page.id} href={`${basePath}/${page.id}`} className={className}>
+                  {page.label}
+                </Link>
+              ) : (
+                <button key={page.id} onClick={() => setActiveGuidePage(page.id)} className={className}>
+                  {page.label}
+                </button>
+              );
+            })}
           </div>
         </nav>
       </div>
@@ -243,9 +275,15 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
       {/* Content Area */}
       <div className="max-w-3xl mx-auto w-full">
         <div className="bg-cream-100 border-2 border-cream-400 p-4 md:p-6">
-          <h1 className="text-orange-500 text-xl md:text-2xl uppercase tracking-wide mb-4 md:mb-6">
+          <h1 className="text-orange-500 text-xl md:text-2xl uppercase tracking-wide mb-1">
             {currentPage?.heading ?? currentPage?.label}
           </h1>
+          {isDesignPage && (
+            <p className="text-brown-800/60 text-xs mb-4 md:mb-6">
+              Written by <a href="https://github.com/qcoral/" className="underline" target="_blank" rel="noopener noreferrer">Alex Ren</a> for <a href="https://hwdocs.hackclub.dev" className="underline" target="_blank" rel="noopener noreferrer">hwdocs.hackclub.dev</a>
+            </p>
+          )}
+          {!isDesignPage && <div className="mb-3 md:mb-5" />}
           {activeGuidePage === 'faq' ? (
             <div>
               <div className="flex flex-wrap gap-x-0.5 border-b border-cream-400 mb-6 -mx-1">
