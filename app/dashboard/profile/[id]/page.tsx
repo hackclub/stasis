@@ -7,6 +7,7 @@ import Image from 'next/image';
 import type { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import { getBadgeImage } from "@/lib/badges";
 import { TAG_LABELS } from "@/lib/tags";
+import { ActivityHeatmap } from "@/app/components/ActivityHeatmap";
 
 interface ProfileProject {
   id: string;
@@ -16,6 +17,12 @@ interface ProfileProject {
   tags: ProjectTag[];
   designStatus: string;
   buildStatus: string;
+}
+
+interface ActivityDay {
+  date: string;
+  hours: number;
+  sessions: number;
 }
 
 interface ProfileData {
@@ -29,6 +36,7 @@ interface ProfileData {
   bitsBalance: number;
   badges: { badge: BadgeType; grantedAt: string }[];
   projects: ProfileProject[];
+  activity: ActivityDay[];
 }
 
 const BADGE_LABELS: Record<string, string> = {
@@ -132,7 +140,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
       <div className="flex flex-col lg:flex-row gap-10">
         {/* Left sidebar - Avatar, Bio */}
-        <div className="lg:w-80 flex-shrink-0">
+        <div className="lg:w-80 flex-shrink-0 flex flex-col gap-6">
           <div className="bg-cream-100 border-2 border-cream-400 p-6">
             {/* Avatar */}
             <div className="flex justify-center mb-4">
@@ -202,6 +210,9 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               </button>
             </div>
           </div>
+
+          {/* Activity Heatmap */}
+          <ActivityHeatmap activity={profile.activity} memberSince={profile.user.createdAt} />
         </div>
 
         {/* Right content - Badges & Projects */}

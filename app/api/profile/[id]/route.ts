@@ -46,6 +46,31 @@ export async function GET(
     _sum: { amount: true },
   })
 
+  // Aggregate work sessions by date for activity heatmap
+  const workSessions = await prisma.workSession.findMany({
+    where: {
+      project: { userId: id, deletedAt: null },
+    },
+    select: {
+      createdAt: true,
+      hoursClaimed: true,
+    },
+  })
+
+  const activityMap = new Map<string, { hours: number; sessions: number }>()
+  for (const ws of workSessions) {
+    const dateStr = ws.createdAt.toISOString().slice(0, 10)
+    const existing = activityMap.get(dateStr) || { hours: 0, sessions: 0 }
+    existing.hours += ws.hoursClaimed
+    existing.sessions += 1
+    activityMap.set(dateStr, existing)
+  }
+  const activity = Array.from(activityMap.entries()).map(([date, data]) => ({
+    date,
+    hours: Math.round(data.hours * 100) / 100,
+    sessions: data.sessions,
+  }))
+
   const projects = await prisma.project.findMany({
     where: {
       userId: id,
@@ -73,5 +98,6 @@ export async function GET(
     bitsBalance: bitsResult._sum.amount ?? 0,
     badges,
     projects,
+    activity,
   })
 }
