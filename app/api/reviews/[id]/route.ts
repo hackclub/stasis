@@ -24,7 +24,7 @@ export async function GET(
       user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true, fraudConvicted: true, verificationStatus: true } },
       workSessions: {
         include: { media: true, timelapses: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" },
       },
       badges: true,
       bomItems: true,
@@ -48,7 +48,7 @@ export async function GET(
           user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true, fraudConvicted: true, verificationStatus: true } },
           workSessions: {
             include: { media: true, timelapses: true },
-            orderBy: { createdAt: "desc" },
+            orderBy: { createdAt: "asc" },
           },
           badges: true,
           bomItems: true,
