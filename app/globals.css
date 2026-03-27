@@ -34,6 +34,7 @@
 	--color-taupe-500: #9C8F88;
 
 	--font-mono: var(--font-mono), monospace;
+	--font-sans: var(--font-sans), sans-serif;
 	--font-barcode: var(--font-barcode), monospace;
 	--font-qr: var(--font-qr), monospace;
 }
@@ -168,5 +169,32 @@ a:focus-visible {
 	66%  { transform: scale(var(--s, 1)) translate(10px, -20px) rotate(-90deg) }
 	90%,
 	100% { transform: scale(var(--s, 1)) translate(10px, -10px) rotate(-90deg) }
+}
+
+/* Tamagotchi Streak Challenge animations */
+@keyframes tamagotchi-bounce {
+	0%, 100% { transform: translateY(0); }
+	50%      { transform: translateY(-4px); }
+}
+
+@keyframes streak-pulse {
+	0%, 100% { border-color: var(--color-orange-500); box-shadow: 0 0 0 0 rgba(232, 106, 58, 0.3); }
+	50%      { border-color: var(--color-orange-400); box-shadow: 0 0 0 4px rgba(232, 106, 58, 0); }
+}
+
+@keyframes streak-milestone {
+	0%, 100% { box-shadow: 0 0 0 0 rgba(225, 171, 85, 0.4); }
+	50%      { box-shadow: 0 0 8px 2px rgba(225, 171, 85, 0.3); }
+}
+
+@keyframes streak-panel-up {
+	from { transform: translateX(-50%) translateY(100%); opacity: 0; }
+	to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes streak-node-fill {
+	0%   { transform: scale(0.5); opacity: 0; }
+	60%  { transform: scale(1.2); }
+	100% { transform: scale(1); opacity: 1; }
 }
 

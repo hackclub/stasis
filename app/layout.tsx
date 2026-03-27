@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Libre_Barcode_128, Libre_Barcode_39 } from "next/font/google";
+import { Libre_Barcode_128, Libre_Barcode_39, Space_Grotesk } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
@@ -9,6 +9,12 @@ import EventJsonLd from "./components/EventJsonLd";
 const departureMono = localFont({
   src: "../public/fonts/DepartureMono-Regular.woff2",
   variable: "--font-mono",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -76,7 +82,7 @@ export default function RootLayout({
           {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
         </Script>
       </head>
-      <body className={`antialiased ${departureMono.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
+      <body className={`antialiased ${departureMono.variable} ${spaceGrotesk.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
         <EventJsonLd />
         {children}
         <AsteroidCatWrapper />
