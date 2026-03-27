@@ -190,11 +190,11 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
             {/* Bits */}
             <div className="mb-4 text-center">
               <div className="flex items-baseline justify-center gap-2">
-                <span className="text-orange-500 text-3xl font-bold">{profile.bitsBalance.toLocaleString()}</span>
+                <span className="text-orange-500 text-3xl font-bold">{(profile.bitsBalance - profile.pendingBits).toLocaleString()}</span>
                 <span className="text-cream-600 text-sm uppercase tracking-wide">Bits</span>
               </div>
               {profile.pendingBits > 0 && (
-                <p className="text-cream-600 text-xs">{profile.pendingBits.toLocaleString()} bits pending</p>
+                <p className="text-cream-600 text-xs">{profile.pendingBits.toLocaleString()} bits pending build review</p>
               )}
             </div>
 

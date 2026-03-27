@@ -80,7 +80,7 @@ function PurchaseConfirmModal({
         <p className="text-brown-800 mb-6">
           {showQuantity
             ? `Buy ${item.name} to put toward your flight?`
-            : <>Spend <span className="text-orange-500 font-medium">{item.bitsCost.toLocaleString()}&nbsp;bits</span> on {item.name}?</>
+            : <>Spend <span className="text-orange-500 font-medium">{item.bitsCost.toLocaleString()}&nbsp;{item.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'pending bits' : 'bits'}</span> on {item.name}?</>
           }
         </p>
 
@@ -138,7 +138,7 @@ function PurchaseConfirmModal({
           <div className="mb-6 bg-cream-200 border border-cream-400 p-4">
             <div className="flex justify-between text-brown-800 text-sm">
               <span>Cost</span>
-              <span className="font-bold">{totalCost.toLocaleString()}&nbsp;bits</span>
+              <span className="font-bold">{totalCost.toLocaleString()}&nbsp;{item.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'pending bits' : 'bits'}</span>
             </div>
           </div>
         )}
@@ -565,9 +565,9 @@ export default function ShopPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-orange-500 text-lg uppercase tracking-wide">Your Bits Balance</h2>
-            <p className="text-brown-800 text-4xl font-bold">{bitsBalance.toLocaleString()}&nbsp;Bits</p>
+            <p className="text-brown-800 text-4xl font-bold">{confirmedBits.toLocaleString()}&nbsp;Bits</p>
             {pendingBits > 0 && (
-              <p className="text-cream-600 text-sm">{pendingBits.toLocaleString()} bits pending</p>
+              <p className="text-cream-600 text-sm">{pendingBits.toLocaleString()} bits pending build review</p>
             )}
           </div>
           <div className="text-right">
@@ -606,7 +606,9 @@ export default function ShopPage() {
                       <div className="flex-1">
                         <h3 className="text-brown-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
                         <p className="text-brown-800 text-sm mb-3">{inviteItem.description}</p>
-                        <p className="text-orange-400 font-bold text-lg">{inviteItem.bitsCost.toLocaleString()}&nbsp;Bits</p>
+                        <p className="text-orange-400 font-bold text-lg">
+                          {inviteItem.bitsCost.toLocaleString()}&nbsp;{inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'Pending Bits' : 'Bits'}
+                        </p>
                       </div>
                       <div>
                         {purchasedItems.has(inviteItem.id) ? (
@@ -626,7 +628,7 @@ export default function ShopPage() {
                         ) : (
                           <div className="bg-cream-300 px-6 py-3 text-center">
                             <span className="text-cream-600 uppercase tracking-wide text-sm">
-                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - effectiveBal).toLocaleString()}&nbsp;bits</span> needed
+                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - effectiveBal).toLocaleString()}&nbsp;{inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'pending bits' : 'bits'}</span> needed
                             </span>
                           </div>
                         )}

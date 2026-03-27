@@ -48,7 +48,7 @@ export function GoalPicker({ selectedGoal, onSelect }: Readonly<Props>) {
           <div className="flex items-center justify-center mb-4 h-24">
             <img src="/stasis-logo.png" alt="Stasis" className="max-h-24 max-w-full object-contain" />
           </div>
-          <p className="text-orange-500 font-medium text-sm mb-2">350&nbsp;bits (~45 hrs) to qualify</p>
+          <p className="text-orange-500 font-medium text-sm mb-2">350&nbsp;pending bits (~45 hrs) to qualify</p>
           <p className="text-brown-800 text-sm leading-relaxed">
             Fly out to Hack Club&apos;s flagship hardware hackathon in Austin, TX. Spend four days building projects with 100+ teenagers from May 15th-18th, 2026.
           </p>
