@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@/app/generated/prisma/client"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
@@ -168,6 +169,8 @@ export async function POST(
           bomItems: true,
         },
       })
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
 
     await logAdminAction(
@@ -351,6 +354,8 @@ export async function POST(
             bomItems: true,
           },
         })
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       })
 
       await logAdminAction(
@@ -515,6 +520,8 @@ export async function POST(
             bomItems: true,
           },
         })
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       })
 
       await logAdminAction(

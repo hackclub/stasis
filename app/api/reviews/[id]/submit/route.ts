@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@/app/generated/prisma/client"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission, hasRole, Role } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
@@ -365,6 +366,8 @@ export async function POST(
       })
 
       return tx.project.update({ where: { id: project!.id }, data: updateData })
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
 
     await logAdminAction(
@@ -535,6 +538,8 @@ export async function POST(
           [reviewedByField]: reviewerId,
         },
       })
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
 
     const auditAction = result === "REJECTED" ? AuditAction.REVIEWER_REJECT : AuditAction.REVIEWER_RETURN
