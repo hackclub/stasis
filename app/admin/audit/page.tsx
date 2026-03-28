@@ -96,14 +96,14 @@ export default function AdminAuditPage() {
           {/* Filters */}
           <div className="mb-6 space-y-4">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-              <p className="text-brown-800 text-sm uppercase">
+              <p className="text-cream-50 text-sm uppercase">
                 {pagination?.total ?? 0} log{(pagination?.total ?? 0) !== 1 ? 's' : ''}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                 <select
                   value={actionFilter}
                   onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none"
+                  className="bg-brown-800 border-2 border-cream-500/20 px-4 py-2 text-cream-50 focus:border-orange-500 focus:outline-none"
                 >
                   <option value="">All Actions</option>
                   {AUDIT_ACTIONS.map((action) => (
@@ -117,19 +117,19 @@ export default function AdminAuditPage() {
                   value={startDate}
                   onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
                   placeholder="Start Date"
-                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none"
+                  className="bg-brown-800 border-2 border-cream-500/20 px-4 py-2 text-cream-50 focus:border-orange-500 focus:outline-none"
                 />
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
                   placeholder="End Date"
-                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none"
+                  className="bg-brown-800 border-2 border-cream-500/20 px-4 py-2 text-cream-50 focus:border-orange-500 focus:outline-none"
                 />
                 {(actionFilter || startDate || endDate) && (
                   <button
                     onClick={() => { setActionFilter(''); setStartDate(''); setEndDate(''); setPage(1); }}
-                    className="px-4 py-2 text-sm uppercase text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm uppercase text-cream-50 hover:text-orange-500 transition-colors cursor-pointer"
                   >
                     Clear
                   </button>
@@ -141,29 +141,29 @@ export default function AdminAuditPage() {
           {/* Logs Table */}
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-brown-800">Loading audit logs...</p>
+              <p className="text-cream-50">Loading audit logs...</p>
             </div>
           ) : logs.length === 0 ? (
-            <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-              <p className="text-brown-800">No audit logs found</p>
+            <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center">
+              <p className="text-cream-50">No audit logs found</p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b-2 border-cream-400">
-                      <th className="text-left text-cream-600 text-xs uppercase py-3 px-3">Timestamp</th>
-                      <th className="text-left text-cream-600 text-xs uppercase py-3 px-3">Action</th>
-                      <th className="text-left text-cream-600 text-xs uppercase py-3 px-3">Actor</th>
-                      <th className="text-left text-cream-600 text-xs uppercase py-3 px-3">Target</th>
-                      <th className="text-left text-cream-600 text-xs uppercase py-3 px-3">IP Address</th>
+                    <tr className="border-b-2 border-cream-500/20">
+                      <th className="text-left text-cream-200 text-xs uppercase py-3 px-3">Timestamp</th>
+                      <th className="text-left text-cream-200 text-xs uppercase py-3 px-3">Action</th>
+                      <th className="text-left text-cream-200 text-xs uppercase py-3 px-3">Actor</th>
+                      <th className="text-left text-cream-200 text-xs uppercase py-3 px-3 hidden sm:table-cell">Target</th>
+                      <th className="text-left text-cream-200 text-xs uppercase py-3 px-3 hidden md:table-cell">IP Address</th>
                     </tr>
                   </thead>
                   <tbody>
                     {logs.map((log) => (
-                      <tr key={log.id} className="border-b border-cream-400 hover:bg-cream-200 transition-colors">
-                        <td className="py-3 px-3 text-brown-800 text-sm whitespace-nowrap">
+                      <tr key={log.id} className="border-b border-cream-500/20 hover:bg-cream-500/10 transition-colors">
+                        <td className="py-3 px-3 text-cream-50 text-sm whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -177,13 +177,13 @@ export default function AdminAuditPage() {
                             {log.action.replace(/_/g, ' ')}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-brown-800 text-sm">
+                        <td className="py-3 px-3 text-cream-50 text-sm">
                           {formatActor(log)}
                         </td>
-                        <td className="py-3 px-3 text-brown-800 text-sm max-w-xs truncate">
+                        <td className="py-3 px-3 text-cream-50 text-sm max-w-xs truncate hidden sm:table-cell">
                           {formatTarget(log)}
                         </td>
-                        <td className="py-3 px-3 text-brown-800 text-sm">
+                        <td className="py-3 px-3 text-cream-50 text-sm hidden md:table-cell">
                           {log.actorIp || '—'}
                         </td>
                       </tr>
@@ -195,21 +195,21 @@ export default function AdminAuditPage() {
               {/* Pagination */}
               {pagination && pagination.totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-between">
-                  <p className="text-brown-800 text-sm">
+                  <p className="text-cream-50 text-sm">
                     Page {pagination.page} of {pagination.totalPages}
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page <= 1}
-                      className="px-4 py-2 bg-cream-100 border border-cream-400 text-brown-800 text-sm uppercase hover:border-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="px-4 py-2 bg-brown-800 border border-cream-500/20 text-cream-50 text-sm uppercase hover:border-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= pagination.totalPages}
-                      className="px-4 py-2 bg-cream-100 border border-cream-400 text-brown-800 text-sm uppercase hover:border-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="px-4 py-2 bg-brown-800 border border-cream-500/20 text-cream-50 text-sm uppercase hover:border-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Next
                     </button>

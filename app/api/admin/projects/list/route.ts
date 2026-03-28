@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
   const starterFilter = url.get("starter") || ""
   const hiddenFilter = url.get("hidden") || ""
   const zeroGrant = url.get("zeroGrant")
+  const deletedFilter = url.get("deleted") || ""
   const sort = url.get("sort") || "createdAt"
   const order = url.get("order") === "asc" ? "asc" : "desc"
 
@@ -63,6 +64,12 @@ export async function GET(request: NextRequest) {
     where.hiddenFromGallery = true
   } else if (hiddenFilter === "false") {
     where.hiddenFromGallery = false
+  }
+
+  if (deletedFilter === "true") {
+    where.deletedAt = { not: null }
+  } else if (deletedFilter === "false") {
+    where.deletedAt = null
   }
 
   if (zeroGrant === "true") {
@@ -126,6 +133,7 @@ export async function GET(request: NextRequest) {
     isStarter: p.isStarter,
     starterProjectId: p.starterProjectId,
     hiddenFromGallery: p.hiddenFromGallery,
+    deletedAt: p.deletedAt,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     user: p.user,

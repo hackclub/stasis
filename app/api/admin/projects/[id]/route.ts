@@ -26,6 +26,9 @@ export async function GET(
           verificationStatus: true,
         },
       },
+      deletedBy: {
+        select: { id: true, name: true },
+      },
       workSessions: {
         include: { media: true },
         orderBy: { createdAt: "desc" },
@@ -114,6 +117,19 @@ export async function PATCH(
 
   const adminId = authCheck.session.user.id
   const adminEmail = authCheck.session.user.email ?? undefined
+
+  if (action === "delete") {
+    const now = new Date()
+    await prisma.project.update({ where: { id }, data: { deletedAt: now, deletedById: adminId } })
+    await logAdminAction(AuditAction.ADMIN_DELETE_PROJECT, adminId, adminEmail, "Project", id, { title: project.title })
+    return NextResponse.json({ deletedAt: now.toISOString(), deletedByName: authCheck.session.user.name })
+  }
+
+  if (action === "undelete") {
+    await prisma.project.update({ where: { id }, data: { deletedAt: null, deletedById: null } })
+    await logAdminAction(AuditAction.ADMIN_UNDELETE_PROJECT, adminId, adminEmail, "Project", id, { title: project.title })
+    return NextResponse.json({ deletedAt: null, deletedByName: null })
+  }
 
   if (action === "hide") {
     await prisma.project.update({ where: { id }, data: { hiddenFromGallery: true } })

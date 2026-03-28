@@ -21,10 +21,10 @@ export async function POST(
 
   const project = await prisma.project.findUnique({
     where: { id },
-    select: { userId: true, designStatus: true },
+    select: { userId: true, deletedAt: true, designStatus: true },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 

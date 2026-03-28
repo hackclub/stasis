@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
-import { reassignAllFromSidekick, reassignSidekick } from "@/lib/sidekick";
+import { assignAllUnassigned, reassignAllFromSidekick, reassignSidekick } from "@/lib/sidekick";
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -29,8 +29,17 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Bulk assign all unassigned users: { assignAllUnassigned: true }
+  if (body.assignAllUnassigned) {
+    const results = await assignAllUnassigned();
+    return NextResponse.json({
+      success: true,
+      assigned: results.filter(Boolean).length,
+    });
+  }
+
   return NextResponse.json(
-    { error: "Must provide either assigneeId or sidekickId" },
+    { error: "Must provide assigneeId, sidekickId, or assignAllUnassigned" },
     { status: 400 }
   );
 }

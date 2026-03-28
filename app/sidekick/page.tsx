@@ -79,9 +79,19 @@ export default function SidekickPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-cream-700 text-sm uppercase">
-        {assignees.length} assignee{assignees.length !== 1 ? 's' : ''}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-cream-700 text-sm uppercase">
+          {assignees.length} assignee{assignees.length !== 1 ? 's' : ''}
+        </p>
+        <button
+          onClick={() => {
+            window.location.href = '/api/sidekick/assignees?format=csv';
+          }}
+          className="px-3 py-1.5 text-xs uppercase bg-cream-200 border border-cream-400 text-cream-800 hover:border-cream-500 transition-colors"
+        >
+          Export CSV
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {assignees.map((assignee) => (

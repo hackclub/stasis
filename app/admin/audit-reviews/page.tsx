@@ -132,14 +132,14 @@ export default function AuditReviewsPage() {
                 className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
                   resultFilter === val
                     ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                    : 'border-cream-400 text-brown-800 hover:border-orange-500'
+                    : 'border-cream-500/20 text-cream-50 hover:border-orange-500'
                 }`}
               >
                 {val || 'All'}
               </button>
             ))}
 
-            <span className="border-l border-cream-400 mx-1" />
+            <span className="border-l border-cream-500/20 mx-1" />
 
             {/* Stage filters */}
             {['', 'DESIGN', 'BUILD'].map((val) => (
@@ -149,28 +149,28 @@ export default function AuditReviewsPage() {
                 className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
                   stageFilter === val
                     ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                    : 'border-cream-400 text-brown-800 hover:border-orange-500'
+                    : 'border-cream-500/20 text-cream-50 hover:border-orange-500'
                 }`}
               >
                 {val || 'All Stages'}
               </button>
             ))}
 
-            <span className="border-l border-cream-400 mx-1" />
+            <span className="border-l border-cream-500/20 mx-1" />
 
             <button
               onClick={() => { setZeroGrant(!zeroGrant); setPage(1); }}
               className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
                 zeroGrant
                   ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                  : 'border-cream-400 text-brown-800 hover:border-orange-500'
+                  : 'border-cream-500/20 text-cream-50 hover:border-orange-500'
               }`}
             >
               $0 Grant
             </button>
           </div>
 
-          <p className="text-brown-800 text-sm uppercase">
+          <p className="text-cream-50 text-sm uppercase">
             {pagination?.total ?? 0} review{(pagination?.total ?? 0) !== 1 ? 's' : ''}
           </p>
         </div>
@@ -180,7 +180,7 @@ export default function AuditReviewsPage() {
           <select
             value={reviewerFilter}
             onChange={(e) => { setReviewerFilter(e.target.value); setPage(1); }}
-            className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none text-sm"
+            className="bg-brown-800 border-2 border-cream-500/20 px-4 py-2 text-cream-50 focus:border-orange-500 focus:outline-none text-sm"
           >
             <option value="">All Reviewers</option>
             {reviewers.map((r) => (
@@ -193,13 +193,13 @@ export default function AuditReviewsPage() {
             type="date"
             value={startDate}
             onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-            className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none text-sm"
+            className="bg-brown-800 border-2 border-cream-500/20 px-4 py-2 text-cream-50 focus:border-orange-500 focus:outline-none text-sm"
           />
           <input
             type="date"
             value={endDate}
             onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-            className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 focus:border-orange-500 focus:outline-none text-sm"
+            className="bg-brown-800 border-2 border-cream-500/20 px-4 py-2 text-cream-50 focus:border-orange-500 focus:outline-none text-sm"
           />
           <form onSubmit={handleSearch} className="flex gap-2">
             <input
@@ -207,7 +207,7 @@ export default function AuditReviewsPage() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search project title..."
-              className="px-3 py-2 text-sm border-2 border-cream-400 bg-cream-100 text-brown-800 placeholder:text-cream-600 focus:outline-none focus:border-orange-500 w-56"
+              className="px-3 py-2 text-sm border-2 border-cream-500/20 bg-brown-800 text-cream-50 placeholder:text-cream-300 focus:outline-none focus:border-orange-500 w-56"
             />
             <button
               type="submit"
@@ -229,7 +229,7 @@ export default function AuditReviewsPage() {
                 setZeroGrant(false);
                 setPage(1);
               }}
-              className="px-4 py-2 text-sm uppercase text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
+              className="px-4 py-2 text-sm uppercase text-cream-50 hover:text-orange-500 transition-colors cursor-pointer"
             >
               Clear All
             </button>
@@ -240,11 +240,11 @@ export default function AuditReviewsPage() {
       {/* Review Cards */}
       {loading ? (
         <div className="text-center py-8">
-          <p className="text-brown-800">Loading reviews...</p>
+          <p className="text-cream-50">Loading reviews...</p>
         </div>
       ) : reviews.length === 0 ? (
-        <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-          <p className="text-brown-800">No reviews found</p>
+        <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center">
+          <p className="text-cream-50">No reviews found</p>
         </div>
       ) : (
         <>
@@ -256,7 +256,7 @@ export default function AuditReviewsPage() {
                 <Link
                   key={review.id}
                   href={`/admin/audit-reviews/${review.project.id}`}
-                  className={`block bg-cream-100 border-2 border-cream-400 p-4 hover:border-orange-500 transition-colors ${
+                  className={`block bg-brown-800 border-2 border-cream-500/20 p-4 hover:border-orange-500 transition-colors ${
                     review.invalidated ? 'opacity-50' : ''
                   }`}
                 >
@@ -266,7 +266,7 @@ export default function AuditReviewsPage() {
                       {review.reviewer.image && (
                         <img src={review.reviewer.image} alt="" className="w-6 h-6 rounded-full" />
                       )}
-                      <span className="text-brown-800 text-sm font-medium">
+                      <span className="text-cream-50 text-sm font-medium">
                         {review.reviewer.name || 'Unknown'}
                       </span>
                     </div>
@@ -284,7 +284,7 @@ export default function AuditReviewsPage() {
                     {review.invalidated && (
                       <span className="text-xs uppercase px-2 py-0.5 bg-red-100 text-red-800">Invalidated</span>
                     )}
-                    <span className="text-brown-800 text-xs ml-auto">
+                    <span className="text-cream-50 text-xs ml-auto">
                       {new Date(review.createdAt).toLocaleString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -301,38 +301,38 @@ export default function AuditReviewsPage() {
                       <img
                         src={review.project.coverImage}
                         alt=""
-                        className="w-8 h-8 object-cover border border-cream-400"
+                        className="w-8 h-8 object-cover border border-cream-500/20"
                       />
                     )}
-                    <span className="text-brown-800 font-medium">{review.project.title}</span>
-                    <span className="text-cream-600">by</span>
-                    <span className="text-brown-800">{review.project.author.name || 'Unknown'}</span>
+                    <span className="text-cream-50 font-medium">{review.project.title}</span>
+                    <span className="text-cream-200">by</span>
+                    <span className="text-cream-50">{review.project.author.name || 'Unknown'}</span>
                     {tierInfo && (
                       <span className={`text-xs px-2 py-0.5 ${TIER_COLORS[tierInfo.id] || ''}`}>
                         T{tierInfo.id} ({tierInfo.bits}b)
                       </span>
                     )}
-                    <span className="text-brown-800">{review.project.totalHours}h</span>
-                    <span className="text-brown-800">${review.project.bomCost.toFixed(2)} BOM</span>
+                    <span className="text-cream-50">{review.project.totalHours}h</span>
+                    <span className="text-cream-50">${review.project.bomCost.toFixed(2)} BOM</span>
                     {review.project.costPerHour > 0 && (
-                      <span className="text-brown-800">${review.project.costPerHour.toFixed(2)}/h</span>
+                      <span className="text-cream-50">${review.project.costPerHour.toFixed(2)}/h</span>
                     )}
                     {review.project.bitsPerHour !== null && (
                       <span className="text-orange-500">{review.project.bitsPerHour} bits/h</span>
                     )}
-                    <span className="text-cream-600">{review.project.entryCount} entries</span>
+                    <span className="text-cream-200">{review.project.entryCount} entries</span>
                   </div>
 
                   {/* Feedback */}
                   <div className="mb-2">
-                    <p className="text-brown-800 text-sm whitespace-pre-wrap">{review.feedback}</p>
+                    <p className="text-cream-50 text-sm whitespace-pre-wrap">{review.feedback}</p>
                   </div>
 
                   {/* Internal reason */}
                   {review.reason && (
                     <div className="mb-2">
-                      <span className="text-cream-600 text-xs uppercase">Internal: </span>
-                      <span className="text-cream-600 text-sm">{review.reason}</span>
+                      <span className="text-cream-200 text-xs uppercase">Internal: </span>
+                      <span className="text-cream-200 text-sm">{review.reason}</span>
                     </div>
                   )}
 
@@ -367,17 +367,17 @@ export default function AuditReviewsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-xs uppercase border border-cream-500/20 text-cream-50 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 Prev
               </button>
-              <span className="text-sm text-brown-800">
+              <span className="text-sm text-cream-50">
                 Page {pagination.page} of {pagination.totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                 disabled={page >= pagination.totalPages}
-                className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-xs uppercase border border-cream-500/20 text-cream-50 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 Next
               </button>

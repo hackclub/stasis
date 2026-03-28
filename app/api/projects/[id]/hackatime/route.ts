@@ -20,7 +20,7 @@ export async function GET(
     include: { hackatimeProjects: true },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
@@ -68,7 +68,7 @@ export async function POST(
     where: { id },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
@@ -127,7 +127,7 @@ export async function DELETE(
     include: { project: true },
   })
 
-  if (!hp) {
+  if (!hp || hp.project.deletedAt) {
     return NextResponse.json({ error: "Hackatime project not found" }, { status: 404 })
   }
 

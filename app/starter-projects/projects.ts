@@ -73,7 +73,7 @@ export const projects: StarterProject[] = [
   {
     id: 'pathfinder',
     name: 'Pathfinder',
-    hours: 10,
+    hours: 5,
     short_description: 'Make a custom PCB controller board and fidget — learn hardware skills along the way.',
     badges: ['MCU', 'CAD'],
     hasTutorial: true,
@@ -82,7 +82,7 @@ export const projects: StarterProject[] = [
   {
     id: 'hermes',
     name: 'Hermes',
-    hours: 5,
+    hours: 10,
     short_description: 'Make a PCB with an in-built sensor and transmit data using I2C.',
     badges: ['I2C', 'MCU'],
     hasTutorial: true,

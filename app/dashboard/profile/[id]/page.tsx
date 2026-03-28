@@ -7,6 +7,7 @@ import Image from 'next/image';
 import type { ProjectTag, BadgeType } from "@/app/generated/prisma/enums";
 import { getBadgeImage } from "@/lib/badges";
 import { TAG_LABELS } from "@/lib/tags";
+import { ActivityHeatmap } from "@/app/components/ActivityHeatmap";
 
 interface ProfileProject {
   id: string;
@@ -18,6 +19,12 @@ interface ProfileProject {
   buildStatus: string;
 }
 
+interface ActivityDay {
+  date: string;
+  hours: number;
+  sessions: number;
+}
+
 interface ProfileData {
   user: {
     id: string;
@@ -27,8 +34,10 @@ interface ProfileData {
     createdAt: string;
   };
   bitsBalance: number;
+  pendingBits: number;
   badges: { badge: BadgeType; grantedAt: string }[];
   projects: ProfileProject[];
+  activity: ActivityDay[];
 }
 
 const BADGE_LABELS: Record<string, string> = {
@@ -132,7 +141,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
       <div className="flex flex-col lg:flex-row gap-10">
         {/* Left sidebar - Avatar, Bio */}
-        <div className="lg:w-80 flex-shrink-0">
+        <div className="lg:w-80 flex-shrink-0 flex flex-col gap-6">
           <div className="bg-cream-100 border-2 border-cream-400 p-6">
             {/* Avatar */}
             <div className="flex justify-center mb-4">
@@ -179,9 +188,14 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
             )}
 
             {/* Bits */}
-            <div className="mb-4 flex items-baseline justify-center gap-2">
-              <span className="text-orange-500 text-3xl font-bold">{profile.bitsBalance.toLocaleString()}</span>
-              <span className="text-cream-600 text-sm uppercase tracking-wide">Bits</span>
+            <div className="mb-4 text-center">
+              <div className="flex items-baseline justify-center gap-2">
+                <span className="text-orange-500 text-3xl font-bold">{(profile.bitsBalance - profile.pendingBits).toLocaleString()}</span>
+                <span className="text-cream-600 text-sm uppercase tracking-wide">Bits</span>
+              </div>
+              {profile.pendingBits > 0 && (
+                <p className="text-cream-600 text-xs">{profile.pendingBits.toLocaleString()} bits pending build review</p>
+              )}
             </div>
 
             {/* Actions */}
@@ -202,6 +216,9 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               </button>
             </div>
           </div>
+
+          {/* Activity Heatmap */}
+          <ActivityHeatmap activity={profile.activity} memberSince={profile.user.createdAt} />
         </div>
 
         {/* Right content - Badges & Projects */}

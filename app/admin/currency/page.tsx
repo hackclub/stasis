@@ -7,7 +7,7 @@ interface LedgerEntry {
   userId: string;
   projectId: string | null;
   amount: number;
-  type: 'PROJECT_APPROVED' | 'ADMIN_GRANT' | 'ADMIN_DEDUCTION' | 'SHOP_PURCHASE';
+  type: 'PROJECT_APPROVED' | 'DESIGN_APPROVED' | 'ADMIN_GRANT' | 'ADMIN_DEDUCTION' | 'SHOP_PURCHASE';
   note: string | null;
   balanceBefore: number;
   balanceAfter: number;
@@ -18,6 +18,7 @@ interface LedgerEntry {
 
 const TYPE_LABELS: Record<LedgerEntry['type'], string> = {
   PROJECT_APPROVED: 'Project Approved',
+  DESIGN_APPROVED: 'Design Approved (Pending)',
   ADMIN_GRANT: 'Admin Grant',
   ADMIN_DEDUCTION: 'Admin Deduction',
   SHOP_PURCHASE: 'Shop Purchase',
@@ -110,28 +111,28 @@ export default function BitsLedgerPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-orange-500 text-2xl uppercase tracking-wide">Bits Ledger</h1>
-        <p className="text-brown-800 text-sm mt-1">
+        <p className="text-cream-50 text-sm mt-1">
           Immutable record of all bits transactions. {total.toLocaleString()} total entries.
         </p>
       </div>
 
       {/* Manual adjustment */}
-      <div className="bg-cream-100 border-2 border-cream-400 p-6">
-        <h2 className="text-brown-800 text-lg uppercase tracking-wide mb-4">Manual Adjustment</h2>
+      <div className="bg-brown-800 border-2 border-cream-500/20 p-6">
+        <h2 className="text-cream-50 text-lg uppercase tracking-wide mb-4">Manual Adjustment</h2>
         <form onSubmit={handleAdjust} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">User ID or Email</label>
+              <label className="text-cream-50 text-xs uppercase block mb-1">User ID or Email</label>
               <input
                 type="text"
                 value={adjustUserId}
                 onChange={(e) => setAdjustUserId(e.target.value)}
                 placeholder="cuid or email..."
-                className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-mono"
+                className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-mono"
               />
             </div>
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">
+              <label className="text-cream-50 text-xs uppercase block mb-1">
                 Amount (+ credit / − debit)
               </label>
               <input
@@ -139,17 +140,17 @@ export default function BitsLedgerPage() {
                 value={adjustAmount}
                 onChange={(e) => setAdjustAmount(e.target.value)}
                 placeholder="e.g. 50 or -25"
-                className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">Note</label>
+              <label className="text-cream-50 text-xs uppercase block mb-1">Note</label>
               <input
                 type="text"
                 value={adjustNote}
                 onChange={(e) => setAdjustNote(e.target.value)}
                 placeholder="Reason..."
-                className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
               />
             </div>
           </div>
@@ -167,19 +168,19 @@ export default function BitsLedgerPage() {
       {/* Filter */}
       <div className="flex gap-3 items-end">
         <div>
-          <label className="text-brown-800 text-xs uppercase block mb-1">Filter by User ID or Email</label>
+          <label className="text-cream-50 text-xs uppercase block mb-1">Filter by User ID or Email</label>
           <input
             type="text"
             value={filterUserId}
             onChange={(e) => { setFilterUserId(e.target.value); setOffset(0); }}
             placeholder="Leave blank for all users"
-            className="w-72 bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-mono"
+            className="w-full sm:w-72 bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none font-mono"
           />
         </div>
       </div>
 
       {/* Ledger table */}
-      <div className="bg-cream-100 border-2 border-cream-400 overflow-x-auto">
+      <div className="bg-brown-800 border-2 border-cream-500/20 overflow-x-auto">
         {loading ? (
           <div className="p-8 text-center">
             <div className="flex items-center justify-center"><div className="loader" /></div>
@@ -190,36 +191,38 @@ export default function BitsLedgerPage() {
           </div>
         ) : entries.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-brown-800">No ledger entries found.</p>
+            <p className="text-cream-50">No ledger entries found.</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b-2 border-cream-400">
-                <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Date</th>
-                <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">User</th>
-                <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Type</th>
-                <th className="text-right text-brown-800 text-xs uppercase px-4 py-3">Amount</th>
-                <th className="text-right text-brown-800 text-xs uppercase px-4 py-3">Balance After</th>
-                <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Note</th>
+              <tr className="border-b-2 border-cream-500/20">
+                <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Date</th>
+                <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">User</th>
+                <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Type</th>
+                <th className="text-right text-cream-50 text-xs uppercase px-4 py-3">Amount</th>
+                <th className="text-right text-cream-50 text-xs uppercase px-4 py-3">Balance After</th>
+                <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Note</th>
               </tr>
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <tr key={entry.id} className="border-b border-cream-300 last:border-b-0 hover:bg-cream-200/50">
-                  <td className="text-brown-800 px-4 py-3 whitespace-nowrap">
+                <tr key={entry.id} className="border-b border-cream-500/10 last:border-b-0 hover:bg-cream-500/5">
+                  <td className="text-cream-50 px-4 py-3 whitespace-nowrap">
                     {new Date(entry.createdAt).toLocaleDateString('en-US', {
                       month: 'short', day: 'numeric', year: 'numeric',
                     })}
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-brown-800 font-medium">{entry.user.name ?? '—'}</p>
-                    <p className="text-cream-600 text-xs">{entry.user.email}</p>
+                    <p className="text-cream-50 font-medium">{entry.user.name ?? '—'}</p>
+                    <p className="text-cream-200 text-xs">{entry.user.email}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 text-xs uppercase border ${
                       entry.type === 'PROJECT_APPROVED'
                         ? 'bg-green-100 border-green-600 text-green-700'
+                        : entry.type === 'DESIGN_APPROVED'
+                        ? 'bg-gray-100 border-gray-500 text-gray-700'
                         : entry.type === 'ADMIN_GRANT'
                         ? 'bg-orange-500/10 border-orange-500/50 text-orange-500'
                         : entry.type === 'SHOP_PURCHASE'
@@ -234,10 +237,10 @@ export default function BitsLedgerPage() {
                   }`}>
                     {entry.amount > 0 ? '+' : ''}{entry.amount}
                   </td>
-                  <td className="text-right text-brown-800 px-4 py-3 font-mono">
+                  <td className="text-right text-cream-50 px-4 py-3 font-mono">
                     {entry.balanceAfter}
                   </td>
-                  <td className="text-brown-800 px-4 py-3 max-w-xs truncate">
+                  <td className="text-cream-50 px-4 py-3 max-w-xs truncate">
                     {entry.note ?? '—'}
                   </td>
                 </tr>
@@ -253,17 +256,17 @@ export default function BitsLedgerPage() {
           <button
             onClick={() => setOffset(Math.max(0, offset - LIMIT))}
             disabled={offset === 0}
-            className="bg-cream-200 border border-cream-400 text-brown-800 px-4 py-2 text-sm uppercase disabled:opacity-40 hover:bg-cream-300 transition-colors cursor-pointer"
+            className="bg-brown-900 border border-cream-500/20 text-cream-50 px-4 py-2 text-sm uppercase disabled:opacity-40 hover:bg-cream-500/10 transition-colors cursor-pointer"
           >
             Previous
           </button>
-          <span className="text-brown-800 text-sm">
+          <span className="text-cream-50 text-sm">
             {offset + 1}–{Math.min(offset + LIMIT, total)} of {total}
           </span>
           <button
             onClick={() => setOffset(offset + LIMIT)}
             disabled={offset + LIMIT >= total}
-            className="bg-cream-200 border border-cream-400 text-brown-800 px-4 py-2 text-sm uppercase disabled:opacity-40 hover:bg-cream-300 transition-colors cursor-pointer"
+            className="bg-brown-900 border border-cream-500/20 text-cream-50 px-4 py-2 text-sm uppercase disabled:opacity-40 hover:bg-cream-500/10 transition-colors cursor-pointer"
           >
             Next
           </button>

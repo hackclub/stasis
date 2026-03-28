@@ -3,7 +3,7 @@
 import { use } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { NoiseOverlay } from '../../components/NoiseOverlay';
+import { PlatformNoiseOverlay } from '../../components/PlatformNoiseOverlay';
 import { projects, type StarterProject } from '../projects';
 
 interface ProjectModule {
@@ -80,7 +80,7 @@ export default function StarterProjectPage({
           </article>
         </div>
       </div>
-      <NoiseOverlay />
+      <PlatformNoiseOverlay />
     </>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { MagneticCorners } from '../components/MagneticCorners';
-import { NoiseOverlay } from '../components/NoiseOverlay';
+import { PlatformNoiseOverlay } from '../components/PlatformNoiseOverlay';
 import { PlaceholderProjectPreview } from '../components/starter-projects/PlaceholderProjectPreview';
 import { ProjectPreview } from '../components/starter-projects/ProjectPreview';
 import { ProjectGridHoverCorners } from '../components/starter-projects/ProjectGridHoverCorners';
@@ -264,6 +264,13 @@ export default function StarterProjectsPage() {
 
   const circles = [160, 400, 640, 1200, 1440, 2160];
 
+  function selectRandomProject() {
+    const available = projects.filter((_, i) => i !== selectedProjectIndex);
+    if (available.length === 0) return;
+    const randomIdx = projects.indexOf(available[Math.floor(Math.random() * available.length)]);
+    handleProjectClick(randomIdx);
+  }
+
   return (
     <>
       <style jsx global>{`
@@ -286,7 +293,7 @@ export default function StarterProjectsPage() {
       `}</style>
 
       <div className="bg-[linear-gradient(var(--color-brown-900)/0.6,var(--color-brown-900)/0.6),url(/noise-smooth-dark.png)] min-h-screen relative overflow-hidden z-0 p-4 sm:px-6">
-        <div 
+        <div
           className="absolute inset-0 opacity-40 -z-1000 pointer-none"
           style={{
             backgroundImage: 'url(/grid-texture.png)', // TODO: change image so it is more visible
@@ -296,7 +303,7 @@ export default function StarterProjectsPage() {
           }}
         />
         {/* back to home */}
-        <div className="pt-4 2xl:absolute  2xl:ml-16 2xl:mt-16">
+        <div className="pt-4 2xl:absolute  2xl:ml-16 2xl:mt-16 flex items-center gap-3">
           <Link href="/dashboard">
             <MagneticCorners activationDistance={35} deactivationDistance={45}>
               <button className="block bg-orange-600 p-2 md:p-4 2xl:p-6 font-mono relative cursor-pointer hover:bg-orange-400">
@@ -304,13 +311,23 @@ export default function StarterProjectsPage() {
               </button>
             </MagneticCorners>
           </Link>
+          <button
+            onClick={selectRandomProject}
+            className="bg-cream-500/20 hover:bg-orange-600 border border-cream-500/40 hover:border-orange-600 text-cream-300 hover:text-cream-100 p-2 md:p-4 2xl:p-6 font-mono cursor-pointer transition-colors"
+            title="Random project"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="16 3 21 3 21 8" />
+              <line x1="4" y1="20" x2="21" y2="3" />
+              <polyline points="21 16 21 21 16 21" />
+              <line x1="15" y1="15" x2="21" y2="21" />
+              <line x1="4" y1="4" x2="9" y2="9" />
+            </svg>
+          </button>
         </div>
-        {/* apologies for the code below, temporarily removed as it was too annoying to make reponsive, will fix, sometime... */}
 
-        {/* <img src="/stasis-logo-white-center.svg" alt="" className="absolute -z-1 w-full mx-auto scale-120 md:scale-120 xl:scale-100 -translate-x-3 lg:-translate-x-6 -translate-y-[calc(100%-2vw)] md:-translate-y-[calc(100%-6vw)] lg:-translate-y-[calc(100%-8vw)] xl:-translate-y-[calc(100%-16vw)]  opacity-8" /> */}
-       
         <div className="flex flex-col max-w-6xl mx-auto font-mono mb-8 mt-10 lg:mt-16 2xl:mt-24">
-          <div className="bg-orange-600 text-cream-200 text-xl w-max px-4 py-2 relative after:bg-orange-600 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
+          <div className="bg-orange-600 text-cream-200 text-base sm:text-xl w-max px-4 py-2 relative after:bg-orange-600 after:absolute after:left-full after:top-0 after:h-full after:aspect-square after:[clip-path:polygon(0_0,0_100%,100%_100%)]">
             STARTER PROJECTS
           </div>
           {/* TODO: make the before/after decor fully in frame on md, currently only on xl< */}
@@ -396,18 +413,18 @@ export default function StarterProjectsPage() {
                     ref={el => { measureRefs.current[i] = el; }}
                     className="flex flex-col space-y-3 px-4 py-12 absolute opacity-0 pointer-events-none  mx-8"
                   >
-                    <h2 className="text-orange-600 text-5xl">{project.name.toUpperCase()}</h2>
-                    <p className="text-cream-50 text-2xl">{project.hours} {project.hours === 1 ? 'hour' : 'hours'}</p>
-                    <p className="text-cream-50 text-lg">{project.short_description}</p>
+                    <h2 className="text-orange-600 text-3xl sm:text-5xl">{project.name.toUpperCase()}</h2>
+                    <p className="text-cream-50 text-lg sm:text-2xl">{project.hours} {project.hours === 1 ? 'hour' : 'hours'}</p>
+                    <p className="text-cream-50 text-base sm:text-lg">{project.short_description}</p>
                   </div>
                 ))}
                 
                 {/* Visible project details */}
                 <div 
                   className="space-y-3 px-6 md:px-8 lg:mx-6 py-6 sm:py-10">
-                  <h2 className="text-orange-600 text-5xl min-h-[6rem]">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
-                  <p className="text-cream-300 text-2xl">TIER {STARTER_PROJECTS.find(p => p.id === projects[selectedProjectIndex ?? 0].id)?.tier ?? '?'} · ~{projects[selectedProjectIndex ?? 0].hours} {projects[selectedProjectIndex ?? 0].hours === 1 ? 'hour' : 'hours'}</p>
-                  <p className="text-cream-300 text-lg min-h-[5.25rem]">{projects[selectedProjectIndex ?? 0].short_description}</p>
+                  <h2 className="text-orange-600 text-3xl sm:text-5xl min-h-0 sm:min-h-24">{projects[selectedProjectIndex ?? 0].name.toUpperCase()}</h2>
+                  <p className="text-cream-300 text-lg sm:text-2xl">TIER {STARTER_PROJECTS.find(p => p.id === projects[selectedProjectIndex ?? 0].id)?.tier ?? '?'} · ~{projects[selectedProjectIndex ?? 0].hours} {projects[selectedProjectIndex ?? 0].hours === 1 ? 'hour' : 'hours'}</p>
+                  <p className="text-cream-300 text-base sm:text-lg min-h-0 sm:min-h-21">{projects[selectedProjectIndex ?? 0].short_description}</p>
                 </div>
                 <div className="w-full">
                   <div className="flex flex-row border-cream-500 border-y-2 relative z-10 min-h-18">
@@ -430,12 +447,12 @@ export default function StarterProjectsPage() {
                   {/* TODO: add back hover effect using GSAP instead */}
                   {projects[selectedProjectIndex ?? 0].hasTutorial ? (
                     <Link href={`/starter-projects/${projects[selectedProjectIndex ?? 0].id}`} className="block w-full">
-                      <button className="w-full h-fit bg-orange-600 text-cream-100 text-2xl hover:bg-white hover:text-orange-600 py-6 cursor-pointer relative overflow-hidden group z-1 transition-colors duration-150 border-orange-600/20 border-r-3">
+                      <button className="w-full h-fit bg-orange-600 text-cream-100 text-xl sm:text-2xl hover:bg-white hover:text-orange-600 py-4 sm:py-6 cursor-pointer relative overflow-hidden group z-1 transition-colors duration-150 border-orange-600/20 border-r-3">
                         <span className="w-full h-full block">GUIDE</span>
                       </button>
                     </Link>
                   ) : (
-                    <button disabled className="w-full h-fit text-cream-600/40 text-2xl py-6 cursor-not-allowed relative overflow-hidden z-1 border-orange-600/20 border-r-3">
+                    <button disabled className="w-full h-fit text-cream-600/40 text-xl sm:text-2xl py-4 sm:py-6 cursor-not-allowed relative overflow-hidden z-1 border-orange-600/20 border-r-3">
                       <span className="w-full h-full block">GUIDE</span>
                     </button>
                   )}
@@ -486,7 +503,7 @@ export default function StarterProjectsPage() {
         <div className="absolute bottom-0 left-0 w-full h-48 bg-[linear-gradient(var(--color-brown-800 / 0%),var(--color-brown-800))] -z-2" />
       </div>
 
-      <NoiseOverlay />
+      <PlatformNoiseOverlay />
     </>
   );
 }
@@ -606,7 +623,7 @@ function PreviewImage({
           <img
             key={projects[previousIndex].id}
             src={`/projects/${projects[previousIndex].image ?? projects[previousIndex].id + '.png'}`}
-            alt=""
+            alt={projects[previousIndex].name}
             className="w-full h-full object-contain"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
@@ -619,7 +636,7 @@ function PreviewImage({
         <img
           key={projects[currentIndex].id}
           src={`/projects/${projects[currentIndex].image ?? projects[currentIndex].id + '.png'}`}
-          alt=""
+          alt={projects[currentIndex].name}
           className="w-full h-full object-contain"
           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />

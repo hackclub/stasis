@@ -321,21 +321,23 @@ export async function getReferrerByNumber(referrerNumber: number): Promise<{
   };
 }
 
-export function eventPreferenceToDisplayName(event: string): string {
-  return event === 'opensauce' ? 'Open Sauce' : 'Stasis';
+export function goalPreferenceToDisplayName(goal: string): string {
+  if (goal === 'opensauce') return 'Open Sauce';
+  if (goal === 'prizes') return 'Prizes';
+  return 'Stasis';
 }
 
-export async function updateTargetEvent(email: string, event: string): Promise<boolean> {
-  const displayName = eventPreferenceToDisplayName(event);
+export async function updateTargetGoal(email: string, goal: string): Promise<boolean> {
+  const displayName = goalPreferenceToDisplayName(goal);
 
   if (isPostgresMode()) {
-    // No target event field in TempRsvp — will be synced to Airtable later
+    // No target goal field in TempRsvp — will be synced to Airtable later
     return true;
   }
 
   const base = getAirtableBase();
   if (!base) {
-    console.warn('Airtable credentials not configured, skipping target event update');
+    console.warn('Airtable credentials not configured, skipping target goal update');
     return false;
   }
 
@@ -402,6 +404,7 @@ export async function submitYSWSProjectSubmission(data: {
   stasisId: string | null;
   slackId: string | null;
   guide: string | null;
+  stage: 'Design' | 'Build';
 }): Promise<void> {
   const base = getAirtableBase();
   if (!base) {
@@ -427,12 +430,13 @@ export async function submitYSWSProjectSubmission(data: {
     'ZIP / Postal Code': data.zip || '',
     'Birthday': data.birthday || '',
     'Optional - Override Hours Spent': data.totalHours,
-    'Optional - Override Hours Spent Justification': data.hoursJustification || '',
+    ...(data.hoursJustification != null ? { 'Optional - Override Hours Spent Justification': data.hoursJustification } : {}),
     'Requested Grant Amount': data.grantAmount ?? 0,
     'Complexity Tier': data.complexityTier || '',
     'Stasis ID': data.stasisId || '',
     'Slack ID': data.slackId || '',
     'guide': data.guide || '',
+    'Stage': data.stage,
   };
 
   if (data.bannerUrl) fields['Screenshot'] = [{ url: data.bannerUrl }];
@@ -441,7 +445,7 @@ export async function submitYSWSProjectSubmission(data: {
   if (data.stasisId) {
     const existing = await base(tableName)
       .select({
-        filterByFormula: `{Stasis ID} = '${data.stasisId.replace(/'/g, "\\'")}'`,
+        filterByFormula: `AND({Stasis ID} = '${data.stasisId.replace(/'/g, "\\'")}', {Stage} = '${data.stage}')`,
         maxRecords: 1,
       })
       .firstPage();
@@ -457,9 +461,10 @@ export async function submitYSWSProjectSubmission(data: {
 
 export async function syncProjectToAirtable(
   userId: string,
-  project: { id: string; tier?: number | null; githubRepo: string | null; description: string | null; coverImage: string | null; starterProjectId?: string | null; workSessions: { hoursClaimed: number }[] },
+  project: { id: string; tier?: number | null; githubRepo: string | null; description: string | null; coverImage: string | null; starterProjectId?: string | null; workSessions: { hoursClaimed: number; stage?: string }[] },
   hoursJustification?: string,
   airtableGrantAmount?: number | null,
+  options?: { buildOnly?: boolean },
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
@@ -485,7 +490,10 @@ export async function syncProjectToAirtable(
   const nameParts = (user.name || '').trim().split(/\s+/);
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
-  const workSessionHours = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0);
+  const filteredSessions = options?.buildOnly
+    ? project.workSessions.filter((s) => s.stage === 'BUILD')
+    : project.workSessions;
+  const workSessionHours = filteredSessions.reduce((sum, s) => sum + s.hoursClaimed, 0);
 
   // Sum firmware time from linked hackatime projects,
   // preferring admin-reviewed hoursApproved over raw API hours
@@ -536,6 +544,7 @@ export async function syncProjectToAirtable(
     stasisId: project.id,
     slackId: user.slackId ?? null,
     guide: project.starterProjectId ? (STARTER_PROJECT_NAMES[project.starterProjectId] ?? project.starterProjectId) : null,
+    stage: options?.buildOnly ? 'Build' : 'Design',
   });
 }
 

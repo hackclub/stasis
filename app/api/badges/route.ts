@@ -25,10 +25,10 @@ export async function GET(request: NextRequest) {
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true },
+    select: { userId: true, deletedAt: true },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
@@ -66,10 +66,10 @@ export async function POST(request: NextRequest) {
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true },
+    select: { userId: true, deletedAt: true },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 

@@ -11,6 +11,7 @@ Stasis is a hackathon platform (Hack Club) built with Next.js 16 (App Router) + 
 ```bash
 yarn dev              # Start dev server (or use ./dev.sh to also start local Postgres via Docker)
 yarn build            # Production build (standalone output for Docker)
+yarn typecheck        # TypeScript type checking (also runs during build)
 yarn lint             # ESLint
 yarn db:studio        # Open Prisma Studio
 yarn db:test          # Test database connection
@@ -18,9 +19,16 @@ npx prisma generate   # Regenerate Prisma client after schema changes
 npx prisma migrate dev # Create/apply migrations
 ```
 
+No test framework is configured. When using Playwright for screenshots, save images to `/tmp`.
+
 Always run `yarn build` after completing any code changes to verify there are no build errors before finishing.
 
 ## Architecture
+
+### Structure
+
+- **Components**: Live under `app/components/`, not a top-level `components/` directory
+- **Sentry**: Configured in `instrumentation.ts`; production builds include Sentry plugin, local builds skip it
 
 ### Routing & API
 
@@ -49,10 +57,11 @@ Always run `yarn build` after completing any code changes to verify there are no
 - `airtable.ts` — RSVP CRUD and referral tracking
 - `audit.ts` — Audit logging for sensitive actions
 - `sanitize.ts` — HTML sanitization with DOMPurify
+- `pii.ts` — AES-256-GCM encryption/decryption for User PII fields (address, birthday)
 
 ### Project Workflow
 
-Projects go through: Design stage (submit → review → approve/reject) → Build stage (work sessions with time tracking → review → approve). Bill of Materials items have their own review cycle.
+Projects go through: Design stage (submit → review → approve/reject) → Build stage (work sessions with time tracking → review → approve). Bill of Materials items have their own review cycle. Submissions use a `ReviewClaim` lock with expiry to prevent concurrent reviews.
 
 ### Pre-Launch Mode
 
@@ -105,6 +114,16 @@ Replace `USER_EMAIL_HERE` with the user's email and `AMOUNT_HERE` with the numbe
 
 Never AI-generate migration files. Always use `npx prisma migrate dev --name <descriptive_name>` to create migrations — this requires a running database. Always include a descriptive `--name` flag (e.g., `--name add_shop_items_table`) so the migration folder is clearly named. If the database is not available, instruct the user to run the migration themselves.
 
-## TypeScript
+## TypeScript & Code Style
 
 Strict mode enabled. Path alias `@/*` maps to project root.
+
+- Client components must use `'use client'` directive
+- Use `Readonly<>` for component prop types
+- Named exports for components (e.g., `export function Component`)
+- Sanitize all user input in API routes before saving:
+  ```typescript
+  import { sanitize } from "@/lib/sanitize"
+  const safeTitle = sanitize(body.title)       // plain text
+  const safeHtml = sanitizeHtml(body.content)   // if HTML allowed
+  ```

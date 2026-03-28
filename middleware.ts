@@ -6,7 +6,7 @@ const securityHeaders = {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://avatars.slack-edge.com https://github.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://*.s3.amazonaws.com https://blueprint.hackclub.com https://cdn.hackclub.com https://user-cdn.hackclub-assets.com https://*.airtableusercontent.com https://www.freeiconspng.com https://hc-cdn.hel1.your-objectstorage.com https://mm.digikey.com data: blob:",
+    "img-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://avatars.slack-edge.com https://github.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://*.s3.amazonaws.com https://blueprint.hackclub.com https://cdn.hackclub.com https://user-cdn.hackclub-assets.com https://*.airtableusercontent.com https://www.freeiconspng.com https://hc-cdn.hel1.your-objectstorage.com https://mm.digikey.com https://files.catbox.moe data: blob:",
     "media-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com blob:",
     "connect-src 'self' https://api2.hackclub.com",
     "font-src 'self'",
@@ -66,7 +66,7 @@ export function middleware(request: NextRequest) {
 
   // Redirect logged-in users from / to /dashboard immediately (no flash)
   if (request.nextUrl.pathname === "/") {
-    const hasSession = request.cookies.has("better-auth.session_token");
+    const hasSession = request.cookies.has("better-auth.session_token") || request.cookies.has("__Secure-better-auth.session_token");
     if (hasSession) {
       const baseUrl = process.env.BETTER_AUTH_URL;
       if (baseUrl) {

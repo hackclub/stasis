@@ -67,6 +67,7 @@ export async function GET(
     where: { id },
     select: {
       id: true,
+      deletedAt: true,
       createdAt: true,
       userId: true,
       user: {
@@ -79,7 +80,7 @@ export async function GET(
     },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 

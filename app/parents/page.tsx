@@ -1,9 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import type { MDXComponents } from 'mdx/types';
 import Parents from '../dashboard/help/content/parents.mdx';
-import { NoiseOverlay } from '../components/NoiseOverlay';
+import { PlatformNoiseOverlay } from '../components/PlatformNoiseOverlay';
 
 const mdxComponents: MDXComponents = {
   h2: ({ children }) => (
@@ -40,13 +41,13 @@ export default function ParentsPage() {
     <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden">
       <div className="pl-3 pr-6 py-2 flex items-center justify-between border-b border-cream-400">
         <Link href="/" className="hover:opacity-80 transition-opacity">
-          <img src="/stasis-logo.svg" alt="Stasis" className="h-10 w-auto" />
+          <Image src="/stasis-logo.svg" alt="Stasis" width={120} height={40} className="h-10 w-auto" />
         </Link>
         <Link href="/dashboard" className="text-orange-500 hover:text-orange-400 text-sm uppercase tracking-wide">
           Dashboard &rarr;
         </Link>
       </div>
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="bg-cream-100 border-2 border-cream-400 p-4 md:p-6">
           <h1 className="text-orange-500 text-xl md:text-2xl uppercase tracking-wide mb-4 md:mb-6">
             Guide for Parents
@@ -58,8 +59,8 @@ export default function ParentsPage() {
             <Parents components={mdxComponents} />
           </div>
         </div>
-      </div>
-      <NoiseOverlay />
+      </main>
+      <PlatformNoiseOverlay />
     </div>
   );
 }

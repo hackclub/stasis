@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signOut, linkOAuth2 } from "@/lib/auth-client";
+import { ToggleSwitch } from '@/app/components/ToggleSwitch';
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [hackatimeLinked, setHackatimeLinked] = useState<boolean | null>(null);
+  const [disableGrain, setDisableGrain] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function checkHackatime() {
@@ -16,8 +18,20 @@ export default function SettingsPage() {
         setHackatimeLinked(false);
       }
     }
+    async function fetchGrainPref() {
+      try {
+        const res = await fetch('/api/user/grain');
+        if (res.ok) {
+          const data = await res.json();
+          setDisableGrain(data.disableGrain);
+        }
+      } catch {
+        setDisableGrain(false);
+      }
+    }
     if (session) {
       checkHackatime();
+      fetchGrainPref();
     }
   }, [session]);
 
@@ -68,6 +82,34 @@ export default function SettingsPage() {
               Link Hackatime Account
             </button>
           )}
+        </div>
+
+        <div className="border-t border-cream-400 pt-6">
+          <h2 className="text-orange-500 text-xl uppercase mb-4">Appearance</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-brown-800 text-sm font-medium">Disable grain effect</p>
+              <p className="text-brown-600 text-xs">Turn off the animated film grain overlay on platform pages.</p>
+            </div>
+            {disableGrain === null ? (
+              <div className="loader" style={{ width: 12, height: 18 }} />
+            ) : (
+              <ToggleSwitch
+                checked={disableGrain}
+                label="Disable grain effect"
+                onChange={async (newValue) => {
+                  setDisableGrain(newValue);
+                  localStorage.setItem('disableGrain', String(newValue));
+                  window.dispatchEvent(new CustomEvent('grain-preference-changed', { detail: { disabled: newValue } }));
+                  await fetch('/api/user/grain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ disableGrain: newValue }),
+                  });
+                }}
+              />
+            )}
+          </div>
         </div>
 
         <div className="border-t border-cream-400 pt-6">

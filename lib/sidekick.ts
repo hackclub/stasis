@@ -3,10 +3,6 @@ import { Role } from "@/app/generated/prisma/client";
 import { sendSlackDM } from "@/lib/slack";
 
 export async function findLeastLoadedSidekick(excludeId?: string, pronouns?: string) {
-  // For she/her users: prefer she/her sidekicks
-  // For everyone else: use any sidekick but deprioritize she/her ones
-  const preferSheHer = pronouns === "she/her";
-
   const allSidekickRoles = await prisma.userRole.findMany({
     where: {
       role: Role.SIDEKICK,
@@ -17,38 +13,30 @@ export async function findLeastLoadedSidekick(excludeId?: string, pronouns?: str
 
   if (allSidekickRoles.length === 0) return null;
 
-  // Split into she/her and non-she/her pools
-  const sheHerIds = allSidekickRoles
-    .filter((r) => r.user.pronouns === "she/her")
-    .map((r) => r.userId);
-  const otherIds = allSidekickRoles
-    .filter((r) => r.user.pronouns !== "she/her")
-    .map((r) => r.userId);
+  const allIds = allSidekickRoles.map((r) => r.userId);
 
-  // Determine which pool to search: she/her users get she/her pool first,
-  // everyone else gets non-she/her pool first
-  let primaryIds = preferSheHer ? sheHerIds : otherIds;
-  let fallbackIds = preferSheHer ? otherIds : sheHerIds;
-
-  // If primary pool is empty, use fallback
-  if (primaryIds.length === 0) {
-    primaryIds = fallbackIds;
-    fallbackIds = [];
+  // she/her users → she/her sidekicks only (fallback to all if none exist)
+  // everyone else → full pool, least-loaded
+  let pool = allIds;
+  if (pronouns === "she/her") {
+    const sheHerIds = allSidekickRoles
+      .filter((r) => r.user.pronouns === "she/her")
+      .map((r) => r.userId);
+    if (sheHerIds.length > 0) pool = sheHerIds;
   }
 
-  const allIds = [...primaryIds, ...fallbackIds];
   const counts = await prisma.sidekickAssignment.groupBy({
     by: ["sidekickId"],
-    where: { sidekickId: { in: allIds } },
+    where: { sidekickId: { in: pool } },
     _count: { id: true },
   });
 
   const countMap = new Map(counts.map((c) => [c.sidekickId, c._count.id]));
 
-  // Pick the least-loaded from the primary pool
-  let minId = primaryIds[0];
-  let minCount = countMap.get(primaryIds[0]) ?? 0;
-  for (const id of primaryIds) {
+  // Pick the least-loaded from the pool
+  let minId = pool[0];
+  let minCount = countMap.get(pool[0]) ?? 0;
+  for (const id of pool) {
     const count = countMap.get(id) ?? 0;
     if (count < minCount) {
       minCount = count;
@@ -103,12 +91,13 @@ export async function assignSidekick(assigneeId: string, pronouns?: string) {
 }
 
 export async function reassignSidekick(assigneeId: string, newSidekickId?: string, excludeSidekickId?: string) {
-  const existing = await prisma.sidekickAssignment.findUnique({
-    where: { assigneeId },
-  });
+  const [existing, assignee] = await Promise.all([
+    prisma.sidekickAssignment.findUnique({ where: { assigneeId } }),
+    prisma.user.findUnique({ where: { id: assigneeId }, select: { pronouns: true } }),
+  ]);
 
   const targetSidekickId =
-    newSidekickId ?? (await findLeastLoadedSidekick(excludeSidekickId ?? existing?.sidekickId));
+    newSidekickId ?? (await findLeastLoadedSidekick(excludeSidekickId ?? existing?.sidekickId, assignee?.pronouns ?? undefined));
 
   if (!targetSidekickId) {
     console.warn("No sidekicks available for reassignment");
@@ -164,6 +153,23 @@ export async function reassignAllFromSidekick(sidekickId: string) {
   const results = [];
   for (const { assigneeId } of assignments) {
     results.push(await reassignSidekick(assigneeId, undefined, sidekickId));
+  }
+
+  return results;
+}
+
+export async function assignAllUnassigned() {
+  const unassigned = await prisma.user.findMany({
+    where: {
+      assignedSidekick: null,
+      roles: { none: { role: Role.SIDEKICK } },
+    },
+    select: { id: true, pronouns: true },
+  });
+
+  const results = [];
+  for (const user of unassigned) {
+    results.push(await assignSidekick(user.id, user.pronouns ?? undefined));
   }
 
   return results;

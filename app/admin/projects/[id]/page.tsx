@@ -107,6 +107,8 @@ interface AdminProject {
   isStarter: boolean;
   starterProjectId: string | null;
   tier: number | null;
+  bomTax: number | null;
+  bomShipping: number | null;
   cartScreenshots: string[];
   createdAt: string;
   submittedAt: string | null;
@@ -116,6 +118,8 @@ interface AdminProject {
   bomItems: BOMItem[];
   reviewActions: ReviewAction[];
   hiddenFromGallery: boolean;
+  deletedAt: string | null;
+  deletedBy: { id: string; name: string | null } | null;
   hackatimeProjects: HackatimeProjectData[];
   hackatimeTrustLevel: string | null;
 }
@@ -257,6 +261,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
       unhide: 'Unhide this project (make it visible in the gallery again)?',
       unapprove_design: 'Unapprove the design? This will reset design status to in_review and build status to draft.',
       unapprove_build: 'Unapprove the build? This will reset build status to in_review.',
+      delete: 'Soft-delete this project? It will be hidden from all non-admin views.',
+      undelete: 'Restore this project? It will become visible again.',
     };
     if (!confirm(confirmMessages[action] || `Perform action: ${action}?`)) return;
 
@@ -497,7 +503,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
     <>
       {/* Breadcrumb */}
       <div className="mb-6">
-        <Link href="/admin" className="text-brown-800 hover:text-orange-500 transition-colors text-sm flex items-center gap-2">
+        <Link href="/admin" className="text-cream-50 hover:text-orange-500 transition-colors text-sm flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -546,8 +552,21 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
+          {/* Deleted Banner */}
+          {project.deletedAt && (
+            <div className="mb-6 bg-red-100 border-2 border-red-500 p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-red-800 font-bold text-sm uppercase tracking-wider">This project is deleted</span>
+                <span className="text-red-600 text-xs">
+                  — deleted on {new Date(project.deletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {project.deletedBy?.name && ` by ${project.deletedBy.name}`}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Stage Progress */}
-          <div className="mb-6 bg-cream-100 border-2 border-cream-400 p-6">
+          <div className="mb-6 bg-brown-800 border-2 border-cream-500/20 p-6">
             <StageProgress
               designStatus={project.designStatus as 'draft' | 'in_review' | 'approved' | 'rejected' | 'update_requested'}
               buildStatus={project.buildStatus as 'draft' | 'in_review' | 'approved' | 'rejected' | 'update_requested'}
@@ -564,9 +583,9 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   <span className="px-2 py-0.5 text-xs uppercase border border-gray-500 text-gray-500 bg-gray-500/10 self-center">Hidden</span>
                 )}
               </div>
-              <p className="text-brown-800 text-sm">
+              <p className="text-cream-50 text-sm">
                 by {project.user.name || project.user.email}
-                {project.user.name && <span className="text-cream-600"> ({project.user.email})</span>}
+                {project.user.name && <span className="text-cream-200"> ({project.user.email})</span>}
                 {project.user.fraudConvicted ? (
                   <span className="ml-2 text-xs bg-red-600 text-white px-2 py-0.5 uppercase">Fraud</span>
                 ) : project.hackatimeTrustLevel === 'red' ? (
@@ -574,7 +593,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 ) : project.hackatimeTrustLevel === 'green' ? (
                   <span className="ml-2 text-xs bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 uppercase">Trusted</span>
                 ) : (
-                  <span className="ml-2 text-xs bg-cream-200 text-cream-700 border border-cream-400 px-2 py-0.5 uppercase">Unscored</span>
+                  <span className="ml-2 text-xs bg-brown-900 text-cream-700 border border-cream-500/20 px-2 py-0.5 uppercase">Unscored</span>
                 )}
                 {project.user.verificationStatus === 'verified' ? (
                   <span className="ml-2 text-xs bg-green-600 text-white px-2 py-0.5 uppercase">IDV Verified</span>
@@ -592,7 +611,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   className={`px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors cursor-pointer disabled:opacity-50 ${
                     project.hiddenFromGallery
                       ? 'bg-green-600/20 border-green-600 text-green-600 hover:bg-green-600/30'
-                      : 'bg-cream-200 border-cream-400 text-brown-800 hover:bg-cream-300'
+                      : 'bg-brown-900 border-cream-500/20 text-cream-50 hover:bg-cream-500/10'
                   }`}
                 >
                   {project.hiddenFromGallery ? 'Unhide from Gallery' : 'Hide from Gallery'}
@@ -627,6 +646,18 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     {airtableSyncing ? 'Syncing...' : 'Sync to Airtable'}
                   </button>
                 )}
+                {/* Delete / Undelete */}
+                <button
+                  onClick={() => handleAdminAction(project.deletedAt ? 'undelete' : 'delete')}
+                  disabled={adminActioning}
+                  className={`px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors cursor-pointer disabled:opacity-50 ${
+                    project.deletedAt
+                      ? 'bg-green-600/20 border-green-600 text-green-600 hover:bg-green-600/30'
+                      : 'bg-red-600/10 border-red-600 text-red-600 hover:bg-red-600/20'
+                  }`}
+                >
+                  {project.deletedAt ? 'Undelete Project' : 'Delete Project'}
+                </button>
               </div>
             )}
           </div>
@@ -638,71 +669,71 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 <img
                   src={project.coverImage}
                   alt={project.title}
-                  className="w-full max-h-96 object-cover border-2 border-cream-400 hover:border-orange-500 transition-colors bg-cream-100"
+                  className="w-full max-h-96 object-cover border-2 border-cream-500/20 hover:border-orange-500 transition-colors bg-brown-800"
                 />
               </a>
             </div>
           )}
 
           {/* Project Details */}
-          <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
+          <div className="bg-brown-800 border-2 border-cream-500/20 p-4 mb-6">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <div>
-                <p className="text-brown-800 text-xs uppercase mb-1">Total Hours Logged</p>
-                <p className="text-brown-800 text-xl">{totalHoursClaimed.toFixed(1)}h</p>
+                <p className="text-cream-50 text-xs uppercase mb-1">Total Hours Logged</p>
+                <p className="text-cream-50 text-xl">{totalHoursClaimed.toFixed(1)}h</p>
               </div>
               <div>
-                <p className="text-brown-800 text-xs uppercase mb-1">Sessions</p>
-                <p className="text-brown-800 text-xl">{project.workSessions.length}</p>
+                <p className="text-cream-50 text-xs uppercase mb-1">Sessions</p>
+                <p className="text-cream-50 text-xl">{project.workSessions.length}</p>
               </div>
               {project.hackatimeProjects && project.hackatimeProjects.length > 0 && (
                 <div>
-                  <p className="text-brown-800 text-xs uppercase mb-1">Firmware Time</p>
-                  <p className="text-brown-800 text-xl">
+                  <p className="text-cream-50 text-xs uppercase mb-1">Firmware Time</p>
+                  <p className="text-cream-50 text-xl">
                     {(project.hackatimeProjects.reduce((sum, p) => sum + p.totalSeconds, 0) / 3600).toFixed(1)}h
                   </p>
                 </div>
               )}
               <div>
-                <p className="text-brown-800 text-xs uppercase mb-1">Complexity Level</p>
+                <p className="text-cream-50 text-xs uppercase mb-1">Complexity Level</p>
                 {project.tier ? (() => {
                   const tier = getTierById(project.tier);
                   return tier ? (
                     <div>
-                      <p className="text-brown-800 text-xl">{tier.name}</p>
-                      <p className="text-cream-600 text-xs">{tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h</p>
+                      <p className="text-cream-50 text-xl">{tier.name}</p>
+                      <p className="text-cream-200 text-xs">{tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h</p>
                     </div>
                   ) : (
-                    <p className="text-brown-800 text-xl">Tier {project.tier}</p>
+                    <p className="text-cream-50 text-xl">Tier {project.tier}</p>
                   );
                 })() : (
-                  <p className="text-cream-600 text-xl">—</p>
+                  <p className="text-cream-200 text-xl">—</p>
                 )}
               </div>
               <div>
-                <p className="text-brown-800 text-xs uppercase mb-1">Design Status</p>
+                <p className="text-cream-50 text-xs uppercase mb-1">Design Status</p>
                 <p className={`text-xl uppercase ${
                   project.designStatus === 'approved' ? 'text-green-600' :
                   project.designStatus === 'rejected' ? 'text-red-600' :
                   project.designStatus === 'in_review' ? 'text-orange-500' :
                   project.designStatus === 'update_requested' ? 'text-blue-500' :
-                  'text-brown-800'
+                  'text-cream-50'
                 }`}>{project.designStatus.replace('_', ' ')}</p>
               </div>
               <div>
-                <p className="text-brown-800 text-xs uppercase mb-1">Build Status</p>
+                <p className="text-cream-50 text-xs uppercase mb-1">Build Status</p>
                 <p className={`text-xl uppercase ${
                   project.buildStatus === 'approved' ? 'text-green-600' :
                   project.buildStatus === 'rejected' ? 'text-red-600' :
                   project.buildStatus === 'in_review' ? 'text-orange-500' :
                   project.buildStatus === 'update_requested' ? 'text-blue-500' :
-                  'text-brown-800'
+                  'text-cream-50'
                 }`}>{project.buildStatus.replace('_', ' ')}</p>
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-brown-800 text-xs uppercase mb-1">Created</p>
-              <p className="text-brown-800 text-sm">
+              <p className="text-cream-50 text-xs uppercase mb-1">Created</p>
+              <p className="text-cream-50 text-sm">
                 {new Date(project.createdAt).toLocaleDateString('en-US', {
                   month: 'short', day: 'numeric', year: 'numeric'
                 })}
@@ -719,14 +750,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
             {project.description && (
               <div className="mt-4">
-                <p className="text-brown-800 text-xs uppercase mb-1">Description</p>
-                <p className="text-brown-800 text-sm whitespace-pre-wrap">{project.description}</p>
+                <p className="text-cream-50 text-xs uppercase mb-1">Description</p>
+                <p className="text-cream-50 text-sm whitespace-pre-wrap">{project.description}</p>
               </div>
             )}
 
             {project.githubRepo && (
               <div className="mt-4">
-                <p className="text-brown-800 text-xs uppercase mb-1">GitHub Repository</p>
+                <p className="text-cream-50 text-xs uppercase mb-1">GitHub Repository</p>
                 <a 
                   href={project.githubRepo} 
                   target="_blank" 
@@ -741,7 +772,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
 
             {project.badges.length > 0 && (
               <div className="mt-4">
-                <p className="text-brown-800 text-xs uppercase mb-2">Badges Claimed</p>
+                <p className="text-cream-50 text-xs uppercase mb-2">Badges Claimed</p>
                 <div className="flex flex-wrap gap-2">
                   {project.badges.map((badge) => (
                     <span 
@@ -749,7 +780,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       className={`px-2 py-1 text-xs uppercase flex items-center gap-1.5 ${
                         badge.grantedAt 
                           ? 'bg-green-600/30 border border-green-600 text-green-600' 
-                          : 'bg-cream-200 border border-cream-400 text-brown-800'
+                          : 'bg-brown-900 border border-cream-500/20 text-cream-50'
                       }`}
                     >
                       <img src={getBadgeImage(badge.badge)} alt="" className="w-6 h-6 object-contain" />
@@ -761,32 +792,32 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             )}
 
             {(project.designReviewedAt || project.buildReviewedAt) && (
-              <div className="mt-4 pt-4 border-t border-cream-400 space-y-3">
+              <div className="mt-4 pt-4 border-t border-cream-500/20 space-y-3">
                 {project.designReviewedAt && (
                   <div>
-                    <p className="text-brown-800 text-xs uppercase mb-1">Design Reviewed</p>
-                    <p className="text-brown-800 text-sm">
+                    <p className="text-cream-50 text-xs uppercase mb-1">Design Reviewed</p>
+                    <p className="text-cream-50 text-sm">
                       {new Date(project.designReviewedAt).toLocaleDateString('en-US', {
                         month: 'short', day: 'numeric', year: 'numeric'
                       })}
                       {project.designReviewedBy && ` by ${project.designReviewedBy}`}
                     </p>
                     {project.designReviewComments && (
-                      <p className="text-brown-800 text-sm mt-1">{project.designReviewComments}</p>
+                      <p className="text-cream-50 text-sm mt-1">{project.designReviewComments}</p>
                     )}
                   </div>
                 )}
                 {project.buildReviewedAt && (
                   <div>
-                    <p className="text-brown-800 text-xs uppercase mb-1">Build Reviewed</p>
-                    <p className="text-brown-800 text-sm">
+                    <p className="text-cream-50 text-xs uppercase mb-1">Build Reviewed</p>
+                    <p className="text-cream-50 text-sm">
                       {new Date(project.buildReviewedAt).toLocaleDateString('en-US', {
                         month: 'short', day: 'numeric', year: 'numeric'
                       })}
                       {project.buildReviewedBy && ` by ${project.buildReviewedBy}`}
                     </p>
                     {project.buildReviewComments && (
-                      <p className="text-brown-800 text-sm mt-1">{project.buildReviewComments}</p>
+                      <p className="text-cream-50 text-sm mt-1">{project.buildReviewComments}</p>
                     )}
                   </div>
                 )}
@@ -798,7 +829,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {project.designSubmissionNotes && (
             <div className="bg-yellow-100 border-2 border-yellow-500/50 p-4 mb-6">
               <p className="text-yellow-700 text-xs uppercase mb-2">Design Submission Notes from User</p>
-              <p className="text-brown-800 text-sm whitespace-pre-wrap">{project.designSubmissionNotes}</p>
+              <p className="text-cream-50 text-sm whitespace-pre-wrap">{project.designSubmissionNotes}</p>
             </div>
           )}
 
@@ -806,16 +837,16 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {project.buildSubmissionNotes && (
             <div className="bg-blue-100 border-2 border-blue-500/50 p-4 mb-6">
               <p className="text-blue-700 text-xs uppercase mb-2">Build Submission Notes from User</p>
-              <p className="text-brown-800 text-sm whitespace-pre-wrap">{project.buildSubmissionNotes}</p>
+              <p className="text-cream-50 text-sm whitespace-pre-wrap">{project.buildSubmissionNotes}</p>
             </div>
           )}
 
           {/* Work Sessions */}
           <div className="mb-8">
-            <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Work Sessions</h2>
+            <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Work Sessions</h2>
             {project.workSessions.length === 0 ? (
-              <div className="bg-cream-100 border-2 border-cream-400 p-6 text-center">
-                <p className="text-brown-800">No work sessions recorded</p>
+              <div className="bg-brown-800 border-2 border-cream-500/20 p-6 text-center">
+                <p className="text-cream-50">No work sessions recorded</p>
               </div>
             ) : (
             <div className="space-y-4">
@@ -826,8 +857,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 return (
                   <div 
                     key={session.id} 
-                    className={`bg-cream-100 border-2 p-4 ${
-                      review?.isReviewed ? 'border-green-600/50' : 'border-cream-400'
+                    className={`bg-brown-800 border-2 p-4 ${
+                      review?.isReviewed ? 'border-green-600/50' : 'border-cream-500/20'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
@@ -839,7 +870,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                         }`}>
                           {session.stage}
                         </span>
-                        <span className="text-brown-800 text-sm">
+                        <span className="text-cream-50 text-sm">
                           {new Date(session.createdAt).toLocaleDateString('en-US', {
                             weekday: 'short',
                             year: 'numeric',
@@ -847,7 +878,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                             day: 'numeric'
                           })}
                         </span>
-                        <span className="bg-cream-200 border border-cream-400 text-brown-800 px-2 py-0.5 text-sm">
+                        <span className="bg-brown-900 border border-cream-500/20 text-cream-50 px-2 py-0.5 text-sm">
                           {session.hoursClaimed}h logged
                         </span>
                         {review?.isReviewed && (
@@ -861,7 +892,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     {session.categories && session.categories.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {session.categories.map((cat, i) => (
-                          <span key={i} className="bg-cream-200 text-brown-800 px-2 py-0.5 text-xs">
+                          <span key={i} className="bg-brown-900 text-cream-50 px-2 py-0.5 text-xs">
                             {cat}
                           </span>
                         ))}
@@ -869,19 +900,19 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     )}
 
                     {session.content ? (
-                      <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 mb-4" data-color-mode="light">
+                      <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-50 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-500/20 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1 mb-4" data-color-mode="light">
                         <MDPreview source={fixMarkdownImages(session.content)} />
                       </div>
                     ) : (
-                      <p className="text-brown-800 text-sm italic mb-4">No content recorded</p>
+                      <p className="text-cream-50 text-sm italic mb-4">No content recorded</p>
                     )}
 
                     {/* Session Review Form - only show if any stage is in review */}
                     {isAnyStageInReview ? (
-                      <div className="bg-cream-200 border border-cream-400 p-3 mt-4">
-                        <div className="grid grid-cols-2 gap-4 mb-3">
+                      <div className="bg-brown-900 border border-cream-500/20 p-3 mt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                           <div>
-                            <label className="text-brown-800 text-xs uppercase block mb-1">
+                            <label className="text-cream-50 text-xs uppercase block mb-1">
                               Hours Approved
                             </label>
                             <input
@@ -891,24 +922,24 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                               step="0.5"
                               value={review?.hoursApproved ?? session.hoursClaimed}
                               onChange={(e) => updateSessionReview(session.id, 'hoursApproved', parseFloat(e.target.value) || 0)}
-                              className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                              className="w-full bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                             />
                           </div>
                           <div className="flex items-end">
-                            <span className="text-brown-800 text-sm pb-2">
+                            <span className="text-cream-50 text-sm pb-2">
                               of {session.hoursClaimed}h logged
                             </span>
                           </div>
                         </div>
                         <div className="mb-3">
-                          <label className="text-brown-800 text-xs uppercase block mb-1">
+                          <label className="text-cream-50 text-xs uppercase block mb-1">
                             Review Comments (optional)
                           </label>
                           <textarea
                             value={review?.reviewComments ?? ''}
                             onChange={(e) => updateSessionReview(session.id, 'reviewComments', e.target.value)}
                             rows={2}
-                            className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
+                            className="w-full bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
                             placeholder="Add feedback for this session..."
                           />
                         </div>
@@ -925,11 +956,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                         </button>
                       </div>
                     ) : session.hoursApproved !== null && (
-                      <div className="bg-cream-200 border border-cream-400 p-3 mt-4">
+                      <div className="bg-brown-900 border border-cream-500/20 p-3 mt-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-brown-800 text-sm">Hours Approved: <span className="text-brown-800">{session.hoursApproved}h</span></span>
+                          <span className="text-cream-50 text-sm">Hours Approved: <span className="text-cream-50">{session.hoursApproved}h</span></span>
                           {session.reviewComments && (
-                            <span className="text-brown-800 text-sm">{session.reviewComments}</span>
+                            <span className="text-cream-50 text-sm">{session.reviewComments}</span>
                           )}
                         </div>
                       </div>
@@ -944,7 +975,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {/* Firmware Time (Hackatime) */}
           {project.hackatimeProjects && project.hackatimeProjects.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Firmware Time (Hackatime)</h2>
+              <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Firmware Time (Hackatime)</h2>
               <div className="space-y-3">
                 {project.hackatimeProjects.map((hp) => {
                   const totalHours = hp.totalSeconds / 3600;
@@ -954,14 +985,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                   return (
                     <div
                       key={hp.id}
-                      className={`bg-cream-100 border-2 p-4 ${
-                        review?.isReviewed ? 'border-green-600/50' : 'border-cream-400'
+                      className={`bg-brown-800 border-2 p-4 ${
+                        review?.isReviewed ? 'border-green-600/50' : 'border-cream-500/20'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <span className="text-brown-800 font-medium">{hp.hackatimeProject}</span>
-                          <span className="bg-cream-200 border border-cream-400 text-brown-800 px-2 py-0.5 text-sm">
+                          <span className="text-cream-50 font-medium">{hp.hackatimeProject}</span>
+                          <span className="bg-brown-900 border border-cream-500/20 text-cream-50 px-2 py-0.5 text-sm">
                             {totalHours.toFixed(1)}h tracked
                           </span>
                           {review?.isReviewed && (
@@ -973,10 +1004,10 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       </div>
 
                       {isAnyStageInReview ? (
-                        <div className="bg-cream-200 border border-cream-400 p-3 mt-2">
-                          <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div className="bg-brown-900 border border-cream-500/20 p-3 mt-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                             <div>
-                              <label className="text-brown-800 text-xs uppercase block mb-1">
+                              <label className="text-cream-50 text-xs uppercase block mb-1">
                                 Hours Approved
                               </label>
                               <input
@@ -990,11 +1021,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                                     [hp.id]: { ...prev[hp.id], hoursApproved: parseFloat(e.target.value) || 0 },
                                   }))
                                 }
-                                className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                                className="w-full bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                               />
                             </div>
                             <div className="flex items-end">
-                              <span className="text-brown-800 text-sm pb-2">
+                              <span className="text-cream-50 text-sm pb-2">
                                 of {totalHours.toFixed(1)}h tracked
                               </span>
                             </div>
@@ -1012,19 +1043,19 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                           </button>
                         </div>
                       ) : hp.hoursApproved !== null && (
-                        <div className="bg-cream-200 border border-cream-400 p-3 mt-2">
-                          <span className="text-brown-800 text-sm">
-                            Hours Approved: <span className="text-brown-800">{hp.hoursApproved}h</span>
+                        <div className="bg-brown-900 border border-cream-500/20 p-3 mt-2">
+                          <span className="text-cream-50 text-sm">
+                            Hours Approved: <span className="text-cream-50">{hp.hoursApproved}h</span>
                           </span>
                         </div>
                       )}
                     </div>
                   );
                 })}
-                <div className="bg-cream-100 border-2 border-cream-400 p-3">
-                  <span className="text-brown-800 text-sm">
+                <div className="bg-brown-800 border-2 border-cream-500/20 p-3">
+                  <span className="text-cream-50 text-sm">
                     Total firmware time:{' '}
-                    <span className="text-brown-800 font-medium">
+                    <span className="text-cream-50 font-medium">
                       {(project.hackatimeProjects.reduce((sum, p) => sum + p.totalSeconds, 0) / 3600).toFixed(1)}h
                     </span>
                   </span>
@@ -1036,14 +1067,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {/* Bill of Materials */}
           {project.bomItems && project.bomItems.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
+              <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
               
               {/* Cost Summary */}
               {(() => {
-                const totalCost = project.bomItems.reduce((sum, item) => sum + bomItemTotal(item), 0);
+                const totalCost = project.bomItems.reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0);
                 const approvedCost = project.bomItems
                   .filter((item) => item.status === 'approved')
-                  .reduce((sum, item) => sum + bomItemTotal(item), 0);
+                  .reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0);
                 const costPerHour = totalHoursClaimed > 0 ? totalCost / totalHoursClaimed : null;
                 const tier = project.tier ? getTierById(project.tier) : null;
                 const bomGrant = project.reviewActions.find(
@@ -1052,24 +1083,24 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 const netBits = tier ? Math.max(0, tier.bits - Math.round(bomGrant)) : null;
                 const bitsPerHour = netBits !== null && totalHoursClaimed > 0 ? netBits / totalHoursClaimed : null;
                 return (
-                  <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-4">
+                  <div className="bg-brown-800 border-2 border-cream-500/20 p-4 mb-4">
                     <div className="flex gap-6 flex-wrap">
                       <div>
-                        <p className="text-brown-800 text-xs uppercase mb-1">Total Estimated</p>
-                        <p className="text-brown-800 text-lg">${formatPrice(totalCost)}</p>
+                        <p className="text-cream-50 text-xs uppercase mb-1">Total Estimated</p>
+                        <p className="text-cream-50 text-lg">${formatPrice(totalCost)}</p>
                       </div>
                       <div>
-                        <p className="text-brown-800 text-xs uppercase mb-1">Approved</p>
+                        <p className="text-cream-50 text-xs uppercase mb-1">Approved</p>
                         <p className="text-green-600 text-lg">${formatPrice(approvedCost)}</p>
                       </div>
                       <div>
-                        <p className="text-brown-800 text-xs uppercase mb-1">Cost / Hour</p>
-                        <p className="text-brown-800 text-lg">
+                        <p className="text-cream-50 text-xs uppercase mb-1">Cost / Hour</p>
+                        <p className="text-cream-50 text-lg">
                           {costPerHour !== null ? `$${formatPrice(costPerHour)}/h` : '—'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-brown-800 text-xs uppercase mb-1">Bits / Hour</p>
+                        <p className="text-cream-50 text-xs uppercase mb-1">Bits / Hour</p>
                         <p className="text-orange-500 text-lg">
                           {bitsPerHour !== null ? `${bitsPerHour.toFixed(1)}/h` : '—'}
                         </p>
@@ -1080,26 +1111,26 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               })()}
 
               {/* BOM Table */}
-              <div className="bg-cream-100 border-2 border-cream-400 overflow-x-auto">
+              <div className="bg-brown-800 border-2 border-cream-500/20 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-cream-400">
-                      <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Name</th>
-                      <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Purpose</th>
-                      <th className="text-right text-brown-800 text-xs uppercase px-4 py-3">Cost</th>
-                      <th className="text-right text-brown-800 text-xs uppercase px-4 py-3">Qty</th>
-                      <th className="text-right text-brown-800 text-xs uppercase px-4 py-3">Total</th>
-                      <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Link</th>
-                      <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Distributor</th>
+                    <tr className="border-b border-cream-500/20">
+                      <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Name</th>
+                      <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Purpose</th>
+                      <th className="text-right text-cream-50 text-xs uppercase px-4 py-3">Cost</th>
+                      <th className="text-right text-cream-50 text-xs uppercase px-4 py-3">Qty</th>
+                      <th className="text-right text-cream-50 text-xs uppercase px-4 py-3">Total</th>
+                      <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Link</th>
+                      <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Distributor</th>
                     </tr>
                   </thead>
                   <tbody>
                     {project.bomItems.map((item) => (
-                      <tr key={item.id} className="border-b border-cream-400 last:border-b-0">
-                        <td className="text-brown-800 px-4 py-3">{item.name}</td>
-                        <td className="text-brown-800 px-4 py-3">{item.purpose}</td>
-                        <td className="text-brown-800 text-right px-4 py-3">{item.quantity ?? '-'}</td>
-                        <td className="text-brown-800 text-right px-4 py-3">${formatPrice(item.totalCost)}</td>
+                      <tr key={item.id} className="border-b border-cream-500/20 last:border-b-0">
+                        <td className="text-cream-50 px-4 py-3">{item.name}</td>
+                        <td className="text-cream-50 px-4 py-3">{item.purpose}</td>
+                        <td className="text-cream-50 text-right px-4 py-3">{item.quantity ?? '-'}</td>
+                        <td className="text-cream-50 text-right px-4 py-3">${formatPrice(item.totalCost)}</td>
                         <td className="px-4 py-3">
                           <a
                             href={item.link}
@@ -1110,7 +1141,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                             View
                           </a>
                         </td>
-                        <td className="text-brown-800 px-4 py-3">{item.distributor}</td>
+                        <td className="text-cream-50 px-4 py-3">{item.distributor}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1120,11 +1151,11 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
               {/* Cart Screenshots */}
               {project.cartScreenshots && project.cartScreenshots.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-brown-800 text-xs uppercase mb-2">Cart Screenshots</p>
+                  <p className="text-cream-50 text-xs uppercase mb-2">Cart Screenshots</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {project.cartScreenshots.map((url, i) => (
                       <button key={i} type="button" onClick={() => setExpandedScreenshot(url)} className="block cursor-pointer">
-                        <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-40 object-cover border-2 border-cream-400 hover:border-orange-500 transition-colors" />
+                        <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-40 object-cover border-2 border-cream-500/20 hover:border-orange-500 transition-colors" />
                       </button>
                     ))}
                   </div>
@@ -1139,7 +1170,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
           {project.designStatus === 'approved' && (
             isBuildInReview ? (
               <div className="bg-cyan-50 border-2 border-cyan-500/50 p-6 mb-6">
-                <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Build Approval</h2>
+                <h2 className="text-cream-50 text-xl uppercase tracking-wide mb-4">Build Approval</h2>
                 
                 {!allSessionsReviewed && (
                   <p className="text-yellow-600 text-sm mb-4">
@@ -1148,8 +1179,8 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                 )}
 
                 {/* Bits preview */}
-                <div className="mb-4 bg-cream-200 border border-cream-400 p-3">
-                  <p className="text-brown-800 text-xs uppercase mb-1">Bits to be awarded</p>
+                <div className="mb-4 bg-brown-900 border border-cream-500/20 p-3">
+                  <p className="text-cream-50 text-xs uppercase mb-1">Bits to be awarded</p>
                   {project.tier ? (() => {
                     const tier = getTierById(project.tier!);
                     const designAction = project.reviewActions.find(
@@ -1159,21 +1190,21 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     const netBits = tier ? Math.max(0, tier.bits - bomDeduction) : 0;
                     return tier ? (
                       <div>
-                        <p className="text-brown-800 font-medium">{netBits}&nbsp;bits</p>
-                        <p className="text-cream-600 text-xs mt-0.5">
+                        <p className="text-cream-50 font-medium">{netBits}&nbsp;bits</p>
+                        <p className="text-cream-200 text-xs mt-0.5">
                           {tier.bits} ({tier.name}) − {bomDeduction} BOM grant = {netBits}&nbsp;bits net
                         </p>
                       </div>
                     ) : (
-                      <p className="text-cream-600">Unknown complexity level</p>
+                      <p className="text-cream-200">Unknown complexity level</p>
                     );
                   })() : (
-                    <p className="text-cream-600">— (no complexity level set; 0&nbsp;bits will be awarded)</p>
+                    <p className="text-cream-200">— (no complexity level set; 0&nbsp;bits will be awarded)</p>
                   )}
                 </div>
 
                 <div className="mb-4">
-                  <label className="text-brown-800 text-xs uppercase block mb-2">
+                  <label className="text-cream-50 text-xs uppercase block mb-2">
                     Additional bits grant (optional)
                   </label>
                   <div className="flex items-center gap-2">
@@ -1183,46 +1214,46 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       min="0"
                       value={buildGrantAmount}
                       onChange={(e) => setBuildGrantAmount(e.target.value)}
-                      className="w-32 bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      className="w-32 bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="0"
                     />
-                    <span className="text-brown-800 text-sm">bits</span>
+                    <span className="text-cream-50 text-sm">bits</span>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="text-brown-800 text-xs uppercase block mb-2">
+                  <label className="text-cream-50 text-xs uppercase block mb-2">
                     Requested Grant Amount (optional, sent to Airtable)
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-brown-800 text-sm">$</span>
+                    <span className="text-cream-50 text-sm">$</span>
                     <input
                       type="number"
                       step="1"
                       min="0"
                       value={buildAirtableGrantAmount}
                       onChange={(e) => setBuildAirtableGrantAmount(e.target.value)}
-                      className="w-32 bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      className="w-32 bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                       placeholder="0"
                     />
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="text-brown-800 text-xs uppercase block mb-2">
+                  <label className="text-cream-50 text-xs uppercase block mb-2">
                     Build Review Comments (optional)
                   </label>
                   <textarea
                     value={buildComments}
                     onChange={(e) => setBuildComments(e.target.value)}
                     rows={3}
-                    className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
+                    className="w-full bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-none"
                     placeholder="Add feedback for the build stage..."
                   />
                 </div>
 
                 <div className="mb-4">
-                  <label className="text-brown-800 text-xs uppercase block mb-2">
+                  <label className="text-cream-50 text-xs uppercase block mb-2">
                     Hours Justification (sent to Airtable)
                   </label>
                   <textarea
@@ -1232,7 +1263,7 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                       setJustificationManuallyEdited(true);
                     }}
                     rows={6}
-                    className="w-full bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-y"
+                    className="w-full bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-y"
                     placeholder="Auto-generated from session reviews..."
                   />
                   {justificationManuallyEdited && (
@@ -1285,18 +1316,18 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             );
             if (!designAction) return null;
             return (
-              <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
-                <p className="text-brown-800 text-xs uppercase mb-2">BOM Grant (Design Approval)</p>
+              <div className="bg-brown-800 border-2 border-cream-500/20 p-4 mb-6">
+                <p className="text-cream-50 text-xs uppercase mb-2">BOM Grant (Design Approval)</p>
                 {editingGrant ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-brown-800 text-sm">$</span>
+                    <span className="text-cream-50 text-sm">$</span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={editGrantAmount}
                       onChange={(e) => setEditGrantAmount(e.target.value)}
-                      className="w-32 bg-cream-100 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                      className="w-32 bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                     />
                     <button
                       onClick={handleUpdateGrant}
@@ -1308,14 +1339,14 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                     <button
                       onClick={() => setEditingGrant(false)}
                       disabled={savingGrant}
-                      className="text-cream-600 hover:text-brown-800 px-3 py-2 text-sm uppercase tracking-wider cursor-pointer disabled:opacity-50"
+                      className="text-cream-200 hover:text-cream-50 px-3 py-2 text-sm uppercase tracking-wider cursor-pointer disabled:opacity-50"
                     >
                       Cancel
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <p className="text-brown-800">
+                    <p className="text-cream-50">
                       ${(designAction.grantAmount ?? 0).toFixed(2)}
                     </p>
                     <button

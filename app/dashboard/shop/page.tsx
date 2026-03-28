@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from "@/lib/auth-client";
-import { SHOP_ITEMS } from '@/lib/shop';
+import { SHOP_ITEMS, SHOP_ITEM_IDS } from '@/lib/shop';
 
 interface DbShopItem {
   id: string;
@@ -80,7 +80,7 @@ function PurchaseConfirmModal({
         <p className="text-brown-800 mb-6">
           {showQuantity
             ? `Buy ${item.name} to put toward your flight?`
-            : <>Spend <span className="text-orange-500 font-medium">{item.bitsCost.toLocaleString()}&nbsp;bits</span> on {item.name}?</>
+            : <>Spend <span className="text-orange-500 font-medium">{item.bitsCost.toLocaleString()}&nbsp;{item.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'pending bits' : 'bits'}</span> on {item.name}?</>
           }
         </p>
 
@@ -138,7 +138,7 @@ function PurchaseConfirmModal({
           <div className="mb-6 bg-cream-200 border border-cream-400 p-4">
             <div className="flex justify-between text-brown-800 text-sm">
               <span>Cost</span>
-              <span className="font-bold">{totalCost.toLocaleString()}&nbsp;bits</span>
+              <span className="font-bold">{totalCost.toLocaleString()}&nbsp;{item.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'pending bits' : 'bits'}</span>
             </div>
           </div>
         )}
@@ -371,6 +371,7 @@ function ItemDetailModal({
 export default function ShopPage() {
   const { data: session } = useSession();
   const [bitsBalance, setBitsBalance] = useState<number>(0);
+  const [pendingBits, setPendingBits] = useState<number>(0);
   const [bitsEarned, setBitsEarned] = useState<number>(0);
   const [bitsSpent, setBitsSpent] = useState<number>(0);
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
@@ -393,10 +394,11 @@ export default function ShopPage() {
         fetch('/api/shop/items'),
       ]);
       if (currencyRes.ok) {
-        const { bitsEarned, bomCost, bitsBalance } = await currencyRes.json();
+        const { bitsEarned, bomCost, bitsBalance, pendingBits: pending } = await currencyRes.json();
         setBitsEarned(bitsEarned);
         setBitsSpent(bomCost ?? 0);
         setBitsBalance(bitsBalance);
+        setPendingBits(pending ?? 0);
       }
       if (purchasesRes.ok) {
         const { purchasedItemIds, itemTotals, purchases: purchaseList } = await purchasesRes.json();
@@ -547,9 +549,14 @@ export default function ShopPage() {
     return null;
   }
 
+  const confirmedBits = bitsBalance - pendingBits;
   const inviteItems = SHOP_ITEMS.filter(item => item.category === 'invite');
   const flightItem = SHOP_ITEMS.find(item => item.category === 'flight_stipend');
   const hasEventInvite = inviteItems.some(item => purchasedItems.has(item.id));
+
+  // Only the Stasis ticket can be purchased with pending bits
+  const getEffectiveBalance = (itemId: string) =>
+    itemId === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? bitsBalance : confirmedBits;
 
   return (
     <div className="space-y-8">
@@ -558,7 +565,10 @@ export default function ShopPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-orange-500 text-lg uppercase tracking-wide">Your Bits Balance</h2>
-            <p className="text-brown-800 text-4xl font-bold">{bitsBalance.toLocaleString()}&nbsp;Bits</p>
+            <p className="text-brown-800 text-4xl font-bold">{confirmedBits.toLocaleString()}&nbsp;Bits</p>
+            {pendingBits > 0 && (
+              <p className="text-cream-600 text-sm">{pendingBits.toLocaleString()} bits pending build review</p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-brown-800 text-xs uppercase tracking-wide">Earned</p>
@@ -586,22 +596,26 @@ export default function ShopPage() {
             <div>
               <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Event Invite</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {inviteItems.map((inviteItem) => (
+                {inviteItems.map((inviteItem) => {
+                  const effectiveBal = getEffectiveBalance(inviteItem.id);
+                  return (
                   <div key={inviteItem.id}>
                     <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-full ${
-                      purchasedItems.has(inviteItem.id) || bitsBalance >= inviteItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
+                      purchasedItems.has(inviteItem.id) || effectiveBal >= inviteItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
                     }`}>
                       <div className="flex-1">
                         <h3 className="text-brown-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
                         <p className="text-brown-800 text-sm mb-3">{inviteItem.description}</p>
-                        <p className="text-orange-400 font-bold text-lg">{inviteItem.bitsCost.toLocaleString()}&nbsp;Bits</p>
+                        <p className="text-orange-400 font-bold text-lg">
+                          {inviteItem.bitsCost.toLocaleString()}&nbsp;{inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'Pending Bits' : 'Bits'}
+                        </p>
                       </div>
                       <div>
                         {purchasedItems.has(inviteItem.id) ? (
                           <div className="bg-orange-500/20 border border-orange-500/50 px-6 py-3 text-center">
                             <span className="text-orange-400 uppercase tracking-wide text-sm font-bold">Purchased!</span>
                           </div>
-                        ) : bitsBalance >= inviteItem.bitsCost ? (
+                        ) : effectiveBal >= inviteItem.bitsCost ? (
                           <button
                             onClick={() => openConfirmModal(inviteItem.id)}
                             disabled={purchasing === inviteItem.id}
@@ -614,20 +628,21 @@ export default function ShopPage() {
                         ) : (
                           <div className="bg-cream-300 px-6 py-3 text-center">
                             <span className="text-cream-600 uppercase tracking-wide text-sm">
-                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - bitsBalance).toLocaleString()}&nbsp;bits</span> needed
+                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - effectiveBal).toLocaleString()}&nbsp;{inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'pending bits' : 'bits'}</span> needed
                             </span>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Flight Stipend - full width below invite grid */}
               {flightItem && (
               <div className={`mt-4 bg-cream-100 border-2 p-6 flex flex-col sm:flex-row gap-4 ${
-                !hasEventInvite ? 'border-cream-300 opacity-60' : bitsBalance >= flightItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
+                !hasEventInvite ? 'border-cream-300 opacity-60' : confirmedBits >= flightItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
               }`}>
                 <div className="flex-1">
                   <h3 className="text-brown-800 text-xl font-medium mb-1">{flightItem.name}</h3>
@@ -646,7 +661,7 @@ export default function ShopPage() {
                         Buy an event invite first
                       </span>
                     </div>
-                  ) : bitsBalance >= flightItem.bitsCost ? (
+                  ) : confirmedBits >= flightItem.bitsCost ? (
                     <button
                       onClick={() => openConfirmModal(flightItem.id)}
                       disabled={purchasing === flightItem.id}
@@ -659,7 +674,7 @@ export default function ShopPage() {
                   ) : (
                     <div className="bg-cream-300 px-6 py-3 text-center w-full">
                       <span className="text-cream-600 uppercase tracking-wide text-sm">
-                        <span className="text-orange-500 font-medium">{(flightItem.bitsCost - bitsBalance).toLocaleString()}&nbsp;bits</span> needed
+                        <span className="text-orange-500 font-medium">{(flightItem.bitsCost - confirmedBits).toLocaleString()}&nbsp;bits</span> needed
                       </span>
                     </div>
                   )}
@@ -754,7 +769,7 @@ export default function ShopPage() {
         <PurchaseConfirmModal
           item={confirmModal.item}
           initialQuantity={confirmModal.quantity}
-          bitsBalance={bitsBalance}
+          bitsBalance={getEffectiveBalance(confirmModal.item.id)}
           onConfirm={handlePurchase}
           onClose={() => setConfirmModal(null)}
           purchasing={purchasing !== null}
@@ -764,7 +779,7 @@ export default function ShopPage() {
       {detailItem && (
         <ItemDetailModal
           item={detailItem}
-          bitsBalance={bitsBalance}
+          bitsBalance={confirmedBits}
           purchased={purchasedItems.has(detailItem.id)}
           onPurchase={handleDbItemPurchase}
           onClose={() => {

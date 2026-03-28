@@ -17,3 +17,18 @@ export function formatPrice(value: number): string {
 export function bomItemTotal(item: { totalCost: number }): number {
   return item.totalCost;
 }
+
+/**
+ * Compute the total BOM cost including items, tax, and shipping.
+ * Filters to approved/pending items only. Null tax/shipping default to 0.
+ */
+export function totalBomCost(
+  bomItems: Array<{ totalCost: number; status: string }>,
+  bomTax?: number | null,
+  bomShipping?: number | null,
+): number {
+  const itemsTotal = bomItems
+    .filter((b) => b.status === "approved" || b.status === "pending")
+    .reduce((sum, b) => sum + b.totalCost, 0)
+  return itemsTotal + (bomTax ?? 0) + (bomShipping ?? 0)
+}

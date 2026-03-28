@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     take: limit + 1,
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     where: {
+      deletedAt: null,
       hiddenFromGallery: false,
       workSessions: {
         some: {},

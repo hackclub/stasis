@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requireAnyPermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { getTierById } from "@/lib/tiers"
+import { totalBomCost } from "@/lib/format"
 
 export async function GET(
   _request: NextRequest,
@@ -84,9 +85,7 @@ export async function GET(
     (sum, ws) => sum + (ws.hoursApproved ?? ws.hoursClaimed),
     0
   )
-  const bomCost = project.bomItems
-    .filter((item) => item.status !== "rejected")
-    .reduce((sum, item) => sum + item.totalCost, 0)
+  const bomCost = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
   const tierInfo = project.tier ? getTierById(project.tier) : null
   const tierBits = tierInfo?.bits ?? 0
   const bitsPerHour = totalHours > 0 ? Math.round(tierBits / totalHours) : null
@@ -221,6 +220,8 @@ export async function GET(
       author: project.user,
       totalHours: Math.round(totalHours * 100) / 100,
       bomCost: Math.round(bomCost * 100) / 100,
+      bomTax: project.bomTax ?? 0,
+      bomShipping: project.bomShipping ?? 0,
       costPerHour: Math.round(costPerHour * 100) / 100,
       bitsPerHour,
       tierBits,

@@ -83,8 +83,21 @@ export async function POST(request: NextRequest) {
       ])
 
       const balance = (earned._sum.amount ?? 0) + (deducted._sum.amount ?? 0)
+      // Use raw SQL with text cast to avoid enum validation error if migration hasn't run
+      const pendingRows = await tx.$queryRaw<{ pending: bigint | null }[]>`
+        SELECT COALESCE(SUM(amount), 0) as pending
+        FROM currency_transaction
+        WHERE "userId" = ${userId} AND type::text = 'DESIGN_APPROVED'
+      `
+      const pendingBits = Number(pendingRows[0]?.pending ?? 0)
 
-      if (balance < totalCost) {
+      // Only the Stasis Event Invite can be purchased with pending bits;
+      // all other items require confirmed (build-approved) bits only
+      const effectiveBalance = itemId === SHOP_ITEM_IDS.STASIS_EVENT_INVITE
+        ? balance
+        : balance - pendingBits
+
+      if (effectiveBalance < totalCost) {
         throw new Error("INSUFFICIENT_BITS")
       }
 
@@ -106,6 +119,11 @@ export async function POST(request: NextRequest) {
         lastTransactionId = transaction.id
         currentBalance -= item.bitsCost
       }
+
+      // Auto-remove purchased item from goal prizes
+      await tx.userGoalPrize.deleteMany({
+        where: { userId, shopItemId: itemId },
+      })
 
       return { id: lastTransactionId, item: item.name, bitsSpent: totalCost, newBalance: currentBalance }
     }, {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@/app/generated/prisma/client"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
@@ -8,6 +9,7 @@ import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 import { sendSlackDM } from "@/lib/slack"
 import { syncProjectToAirtable } from "@/lib/airtable"
+import { totalBomCost } from "@/lib/format"
 
 export async function POST(
   request: NextRequest,
@@ -61,9 +63,7 @@ export async function POST(
     }
   }
   // For design approvals, default grant to BOM cost if not explicitly provided
-  const bomCostTotal = project.bomItems
-    .filter((b) => b.status === "approved" || b.status === "pending")
-    .reduce((sum, b) => sum + b.totalCost, 0)
+  const bomCostTotal = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
   const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0
     ? grantAmount
     : (stage === "design" && decision === "approved" ? Math.round(bomCostTotal * 100) / 100 || null : null)
@@ -105,6 +105,26 @@ export async function POST(
             reviewedBy: adminUserId,
           },
         })
+      }
+
+      // Award pending bits (DESIGN_APPROVED) based on tier minus BOM cost
+      if (decision === "approved") {
+        const effectiveTierDesign = (parsedTier !== undefined ? parsedTier : project.tier)
+        const tierBitsDesign = effectiveTierDesign ? getTierBits(effectiveTierDesign) : 0
+        const bomCostDesign = Math.round(parsedGrantAmount ?? 0)
+        const pendingBits = tierBitsDesign > 0 ? Math.max(0, tierBitsDesign - bomCostDesign) : 0
+
+        if (pendingBits > 0) {
+          const tierNameDesign = getTierById(effectiveTierDesign!)!.name
+          await appendLedgerEntry(tx, {
+            userId: project.userId,
+            projectId: id,
+            amount: pendingBits,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Design approved — ${tierNameDesign} (${tierBitsDesign} − ${bomCostDesign} BOM = ${pendingBits} pending bits)`,
+            createdBy: adminUserId,
+          })
+        }
       }
 
       // Create review action record
@@ -149,6 +169,8 @@ export async function POST(
           bomItems: true,
         },
       })
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
 
     await logAdminAction(
@@ -251,6 +273,23 @@ export async function POST(
           },
         })
 
+        // Cancel pending bits (DESIGN_APPROVED) before awarding confirmed bits
+        const pendingSum = await tx.currencyTransaction.aggregate({
+          where: { userId: project.userId, projectId: id, type: "DESIGN_APPROVED" },
+          _sum: { amount: true },
+        })
+        const pendingToCancel = pendingSum._sum.amount ?? 0
+        if (pendingToCancel !== 0) {
+          await appendLedgerEntry(tx, {
+            userId: project.userId,
+            projectId: id,
+            amount: -pendingToCancel,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Pending bits converted — build approved`,
+            createdBy: adminUserId,
+          })
+        }
+
         // Award bits based on the project's tier (locked in at design approval),
         // minus the approved BOM grant set during design review
         const tierBits = project.tier ? getTierBits(project.tier) : 0
@@ -315,6 +354,8 @@ export async function POST(
             bomItems: true,
           },
         })
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       })
 
       await logAdminAction(
@@ -341,19 +382,119 @@ export async function POST(
       }
 
       // Sync to Airtable on build approval (full data now available)
-      const parsedHoursJustification = typeof hoursJustification === "string" && hoursJustification.trim() ? hoursJustification.trim() : undefined
-      const parsedAirtableGrantAmount = typeof airtableGrantAmount === "number" && airtableGrantAmount >= 0 ? airtableGrantAmount : null
-      try {
-        await syncProjectToAirtable(project.userId, project, parsedHoursJustification, parsedAirtableGrantAmount)
-      } catch (err) {
-        console.error("Failed to sync project to Airtable on build approval:", err)
+      {
+        const parsedAirtableGrantAmount = typeof airtableGrantAmount === "number" && airtableGrantAmount >= 0 ? airtableGrantAmount : null
+
+        // Construct build review justification with design review context
+        const sessions = project.workSessions
+        const designSessions = sessions.filter((s) => s.stage === "DESIGN")
+        const buildSessions = sessions.filter((s) => s.stage === "BUILD")
+        const designHours = designSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+        const buildHours = buildSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+        const tierInfo = project.tier ? getTierById(project.tier) : null
+        const adminName = authCheck.session.user.name || "Unknown"
+        const adminEmail = authCheck.session.user.email || "unknown"
+        const dateStr = new Date().toISOString().slice(0, 10)
+
+        const justLines: string[] = []
+        justLines.push(`**Build Review**`)
+        justLines.push("")
+
+        // Include design review justification
+        const designReviewAction = await prisma.projectReviewAction.findFirst({
+          where: { projectId: id, stage: "DESIGN", decision: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          select: { comments: true, createdAt: true, reviewerId: true },
+        })
+        if (designReviewAction) {
+          const designReviewer = designReviewAction.reviewerId
+            ? await prisma.user.findUnique({ where: { id: designReviewAction.reviewerId }, select: { name: true, email: true } })
+            : null
+          const designDate = designReviewAction.createdAt.toISOString().slice(0, 10)
+          justLines.push(`--- Design Review (approved ${designDate} by ${designReviewer?.name || designReviewer?.email || "Unknown"}) ---`)
+          if (designReviewAction.comments) justLines.push(designReviewAction.comments)
+          justLines.push(`  Design hours: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
+          justLines.push("")
+          justLines.push(`--- Build Review ---`)
+        }
+
+        justLines.push(`Project: "${updatedProject.title}" (build approval)`)
+        justLines.push(`User: ${updatedProject.user.name || "Unknown"}`)
+        if (tierInfo) justLines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
+        justLines.push("")
+        justLines.push(`This user logged ${buildHours.toFixed(1)} build hours across ${buildSessions.length} journal entr${buildSessions.length === 1 ? "y" : "ies"}.`)
+        justLines.push("")
+
+        const approvedBom = updatedProject.bomItems.filter((b: { status: string }) => b.status === "approved" || b.status === "pending")
+        const bomItemsCost = approvedBom.reduce((sum: number, b: { totalCost: number }) => sum + b.totalCost, 0)
+        const bomTax = project.bomTax ?? 0
+        const bomShip = project.bomShipping ?? 0
+        const bomTotal = bomItemsCost + bomTax + bomShip
+        if (approvedBom.length > 0 || bomTax > 0 || bomShip > 0) {
+          const costParts = [`$${bomItemsCost.toFixed(2)} parts`]
+          if (bomTax > 0) costParts.push(`$${bomTax.toFixed(2)} tax`)
+          if (bomShip > 0) costParts.push(`$${bomShip.toFixed(2)} shipping`)
+          justLines.push(`BOM (${approvedBom.length} item${approvedBom.length === 1 ? "" : "s"}, ${costParts.join(" + ")} = $${bomTotal.toFixed(2)} total):`)
+          for (const item of approvedBom) {
+            const detail = item.quantity != null && item.quantity > 1
+              ? `${item.quantity}x = $${item.totalCost.toFixed(2)}`
+              : `$${item.totalCost.toFixed(2)}`
+            justLines.push(`  - ${item.name}: ${detail}${item.status === "pending" ? " (pending)" : ""}`)
+          }
+          justLines.push("")
+        }
+
+        if (updatedProject.badges.length > 0) {
+          justLines.push(`Badges: ${updatedProject.badges.map((b: { badge: string }) => b.badge).join(", ")}`)
+          justLines.push("")
+        }
+        if (project.githubRepo) justLines.push(`GitHub: ${project.githubRepo}`)
+        if (project.description) justLines.push(`Description: ${project.description}`)
+        justLines.push("")
+        justLines.push(`On ${dateStr}, ${adminName} (${adminEmail}) decided "approved"${sanitizedComments ? ` with reason: ${sanitizedComments}` : "."}`)
+
+        const buildJustification = justLines.join("\n")
+
+        try {
+          await syncProjectToAirtable(project.userId, project, buildJustification, parsedAirtableGrantAmount, { buildOnly: true })
+        } catch (err) {
+          console.error("Failed to sync project to Airtable on build approval:", err)
+        }
       }
 
       return NextResponse.json(updatedProject)
     } else {
       // Rejection
-      const [updatedProject] = await prisma.$transaction([
-        prisma.project.update({
+      const updatedProject = await prisma.$transaction(async (tx) => {
+        // Cancel pending bits on build rejection
+        const pendingSum = await tx.currencyTransaction.aggregate({
+          where: { userId: project.userId, projectId: id, type: "DESIGN_APPROVED" },
+          _sum: { amount: true },
+        })
+        const pendingToCancel = pendingSum._sum.amount ?? 0
+        if (pendingToCancel !== 0) {
+          await appendLedgerEntry(tx, {
+            userId: project.userId,
+            projectId: id,
+            amount: -pendingToCancel,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Pending bits cancelled — build rejected`,
+            createdBy: adminUserId,
+          })
+        }
+
+        await tx.projectReviewAction.create({
+          data: {
+            projectId: id,
+            stage: "BUILD",
+            decision: buildReviewDecision,
+            comments: sanitizedComments,
+            grantAmount: null,
+            reviewerId: adminUserId,
+          },
+        })
+
+        return tx.project.update({
           where: { id },
           data: {
             buildStatus: decision,
@@ -378,18 +519,10 @@ export async function POST(
             badges: true,
             bomItems: true,
           },
-        }),
-        prisma.projectReviewAction.create({
-          data: {
-            projectId: id,
-            stage: "BUILD",
-            decision: buildReviewDecision,
-            comments: sanitizedComments,
-            grantAmount: null,
-            reviewerId: adminUserId,
-          },
-        }),
-      ])
+        })
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      })
 
       await logAdminAction(
         AuditAction.ADMIN_REJECT_BUILD,

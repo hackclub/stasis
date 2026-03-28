@@ -45,7 +45,7 @@ function StatusBadge({ label, status }: { label: string; status: string }) {
     status === 'approved' ? 'text-green-600' :
     status === 'rejected' ? 'text-red-600' :
     status === 'in_review' ? 'text-orange-500' :
-    'text-brown-800';
+    'text-cream-50';
 
   return (
     <span className={`text-xs uppercase ${color}`}>
@@ -102,21 +102,21 @@ function AssignDialog({
       onClick={onClose}
     >
       <div
-        className="bg-cream-100 border-2 border-cream-400 p-6 max-w-md w-full space-y-4"
+        className="bg-brown-800 border-2 border-cream-500/20 p-6 max-w-md w-full space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-brown-800 text-lg uppercase">
+        <h3 className="text-cream-50 text-lg uppercase">
           {isReassign ? 'Reassign' : 'Assign'} {userName ?? 'Unknown'}
         </h3>
 
         <div className="space-y-2">
-          <label className="block text-brown-800 text-sm uppercase">
+          <label className="block text-cream-50 text-sm uppercase">
             {isReassign ? 'New Sidekick' : 'Sidekick'}
           </label>
           <select
             value={selectedSidekickId}
             onChange={(e) => setSelectedSidekickId(e.target.value)}
-            className="w-full bg-cream-200 border border-cream-400 text-brown-800 px-3 py-2 text-sm"
+            className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm"
           >
             <option value="">Random (least loaded)</option>
             {availableSidekicks.map((s) => (
@@ -131,7 +131,7 @@ function AssignDialog({
           <button
             onClick={onClose}
             disabled={submitting}
-            className="px-4 py-2 text-xs uppercase bg-cream-200 border border-cream-400 text-brown-800 hover:border-cream-500 transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs uppercase bg-brown-900 border border-cream-500/20 text-cream-50 hover:border-cream-500 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -159,6 +159,7 @@ export default function AdminSidekicksPage() {
     userName: string | null;
     currentSidekickId?: string;
   } | null>(null);
+  const [assigningAll, setAssigningAll] = useState(false);
 
   useEffect(() => {
     fetchSidekicks();
@@ -223,16 +224,16 @@ export default function AdminSidekicksPage() {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <p className="text-brown-800">Loading sidekicks...</p>
+        <p className="text-cream-50">Loading sidekicks...</p>
       </div>
     );
   }
 
   if (sidekicks.length === 0) {
     return (
-      <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-        <p className="text-brown-800 text-lg uppercase mb-2">No sidekicks</p>
-        <p className="text-cream-600 text-sm">
+      <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center">
+        <p className="text-cream-50 text-lg uppercase mb-2">No sidekicks</p>
+        <p className="text-cream-200 text-sm">
           Assign the SIDEKICK role to users from the Users tab.
         </p>
       </div>
@@ -241,7 +242,7 @@ export default function AdminSidekicksPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-brown-800 text-sm uppercase">
+      <p className="text-cream-50 text-sm uppercase">
         {sidekicks.length} sidekick{sidekicks.length !== 1 ? 's' : ''} &middot;{' '}
         {sidekicks.reduce((sum, s) => sum + s.assigneeCount, 0)} total assignees
       </p>
@@ -250,11 +251,11 @@ export default function AdminSidekicksPage() {
         {sidekicks.map((sidekick) => (
           <div
             key={sidekick.id}
-            className="bg-cream-100 border-2 border-cream-400"
+            className="bg-brown-800 border-2 border-cream-500/20"
           >
             {/* Sidekick Header */}
             <div
-              className="p-4 cursor-pointer hover:bg-cream-200 transition-colors"
+              className="p-4 cursor-pointer hover:bg-cream-500/10 transition-colors"
               onClick={() =>
                 setExpandedSidekick(
                   expandedSidekick === sidekick.id ? null : sidekick.id
@@ -271,21 +272,21 @@ export default function AdminSidekicksPage() {
                     />
                   ) : (
                     <div className="w-10 h-10 bg-cream-400 flex items-center justify-center flex-shrink-0 border-2 border-orange-500">
-                      <span className="text-brown-800 text-sm">
+                      <span className="text-cream-50 text-sm">
                         {(sidekick.name ?? '?')[0].toUpperCase()}
                       </span>
                     </div>
                   )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-brown-800 truncate">
+                      <p className="text-cream-50 truncate">
                         {sidekick.name ?? 'Unknown'}
                       </p>
                       <span className="text-xs bg-purple-600 text-white px-2 py-0.5 uppercase">
                         Sidekick
                       </span>
                     </div>
-                    <p className="text-cream-600 text-sm">
+                    <p className="text-cream-200 text-sm">
                       {sidekick.assigneeCount} assignee{sidekick.assigneeCount !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -297,7 +298,7 @@ export default function AdminSidekicksPage() {
                       href={`https://hackclub.slack.com/team/${sidekick.slackId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1.5 text-xs uppercase bg-cream-200 border border-cream-400 text-brown-800 hover:border-cream-500 transition-colors hidden sm:block"
+                      className="px-3 py-1.5 text-xs uppercase bg-brown-900 border border-cream-500/20 text-cream-50 hover:border-cream-500 transition-colors hidden sm:block"
                       onClick={(e) => e.stopPropagation()}
                     >
                       Slack
@@ -327,7 +328,7 @@ export default function AdminSidekicksPage() {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className={`text-brown-800 transition-transform ${
+                    className={`text-cream-50 transition-transform ${
                       expandedSidekick === sidekick.id ? 'rotate-180' : ''
                     }`}
                   >
@@ -339,9 +340,9 @@ export default function AdminSidekicksPage() {
 
             {/* Expanded Assignee List */}
             {expandedSidekick === sidekick.id && (
-              <div className="border-t border-cream-400 p-4">
+              <div className="border-t border-cream-500/20 p-4">
                 {sidekick.assignees.length === 0 ? (
-                  <p className="text-cream-600 text-sm text-center py-4">
+                  <p className="text-cream-200 text-sm text-center py-4">
                     No assignees
                   </p>
                 ) : (
@@ -349,7 +350,7 @@ export default function AdminSidekicksPage() {
                     {sidekick.assignees.map((assignee) => (
                       <div
                         key={assignee.id}
-                        className="bg-cream-200 border border-cream-400 p-3 space-y-2"
+                        className="bg-brown-900 border border-cream-500/20 p-3 space-y-2"
                       >
                         {/* Assignee Header */}
                         <div className="flex items-center gap-3">
@@ -361,16 +362,16 @@ export default function AdminSidekicksPage() {
                             />
                           ) : (
                             <div className="w-8 h-8 bg-cream-400 flex items-center justify-center flex-shrink-0 border-2 border-orange-500">
-                              <span className="text-brown-800 text-xs">
+                              <span className="text-cream-50 text-xs">
                                 {(assignee.name ?? '?')[0].toUpperCase()}
                               </span>
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="text-brown-800 text-sm truncate">
+                            <p className="text-cream-50 text-sm truncate">
                               {assignee.name ?? 'Unknown'}
                             </p>
-                            <p className="text-cream-600 text-xs">
+                            <p className="text-cream-200 text-xs">
                               Joined{' '}
                               {new Date(assignee.createdAt).toLocaleDateString(
                                 'en-US',
@@ -382,27 +383,27 @@ export default function AdminSidekicksPage() {
 
                         {/* Stats */}
                         <div className="grid grid-cols-3 gap-1 text-center">
-                          <div className="bg-cream-100 p-1.5">
+                          <div className="bg-brown-800 p-1.5">
                             <p className="text-orange-500 text-sm font-bold">
                               {assignee.journalCount}
                             </p>
-                            <p className="text-cream-600 text-[10px] uppercase">
+                            <p className="text-cream-200 text-[10px] uppercase">
                               Journals
                             </p>
                           </div>
-                          <div className="bg-cream-100 p-1.5">
+                          <div className="bg-brown-800 p-1.5">
                             <p className="text-orange-500 text-sm font-bold">
                               {assignee.totalHours.toFixed(1)}
                             </p>
-                            <p className="text-cream-600 text-[10px] uppercase">
+                            <p className="text-cream-200 text-[10px] uppercase">
                               Hours
                             </p>
                           </div>
-                          <div className="bg-cream-100 p-1.5">
+                          <div className="bg-brown-800 p-1.5">
                             <p className="text-orange-500 text-sm font-bold">
                               {assignee.projectCount}
                             </p>
-                            <p className="text-cream-600 text-[10px] uppercase">
+                            <p className="text-cream-200 text-[10px] uppercase">
                               Projects
                             </p>
                           </div>
@@ -414,9 +415,9 @@ export default function AdminSidekicksPage() {
                             {assignee.projects.map((project) => (
                               <div
                                 key={project.id}
-                                className="bg-cream-100 px-2 py-1 text-xs"
+                                className="bg-brown-800 px-2 py-1 text-xs"
                               >
-                                <p className="text-brown-800 truncate">
+                                <p className="text-cream-50 truncate">
                                   {project.title}
                                 </p>
                                 <div className="flex gap-2 mt-0.5">
@@ -441,14 +442,14 @@ export default function AdminSidekicksPage() {
                               href={`https://hackclub.slack.com/team/${assignee.slackId}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-1 text-[10px] uppercase bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500 transition-colors"
+                              className="px-2 py-1 text-[10px] uppercase bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500 transition-colors"
                             >
                               Slack
                             </a>
                           )}
                           <Link
                             href={`/dashboard/profile/${assignee.id}`}
-                            className="px-2 py-1 text-[10px] uppercase bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500 transition-colors"
+                            className="px-2 py-1 text-[10px] uppercase bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500 transition-colors"
                           >
                             Profile
                           </Link>
@@ -478,15 +479,46 @@ export default function AdminSidekicksPage() {
       {/* Unassigned Users */}
       {unassignedUsers.length > 0 && (
         <div className="space-y-4">
-          <p className="text-brown-800 text-sm uppercase">
-            {unassignedUsers.length} unassigned user{unassignedUsers.length !== 1 ? 's' : ''}
-          </p>
-          <div className="bg-cream-100 border-2 border-cream-400 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-cream-50 text-sm uppercase">
+              {unassignedUsers.length} unassigned user{unassignedUsers.length !== 1 ? 's' : ''}
+            </p>
+            <button
+              onClick={async () => {
+                if (!confirm(`Assign all ${unassignedUsers.length} unassigned user(s) to sidekicks?`)) return;
+                setAssigningAll(true);
+                try {
+                  const res = await fetch('/api/admin/sidekick/reassign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ assignAllUnassigned: true }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    alert(`Assigned ${data.assigned} user(s) to sidekicks.`);
+                    fetchSidekicks();
+                  } else {
+                    const data = await res.json();
+                    alert(`Failed: ${data.error || 'Unknown error'}`);
+                  }
+                } catch (error) {
+                  console.error('Failed to assign all:', error);
+                } finally {
+                  setAssigningAll(false);
+                }
+              }}
+              disabled={assigningAll}
+              className="px-3 py-1.5 text-xs uppercase bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {assigningAll ? 'Assigning...' : 'Assign All'}
+            </button>
+          </div>
+          <div className="bg-brown-800 border-2 border-cream-500/20 p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {unassignedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="bg-cream-200 border border-cream-400 p-3 flex items-center gap-3"
+                  className="bg-brown-900 border border-cream-500/20 p-3 flex items-center gap-3"
                 >
                   <img
                     src={user.image || '/default_slack.png'}
@@ -494,10 +526,10 @@ export default function AdminSidekicksPage() {
                     className="w-8 h-8 flex-shrink-0 border-2 border-orange-500"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-brown-800 text-sm truncate">
+                    <p className="text-cream-50 text-sm truncate">
                       {user.name ?? 'Unknown'}
                     </p>
-                    <p className="text-cream-600 text-xs">
+                    <p className="text-cream-200 text-xs">
                       Joined{' '}
                       {new Date(user.createdAt).toLocaleDateString('en-US', {
                         month: 'short',

@@ -19,10 +19,10 @@ export async function POST(
   // Verify project exists
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, hiddenFromGallery: true },
+    select: { userId: true, deletedAt: true, hiddenFromGallery: true },
   });
 
-  if (!project || project.hiddenFromGallery) {
+  if (!project || project.deletedAt || project.hiddenFromGallery) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 

@@ -79,6 +79,7 @@ export default function ReviewQueuePage() {
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
   const [statsTab, setStatsTab] = useState<'weekly' | 'allTime'>('weekly');
+  const [showFraud, setShowFraud] = useState(false);
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
@@ -86,6 +87,7 @@ export default function ReviewQueuePage() {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (category) params.set('category', category);
+      if (showFraud) params.set('showFraud', 'true');
       params.set('page', page.toString());
       const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) setData(await res.json());
@@ -94,7 +96,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, category, page]);
+  }, [search, category, page, showFraud]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -218,6 +220,16 @@ export default function ReviewQueuePage() {
           >
             Build
           </button>
+          <button
+            onClick={() => { setShowFraud(!showFraud); setPage(1); }}
+            className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
+              showFraud
+                ? 'border-red-500 text-red-500 bg-red-500/10'
+                : 'border-cream-400 text-brown-800 hover:border-red-500'
+            }`}
+          >
+            Fraud
+          </button>
         </div>
 
         <form onSubmit={handleSearch} className="flex gap-2">
@@ -226,7 +238,7 @@ export default function ReviewQueuePage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by ID, title, or author..."
-            className="px-3 py-1.5 text-sm border border-cream-400 bg-cream-100 text-brown-800 placeholder:text-cream-600 focus:outline-none focus:border-orange-500 w-64"
+            className="px-3 py-1.5 text-sm border border-cream-400 bg-cream-100 text-brown-800 placeholder:text-cream-600 focus:outline-none focus:border-orange-500 w-full sm:w-64"
           />
           <button
             type="submit"

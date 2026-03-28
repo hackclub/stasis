@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission, hasRole, Role } from "@/lib/permissions"
 import { getTierById } from "@/lib/tiers"
+import { totalBomCost } from "@/lib/format"
 
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
@@ -15,13 +16,22 @@ export async function GET(request: NextRequest) {
   const search = url.searchParams.get("search") || ""
   const category = url.searchParams.get("category") || "" // DESIGN or BUILD
   const guide = url.searchParams.get("guide") || "" // starter project ID filter
+  const nameSearch = url.searchParams.get("nameSearch") || "" // text search on title/description
+  const sort = url.searchParams.get("sort") || "" // "most_hours" for descending hours sort
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"))
-  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20")))
+  const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get("limit") || "20")))
   const offset = (page - 1) * limit
 
   // Query projects directly — works whether or not ProjectSubmission rows exist
+  const showFraud = url.searchParams.get("showFraud") === "true"
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const projectWhere: any = {}
+  const projectWhere: any = { deletedAt: null }
+
+  // Exclude fraud-convicted users by default
+  if (!showFraud) {
+    projectWhere.user = { fraudConvicted: false }
+  }
 
   // Filter by stage/status
   if (category === "DESIGN") {
@@ -49,6 +59,22 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Name-based text search (e.g. "devboard" or "keyboard" in title/description)
+  if (nameSearch) {
+    const statusFilter = projectWhere.OR
+    delete projectWhere.OR
+    projectWhere.AND = [
+      ...(statusFilter ? [{ OR: statusFilter }] : []),
+      ...(projectWhere.AND || []),
+      {
+        OR: [
+          { title: { contains: nameSearch, mode: "insensitive" } },
+          { description: { contains: nameSearch, mode: "insensitive" } },
+        ],
+      },
+    ]
+  }
+
   // Search filter
   if (search) {
     // Wrap existing OR in AND to combine with search
@@ -56,6 +82,7 @@ export async function GET(request: NextRequest) {
     delete projectWhere.OR
     projectWhere.AND = [
       ...(statusFilter ? [{ OR: statusFilter }] : []),
+      ...(projectWhere.AND || []),
       {
         OR: [
           { title: { contains: search, mode: "insensitive" } },
@@ -90,9 +117,7 @@ export async function GET(request: NextRequest) {
   const items = projects.map((project) => {
     const totalWorkUnits = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
     const entryCount = project.workSessions.length
-    const bomCost = project.bomItems
-      .filter((b) => b.status === "approved" || b.status === "pending")
-      .reduce((sum, b) => sum + b.totalCost, 0)
+    const bomCost = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
 
     // Determine which stage is in review
     const designInReview = project.designStatus === "in_review"
@@ -117,6 +142,8 @@ export async function GET(request: NextRequest) {
       workUnits: Math.round(totalWorkUnits * 10) / 10,
       entryCount,
       bomCost: Math.round(bomCost * 100) / 100,
+      bomTax: project.bomTax ?? 0,
+      bomShipping: project.bomShipping ?? 0,
       costPerUnit: totalWorkUnits > 0 ? Math.round((bomCost / totalWorkUnits) * 100) / 100 : 0,
       bitsPerHour: (() => {
         if (totalWorkUnits <= 0 || !project.tier) return null
@@ -134,14 +161,17 @@ export async function GET(request: NextRequest) {
     }
   })
 
-  // For admins, sort pre-reviewed items to the top
-  if (isAdmin) {
-    items.sort((a, b) => {
-      if (a.preReviewed && !b.preReviewed) return -1
-      if (!a.preReviewed && b.preReviewed) return 1
-      return 0
-    })
+  // Sort by most hours if requested
+  if (sort === "most_hours") {
+    items.sort((a, b) => b.workUnits - a.workUnits)
   }
+
+  // Always sort pre-reviewed (first-pass reviewed) items to the top
+  items.sort((a, b) => {
+    if (a.preReviewed && !b.preReviewed) return -1
+    if (!a.preReviewed && b.preReviewed) return 1
+    return 0
+  })
 
   return NextResponse.json({
     items,

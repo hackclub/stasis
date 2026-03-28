@@ -60,6 +60,8 @@ interface ProjectData {
   author: { id: string; name: string | null; image: string | null; email: string };
   totalHours: number;
   bomCost: number;
+  bomTax: number;
+  bomShipping: number;
   costPerHour: number;
   bitsPerHour: number | null;
   tierBits: number;
@@ -117,15 +119,15 @@ export default function ProjectReviewHistoryPage() {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <p className="text-brown-800">Loading project review history...</p>
+        <p className="text-cream-50">Loading project review history...</p>
       </div>
     );
   }
 
   if (error || !project) {
     return (
-      <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-        <p className="text-brown-800">{error || 'Project not found'}</p>
+      <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center">
+        <p className="text-cream-50">{error || 'Project not found'}</p>
         <Link href="/admin/audit-reviews" className="text-orange-500 text-sm mt-2 inline-block hover:underline">
           Back to Audit Reviews
         </Link>
@@ -142,23 +144,23 @@ export default function ProjectReviewHistoryPage() {
         <Link href="/admin/audit-reviews" className="text-orange-500 hover:underline">
           Audit Reviews
         </Link>
-        <span className="text-cream-600">/</span>
-        <span className="text-brown-800">{project.title}</span>
+        <span className="text-cream-200">/</span>
+        <span className="text-cream-50">{project.title}</span>
       </div>
 
       {/* Project Header */}
-      <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
+      <div className="bg-brown-800 border-2 border-cream-500/20 p-4 mb-6">
         <div className="flex items-start gap-4">
           {project.coverImage && (
             <img
               src={project.coverImage}
               alt=""
-              className="w-16 h-16 object-cover border border-cream-400 flex-shrink-0"
+              className="w-16 h-16 object-cover border border-cream-500/20 flex-shrink-0"
             />
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap mb-2">
-              <h2 className="text-brown-800 text-lg font-medium">{project.title}</h2>
+              <h2 className="text-cream-50 text-lg font-medium">{project.title}</h2>
               {tierInfo && (
                 <span className={`text-xs px-2 py-0.5 ${TIER_COLORS[tierInfo.id] || ''}`}>
                   {tierInfo.name} ({tierInfo.bits}b)
@@ -175,22 +177,22 @@ export default function ProjectReviewHistoryPage() {
               {project.author.image && (
                 <img src={project.author.image} alt="" className="w-5 h-5 rounded-full" />
               )}
-              <span className="text-brown-800 text-sm">
+              <span className="text-cream-50 text-sm">
                 {project.author.name || project.author.email}
               </span>
             </div>
             <div className="flex gap-4 flex-wrap text-sm">
-              <span className="text-brown-800">{project.totalHours}h total</span>
-              <span className="text-brown-800">${project.bomCost.toFixed(2)} BOM</span>
+              <span className="text-cream-50">{project.totalHours}h total</span>
+              <span className="text-cream-50">${project.bomCost.toFixed(2)} BOM</span>
               {project.costPerHour > 0 && (
-                <span className="text-brown-800">${project.costPerHour.toFixed(2)}/h</span>
+                <span className="text-cream-50">${project.costPerHour.toFixed(2)}/h</span>
               )}
               {project.bitsPerHour !== null && (
                 <span className="text-orange-500">{project.bitsPerHour} bits/h</span>
               )}
-              <span className="text-cream-600">{project.entryCount} entries</span>
-              <span className="text-cream-600">Design: {project.designStatus}</span>
-              <span className="text-cream-600">Build: {project.buildStatus}</span>
+              <span className="text-cream-200">{project.entryCount} entries</span>
+              <span className="text-cream-200">Design: {project.designStatus}</span>
+              <span className="text-cream-200">Build: {project.buildStatus}</span>
             </div>
           </div>
         </div>
@@ -198,8 +200,8 @@ export default function ProjectReviewHistoryPage() {
 
       {/* Work Sessions Summary */}
       {project.workSessions.length > 0 && (
-        <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
-          <h3 className="text-brown-800 text-xs uppercase tracking-wider mb-3">
+        <div className="bg-brown-800 border-2 border-cream-500/20 p-4 mb-6">
+          <h3 className="text-cream-50 text-xs uppercase tracking-wider mb-3">
             Work Sessions ({project.workSessions.length})
           </h3>
           <div className="space-y-1 max-h-48 overflow-y-auto">
@@ -210,14 +212,14 @@ export default function ProjectReviewHistoryPage() {
                 }`}>
                   {ws.stage}
                 </span>
-                <span className="text-brown-800 truncate max-w-[200px]">{ws.title}</span>
-                <span className="text-brown-800">
+                <span className="text-cream-50 truncate max-w-[200px]">{ws.title}</span>
+                <span className="text-cream-50">
                   {ws.hoursApproved !== null ? `${ws.hoursApproved}h` : `${ws.hoursClaimed}h`}
                   {ws.hoursApproved !== null && ws.hoursApproved !== ws.hoursClaimed && (
-                    <span className="text-cream-600"> (claimed {ws.hoursClaimed}h)</span>
+                    <span className="text-cream-200"> (claimed {ws.hoursClaimed}h)</span>
                   )}
                 </span>
-                <span className="text-cream-600 text-xs ml-auto">
+                <span className="text-cream-200 text-xs ml-auto">
                   {new Date(ws.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
               </div>
@@ -228,8 +230,8 @@ export default function ProjectReviewHistoryPage() {
 
       {/* BOM Summary */}
       {project.bomItems.length > 0 && (
-        <div className="bg-cream-100 border-2 border-cream-400 p-4 mb-6">
-          <h3 className="text-brown-800 text-xs uppercase tracking-wider mb-3">
+        <div className="bg-brown-800 border-2 border-cream-500/20 p-4 mb-6">
+          <h3 className="text-cream-50 text-xs uppercase tracking-wider mb-3">
             Bill of Materials ({project.bomItems.length})
           </h3>
           <div className="space-y-1">
@@ -244,8 +246,8 @@ export default function ProjectReviewHistoryPage() {
                 }`}>
                   {item.status}
                 </span>
-                <span className="text-brown-800">{item.name}</span>
-                <span className="text-brown-800">
+                <span className="text-cream-50">{item.name}</span>
+                <span className="text-cream-50">
                   ${bomItemTotal(item).toFixed(2)}
                   {item.quantity != null && item.quantity > 1 && ` (${item.quantity}x)`}
                 </span>
@@ -256,19 +258,19 @@ export default function ProjectReviewHistoryPage() {
       )}
 
       {/* Review Timeline */}
-      <h3 className="text-brown-800 text-xs uppercase tracking-wider mb-4">
+      <h3 className="text-cream-50 text-xs uppercase tracking-wider mb-4">
         Review Timeline ({timeline.length})
       </h3>
       {timeline.length === 0 ? (
-        <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-          <p className="text-brown-800">No reviews yet</p>
+        <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center">
+          <p className="text-cream-50">No reviews yet</p>
         </div>
       ) : (
         <div className="space-y-3">
           {timeline.map((entry, idx) => (
             <div
               key={idx}
-              className={`bg-cream-100 border-2 border-cream-400 p-4 ${
+              className={`bg-brown-800 border-2 border-cream-500/20 p-4 ${
                 entry.invalidated ? 'opacity-50' : ''
               }`}
             >
@@ -277,7 +279,7 @@ export default function ProjectReviewHistoryPage() {
                 {entry.reviewer?.image && (
                   <img src={entry.reviewer.image} alt="" className="w-6 h-6 rounded-full" />
                 )}
-                <span className="text-brown-800 text-sm font-medium">
+                <span className="text-cream-50 text-sm font-medium">
                   {entry.reviewer?.name || 'Unknown'}
                 </span>
                 {entry.type === 'review' && entry.result && (
@@ -295,7 +297,7 @@ export default function ProjectReviewHistoryPage() {
                 }`}>
                   {entry.stage}
                 </span>
-                <span className="text-xs uppercase px-2 py-0.5 bg-cream-200 text-cream-600">
+                <span className="text-xs uppercase px-2 py-0.5 bg-brown-900 text-cream-200">
                   {entry.type === 'review' ? 'Submission Review' : 'Legacy Action'}
                 </span>
                 {entry.isAdminReview && (
@@ -304,7 +306,7 @@ export default function ProjectReviewHistoryPage() {
                 {entry.invalidated && (
                   <span className="text-xs uppercase px-2 py-0.5 bg-red-100 text-red-800">Invalidated</span>
                 )}
-                <span className="text-brown-800 text-xs ml-auto">
+                <span className="text-cream-50 text-xs ml-auto">
                   {new Date(entry.createdAt).toLocaleString('en-US', {
                     month: 'short',
                     day: 'numeric',
@@ -318,20 +320,20 @@ export default function ProjectReviewHistoryPage() {
               {/* Feedback / Comments */}
               {entry.feedback && (
                 <div className="mb-2">
-                  <p className="text-brown-800 text-sm whitespace-pre-wrap">{entry.feedback}</p>
+                  <p className="text-cream-50 text-sm whitespace-pre-wrap">{entry.feedback}</p>
                 </div>
               )}
               {entry.comments && (
                 <div className="mb-2">
-                  <p className="text-brown-800 text-sm whitespace-pre-wrap">{entry.comments}</p>
+                  <p className="text-cream-50 text-sm whitespace-pre-wrap">{entry.comments}</p>
                 </div>
               )}
 
               {/* Internal reason */}
               {entry.reason && (
                 <div className="mb-2">
-                  <span className="text-cream-600 text-xs uppercase">Internal: </span>
-                  <span className="text-cream-600 text-sm">{entry.reason}</span>
+                  <span className="text-cream-200 text-xs uppercase">Internal: </span>
+                  <span className="text-cream-200 text-sm">{entry.reason}</span>
                 </div>
               )}
 
@@ -339,17 +341,17 @@ export default function ProjectReviewHistoryPage() {
               {(entry.frozenWorkUnits !== null || entry.frozenTier !== null || entry.frozenFundingAmount !== null) && (
                 <div className="flex gap-2 flex-wrap mb-2">
                   {entry.frozenWorkUnits !== null && (
-                    <span className="text-xs px-2 py-0.5 bg-cream-200 text-cream-600">
+                    <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
                       Frozen hours: {entry.frozenWorkUnits}h
                     </span>
                   )}
                   {entry.frozenTier !== null && (
-                    <span className="text-xs px-2 py-0.5 bg-cream-200 text-cream-600">
+                    <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
                       Frozen tier: {entry.frozenTier}
                     </span>
                   )}
                   {entry.frozenFundingAmount !== null && (
-                    <span className="text-xs px-2 py-0.5 bg-cream-200 text-cream-600">
+                    <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
                       Frozen funding: ${entry.frozenFundingAmount}
                     </span>
                   )}
@@ -381,12 +383,12 @@ export default function ProjectReviewHistoryPage() {
               {entry.type === 'action' && (entry.grantAmount !== null || entry.tier !== null) && (
                 <div className="flex gap-2 flex-wrap">
                   {entry.grantAmount !== null && (
-                    <span className="text-xs px-2 py-0.5 bg-cream-200 text-cream-600">
+                    <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
                       Grant: ${entry.grantAmount}
                     </span>
                   )}
                   {entry.tier !== null && (
-                    <span className="text-xs px-2 py-0.5 bg-cream-200 text-cream-600">
+                    <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
                       Set tier: {entry.tier}
                       {entry.tierBefore !== null && ` (was ${entry.tierBefore})`}
                     </span>

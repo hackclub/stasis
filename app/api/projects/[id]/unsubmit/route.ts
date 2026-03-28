@@ -29,7 +29,7 @@ export async function POST(
     where: { id },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 

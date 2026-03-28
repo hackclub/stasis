@@ -21,10 +21,12 @@ enum ProjectStage {
 }
 
 enum CurrencyTransactionType {
-  PROJECT_APPROVED // Bits credited when a project build is approved
-  ADMIN_GRANT // Reviewer manually credits bits
-  ADMIN_DEDUCTION // Reviewer manually debits bits (correction, etc.)
-  SHOP_PURCHASE // User spends bits on a shop item
+  PROJECT_APPROVED  // Bits credited when a project build is approved
+  DESIGN_APPROVED   // Pending bits credited when a project design is approved (converted on build approval)
+  ADMIN_GRANT       // Reviewer manually credits bits
+  ADMIN_DEDUCTION   // Reviewer manually debits bits (correction, etc.)
+  SHOP_PURCHASE     // User spends bits on a shop item
+  REVIEWER_PAYMENT  // Bits credited for completing reviews (0.5 bits each)
 }
 
 enum ReviewDecision {
@@ -72,6 +74,7 @@ model User {
   tutorialProject    Boolean  @default(false)
   eventPreference    String?
   pronouns           String?
+  disableGrain       Boolean   @default(false)
 
   // Encrypted PII fields (AES-256-GCM) — only populated when PULL_HCA_PII is set
   encryptedAddressStreet  String?
@@ -84,11 +87,13 @@ model User {
   sessions             Session[]
   accounts             Account[]
   projects             Project[]
+  deletedProjects      Project[]     @relation("deletedProjects")
   roles                UserRole[]
   currencyTransactions CurrencyTransaction[]
   kudosGiven           Kudos[]
   sidekickAssignments  SidekickAssignment[]  @relation("SidekickAssignments")
   assignedSidekick     SidekickAssignment?   @relation("AssignedSidekick")
+  goalPrizes           UserGoalPrize[]
 
   // Inventory relations
   teamId       String?
@@ -217,10 +222,15 @@ model Project {
   githubRepo        String?
   coverImage        String?
   noBomNeeded       Boolean      @default(false)
+  bomTax            Float?
+  bomShipping       Float?
   cartScreenshots   String[]     @default([])
   tier              Int?
   bitsAwarded       Int? // Set atomically at build approval; null until then
   hiddenFromGallery Boolean      @default(false)
+  deletedAt         DateTime?
+  deletedById       String?
+  deletedBy         User?        @relation("deletedProjects", fields: [deletedById], references: [id], onDelete: SetNull)
 
   // Stage-based status tracking
   designStatus          ProjectStatus @default(draft)
@@ -434,11 +444,15 @@ enum AuditAction {
   ADMIN_REVIEW_HACKATIME
   ADMIN_APPROVE_BOM
   ADMIN_REJECT_BOM
+  ADMIN_DELETE_PROJECT
+  ADMIN_UNDELETE_PROJECT
+
 
   REVIEWER_APPROVE
   REVIEWER_RETURN
   REVIEWER_REJECT
   ADMIN_MOVE_QUEUE
+  ADMIN_PAY_REVIEWER
 
   // Security events
   SUPERADMIN_GRANT
@@ -577,6 +591,7 @@ model SubmissionReview {
   frozenTier          Int?
   frozenReviewerNote  String?
 
+  paidAt    DateTime?
   createdAt DateTime @default(now())
 
   @@index([submissionId])
@@ -634,6 +649,18 @@ model Kudos {
   @@index([userId])
   @@index([projectId])
   @@map("kudos")
+}
+
+model UserGoalPrize {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItemId String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, shopItemId])
+  @@index([userId])
+  @@map("user_goal_prize")
 }
 
 // ── Inventory Models ────────────────────────────────────────────────

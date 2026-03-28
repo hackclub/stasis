@@ -1,13 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Libre_Barcode_128, Libre_Barcode_39 } from "next/font/google";
+import { Libre_Barcode_128, Libre_Barcode_39, Space_Grotesk } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 import AsteroidCatWrapper from "./components/AsteroidCatWrapper";
+import EventJsonLd from "./components/EventJsonLd";
 
 const departureMono = localFont({
   src: "../public/fonts/DepartureMono-Regular.woff2",
   variable: "--font-mono",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -29,27 +36,32 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://stasis.hackclub.com"),
-  title: "Stasis",
-  description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
+  title: "Stasis | High School Hardware Hackathon in Austin, TX",
+  description: "A High School Hardware Hackathon in Austin, TX on May 15-18. Build hardware projects, earn badges, and qualify for up to $300 in funding.",
+  keywords: ["hackathon", "hardware", "high school", "Austin TX", "Hack Club", "electronics", "PCB", "maker", "engineering", "STEM"],
   icons: {
     icon: "/favicon.svg",
   },
+  robots: { index: true, follow: true },
+  alternates: { canonical: "https://stasis.hackclub.com" },
   openGraph: {
-    title: "Stasis",
-    description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
+    title: "Stasis | High School Hardware Hackathon in Austin, TX",
+    description: "A High School Hardware Hackathon in Austin, TX on May 15-18. Build hardware projects, earn badges, and qualify for up to $300 in funding.",
     siteName: "Stasis",
+    type: "website",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
+        alt: "Stasis - High School Hardware Hackathon",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Stasis",
-    description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
+    title: "Stasis | High School Hardware Hackathon in Austin, TX",
+    description: "A High School Hardware Hackathon in Austin, TX on May 15-18. Build hardware projects, earn badges, and qualify for up to $300 in funding.",
     images: ["/og-image.jpg"],
   },
 };
@@ -73,7 +85,8 @@ export default function RootLayout({
           {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
         </Script>
       </head>
-      <body className={`antialiased ${departureMono.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
+      <body className={`antialiased ${departureMono.variable} ${spaceGrotesk.variable} ${libreBarcode128.variable} ${libreBarcode39.variable}`}>
+        <EventJsonLd />
         {children}
         <AsteroidCatWrapper />
       </body>

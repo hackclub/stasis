@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   }
 
   const projects = await prisma.project.findMany({
-    where: whereClause,
+    where: { ...whereClause, deletedAt: null },
     include: { workSessions: true, badges: true, bomItems: true },
     orderBy: { createdAt: "desc" },
   })

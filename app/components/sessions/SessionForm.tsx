@@ -784,7 +784,7 @@ export function SessionForm({
                         {/* Device Selector with Preview */}
                         {showDeviceSelector && !isRecording && (
                             <div className="mb-4 p-3 bg-cream-200 border border-cream-400">
-                                <div className="relative w-64 h-48 bg-cream-300 border border-cream-400 mb-3">
+                                <div className="relative w-full sm:w-64 h-48 bg-cream-300 border border-cream-400 mb-3">
                                     <video
                                         ref={videoPreviewRef}
                                         autoPlay
@@ -797,7 +797,7 @@ export function SessionForm({
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                                     <div>
                                         <label className="block text-brown-800 text-xs uppercase mb-1">Camera</label>
                                         <select
@@ -850,7 +850,7 @@ export function SessionForm({
                         {/* Recording UI */}
                         {isRecording ? (
                             <div className="mb-4">
-                                <div className="relative w-64 h-48 bg-cream-200 border-2 border-red-500 mb-3">
+                                <div className="relative w-full sm:w-64 h-48 bg-cream-200 border-2 border-red-500 mb-3">
                                     <video
                                         ref={videoPreviewRef}
                                         autoPlay

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getTierById } from '@/lib/tiers';
 import { projects as starterProjects } from '@/app/starter-projects/projects';
 
@@ -66,32 +67,60 @@ function formatWaitTime(ms: number): string {
 }
 
 const TIER_COLORS: Record<number, string> = {
-  1: 'bg-gray-200 text-gray-800',
-  2: 'bg-green-200 text-green-800',
-  3: 'bg-blue-200 text-blue-800',
-  4: 'bg-purple-200 text-purple-800',
-  5: 'bg-orange-200 text-orange-800',
+  1: 'bg-cream-500/20 text-cream-100',
+  2: 'bg-green-500/20 text-green-400',
+  3: 'bg-blue-500/20 text-blue-400',
+  4: 'bg-purple-500/20 text-purple-400',
+  5: 'bg-orange-500/20 text-orange-400',
 };
 
 export default function ReviewQueuePage() {
+  const router = useRouter();
   const [data, setData] = useState<QueueResponse | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [category, setCategory] = useState('');
-  const [guide, setGuide] = useState('');
-  const [page, setPage] = useState(1);
   const [statsTab, setStatsTab] = useState<'weekly' | 'allTime'>('weekly');
+  const [navigating, setNavigating] = useState(false);
+
+  // Navigate into the review flow with a filter applied
+  async function startFilteredReview(filterCategory: string, filterGuide: string, filterNameSearch?: string, filterSort?: string) {
+    setNavigating(true);
+    try {
+      const params = new URLSearchParams();
+      if (filterCategory) params.set('category', filterCategory);
+      if (filterGuide) params.set('guide', filterGuide);
+      if (filterNameSearch) params.set('nameSearch', filterNameSearch);
+      if (filterSort) params.set('sort', filterSort);
+      params.set('limit', '1');
+      const res = await fetch(`/api/reviews?${params}`);
+      if (res.ok) {
+        const { items } = await res.json();
+        if (items.length > 0) {
+          const qp = new URLSearchParams();
+          if (filterCategory) qp.set('category', filterCategory);
+          if (filterGuide) qp.set('guide', filterGuide);
+          if (filterNameSearch) qp.set('nameSearch', filterNameSearch);
+          if (filterSort) qp.set('sort', filterSort);
+          router.push(`/admin/review/${items[0].id}?${qp}`);
+          return;
+        }
+      }
+      alert('No submissions match that filter.');
+    } catch {
+      alert('Failed to load review queue.');
+    } finally {
+      setNavigating(false);
+    }
+  }
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
-      if (category) params.set('category', category);
-      if (guide) params.set('guide', guide);
-      params.set('page', page.toString());
+      params.set('limit', '500');
       const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) setData(await res.json());
     } catch (err) {
@@ -99,7 +128,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, category, guide, page]);
+  }, [search]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -116,33 +145,32 @@ export default function ReviewQueuePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearch(searchInput);
-    setPage(1);
-  };
+     };
 
   return (
     <>
       {/* Stats Header */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Pending Count */}
-        <div className="bg-cream-100 border-2 border-cream-400 p-4">
-          <p className="text-brown-800 text-xs uppercase tracking-wider mb-1">Pending Submissions</p>
+        <div className="bg-brown-800 border border-cream-500/20 rounded p-4">
+          <p className="text-cream-200 text-xs uppercase tracking-wider mb-1">Pending Submissions</p>
           <p className="text-orange-500 text-2xl font-bold">{stats?.pendingCount ?? '...'}</p>
-          <p className="text-brown-800 text-xs mt-1">
+          <p className="text-cream-200 text-xs mt-1">
             {stats ? `${stats.totalPendingWorkUnits}h total work units` : ''}
           </p>
         </div>
 
         {/* Top Reviewers (tabbed) */}
-        <div className="bg-cream-100 border-2 border-cream-400 p-4 md:col-span-2">
+        <div className="bg-brown-800 border border-cream-500/20 rounded p-4 md:col-span-2">
           <div className="flex items-center gap-4 mb-2">
-            <p className="text-brown-800 text-xs uppercase tracking-wider">Top Reviewers</p>
+            <p className="text-cream-200 text-xs uppercase tracking-wider">Top Reviewers</p>
             <div className="flex gap-1">
               <button
                 onClick={() => setStatsTab('weekly')}
                 className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
                   statsTab === 'weekly'
                     ? 'bg-orange-500 text-white'
-                    : 'bg-cream-200 text-brown-800 hover:bg-cream-300'
+                    : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
                 }`}
               >
                 This Week
@@ -152,7 +180,7 @@ export default function ReviewQueuePage() {
                 className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
                   statsTab === 'allTime'
                     ? 'bg-orange-500 text-white'
-                    : 'bg-cream-200 text-brown-800 hover:bg-cream-300'
+                    : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
                 }`}
               >
                 All Time
@@ -163,93 +191,103 @@ export default function ReviewQueuePage() {
             {(statsTab === 'weekly' ? stats?.topReviewersWeekly : stats?.topReviewersAllTime)?.map(
               (s, i) => (
                 <div key={s.reviewer.id} className="flex items-center gap-2">
-                  <span className="text-brown-800 text-xs">{i + 1}.</span>
+                  <span className="text-cream-200 text-xs">{i + 1}.</span>
                   {s.reviewer.image && (
                     <img src={s.reviewer.image} alt="" className="w-5 h-5 rounded-full" />
                   )}
-                  <span className="text-brown-800 text-sm">{s.reviewer.name || 'Unknown'}</span>
+                  <span className="text-cream-50 text-sm">{s.reviewer.name || 'Unknown'}</span>
                   <span className="text-orange-500 text-sm font-bold">{s.count}</span>
                 </div>
               )
-            ) || <span className="text-brown-800 text-sm">No reviews yet</span>}
+            ) || <span className="text-cream-200 text-sm">No reviews yet</span>}
           </div>
         </div>
       </div>
 
       {/* Legend */}
       {data?.isAdmin && (
-        <div className="mb-4 flex gap-4 text-xs text-brown-800">
+        <div className="mb-4 flex gap-4 text-xs text-cream-200">
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-orange-100 border border-orange-300 inline-block" />
+            <span className="w-3 h-3 bg-orange-500/20 border border-orange-500/40 inline-block" />
             Pre-reviewed (awaiting admin)
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-cream-200 opacity-50 border border-cream-400 inline-block" />
+            <span className="w-3 h-3 bg-cream-500/10 opacity-50 border border-cream-500/20 inline-block" />
             Claimed by another reviewer
           </span>
         </div>
       )}
 
-      {/* Toolbar */}
+      {/* Toolbar — each filter button starts reviewing with that filter */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <span className="text-xs text-cream-200 uppercase tracking-wider mr-1">Review:</span>
           <button
-            onClick={() => { setCategory(''); setPage(1); }}
-            className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-              category === ''
-                ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                : 'border-cream-400 text-brown-800 hover:border-orange-500'
-            }`}
+            onClick={() => startFilteredReview('', '', '', '')}
+            disabled={navigating}
+            className="px-4 py-1.5 text-xs uppercase tracking-wider border border-orange-500 bg-orange-500 text-white hover:bg-orange-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            All
+            {navigating ? 'Loading...' : 'All'}
           </button>
           <button
-            onClick={() => { setCategory('DESIGN'); setPage(1); }}
-            className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-              category === 'DESIGN'
-                ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                : 'border-cream-400 text-brown-800 hover:border-orange-500'
-            }`}
+            onClick={() => startFilteredReview('DESIGN', '', '', '')}
+            disabled={navigating}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Design
           </button>
           <button
-            onClick={() => { setCategory('BUILD'); setPage(1); }}
-            className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-              category === 'BUILD'
-                ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                : 'border-cream-400 text-brown-800 hover:border-orange-500'
-            }`}
+            onClick={() => startFilteredReview('BUILD', '', '', '')}
+            disabled={navigating}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Build
           </button>
 
-          <span className="border-l border-cream-400 mx-1" />
+          <span className="border-l border-cream-500/30 mx-1 hidden sm:inline-block" />
 
           {starterProjects.map((sp) => (
             <button
               key={sp.id}
-              onClick={() => { setGuide(guide === sp.id ? '' : sp.id); setPage(1); }}
-              className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-                guide === sp.id
-                  ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                  : 'border-cream-400 text-brown-800 hover:border-orange-500'
-              }`}
+              onClick={() => startFilteredReview('', sp.id, '', '')}
+              disabled={navigating}
+              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sp.name}
               {stats?.guideCounts[sp.id] ? ` (${stats.guideCounts[sp.id]})` : ''}
             </button>
           ))}
           <button
-            onClick={() => { setGuide(guide === 'custom' ? '' : 'custom'); setPage(1); }}
-            className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
-              guide === 'custom'
-                ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                : 'border-cream-400 text-brown-800 hover:border-orange-500'
-            }`}
+            onClick={() => startFilteredReview('', 'custom', '', '')}
+            disabled={navigating}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Custom
             {stats?.guideCounts['custom'] ? ` (${stats.guideCounts['custom']})` : ''}
+          </button>
+
+          <span className="border-l border-cream-500/30 mx-1 hidden sm:inline-block" />
+
+          <button
+            onClick={() => startFilteredReview('', '', 'devboard', '')}
+            disabled={navigating}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Devboard (name)
+          </button>
+          <button
+            onClick={() => startFilteredReview('', '', 'keyboard', '')}
+            disabled={navigating}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Keyboard (name)
+          </button>
+          <button
+            onClick={() => startFilteredReview('', '', '', 'most_hours')}
+            disabled={navigating}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Most Hours
           </button>
         </div>
 
@@ -259,7 +297,7 @@ export default function ReviewQueuePage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by ID, title, or author..."
-            className="px-3 py-1.5 text-sm border border-cream-400 bg-cream-100 text-brown-800 placeholder:text-cream-600 focus:outline-none focus:border-orange-500 w-64"
+            className="px-3 py-1.5 text-sm border border-cream-500/30 bg-brown-800 text-cream-50 placeholder:text-cream-500 focus:outline-none focus:border-orange-500 w-full sm:w-64"
           />
           <button
             type="submit"
@@ -270,8 +308,8 @@ export default function ReviewQueuePage() {
           {search && (
             <button
               type="button"
-              onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}
-              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-400 text-brown-800 hover:border-orange-500 cursor-pointer"
+              onClick={() => { setSearch(''); setSearchInput('');}}
+              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer"
             >
               Clear
             </button>
@@ -282,29 +320,29 @@ export default function ReviewQueuePage() {
       {/* Queue Table */}
       {loading ? (
         <div className="text-center py-8">
-          <p className="text-brown-800">Loading queue...</p>
+          <p className="text-cream-200">Loading queue...</p>
         </div>
       ) : !data || data.items.length === 0 ? (
-        <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-          <p className="text-brown-800">No submissions in queue</p>
+        <div className="bg-brown-800 border border-cream-500/20 rounded p-8 text-center">
+          <p className="text-cream-200">No submissions in queue</p>
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto bg-brown-800 border border-cream-500/20 rounded">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b-2 border-cream-400">
-                  <th className="text-left text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Title</th>
-                  <th className="text-left text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden lg:table-cell">Author</th>
-                  <th className="text-left text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Category</th>
-                  <th className="text-left text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">Tier</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">BOM</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">$/h</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden md:table-cell">bits/h</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Work Units</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2 hidden lg:table-cell">Entries</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Waiting</th>
-                  <th className="text-center text-xs uppercase tracking-wider text-brown-800 px-3 py-2">Action</th>
+                <tr className="border-b border-cream-500/20">
+                  <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Title</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden lg:table-cell">Author</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Category</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">Tier</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">BOM</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">$/h</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">bits/h</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Work Units</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden lg:table-cell">Entries</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Waiting</th>
+                  <th className="text-center text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,14 +350,14 @@ export default function ReviewQueuePage() {
                   const tierInfo = item.tier ? getTierById(item.tier) : null;
                   const rowClass = item.claimedByOther
                     ? 'opacity-50'
-                    : item.preReviewed && data.isAdmin
-                      ? 'bg-orange-50'
+                    : item.preReviewed
+                      ? 'bg-orange-500/10'
                       : '';
 
                   return (
                     <tr
                       key={item.id}
-                      className={`border-b border-cream-300 hover:bg-cream-200/50 transition-colors ${rowClass}`}
+                      className={`border-b border-cream-500/10 hover:bg-cream-500/5 transition-colors ${rowClass}`}
                     >
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2">
@@ -327,12 +365,12 @@ export default function ReviewQueuePage() {
                             <img
                               src={item.coverImage}
                               alt=""
-                              className="w-8 h-8 object-cover border border-cream-400 flex-shrink-0"
+                              className="w-8 h-8 object-cover border border-cream-500/20 flex-shrink-0"
                             />
                           )}
                           <div className="min-w-0">
                             <p className={`text-sm font-medium truncate max-w-[200px] ${
-                              item.preReviewed && data.isAdmin ? 'text-orange-600' : 'text-brown-800'
+                              item.preReviewed && data.isAdmin ? 'text-orange-400' : 'text-cream-50'
                             }`}>
                               {item.title}
                             </p>
@@ -347,7 +385,7 @@ export default function ReviewQueuePage() {
                           {item.author.image && (
                             <img src={item.author.image} alt="" className="w-5 h-5 rounded-full" />
                           )}
-                          <span className="text-sm text-brown-800 truncate max-w-[120px]">
+                          <span className="text-sm text-cream-100 truncate max-w-[120px]">
                             {item.author.name || item.author.email}
                           </span>
                         </div>
@@ -355,8 +393,8 @@ export default function ReviewQueuePage() {
                       <td className="px-3 py-3">
                         <span className={`text-xs uppercase px-2 py-0.5 ${
                           item.category === 'DESIGN'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : 'bg-green-500/20 text-green-400'
                         }`}>
                           {item.category}
                         </span>
@@ -368,22 +406,22 @@ export default function ReviewQueuePage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-right text-sm text-brown-800 hidden md:table-cell">
+                      <td className="px-3 py-3 text-right text-sm text-cream-100 hidden md:table-cell">
                         ${item.bomCost.toFixed(2)}
                       </td>
-                      <td className="px-3 py-3 text-right text-sm text-brown-800 hidden md:table-cell">
+                      <td className="px-3 py-3 text-right text-sm text-cream-100 hidden md:table-cell">
                         {item.costPerUnit > 0 ? `$${item.costPerUnit.toFixed(2)}` : '—'}
                       </td>
-                      <td className="px-3 py-3 text-right text-sm text-orange-500 hidden md:table-cell">
+                      <td className="px-3 py-3 text-right text-sm text-orange-400 hidden md:table-cell">
                         {item.bitsPerHour !== null ? item.bitsPerHour : '—'}
                       </td>
-                      <td className="px-3 py-3 text-right text-sm text-brown-800">
+                      <td className="px-3 py-3 text-right text-sm text-cream-100">
                         {item.workUnits}h
                       </td>
-                      <td className="px-3 py-3 text-right text-sm text-brown-800 hidden lg:table-cell">
+                      <td className="px-3 py-3 text-right text-sm text-cream-100 hidden lg:table-cell">
                         {item.entryCount}
                       </td>
-                      <td className="px-3 py-3 text-right text-sm text-brown-800">
+                      <td className="px-3 py-3 text-right text-sm text-cream-100">
                         {formatWaitTime(item.waitingMs)}
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -392,14 +430,14 @@ export default function ReviewQueuePage() {
                             href={`/admin/review/${item.id}`}
                             className={`inline-block px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
                               item.claimedByOther
-                                ? 'border-cream-400 text-cream-600 cursor-not-allowed'
+                                ? 'border-cream-500/20 text-cream-500 cursor-not-allowed'
                                 : 'border-orange-500 text-orange-500 hover:bg-orange-500/10'
                             }`}
                           >
                             Review
                           </Link>
                           {item.claimedByOther && (
-                            <p className="text-xs text-cream-600 mt-1">Claimed</p>
+                            <p className="text-xs text-cream-500 mt-1">Claimed</p>
                           )}
                         </div>
                       </td>
@@ -410,28 +448,6 @@ export default function ReviewQueuePage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          {data.totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Prev
-              </button>
-              <span className="text-sm text-brown-800">
-                Page {data.page} of {data.totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                disabled={page >= data.totalPages}
-                className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          )}
         </>
       )}
     </>

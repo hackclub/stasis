@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { EventPicker } from './EventPicker';
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from 'react';
+import { GoalPicker } from './GoalPicker';
+import { PrizeGoalPicker } from './PrizeGoalPicker';
+import { AnimatedResize } from './AnimatedResize';
+import type { GoalPreference } from '@/lib/tiers';
 
 interface TutorialStep {
   id: string;
@@ -39,18 +42,19 @@ const DASHBOARD_STEPS: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Stasis!',
-    content: 'Stasis is where you design and build hardware projects, earn bits, and qualify for an event. Each project has a complexity level that determines how many bits you earn. Let\'s get you started!',
+    content: 'Stasis is where you design and build hardware projects, earn bits, and work toward a goal. Each project has a complexity level that determines how many bits you earn. Let\'s get you started!',
     position: 'center',
   },
   {
-    id: 'pick-event',
-    title: 'Pick Your Event',
+    id: 'pick-goal',
+    title: 'Pick Your Goal',
     content: '',
     position: 'center',
   },
+  // 'pick-prizes' step is dynamically inserted after 'pick-goal' when prizes goal is selected
   {
     id: 'badge-progress',
-    title: 'Your Goal: Qualify for Your Event',
+    title: 'Your Goal',
     content: 'To qualify, you need to earn enough bits from completing hardware projects.\n\nEach project has a complexity level with a fixed reward - you get a budget to spend on parts for your project, and you earn bits based on how much money you have left over.\n\nAccumulate enough bits and you\'re in!',
     targetSelector: '[data-tutorial="badge-progress"]',
     position: 'bottom',
@@ -159,32 +163,49 @@ interface Props {
   type: TutorialType;
   forceShow?: boolean;
   onComplete?: () => void;
-  onEventChange?: (event: 'stasis' | 'opensauce') => void;
+  onGoalChange?: (goal: GoalPreference) => void;
+  onGoalPrizesChange?: (prizeIds: string[]) => void;
   badgeCount?: number;
-  initialEvent?: 'stasis' | 'opensauce' | null;
+  initialGoal?: GoalPreference | null;
 }
 
-export function OnboardingTutorial({ type, forceShow = false, onComplete, onEventChange, badgeCount = 0, initialEvent = null }: Readonly<Props>) {
+export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoalChange, onGoalPrizesChange, badgeCount = 0, initialGoal = null }: Readonly<Props>) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<'stasis' | 'opensauce' | null>(initialEvent);
+  const [selectedGoal, setSelectedGoal] = useState<GoalPreference | null>(initialGoal);
+  const [selectedPrizeIds, setSelectedPrizeIds] = useState<string[]>([]);
   const hasManuallySelected = useRef(false);
-  const wrappedSetSelectedEvent = useCallback((event: 'stasis' | 'opensauce') => {
+  const wrappedSetSelectedGoal = useCallback((goal: GoalPreference) => {
     hasManuallySelected.current = true;
-    setSelectedEvent(event);
+    setSelectedGoal(goal);
   }, []);
   const hasFetched = useRef(false);
 
-  // Sync initialEvent when it arrives asynchronously (e.g. after API fetch)
+  // Sync initialGoal when it arrives asynchronously (e.g. after API fetch)
   useEffect(() => {
-    if (initialEvent && !hasManuallySelected.current) {
-      setSelectedEvent(initialEvent); // eslint-disable-line react-hooks/set-state-in-effect -- sync prop to state
+    if (initialGoal && !hasManuallySelected.current) {
+      setSelectedGoal(initialGoal); // eslint-disable-line react-hooks/set-state-in-effect -- sync prop to state
     }
-  }, [initialEvent]);
+  }, [initialGoal]);
 
   const TUTORIAL_STEPS = useMemo(() => {
-    const baseSteps = type === 'dashboard' ? DASHBOARD_STEPS : PROJECT_STEPS;
+    let baseSteps = type === 'dashboard' ? DASHBOARD_STEPS : PROJECT_STEPS;
+
+    // Dynamically insert 'pick-prizes' step after 'pick-goal' when prizes goal is selected
+    if (type === 'dashboard' && selectedGoal === 'prizes') {
+      const goalStepIdx = baseSteps.findIndex(s => s.id === 'pick-goal');
+      if (goalStepIdx !== -1) {
+        const prizesStep: TutorialStep = {
+          id: 'pick-prizes',
+          title: 'Pick Your Prizes',
+          content: '',
+          position: 'center',
+        };
+        baseSteps = [...baseSteps.slice(0, goalStepIdx + 1), prizesStep, ...baseSteps.slice(goalStepIdx + 1)];
+      }
+    }
+
     if (type === 'project' && badgeCount >= 3) {
       return baseSteps.map(step =>
         step.id === 'badges'
@@ -197,9 +218,10 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onEven
       );
     }
     return baseSteps;
-  }, [type, badgeCount]);
+  }, [type, badgeCount, selectedGoal]);
 
-  const isEventPickerStep = TUTORIAL_STEPS[currentStep]?.id === 'pick-event';
+  const isGoalPickerStep = TUTORIAL_STEPS[currentStep]?.id === 'pick-goal';
+  const isPrizePickerStep = TUTORIAL_STEPS[currentStep]?.id === 'pick-prizes';
 
   useEffect(() => {
     if (forceShow) {
@@ -294,18 +316,51 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onEven
   }, [isVisible, updateHighlight, throttledUpdateRect]);
 
   const handleNext = () => {
-    if (isEventPickerStep && selectedEvent) {
-      fetch('/api/user/event-preference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: selectedEvent }),
-      });
-      onEventChange?.(selectedEvent);
+    if (isGoalPickerStep && selectedGoal) {
+      // Save goal preference
+      if (selectedGoal === 'prizes') {
+        // Don't save yet -- need to pick prizes first, will advance to pick-prizes step
+      } else {
+        fetch('/api/user/goal-preference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal: selectedGoal }),
+        });
+      }
+      onGoalChange?.(selectedGoal);
+    }
+    if (isPrizePickerStep) {
+      // Prize picker uses its own confirm flow, not the Next button
+      return;
     }
     if (currentStep < TUTORIAL_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       handleComplete();
+    }
+  };
+
+  const handlePrizeConfirm = async (prizeIds: string[]) => {
+    setSelectedPrizeIds(prizeIds);
+    // Save goal + prizes, await so parent refetch gets fresh data
+    await fetch('/api/user/goal-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goal: 'prizes', goalPrizeIds: prizeIds }),
+    });
+    onGoalPrizesChange?.(prizeIds);
+    // Advance to next step
+    if (currentStep < TUTORIAL_STEPS.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      handleComplete();
+    }
+  };
+
+  const handlePrizeBack = () => {
+    // Go back to goal picker step
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -332,86 +387,78 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onEven
   const step = TUTORIAL_STEPS[currentStep];
   const isCenter = step.position === 'center' || !highlightRect;
 
-  const tooltipPosition = useMemo(() => {
+  // Estimate tooltip size for position calculations
+  const tooltipSizeEstimate = useMemo(() => {
+    if (isGoalPickerStep) return { w: Math.min(1160, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 1160), h: 500 };
+    if (isPrizePickerStep) return { w: Math.min(780, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 780), h: 500 };
+    return { w: Math.min(440, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 440), h: 240 };
+  }, [isGoalPickerStep, isPrizePickerStep]);
+
+  const tooltipPosition = useMemo((): CSSProperties => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const tw = tooltipSizeEstimate.w;
+    const th = tooltipSizeEstimate.h;
+
     if (isCenter || !highlightRect) {
       return {
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
+        top: `${Math.max(16, (vh - th) / 2)}px`,
+        left: `${Math.max(16, (vw - tw) / 2)}px`,
       };
     }
 
     const padding = 32;
-    const tooltipWidth = 440;
-    const tooltipHeight = 240;
-    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-
     const spaceAbove = highlightRect.top;
-    const spaceBelow = viewportHeight - highlightRect.bottom;
-
+    const spaceBelow = vh - highlightRect.bottom;
     const extraOffset = (step.id === 'actions' || step.id === 'submit') ? 100 : 0;
 
     const horizontalCenter = Math.max(
       padding,
       Math.min(
-        highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2,
-        viewportWidth - tooltipWidth - padding
+        highlightRect.left + highlightRect.width / 2 - tw / 2,
+        vw - tw - padding
       )
     );
 
+    let top: number;
+    let left: number;
+
     if (step.position === 'right') {
-      return {
-        top: `${highlightRect.top + highlightRect.height / 2}px`,
-        left: `${Math.min(highlightRect.right + padding, viewportWidth - tooltipWidth - padding)}px`,
-        transform: 'translateY(-50%)',
-      };
-    }
-
-    if (step.position === 'left') {
-      return {
-        top: `${highlightRect.top + highlightRect.height / 2}px`,
-        left: `${Math.max(padding, highlightRect.left - tooltipWidth - padding)}px`,
-        transform: 'translateY(-50%)',
-      };
-    }
-
-    if (step.position === 'top' && spaceAbove >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.top - tooltipHeight - padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
-    }
-
-    if (step.position === 'bottom' && spaceBelow >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.bottom + padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
-    }
-
-    if (spaceBelow >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.bottom + padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
-    }
-
-    if (spaceAbove >= tooltipHeight + padding) {
-      return {
-        top: `${highlightRect.top - tooltipHeight - padding - extraOffset}px`,
-        left: `${horizontalCenter}px`,
-      };
+      top = highlightRect.top + highlightRect.height / 2 - th / 2;
+      left = Math.min(highlightRect.right + padding, vw - tw - padding);
+    } else if (step.position === 'left') {
+      top = highlightRect.top + highlightRect.height / 2 - th / 2;
+      left = Math.max(padding, highlightRect.left - tw - padding);
+    } else if (step.position === 'top' && spaceAbove >= th + padding) {
+      top = highlightRect.top - th - padding - extraOffset;
+      left = horizontalCenter;
+    } else if (step.position === 'bottom' && spaceBelow >= th + padding) {
+      top = highlightRect.bottom + padding - extraOffset;
+      left = horizontalCenter;
+    } else if (spaceBelow >= th + padding) {
+      top = highlightRect.bottom + padding - extraOffset;
+      left = horizontalCenter;
+    } else if (spaceAbove >= th + padding) {
+      top = highlightRect.top - th - padding - extraOffset;
+      left = horizontalCenter;
+    } else {
+      top = Math.max(16, (vh - th) / 2);
+      left = Math.max(16, (vw - tw) / 2);
     }
 
     return {
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
+      top: `${Math.max(8, top)}px`,
+      left: `${Math.max(8, left)}px`,
     };
-  }, [isCenter, highlightRect, step.id, step.position]);
+  }, [isCenter, highlightRect, step.id, step.position, tooltipSizeEstimate]);
 
   if (!isVisible) return null;
+
+  // Determine next button text
+  let nextButtonText = currentStep === TUTORIAL_STEPS.length - 1 ? 'Get Started' : 'Next';
+  if (isGoalPickerStep && selectedGoal === 'prizes') {
+    nextButtonText = 'Pick Prizes';
+  }
 
   return (
     <div className="fixed inset-0 z-[100]">
@@ -456,80 +503,92 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onEven
       )}
 
       {/* Tooltip */}
-      <div
-        className={`absolute bg-cream-100 border-2 border-orange-500 p-6 shadow-2xl ${
-          isEventPickerStep ? 'max-w-[780px] w-[95vw]' : 'max-w-110 w-full'
-        }`}
+      <AnimatedResize
+        className="absolute bg-cream-100 border-2 border-orange-500 shadow-2xl"
         style={tooltipPosition}
+        positionTransition={300}
+        duration={200}
       >
-        {/* Progress indicator */}
-        <div className="flex gap-1 mb-4">
-          {TUTORIAL_STEPS.map((_, index) => (
-            <div
-              key={index}
-              className={`h-1 flex-1 transition-colors ${
-                index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Step counter */}
-        <p className="text-cream-500 text-xs uppercase tracking-wider mb-2">
-          Step {currentStep + 1} of {TUTORIAL_STEPS.length}
-        </p>
-
-        {/* Title */}
-        <h3 className="text-brown-800 text-lg font-medium mb-3">
-          {step.title}
-        </h3>
-
-        {/* Event picker step */}
-        {isEventPickerStep ? (
-          <div>
-            <p className="text-brown-800 text-sm leading-relaxed mb-5">
-              Through Stasis, you can qualify for two different events! Pick which one you want to work toward — you&apos;ll earn bits by building hardware projects to unlock your ticket. You can change your selection at any time.
-            </p>
-
-            <EventPicker selectedEvent={selectedEvent} onSelect={wrappedSetSelectedEvent} />
+        <div className={`p-6 overflow-y-auto max-h-[calc(100vh-2rem)] ${
+          isGoalPickerStep ? 'w-[min(1160px,95vw)]' : isPrizePickerStep ? 'w-[min(780px,95vw)]' : 'w-[min(440px,95vw)]'
+        }`}>
+          {/* Progress indicator */}
+          <div className="flex gap-1 mb-4">
+            {TUTORIAL_STEPS.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1 flex-1 transition-colors ${
+                  index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
+                }`}
+              />
+            ))}
           </div>
-        ) : (
-          /* Normal step content */
-          <p className="text-brown-800 text-sm leading-relaxed mb-6">
-            {renderContent(step.content)}
+
+          {/* Step counter */}
+          <p className="text-cream-500 text-xs uppercase tracking-wider mb-2">
+            Step {currentStep + 1} of {TUTORIAL_STEPS.length}
           </p>
-        )}
 
-        {/* Navigation */}
-        <div className={`flex items-center justify-between ${isEventPickerStep ? 'mt-5' : ''}`}>
-          <div className="flex gap-2">
-            <button
-              onClick={handleNext}
-              disabled={isEventPickerStep && !selectedEvent}
-              className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {currentStep === TUTORIAL_STEPS.length - 1 ? 'Get Started' : 'Next'}
-            </button>
-            {currentStep > 0 && (
-              <button
-                onClick={handlePrev}
-                className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Back
-              </button>
-            )}
-          </div>
+          {/* Title */}
+          <h3 className="text-brown-800 text-lg font-medium mb-3">
+            {step.title}
+          </h3>
 
-          {currentStep < TUTORIAL_STEPS.length - 1 && (
-            <button
-              onClick={handleSkip}
-              className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
-            >
-              Skip tutorial
-            </button>
+          {/* Goal picker step */}
+          {isGoalPickerStep ? (
+            <div>
+              <p className="text-brown-800 text-sm leading-relaxed mb-5">
+                Through Stasis, you can work toward different goals! Pick which one you want to work toward — you&apos;ll earn bits by building hardware projects. You can change your selection at any time.
+              </p>
+
+              <GoalPicker selectedGoal={selectedGoal} onSelect={wrappedSetSelectedGoal} />
+            </div>
+          ) : isPrizePickerStep ? (
+            <PrizeGoalPicker
+              initialSelection={selectedPrizeIds}
+              onConfirm={handlePrizeConfirm}
+              onBack={handlePrizeBack}
+            />
+          ) : (
+            /* Normal step content */
+            <p className="text-brown-800 text-sm leading-relaxed mb-6">
+              {renderContent(step.content)}
+            </p>
+          )}
+
+          {/* Navigation - hide for prize picker (it has its own buttons) */}
+          {!isPrizePickerStep && (
+            <div className={`flex items-center justify-between ${isGoalPickerStep ? 'mt-5' : ''}`}>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleNext}
+                  disabled={isGoalPickerStep && !selectedGoal}
+                  className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {nextButtonText}
+                </button>
+                {currentStep > 0 && (
+                  <button
+                    onClick={handlePrev}
+                    className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Back
+                  </button>
+                )}
+              </div>
+
+              {currentStep < TUTORIAL_STEPS.length - 1 && (
+                <button
+                  onClick={handleSkip}
+                  className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
+                >
+                  Skip tutorial
+                </button>
+              )}
+            </div>
           )}
         </div>
-      </div>
+      </AnimatedResize>
     </div>
   );
 }

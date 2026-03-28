@@ -31,6 +31,8 @@ interface ReviewData {
       maxWorkUnits: number;
       minWorkUnits: number;
       bomCost: number;
+      bomTax: number | null;
+      bomShipping: number | null;
       user: { id: string; name: string | null; email: string; image: string | null; slackId: string | null; fraudConvicted: boolean; verificationStatus: string | null };
       workSessions: Array<{
         id: string;
@@ -653,6 +655,13 @@ export default function ReviewDetailPage() {
         <h2 className="text-brown-800 text-sm uppercase tracking-wider mb-4">Supporting Evidence</h2>
         <p className="text-brown-800 text-sm mb-3">
           BOM Cost: <span className="font-medium">${project.bomCost.toFixed(2)}</span>
+          {((project.bomTax ?? 0) > 0 || (project.bomShipping ?? 0) > 0) && (
+            <span className="text-cream-600 text-xs ml-1">
+              ({(project.bomTax ?? 0) > 0 && `$${(project.bomTax ?? 0).toFixed(2)} tax`}
+              {(project.bomTax ?? 0) > 0 && (project.bomShipping ?? 0) > 0 && ' + '}
+              {(project.bomShipping ?? 0) > 0 && `$${(project.bomShipping ?? 0).toFixed(2)} shipping`})
+            </span>
+          )}
         </p>
 
         {/* BOM Items */}
@@ -676,6 +685,18 @@ export default function ReviewDetailPage() {
                   </div>
                 </div>
               ))}
+              {(project.bomTax ?? 0) > 0 && (
+                <div className="flex items-center justify-between text-sm border-b border-cream-300 py-1">
+                  <span className="text-cream-600">Tax</span>
+                  <span className="text-brown-800">${(project.bomTax ?? 0).toFixed(2)}</span>
+                </div>
+              )}
+              {(project.bomShipping ?? 0) > 0 && (
+                <div className="flex items-center justify-between text-sm border-b border-cream-300 py-1">
+                  <span className="text-cream-600">Shipping</span>
+                  <span className="text-brown-800">${(project.bomShipping ?? 0).toFixed(2)}</span>
+                </div>
+              )}
             </div>
           </div>
         )}

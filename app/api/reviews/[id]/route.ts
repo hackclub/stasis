@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission, hasRole, Role } from "@/lib/permissions"
 import { getTierById } from "@/lib/tiers"
+import { totalBomCost } from "@/lib/format"
 import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
 export async function GET(
@@ -23,7 +24,7 @@ export async function GET(
       user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true, fraudConvicted: true, verificationStatus: true } },
       workSessions: {
         include: { media: true, timelapses: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" },
       },
       badges: true,
       bomItems: true,
@@ -47,7 +48,7 @@ export async function GET(
           user: { select: { id: true, name: true, email: true, image: true, slackId: true, hackatimeUserId: true, fraudConvicted: true, verificationStatus: true } },
           workSessions: {
             include: { media: true, timelapses: true },
-            orderBy: { createdAt: "desc" },
+            orderBy: { createdAt: "asc" },
           },
           badges: true,
           bomItems: true,
@@ -60,7 +61,7 @@ export async function GET(
     }
   }
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
@@ -76,6 +77,7 @@ export async function GET(
   // Check for conflicts — other projects by same author in review
   const conflicts = await prisma.project.findMany({
     where: {
+      deletedAt: null,
       id: { not: project.id },
       userId: project.userId,
       OR: [
@@ -139,9 +141,7 @@ export async function GET(
   const avgWorkUnits = entryCount > 0 ? journalHours / entryCount : 0
   const maxWorkUnits = entryCount > 0 ? Math.max(...workSessions.map((s) => s.hoursClaimed)) : 0
   const minWorkUnits = entryCount > 0 ? Math.min(...workSessions.map((s) => s.hoursClaimed)) : 0
-  const bomCost = project.bomItems
-    .filter((b) => b.status === "approved" || b.status === "pending")
-    .reduce((sum, b) => sum + b.totalCost, 0)
+  const bomCost = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
 
   // Get submission notes if available
   const latestSubmission = await prisma.projectSubmission.findFirst({
@@ -244,16 +244,62 @@ export async function GET(
       })),
   ]
 
-  // Find next/prev projects for navigation
-  const allProjects = await prisma.project.findMany({
-    where: {
-      OR: [
-        { designStatus: "in_review" },
-        { buildStatus: "in_review" },
-      ],
+  // Find next/prev projects for navigation (respecting optional filters)
+  const navCategory = _request.nextUrl.searchParams.get("category") || ""
+  const navGuide = _request.nextUrl.searchParams.get("guide") || ""
+  const navNameSearch = _request.nextUrl.searchParams.get("nameSearch") || ""
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const navWhere: any = { deletedAt: null }
+  if (navCategory === "DESIGN") {
+    navWhere.designStatus = "in_review"
+  } else if (navCategory === "BUILD") {
+    navWhere.buildStatus = "in_review"
+  } else {
+    navWhere.OR = [
+      { designStatus: "in_review" },
+      { buildStatus: "in_review" },
+    ]
+  }
+  if (navGuide === "custom") {
+    navWhere.starterProjectId = null
+  } else if (navGuide) {
+    navWhere.starterProjectId = navGuide
+  }
+  if (navNameSearch) {
+    const statusFilter = navWhere.OR
+    delete navWhere.OR
+    navWhere.AND = [
+      ...(statusFilter ? [{ OR: statusFilter }] : []),
+      {
+        OR: [
+          { title: { contains: navNameSearch, mode: "insensitive" } },
+          { description: { contains: navNameSearch, mode: "insensitive" } },
+        ],
+      },
+    ]
+  }
+
+  const allProjectsRaw = await prisma.project.findMany({
+    where: navWhere,
+    select: {
+      id: true,
+      createdAt: true,
+      submissions: {
+        select: { preReviewed: true, stage: true },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
     },
-    select: { id: true },
     orderBy: { createdAt: "asc" },
+  })
+
+  // Sort pre-reviewed projects first, then by createdAt
+  const allProjects = allProjectsRaw.sort((a, b) => {
+    const aPre = a.submissions[0]?.preReviewed ? 1 : 0
+    const bPre = b.submissions[0]?.preReviewed ? 1 : 0
+    if (aPre !== bPre) return bPre - aPre
+    return 0 // preserve createdAt order from DB
   })
 
   const currentIdx = allProjects.findIndex((p) => p.id === project!.id)

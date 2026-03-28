@@ -56,10 +56,10 @@ export async function GET(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true },
+    select: { userId: true, deletedAt: true },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
@@ -93,10 +93,10 @@ export async function POST(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, designStatus: true, buildStatus: true },
+    select: { userId: true, deletedAt: true, designStatus: true, buildStatus: true },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
@@ -158,6 +158,19 @@ export async function POST(
   if (typeof hoursClaimed !== "number" || hoursClaimed <= 0 || hoursClaimed > 24) {
     return NextResponse.json(
       { error: "Hours must be between 0 and 24" },
+      { status: 400 }
+    )
+  }
+
+  const MAX_PROJECT_HOURS = 100
+  const existingHours = await prisma.workSession.aggregate({
+    where: { projectId },
+    _sum: { hoursClaimed: true },
+  })
+  const totalAfter = (existingHours._sum.hoursClaimed ?? 0) + hoursClaimed
+  if (totalAfter > MAX_PROJECT_HOURS) {
+    return NextResponse.json(
+      { error: `Total project hours cannot exceed ${MAX_PROJECT_HOURS}. Current total: ${existingHours._sum.hoursClaimed ?? 0}h.` },
       { status: 400 }
     )
   }

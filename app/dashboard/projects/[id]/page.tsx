@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useRef } from 'react';
 import { useSession, linkOAuth2 } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 
@@ -15,6 +15,8 @@ import { formatPrice, bomItemTotal } from "@/lib/format";
 import { TIERS } from "@/lib/tiers";
 import { STARTER_PROJECTS } from "@/lib/starter-projects";
 import { BomCsvImportModal } from '@/app/components/projects/BomCsvImportModal';
+import PreflightChecks from '@/app/components/projects/PreflightChecks';
+import type { PreflightCheck } from '@/app/components/projects/PreflightChecks';
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
@@ -65,6 +67,8 @@ interface Project {
   isStarter: boolean;
   starterProjectId: string | null;
   noBomNeeded: boolean;
+  bomTax: number | null;
+  bomShipping: number | null;
 
   coverImage: string | null;
   githubRepo: string | null;
@@ -133,6 +137,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [showDesignUnsubmitDialog, setShowDesignUnsubmitDialog] = useState(false);
   const [showBuildUnsubmitDialog, setShowBuildUnsubmitDialog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [preflightChecks, setPreflightChecks] = useState<PreflightCheck[] | null>(null);
+  const [preflightLoading, setPreflightLoading] = useState(false);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
+  const [preflightCanSubmit, setPreflightCanSubmit] = useState(true);
+  const [submitStep, setSubmitStep] = useState<'type' | 'confirm'>('type');
+  const [submitPcb, setSubmitPcb] = useState(false);
+  const [submitCad, setSubmitCad] = useState(false);
+  const [submitFirmware, setSubmitFirmware] = useState(false);
+  const [submitNone, setSubmitNone] = useState(false);
   
   const [bomForm, setBomForm] = useState({
     name: '',
@@ -420,6 +433,68 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     window.addEventListener('stasis:replay-project-tutorial', handler);
     return () => window.removeEventListener('stasis:replay-project-tutorial', handler);
   }, []);
+
+  const allPreflightRef = useRef<{ checks: PreflightCheck[]; canSubmit: boolean } | null>(null);
+
+  const startBackgroundScan = async () => {
+    if (!project) return;
+    setPreflightLoading(true);
+    setPreflightError(null);
+    allPreflightRef.current = null;
+    try {
+      const res = await fetch(`/api/projects/${project.id}/preflight?pcb=true&cad=true&firmware=true`);
+      if (res.ok) {
+        allPreflightRef.current = await res.json();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setPreflightError(data.error || 'Failed to run pre-submission checks');
+      }
+    } catch {
+      setPreflightError('Could not connect - check your internet connection');
+    } finally {
+      setPreflightLoading(false);
+    }
+  };
+
+  const applyTypeFilter = (pcb: boolean, cad: boolean, firmware: boolean) => {
+    const all = allPreflightRef.current;
+    if (!all) return;
+    const pcbKeys = ['pcb_source', 'pcb_fab'];
+    const cadKeys = ['cad_source', 'cad_models'];
+    const firmwareKeys = ['firmware'];
+    const filtered = all.checks.filter((c) => {
+      if (pcbKeys.includes(c.key)) return pcb;
+      if (cadKeys.includes(c.key)) return cad;
+      if (firmwareKeys.includes(c.key)) return firmware;
+      return true;
+    });
+    setPreflightChecks(filtered);
+    setPreflightCanSubmit(!filtered.some((c) => c.blocking && c.status === 'fail'));
+  };
+
+  const openSubmitDialog = (stage: "design" | "build") => {
+    setPreflightChecks(null);
+    setPreflightError(null);
+    setPreflightCanSubmit(true);
+    setSubmitStep('type');
+    setSubmitPcb(false);
+    setSubmitCad(false);
+    setSubmitFirmware(false);
+    setSubmitNone(false);
+    if (stage === "design") {
+      setShowDesignSubmitDialog(true);
+    } else {
+      setShowBuildSubmitDialog(true);
+    }
+    startBackgroundScan();
+  };
+
+  const proceedToConfirm = () => {
+    setSubmitStep('confirm');
+    if (allPreflightRef.current) {
+      applyTypeFilter(submitPcb, submitCad, submitFirmware);
+    }
+  };
 
   const handleSubmitStage = async (stage: "design" | "build") => {
     if (!project) return;
@@ -728,6 +803,22 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   };
 
+  const handleUpdateBomField = async (field: 'bomTax' | 'bomShipping', value: number | null) => {
+    if (!project) return;
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (res.ok) {
+        setProject({ ...project, [field]: value });
+      }
+    } catch (error) {
+      console.error(`Failed to update ${field}:`, error);
+    }
+  };
+
   const handleCartScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !project) return;
@@ -865,7 +956,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       <div>
           {/* Project Header */}
           <div className="mb-8">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1">
                 {editingField === 'title' ? (
                   <div className="mb-2">
@@ -922,7 +1013,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </div>
               
               {/* Project Image / Upload */}
-              <label className="w-64 h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 flex flex-col items-center justify-center flex-shrink-0 transition-colors cursor-pointer group relative overflow-hidden">
+              <label className="w-full sm:w-64 h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 flex flex-col items-center justify-center flex-shrink-0 transition-colors cursor-pointer group relative overflow-hidden">
                 {project.coverImage ? (
                   <>
                     <img 
@@ -971,8 +1062,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
 
             {/* Stats */}
-            <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-fit">
-              <div className="flex gap-6 text-sm">
+            <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-full sm:w-fit">
+              <div className="flex flex-wrap gap-3 sm:gap-6 text-sm">
                 <div>
                   <span className="text-brown-800">Hours Logged:</span>{' '}
                   <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
@@ -998,7 +1089,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       type="text"
                       value={editGithubRepo}
                       onChange={(e) => setEditGithubRepo(e.target.value)}
-                      className="bg-white border-2 border-orange-500 text-brown-800 px-2 py-0.5 text-sm focus:outline-none w-64"
+                      className="bg-white border-2 border-orange-500 text-brown-800 px-2 py-0.5 text-sm focus:outline-none w-full sm:w-64"
                       placeholder="github.com/username/repo"
                       autoFocus
                     />
@@ -1034,6 +1125,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </span>
                 )}
               </div>
+
             </div>
 
             {/* Quick Actions */}
@@ -1464,7 +1556,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             
             <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
               <p className="text-blue-600 text-sm">
-                Your project&apos;s complexity level determines its <span className="font-medium">bit</span> allocation (<span className="font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials. <span className="font-medium">Include shipping and tax in your BOM</span>, as the grant card will be loaded with this exact amount.
+                Your project&apos;s complexity level determines its <span className="font-medium">bit</span> allocation (<span className="font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials. You can <span className="font-medium">add tax and shipping costs separately</span> below the items table.
               </p>
             </div>
 
@@ -1523,17 +1615,59 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </tbody>
                 </table>
                 
+                {/* Tax & Shipping */}
+                <div className="flex gap-4 mt-3 pt-3 border-t border-cream-300">
+                  <div>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Tax (USD)</label>
+                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") ? (
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        defaultValue={project.bomTax ?? ''}
+                        onBlur={(e) => {
+                          const val = e.target.value ? parseFloat(e.target.value) : null;
+                          if (val !== (project.bomTax ?? null)) handleUpdateBomField('bomTax', val);
+                        }}
+                        className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                        placeholder="0.00"
+                      />
+                    ) : (
+                      <span className="text-brown-800 text-sm">${formatPrice(project.bomTax ?? 0)}</span>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-brown-800 text-xs uppercase block mb-1">Shipping (USD)</label>
+                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") ? (
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        defaultValue={project.bomShipping ?? ''}
+                        onBlur={(e) => {
+                          const val = e.target.value ? parseFloat(e.target.value) : null;
+                          if (val !== (project.bomShipping ?? null)) handleUpdateBomField('bomShipping', val);
+                        }}
+                        className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                        placeholder="0.00"
+                      />
+                    ) : (
+                      <span className="text-brown-800 text-sm">${formatPrice(project.bomShipping ?? 0)}</span>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex flex-col items-end gap-1 mt-3 pt-3 border-t border-cream-400">
                   <div className="flex items-center">
                     <span className="text-brown-800 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
                     <span className="text-brown-800 font-medium">
-                      ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0))}
+                      ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0))}
                     </span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-brown-800 text-xs mr-3">Estimated cost in bits:</span>
                     <span className="text-brown-800 text-sm">
-                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0))}&nbsp;bits
+                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0))}&nbsp;bits
                     </span>
                   </div>
                   {project.bitsAwarded != null && project.totalHoursApproved > 0 && (
@@ -1889,6 +2023,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </div>
                 )}
               </div>
+
             </div>
           )}
 
@@ -1898,7 +2033,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
               <button
                 data-tutorial="submit"
-                onClick={() => setShowDesignSubmitDialog(true)}
+                onClick={() => openSubmitDialog('design')}
                 disabled={submitting || !canSubmitDesign}
                 className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
@@ -1919,7 +2054,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved" || project.buildStatus === "update_requested") && (
               <button
                 data-tutorial="submit"
-                onClick={() => setShowBuildSubmitDialog(true)}
+                onClick={() => openSubmitDialog('build')}
                 disabled={submitting || !canSubmitBuild}
                 className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
               >
@@ -1943,7 +2078,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
                 <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Edit BOM Item</h3>
                 <form onSubmit={handleSaveBomEdit}>
-                  <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <div>
                       <label className="text-brown-800 text-xs uppercase block mb-1">Name *</label>
                       <input
@@ -2025,90 +2160,192 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
 
-          {/* Design Submit Confirmation Dialog */}
+          {/* Design Submit Dialog (2-step) */}
           {showDesignSubmitDialog && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
-                <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
-                <p className="text-brown-800 text-sm leading-relaxed mb-4">
-                  Your design, BOM, and complexity level will be reviewed. Once approved, your badges will be granted and you&apos;ll receive a grant card to purchase materials!
-                </p>
-                <p className="text-red-500 text-sm font-medium mb-4">
-                  IMPORTANT: Before submitting, please make sure to read the{' '}
-                  <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
-                    submission guidelines
-                  </Link>
-                  .
-                </p>
-                <div className="mb-4">
-                  <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
-                  <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
-                  <textarea
-                    value={submissionNotes}
-                    onChange={(e) => setSubmissionNotes(e.target.value)}
-                    placeholder=""
-                    className="w-full bg-cream-200 border border-cream-400 text-brown-800 p-2 text-sm resize-vertical min-h-[80px] placeholder:text-brown-400"
-                    maxLength={1000}
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => { setShowDesignSubmitDialog(false); setSubmissionNotes(''); }}
-                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmitDesign}
-                    className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Submit Design
-                  </button>
-                </div>
+              <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
+                {submitStep === 'type' ? (
+                  <>
+                    <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">What does your project include?</h3>
+                    <p className="text-brown-800 text-sm leading-relaxed mb-4">
+                      Select what applies. We&apos;ll check your GitHub repo for the required files.
+                    </p>
+                    <div className="space-y-3 mb-6">
+                      <label className={`flex items-center gap-3 cursor-pointer ${submitNone ? 'opacity-40' : ''}`}>
+                        <input type="checkbox" checked={submitPcb} onChange={() => setSubmitPcb(!submitPcb)} disabled={submitNone} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">Custom PCB</span>
+                      </label>
+                      <label className={`flex items-center gap-3 cursor-pointer ${submitNone ? 'opacity-40' : ''}`}>
+                        <input type="checkbox" checked={submitCad} onChange={() => setSubmitCad(!submitCad)} disabled={submitNone} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">Custom CAD</span>
+                      </label>
+                      <label className={`flex items-center gap-3 cursor-pointer ${submitNone ? 'opacity-40' : ''}`}>
+                        <input type="checkbox" checked={submitFirmware} onChange={() => setSubmitFirmware(!submitFirmware)} disabled={submitNone} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">Firmware</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={submitNone} onChange={() => { setSubmitNone(!submitNone); if (!submitNone) { setSubmitPcb(false); setSubmitCad(false); setSubmitFirmware(false); } }} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">None of the above</span>
+                      </label>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setShowDesignSubmitDialog(false); setSubmissionNotes(''); }}
+                        className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={proceedToConfirm}
+                        disabled={!submitPcb && !submitCad && !submitFirmware && !submitNone}
+                        className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Design for Review?</h3>
+                    <p className="text-brown-800 text-sm leading-relaxed mb-4">
+                      Your design, BOM, and complexity level will be reviewed. Once approved, your badges will be granted and you&apos;ll receive a grant card to purchase materials!
+                    </p>
+                    <p className="text-red-500 text-sm font-medium mb-4">
+                      IMPORTANT: Before submitting, please make sure to read the{' '}
+                      <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
+                        submission guidelines
+                      </Link>
+                      .
+                    </p>
+                    <PreflightChecks
+                      checks={preflightChecks}
+                      loading={preflightLoading}
+                      error={preflightError}
+                      onRetry={async () => { await startBackgroundScan(); applyTypeFilter(submitPcb, submitCad, submitFirmware); }}
+                    />
+                    <div className="mb-4">
+                      <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
+                      <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
+                      <textarea
+                        value={submissionNotes}
+                        onChange={(e) => setSubmissionNotes(e.target.value)}
+                        placeholder=""
+                        className="w-full bg-cream-200 border border-cream-400 text-brown-800 p-2 text-sm resize-vertical min-h-[80px] placeholder:text-brown-400"
+                        maxLength={1000}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setSubmitStep('type')}
+                        className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={handleSubmitDesign}
+                        disabled={preflightLoading || (!preflightCanSubmit && !preflightError)}
+                        className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Submit Design
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
 
-          {/* Build Submit Confirmation Dialog */}
+          {/* Build Submit Dialog (2-step) */}
           {showBuildSubmitDialog && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-cream-100 border-2 border-cream-400 max-w-md w-full p-6">
-                <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
-                <p className="text-brown-800 text-sm leading-relaxed mb-4">
-                  Your build work will be reviewed. Once approved, you&apos;ll earn the <span className="text-orange-500 font-medium">bits</span> for this project&apos;s complexity level!
-                </p>
-                <p className="text-red-500 text-sm font-medium mb-4">
-                  IMPORTANT: Before submitting, please make sure to read the{' '}
-                  <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
-                    submission guidelines
-                  </Link>
-                  .
-                </p>
-                <div className="mb-4">
-                  <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
-                  <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
-                  <textarea
-                    value={submissionNotes}
-                    onChange={(e) => setSubmissionNotes(e.target.value)}
-                    placeholder=""
-                    className="w-full bg-cream-200 border border-cream-400 text-brown-800 p-2 text-sm resize-vertical min-h-[80px] placeholder:text-brown-400"
-                    maxLength={1000}
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => { setShowBuildSubmitDialog(false); setSubmissionNotes(''); }}
-                    className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmitBuild}
-                    className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Submit Build
-                  </button>
-                </div>
+              <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
+                {submitStep === 'type' ? (
+                  <>
+                    <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">What does your project include?</h3>
+                    <p className="text-brown-800 text-sm leading-relaxed mb-4">
+                      Select what applies. We&apos;ll check your GitHub repo for the required files.
+                    </p>
+                    <div className="space-y-3 mb-6">
+                      <label className={`flex items-center gap-3 cursor-pointer ${submitNone ? 'opacity-40' : ''}`}>
+                        <input type="checkbox" checked={submitPcb} onChange={() => setSubmitPcb(!submitPcb)} disabled={submitNone} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">Custom PCB</span>
+                      </label>
+                      <label className={`flex items-center gap-3 cursor-pointer ${submitNone ? 'opacity-40' : ''}`}>
+                        <input type="checkbox" checked={submitCad} onChange={() => setSubmitCad(!submitCad)} disabled={submitNone} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">Custom CAD</span>
+                      </label>
+                      <label className={`flex items-center gap-3 cursor-pointer ${submitNone ? 'opacity-40' : ''}`}>
+                        <input type="checkbox" checked={submitFirmware} onChange={() => setSubmitFirmware(!submitFirmware)} disabled={submitNone} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">Firmware</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={submitNone} onChange={() => { setSubmitNone(!submitNone); if (!submitNone) { setSubmitPcb(false); setSubmitCad(false); setSubmitFirmware(false); } }} className="w-4 h-4 accent-orange-500" />
+                        <span className="text-brown-800 text-sm">None of the above</span>
+                      </label>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setShowBuildSubmitDialog(false); setSubmissionNotes(''); }}
+                        className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={proceedToConfirm}
+                        disabled={!submitPcb && !submitCad && !submitFirmware && !submitNone}
+                        className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Submit Build for Review?</h3>
+                    <p className="text-brown-800 text-sm leading-relaxed mb-4">
+                      Your build work will be reviewed. Once approved, you&apos;ll earn the <span className="text-orange-500 font-medium">bits</span> for this project&apos;s complexity level!
+                    </p>
+                    <p className="text-red-500 text-sm font-medium mb-4">
+                      IMPORTANT: Before submitting, please make sure to read the{' '}
+                      <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
+                        submission guidelines
+                      </Link>
+                      .
+                    </p>
+                    <PreflightChecks
+                      checks={preflightChecks}
+                      loading={preflightLoading}
+                      error={preflightError}
+                      onRetry={async () => { await startBackgroundScan(); applyTypeFilter(submitPcb, submitCad, submitFirmware); }}
+                    />
+                    <div className="mb-4">
+                      <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
+                      <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
+                      <textarea
+                        value={submissionNotes}
+                        onChange={(e) => setSubmissionNotes(e.target.value)}
+                        placeholder=""
+                        className="w-full bg-cream-200 border border-cream-400 text-brown-800 p-2 text-sm resize-vertical min-h-[80px] placeholder:text-brown-400"
+                        maxLength={1000}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setSubmitStep('type')}
+                        className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={handleSubmitBuild}
+                        disabled={preflightLoading || (!preflightCanSubmit && !preflightError)}
+                        className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Submit Build
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}

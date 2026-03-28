@@ -2,67 +2,19 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/admin-auth';
 import { Permission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
-
-const GH_PROXY = 'https://gh-proxy.hackclub.com/gh';
-const API_KEY = process.env.GH_PROXY_API_KEY || '';
-
-interface CheckResult {
-  key: string;
-  label: string;
-  passed: boolean;
-  detail?: string;
-}
-
-function parseGitHubRepo(url: string): { owner: string; repo: string } | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes('github.com')) return null;
-    const parts = u.pathname.split('/').filter(Boolean);
-    if (parts.length < 2) return null;
-    return { owner: parts[0], repo: parts[1].replace(/\.git$/, '') };
-  } catch {
-    return null;
-  }
-}
-
-async function ghFetch(path: string) {
-  const headers: Record<string, string> = {};
-  if (API_KEY) headers['X-API-Key'] = API_KEY;
-  const res = await fetch(`${GH_PROXY}/${path}`, { headers });
-  return res;
-}
-
-async function getRepoTree(owner: string, repo: string): Promise<Array<{ path: string; type: string }> | null> {
-  // Get default branch first
-  const repoRes = await ghFetch(`repos/${owner}/${repo}`);
-  if (!repoRes.ok) return null;
-  const repoData = await repoRes.json();
-  const branch = repoData.default_branch || 'main';
-
-  // Get recursive tree
-  const treeRes = await ghFetch(`repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
-  if (!treeRes.ok) return null;
-  const treeData = await treeRes.json();
-  return treeData.tree || [];
-}
-
-async function getReadmeContent(owner: string, repo: string): Promise<string | null> {
-  const res = await ghFetch(`repos/${owner}/${repo}/readme`);
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (data.content && data.encoding === 'base64') {
-    return Buffer.from(data.content, 'base64').toString('utf-8');
-  }
-  return null;
-}
-
-const IMAGE_PATTERN = /!\[.*?\]\(.*?\)|<img\s+[^>]*src\s*=|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg/i;
-
-const THREE_D_EXTENSIONS = ['.stl', '.obj', '.3mf', '.iges', '.igs'];
-const THREE_D_SOURCE_EXTENSIONS = ['.f3d', '.step', '.stp', '.fcstd', '.scad', '.blend'];
-const FIRMWARE_EXTENSIONS = ['.ino', '.c', '.cpp', '.h', '.py', '.rs', '.uf2', '.hex', '.bin'];
-const PCB_SOURCE_EXTENSIONS = ['.kicad_pcb', '.kicad_sch', '.kicad_pro', '.brd', '.sch', '.pcbdoc', '.schdoc', '.fzz', '.fzpz'];
-const PCB_FAB_EXTENSIONS = ['.gbr', '.gbl', '.gtl', '.gbs', '.gts', '.gbo', '.gto', '.gko', '.drl', '.zip'];
+import {
+  type CheckResult,
+  parseGitHubRepo,
+  ghFetch,
+  getRepoTree,
+  getReadmeContent,
+  IMAGE_PATTERN,
+  THREE_D_EXTENSIONS,
+  THREE_D_SOURCE_EXTENSIONS,
+  FIRMWARE_EXTENSIONS,
+  PCB_SOURCE_EXTENSIONS,
+  PCB_FAB_EXTENSIONS,
+} from '@/lib/github-checks';
 
 export async function GET(
   _request: Request,
@@ -78,11 +30,13 @@ export async function GET(
     let githubRepo: string | null = null;
     const project = await prisma.project.findUnique({
       where: { id },
-      select: { githubRepo: true },
+      select: { githubRepo: true, deletedAt: true },
     });
 
-    if (project) {
+    if (project && !project.deletedAt) {
       githubRepo = project.githubRepo;
+    } else if (project && project.deletedAt) {
+      return NextResponse.json({ error: 'Project not found - it may have been deleted' }, { status: 404 });
     } else {
       const submission = await prisma.projectSubmission.findUnique({
         where: { id },
@@ -91,7 +45,7 @@ export async function GET(
       if (submission) {
         githubRepo = submission.project.githubRepo;
       } else {
-        return NextResponse.json({ error: 'Project not found — it may have been deleted' }, { status: 404 });
+        return NextResponse.json({ error: 'Project not found - it may have been deleted' }, { status: 404 });
       }
     }
     const checks: CheckResult[] = [];
@@ -122,11 +76,11 @@ export async function GET(
     let repoDetail = `${owner}/${repo}`;
     if (!repoValid) {
       if (repoRes.status === 404) {
-        repoDetail = `Repository "${owner}/${repo}" not found — it may be private, deleted, or the URL is incorrect`;
+        repoDetail = `Repository "${owner}/${repo}" not found - it may be private, deleted, or the URL is incorrect`;
       } else if (repoRes.status === 403) {
-        repoDetail = `Access denied to "${owner}/${repo}" — rate limit may be exceeded or the repo requires authentication`;
+        repoDetail = `Access denied to "${owner}/${repo}" - rate limit may be exceeded or the repo requires authentication`;
       } else if (repoRes.status >= 500) {
-        repoDetail = `GitHub API error (${repoRes.status}) — try again in a few minutes`;
+        repoDetail = `GitHub API error (${repoRes.status}) - try again in a few minutes`;
       } else {
         repoDetail = `Could not access repo "${owner}/${repo}" (HTTP ${repoRes.status})`;
       }
@@ -229,7 +183,7 @@ export async function GET(
   } catch (err) {
     console.error('GitHub checks error:', err);
     const message = err instanceof TypeError && String(err).includes('fetch')
-      ? 'Could not connect to GitHub — the proxy may be down or there is a network issue'
+      ? 'Could not connect to GitHub - the proxy may be down or there is a network issue'
       : 'Failed to run GitHub repo checks';
     return NextResponse.json({ error: message, detail: String(err) }, { status: 500 });
   }

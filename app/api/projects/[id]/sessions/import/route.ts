@@ -108,10 +108,10 @@ export async function POST(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { userId: true, designStatus: true, buildStatus: true },
+    select: { userId: true, deletedAt: true, designStatus: true, buildStatus: true },
   })
 
-  if (!project) {
+  if (!project || project.deletedAt) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 })
   }
 
@@ -150,6 +150,30 @@ export async function POST(
   if (parsedSessions.length === 0) {
     return NextResponse.json(
       { error: "No valid sessions found in markdown" },
+      { status: 400 }
+    )
+  }
+
+  // Cap individual sessions at 24 hours
+  for (const entry of parsedSessions) {
+    if (entry.hoursClaimed > 24) {
+      return NextResponse.json(
+        { error: `Session "${entry.title}" exceeds 24-hour per-session limit (${entry.hoursClaimed}h)` },
+        { status: 400 }
+      )
+    }
+  }
+
+  const MAX_PROJECT_HOURS = 100
+  const existingHours = await prisma.workSession.aggregate({
+    where: { projectId },
+    _sum: { hoursClaimed: true },
+  })
+  const importTotal = parsedSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+  const totalAfter = (existingHours._sum.hoursClaimed ?? 0) + importTotal
+  if (totalAfter > MAX_PROJECT_HOURS) {
+    return NextResponse.json(
+      { error: `Import would bring total to ${totalAfter}h, exceeding the ${MAX_PROJECT_HOURS}h project limit. Current total: ${existingHours._sum.hoursClaimed ?? 0}h.` },
       { status: 400 }
     )
   }

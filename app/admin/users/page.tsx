@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { EVENT_LABELS, type EventPreference } from '@/lib/tiers';
+import { GOAL_LABELS, type GoalPreference } from '@/lib/tiers';
 
 interface ProjectBadge {
   id: string;
@@ -296,7 +296,7 @@ export default function AdminUsersPage() {
           {/* Search & Filters */}
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <p className="text-brown-800 text-sm uppercase">
+              <p className="text-cream-50 text-sm uppercase">
                 {data ? `${data.total} user${data.total !== 1 ? 's' : ''}` : '...'}
               </p>
               <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
@@ -305,7 +305,7 @@ export default function AdminUsersPage() {
                   placeholder="Search by name, email, or Slack ID..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="bg-cream-100 border-2 border-cream-400 px-4 py-2 text-brown-800 placeholder-cream-600 focus:border-orange-500 focus:outline-none w-full sm:w-80"
+                  className="bg-brown-800 border-2 border-cream-500/20 px-4 py-2 text-cream-50 placeholder-cream-300 focus:border-orange-500 focus:outline-none w-full sm:w-80"
                 />
                 <button
                   type="submit"
@@ -317,7 +317,7 @@ export default function AdminUsersPage() {
                   <button
                     type="button"
                     onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}
-                    className="px-3 py-2 text-xs uppercase border-2 border-cream-400 text-brown-800 hover:border-orange-500 cursor-pointer"
+                    className="px-3 py-2 text-xs uppercase border-2 border-cream-500/20 text-cream-50 hover:border-orange-500 cursor-pointer"
                   >
                     Clear
                   </button>
@@ -330,7 +330,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterFraud === true
                     ? 'bg-red-600 text-white led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
                 }`}
               >
                 Fraud
@@ -340,7 +340,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterFraud === false
                     ? 'bg-green-600 text-white led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
                 }`}
               >
                 No Fraud
@@ -350,8 +350,8 @@ export default function AdminUsersPage() {
                 onClick={() => handleFilterChange(setFilterRole as never, filterRole, 'ADMIN')}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'ADMIN'
-                    ? 'bg-orange-500 text-brown-800 led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                    ? 'bg-orange-500 text-cream-50 led-flicker'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
                 }`}
               >
                 Admin Role
@@ -361,7 +361,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'REVIEWER'
                     ? 'bg-blue-600 text-white led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
                 }`}
               >
                 Reviewer Role
@@ -371,7 +371,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'SIDEKICK'
                     ? 'bg-purple-600 text-white led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-800 hover:border-cream-500'
                 }`}
               >
                 Sidekick Role
@@ -381,7 +381,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterRole === 'AUDITOR'
                     ? 'bg-teal-600 text-white led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-cream-800 hover:border-cream-500'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-800 hover:border-cream-500'
                 }`}
               >
                 Auditor Role
@@ -392,7 +392,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterAddress === true
                     ? 'bg-green-600 text-white led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
                 }`}
               >
                 Has Address
@@ -402,7 +402,7 @@ export default function AdminUsersPage() {
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   filterAddress === false
                     ? 'bg-red-600 text-white led-flicker'
-                    : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
                 }`}
               >
                 No Address
@@ -415,7 +415,7 @@ export default function AdminUsersPage() {
                   className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                     filterPronouns === opt.value
                       ? 'bg-teal-600 text-white led-flicker'
-                      : 'bg-cream-100 border border-cream-400 text-brown-800 hover:border-cream-500'
+                      : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
                   }`}
                 >
                   {opt.label}
@@ -431,14 +431,14 @@ export default function AdminUsersPage() {
                 disabled={backfilling}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   backfilling
-                    ? 'bg-cream-300 text-brown-800 opacity-50'
-                    : 'bg-orange-500 text-brown-800 hover:bg-orange-400'
+                    ? 'bg-brown-800 text-cream-50 opacity-50'
+                    : 'bg-orange-500 text-cream-50 hover:bg-orange-400'
                 } transition-colors`}
               >
                 {backfilling ? 'Backfilling...' : 'Backfill Addresses'}
               </button>
               {backfillResult && (
-                <span className="text-xs text-brown-800 self-center">
+                <span className="text-xs text-cream-50 self-center">
                   {backfillResult.message} ({backfillResult.total} users) — check server logs for progress
                 </span>
               )}
@@ -452,21 +452,21 @@ export default function AdminUsersPage() {
                 disabled={refreshingAvatars}
                 className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
                   refreshingAvatars
-                    ? 'bg-cream-300 text-brown-800 opacity-50'
-                    : 'bg-orange-500 text-brown-800 hover:bg-orange-400'
+                    ? 'bg-brown-800 text-cream-50 opacity-50'
+                    : 'bg-orange-500 text-cream-50 hover:bg-orange-400'
                 } transition-colors`}
               >
                 {refreshingAvatars ? 'Refreshing...' : 'Refresh Avatars'}
               </button>
               {avatarResult && (
-                <span className="text-xs text-brown-800 self-center">
+                <span className="text-xs text-cream-50 self-center">
                   Cleared {avatarResult.cleared} gravatar URLs, fetching {avatarResult.toFetch} avatars — check server logs
                 </span>
               )}
               {(filterFraud !== null || filterRole !== null || filterAddress !== null || filterPronouns !== null) && (
                 <button
                   onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); setFilterPronouns(null); setPage(1); }}
-                  className="px-3 py-1.5 text-xs uppercase text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs uppercase text-cream-50 hover:text-orange-500 transition-colors cursor-pointer"
                 >
                   Clear Filters
                 </button>
@@ -477,11 +477,11 @@ export default function AdminUsersPage() {
           {/* Users List */}
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-brown-800">Loading users...</p>
+              <p className="text-cream-50">Loading users...</p>
             </div>
           ) : !data || users.length === 0 ? (
-            <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-              <p className="text-brown-800">No users found</p>
+            <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center">
+              <p className="text-cream-50">No users found</p>
             </div>
           ) : (
             <>
@@ -489,11 +489,11 @@ export default function AdminUsersPage() {
               {users.map((user) => (
                 <div
                   key={user.id}
-                  className="bg-cream-100 border-2 border-cream-400"
+                  className="bg-brown-800 border-2 border-cream-500/20"
                 >
                   {/* User Row */}
                   <div
-                    className="p-4 cursor-pointer hover:bg-cream-200 transition-colors"
+                    className="p-4 cursor-pointer hover:bg-cream-500/10 transition-colors"
                     onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -505,11 +505,11 @@ export default function AdminUsersPage() {
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                                            <p className="text-brown-800 truncate">
+                                            <p className="text-cream-50 truncate">
                               {user.name || user.email}
                             </p>
                             {hasRole(user, 'ADMIN') && (
-                              <span className="text-xs bg-orange-500 text-brown-800 px-2 py-0.5 uppercase">
+                              <span className="text-xs bg-orange-500 text-cream-50 px-2 py-0.5 uppercase">
                                 Admin
                               </span>
                             )}
@@ -552,9 +552,9 @@ export default function AdminUsersPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-brown-800 text-sm truncate">
+                          <p className="text-cream-50 text-sm truncate">
                             {user.email}
-                            <span className="text-cream-500 mx-1">·</span>
+                            <span className="text-cream-200 mx-1">·</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -562,7 +562,7 @@ export default function AdminUsersPage() {
                                 setCopiedId(user.id);
                                 setTimeout(() => setCopiedId(prev => prev === user.id ? null : prev), 2000);
                               }}
-                              className="ml-2 text-cream-600 hover:text-orange-500 transition-colors cursor-pointer"
+                              className="ml-2 text-cream-200 hover:text-orange-500 transition-colors cursor-pointer"
                               title="Copy CUID"
                             >
                               {copiedId === user.id ? 'Copied!' : user.id}
@@ -573,7 +573,7 @@ export default function AdminUsersPage() {
                       <div className="flex items-center gap-6 flex-shrink-0">
                         <div className="text-right hidden sm:block">
                           <p className="text-orange-500">{user.totalProjects} {user.totalProjects === 1 ? 'project' : 'projects'}</p>
-                          <p className="text-brown-800 text-xs">
+                          <p className="text-cream-50 text-xs">
                             {user.totalHoursApproved.toFixed(1)}h approved
                           </p>
                         </div>
@@ -585,7 +585,7 @@ export default function AdminUsersPage() {
                           fill="none"
                           stroke="currentColor"
                           strokeWidth="2"
-                          className={`text-brown-800 transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`}
+                          className={`text-cream-50 transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`}
                         >
                           <path d="M6 9l6 6 6-6" />
                         </svg>
@@ -595,20 +595,20 @@ export default function AdminUsersPage() {
 
                   {/* Expanded Details */}
                   {expandedUser === user.id && (
-                    <div className="border-t border-cream-400 p-4 space-y-4">
+                    <div className="border-t border-cream-500/20 p-4 space-y-4">
                       {/* User Info */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Email</p>
-                          <p className="text-brown-800">{user.email}</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Email</p>
+                          <p className="text-cream-50">{user.email}</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Slack ID</p>
-                          <p className="text-brown-800">{user.slackId || '—'}</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Slack ID</p>
+                          <p className="text-cream-50">{user.slackId || '—'}</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Joined</p>
-                          <p className="text-brown-800">
+                          <p className="text-cream-200 uppercase text-xs mb-1">Joined</p>
+                          <p className="text-cream-50">
                             {new Date(user.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -617,35 +617,35 @@ export default function AdminUsersPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Hours Logged</p>
-                          <p className="text-brown-800">{user.totalHoursClaimed.toFixed(1)}h</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Hours Logged</p>
+                          <p className="text-cream-50">{user.totalHoursClaimed.toFixed(1)}h</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Hours Approved</p>
-                          <p className="text-brown-800">{user.totalHoursApproved.toFixed(1)}h</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Hours Approved</p>
+                          <p className="text-cream-50">{user.totalHoursApproved.toFixed(1)}h</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Projects</p>
-                          <p className="text-brown-800">{user.totalProjects}</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Projects</p>
+                          <p className="text-cream-50">{user.totalProjects}</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">ID Verification</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">ID Verification</p>
                           <p className={user.verificationStatus === 'verified' ? 'text-green-600' : 'text-yellow-600'}>
                             {user.verificationStatus || '—'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Event Invite</p>
-                          <p className={user.hasEventInvite ? 'text-green-600' : 'text-brown-800'}>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Event Invite</p>
+                          <p className={user.hasEventInvite ? 'text-green-600' : 'text-cream-50'}>
                             {user.hasEventInvite ? 'Purchased ✓' : 'No'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Flight Stipend</p>
-                          <p className="text-brown-800">${user.flightStipend.toLocaleString()}</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Flight Stipend</p>
+                          <p className="text-cream-50">${user.flightStipend.toLocaleString()}</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Roles</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Roles</p>
                           <div className="flex flex-col gap-1">
                             {AVAILABLE_ROLES.map((role) => {
                               const roleInfo = getRoleInfo(user, role);
@@ -673,7 +673,7 @@ export default function AdminUsersPage() {
                                       {role}
                                     </span>
                                     {roleInfo && !hasPendingChanges(user) && (
-                                      <p className="text-xs text-cream-600">
+                                      <p className="text-xs text-cream-200">
                                         Granted {new Date(roleInfo.grantedAt).toLocaleDateString('en-US', {
                                           month: 'short',
                                           day: 'numeric',
@@ -694,7 +694,7 @@ export default function AdminUsersPage() {
                                   saveRoles(user);
                                 }}
                                 disabled={updating === user.id}
-                                className="px-3 py-1.5 text-xs uppercase bg-orange-500 text-brown-800 hover:bg-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                                className="px-3 py-1.5 text-xs uppercase bg-orange-500 text-cream-50 hover:bg-orange-400 transition-colors cursor-pointer disabled:opacity-50"
                               >
                                 {updating === user.id ? 'Saving...' : 'Save Roles'}
                               </button>
@@ -704,7 +704,7 @@ export default function AdminUsersPage() {
                                   cancelRoleChanges(user.id);
                                 }}
                                 disabled={updating === user.id}
-                                className="px-3 py-1.5 text-xs uppercase bg-cream-300 text-brown-800 hover:bg-cream-400 transition-colors cursor-pointer disabled:opacity-50"
+                                className="px-3 py-1.5 text-xs uppercase bg-brown-800 text-cream-50 hover:bg-cream-400 transition-colors cursor-pointer disabled:opacity-50"
                               >
                                 Cancel
                               </button>
@@ -712,19 +712,19 @@ export default function AdminUsersPage() {
                           )}
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Pronouns</p>
-                          <p className="text-brown-800">{user.pronouns || '—'}</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Pronouns</p>
+                          <p className="text-cream-50">{user.pronouns || '—'}</p>
                         </div>
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-1">Target Event</p>
-                          <p className="text-brown-800">{user.eventPreference ? EVENT_LABELS[user.eventPreference as EventPreference] : '—'}</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Target Goal</p>
+                          <p className="text-cream-50">{user.eventPreference ? GOAL_LABELS[user.eventPreference as GoalPreference] : '—'}</p>
                         </div>
                       </div>
 
                       {/* Badges */}
                       {user.badges.length > 0 && (
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-2">Badges</p>
+                          <p className="text-cream-200 uppercase text-xs mb-2">Badges</p>
                           <div className="flex flex-wrap gap-2">
                             {getUniqueBadges(user.badges).map((badge) => (
                               <span
@@ -732,7 +732,7 @@ export default function AdminUsersPage() {
                                 className={`text-xs px-2 py-1 ${
                                   badge.grantedAt
                                     ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50'
-                                    : 'bg-cream-200 text-brown-800 border border-cream-400'
+                                    : 'bg-brown-900 text-cream-50 border border-cream-500/20'
                                 }`}
                               >
                                 {badge.badge.replace(/_/g, ' ')}
@@ -746,7 +746,7 @@ export default function AdminUsersPage() {
                       {/* Projects */}
                       {user.projects.length > 0 && (
                         <div>
-                          <p className="text-cream-600 uppercase text-xs mb-2">Projects</p>
+                          <p className="text-cream-200 uppercase text-xs mb-2">Projects</p>
                           <div className="space-y-2">
                             {user.projects.map((project) => {
                               const hoursClaimed = project.workSessions.reduce((a, s) => a + s.hoursClaimed, 0);
@@ -755,16 +755,16 @@ export default function AdminUsersPage() {
                                 <Link
                                   key={project.id}
                                   href={`/admin/projects/${project.id}`}
-                                  className="block bg-cream-200 hover:bg-cream-300 px-3 py-2 transition-colors"
+                                  className="block bg-brown-900 hover:bg-brown-800 px-3 py-2 transition-colors"
                                 >
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="text-brown-800 text-sm">{project.title}</span>
+                                    <span className="text-cream-50 text-sm">{project.title}</span>
                                     <div className="flex gap-2">
                                       <span className={`text-xs uppercase ${
                                         project.designStatus === 'approved' ? 'text-green-600' :
                                         project.designStatus === 'rejected' ? 'text-red-600' :
                                         project.designStatus === 'in_review' ? 'text-orange-500' :
-                                        'text-brown-800'
+                                        'text-cream-50'
                                       }`}>
                                         D: {project.designStatus.replace('_', ' ')}
                                       </span>
@@ -772,13 +772,13 @@ export default function AdminUsersPage() {
                                         project.buildStatus === 'approved' ? 'text-green-600' :
                                         project.buildStatus === 'rejected' ? 'text-red-600' :
                                         project.buildStatus === 'in_review' ? 'text-orange-500' :
-                                        'text-brown-800'
+                                        'text-cream-50'
                                       }`}>
                                         B: {project.buildStatus.replace('_', ' ')}
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3 text-xs text-brown-800">
+                                  <div className="flex items-center gap-3 text-xs text-cream-50">
                                     <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
                                     <span>•</span>
                                     <span>{hoursClaimed.toFixed(1)}h logged</span>
@@ -793,7 +793,7 @@ export default function AdminUsersPage() {
                                           className={`text-xs px-1.5 py-0.5 ${
                                             badge.grantedAt
                                               ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50'
-                                              : 'bg-cream-100 text-brown-800 border border-cream-400'
+                                              : 'bg-brown-800 text-cream-50 border border-cream-500/20'
                                           }`}
                                         >
                                           {badge.badge.replace(/_/g, ' ')}
@@ -809,7 +809,7 @@ export default function AdminUsersPage() {
                       )}
 
                       {/* Actions */}
-                      <div className="flex flex-wrap gap-3 pt-2 border-t border-cream-400">
+                      <div className="flex flex-wrap gap-3 pt-2 border-t border-cream-500/20">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -835,8 +835,8 @@ export default function AdminUsersPage() {
                           disabled={user.shopPurchaseCount === 0 || loadingPurchases === user.id}
                           className={`px-4 py-2 text-sm uppercase transition-colors cursor-pointer ${
                             user.shopPurchaseCount === 0
-                              ? 'bg-cream-300 text-cream-500 cursor-not-allowed'
-                              : 'bg-orange-500 text-brown-800 hover:bg-orange-400'
+                              ? 'bg-brown-800 text-cream-200 cursor-not-allowed'
+                              : 'bg-orange-500 text-cream-50 hover:bg-orange-400'
                           } disabled:opacity-50`}
                         >
                           {loadingPurchases === user.id
@@ -858,17 +858,17 @@ export default function AdminUsersPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs uppercase border border-cream-500/20 text-cream-50 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
-                <span className="text-sm text-brown-800">
+                <span className="text-sm text-cream-50">
                   Page {data.page} of {data.totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
                   disabled={page >= data.totalPages}
-                  className="px-3 py-1.5 text-xs uppercase border border-cream-400 text-brown-800 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs uppercase border border-cream-500/20 text-cream-50 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -881,7 +881,7 @@ export default function AdminUsersPage() {
           {roleConfirm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
               <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setRoleConfirm(null)} />
-              <div className="relative bg-cream-100 border-4 border-red-600 p-6 max-w-md w-full mx-4 shadow-lg">
+              <div className="relative bg-brown-800 border-4 border-red-600 p-6 max-w-md w-full mx-4 shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl flex-shrink-0">
                     ⚠
@@ -890,7 +890,7 @@ export default function AdminUsersPage() {
                     <h2 className="text-lg uppercase tracking-wide text-red-600 font-bold">
                       Warning: Role Change
                     </h2>
-                    <p className="text-sm text-brown-800">
+                    <p className="text-sm text-cream-50">
                       This action modifies permissions for <strong>{roleConfirm.user.name || roleConfirm.user.email}</strong>
                     </p>
                   </div>
@@ -911,10 +911,10 @@ export default function AdminUsersPage() {
                   )}
                   {roleConfirm.removing.length > 0 && (
                     <div>
-                      <p className="text-xs uppercase text-cream-600 font-bold mb-1">Removing Roles:</p>
+                      <p className="text-xs uppercase text-cream-200 font-bold mb-1">Removing Roles:</p>
                       <div className="flex flex-wrap gap-1">
                         {roleConfirm.removing.map(role => (
-                          <span key={role} className="text-sm bg-cream-400 text-brown-800 px-2 py-0.5 uppercase line-through">
+                          <span key={role} className="text-sm bg-cream-400 text-cream-50 px-2 py-0.5 uppercase line-through">
                             {role}
                           </span>
                         ))}
@@ -930,7 +930,7 @@ export default function AdminUsersPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setRoleConfirm(null)}
-                    className="flex-1 px-4 py-2.5 text-sm uppercase bg-cream-300 text-brown-800 hover:bg-cream-400 transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-2.5 text-sm uppercase bg-brown-800 text-cream-50 hover:bg-cream-400 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -949,48 +949,48 @@ export default function AdminUsersPage() {
           {purchasesModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
               <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setPurchasesModal(null)} />
-              <div className="relative bg-cream-100 border-2 border-brown-800 p-6 max-w-lg w-full mx-4 shadow-lg max-h-[80vh] flex flex-col">
+              <div className="relative bg-brown-800 border-2 border-brown-800 p-6 max-w-lg w-full mx-4 shadow-lg max-h-[80vh] flex flex-col">
                 <button
                   onClick={() => setPurchasesModal(null)}
-                  className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center bg-cream-100 border border-cream-600 text-brown-800 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
+                  className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center bg-brown-800 border border-cream-600 text-cream-50 hover:text-orange-500 text-lg leading-none cursor-pointer transition-colors"
                 >
                   &times;
                 </button>
 
-                <h2 className="text-lg uppercase tracking-wide mb-1 text-brown-800">
+                <h2 className="text-lg uppercase tracking-wide mb-1 text-cream-50">
                   Purchases
                 </h2>
-                <p className="text-cream-600 text-sm mb-4">
+                <p className="text-cream-200 text-sm mb-4">
                   {purchasesModal.user.name || purchasesModal.user.email}
                 </p>
 
                 {purchasesModal.purchases.length === 0 ? (
-                  <p className="text-cream-500 text-sm text-center py-4">No purchases found.</p>
+                  <p className="text-cream-200 text-sm text-center py-4">No purchases found.</p>
                 ) : (
                   <div className="overflow-y-auto overflow-x-auto flex-1 -mx-6 px-6">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b-2 border-cream-400">
-                          <th className="text-left text-brown-800 text-xs uppercase px-3 py-2">Item</th>
-                          <th className="text-right text-brown-800 text-xs uppercase px-3 py-2">Bits</th>
-                          <th className="text-right text-brown-800 text-xs uppercase px-3 py-2">Date</th>
+                        <tr className="border-b-2 border-cream-500/20">
+                          <th className="text-left text-cream-50 text-xs uppercase px-3 py-2">Item</th>
+                          <th className="text-right text-cream-50 text-xs uppercase px-3 py-2">Bits</th>
+                          <th className="text-right text-cream-50 text-xs uppercase px-3 py-2">Date</th>
                         </tr>
                       </thead>
                       <tbody>
                         {purchasesModal.purchases.map((purchase) => (
-                          <tr key={purchase.id} className="border-b border-cream-300 last:border-b-0">
+                          <tr key={purchase.id} className="border-b border-cream-500/10 last:border-b-0">
                             <td className="px-3 py-2">
                               <div className="flex items-center gap-2">
                                 {purchase.imageUrl && (
-                                  <img src={purchase.imageUrl} alt="" className="w-6 h-6 object-contain border border-cream-400 flex-shrink-0" />
+                                  <img src={purchase.imageUrl} alt="" className="w-6 h-6 object-contain border border-cream-500/20 flex-shrink-0" />
                                 )}
-                                <span className="text-brown-800">{purchase.itemName}</span>
+                                <span className="text-cream-50">{purchase.itemName}</span>
                               </div>
                             </td>
                             <td className="text-right px-3 py-2 text-orange-400 font-mono">
                               {purchase.amount.toLocaleString()}
                             </td>
-                            <td className="text-right px-3 py-2 text-brown-800 whitespace-nowrap">
+                            <td className="text-right px-3 py-2 text-cream-50 whitespace-nowrap">
                               {new Date(purchase.purchasedAt).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',

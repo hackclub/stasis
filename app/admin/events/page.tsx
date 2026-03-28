@@ -199,41 +199,41 @@ export default function AdminEventsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-orange-500 text-2xl uppercase tracking-wide">Events</h1>
-        <p className="text-brown-800 text-sm mt-1">
+        <p className="text-cream-50 text-sm mt-1">
           Manage upcoming events shown on the dashboard. {events.length} event{events.length !== 1 ? 's' : ''} total.
         </p>
       </div>
 
       {/* Create / Edit form */}
-      <div className="bg-cream-100 border-2 border-cream-400 p-6">
-        <h2 className="text-brown-800 text-lg uppercase tracking-wide mb-4">
+      <div className="bg-brown-800 border-2 border-cream-500/20 p-6">
+        <h2 className="text-cream-50 text-lg uppercase tracking-wide mb-4">
           {editingId ? 'Edit Event' : 'Add Event'}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">Name</label>
+              <label className="text-cream-50 text-xs uppercase block mb-1">Name</label>
               <input
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Event name"
-                className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">Date & Time</label>
+              <label className="text-cream-50 text-xs uppercase block mb-1">Date & Time</label>
               <div className="flex gap-2">
                 <input
                   type="datetime-local"
                   value={formDateTime}
                   onChange={(e) => setFormDateTime(e.target.value)}
-                  className="flex-1 bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                  className="flex-1 bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                 />
                 <select
                   value={formTimezone}
                   onChange={(e) => setFormTimezone(e.target.value)}
-                  className="bg-cream-50 border border-cream-400 text-brown-800 px-2 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                  className="bg-brown-900 border border-cream-500/20 text-cream-50 px-2 py-2 text-sm focus:border-orange-500 focus:outline-none"
                 >
                   {COMMON_TIMEZONES.map((tz) => (
                     <option key={tz.value} value={tz.value}>{tz.label}</option>
@@ -243,34 +243,34 @@ export default function AdminEventsPage() {
             </div>
           </div>
           <div>
-            <label className="text-brown-800 text-xs uppercase block mb-1">Description</label>
+            <label className="text-cream-50 text-xs uppercase block mb-1">Description</label>
             <textarea
               value={formDescription}
               onChange={(e) => setFormDescription(e.target.value)}
               placeholder="Event description"
               rows={3}
-              className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-y"
+              className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none resize-y"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">Link URL <span className="normal-case text-cream-600">(optional)</span></label>
+              <label className="text-cream-50 text-xs uppercase block mb-1">Link URL <span className="normal-case text-cream-200">(optional)</span></label>
               <input
                 type="text"
                 value={formLinkUrl}
                 onChange={(e) => setFormLinkUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-brown-800 text-xs uppercase block mb-1">Link Text <span className="normal-case text-cream-600">(optional)</span></label>
+              <label className="text-cream-50 text-xs uppercase block mb-1">Link Text <span className="normal-case text-cream-200">(optional)</span></label>
               <input
                 type="text"
                 value={formLinkText}
                 onChange={(e) => setFormLinkText(e.target.value)}
                 placeholder="e.g. Register here"
-                className="w-full bg-cream-50 border border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
               />
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function AdminEventsPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-6 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                className="bg-brown-800 hover:bg-cream-400 text-cream-50 px-6 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -297,7 +297,7 @@ export default function AdminEventsPage() {
       </div>
 
       {/* Events table */}
-      <div className="bg-cream-100 border-2 border-cream-400 overflow-x-auto">
+      <div className="bg-brown-800 border-2 border-cream-500/20 overflow-x-auto">
         {loading ? (
           <div className="p-8 text-center">
             <div className="flex items-center justify-center"><div className="loader" /></div>
@@ -308,26 +308,26 @@ export default function AdminEventsPage() {
           </div>
         ) : events.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-brown-800">No events yet. Add one above.</p>
+            <p className="text-cream-50">No events yet. Add one above.</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b-2 border-cream-400">
-                <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Name</th>
-                <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Date/Time</th>
-                <th className="text-left text-brown-800 text-xs uppercase px-4 py-3">Link</th>
-                <th className="text-right text-brown-800 text-xs uppercase px-4 py-3">Actions</th>
+              <tr className="border-b-2 border-cream-500/20">
+                <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Name</th>
+                <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Date/Time</th>
+                <th className="text-left text-cream-50 text-xs uppercase px-4 py-3">Link</th>
+                <th className="text-right text-cream-50 text-xs uppercase px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {events.map((event) => (
-                <tr key={event.id} className="border-b border-cream-300 last:border-b-0 hover:bg-cream-200/50">
+                <tr key={event.id} className="border-b border-cream-500/10 last:border-b-0 hover:bg-brown-9000/5">
                   <td className="px-4 py-3">
-                    <p className="text-brown-800 font-medium">{event.name}</p>
-                    <p className="text-cream-600 text-xs truncate max-w-xs">{event.description}</p>
+                    <p className="text-cream-50 font-medium">{event.name}</p>
+                    <p className="text-cream-200 text-xs truncate max-w-xs">{event.description}</p>
                   </td>
-                  <td className="px-4 py-3 text-brown-800 whitespace-nowrap">
+                  <td className="px-4 py-3 text-cream-50 whitespace-nowrap">
                     {new Date(event.dateTime).toLocaleString(undefined, { timeZoneName: 'short' })}
                   </td>
                   <td className="px-4 py-3">
@@ -341,7 +341,7 @@ export default function AdminEventsPage() {
                         {event.linkText || event.linkUrl}
                       </a>
                     ) : (
-                      <span className="text-cream-500 text-xs">—</span>
+                      <span className="text-cream-200 text-xs">—</span>
                     )}
                   </td>
                   <td className="text-right px-4 py-3">

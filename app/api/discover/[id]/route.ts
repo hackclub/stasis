@@ -50,7 +50,7 @@ export async function GET(
   const roles = await getUserRoles(userId);
   const isAdmin = hasRole(roles, Role.ADMIN);
 
-  if (!project || (project.hiddenFromGallery && !isAdmin)) {
+  if (!project || project.deletedAt || (project.hiddenFromGallery && !isAdmin)) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 

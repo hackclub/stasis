@@ -60,7 +60,7 @@ export default function AdminRsvps() {
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-brown-800 text-sm uppercase">
+        <p className="text-cream-50 text-sm uppercase">
           {rsvps.length} temp rsvp{rsvps.length !== 1 ? 's' : ''} (not yet synced to airtable)
         </p>
         <button
@@ -74,17 +74,17 @@ export default function AdminRsvps() {
 
       {loading ? (
         <div className="text-center py-8">
-          <p className="text-brown-800">Loading RSVPs...</p>
+          <p className="text-cream-50">Loading RSVPs...</p>
         </div>
       ) : rsvps.length === 0 ? (
-        <div className="bg-cream-100 border-2 border-cream-400 p-8 text-center">
-          <p className="text-brown-800">No unsynced temp RSVPs</p>
+        <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center">
+          <p className="text-cream-50">No unsynced temp RSVPs</p>
         </div>
       ) : (
-        <div className="bg-cream-100 border-2 border-cream-400 overflow-x-auto">
+        <div className="bg-brown-800 border-2 border-cream-500/20 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-cream-400 text-left text-brown-800 uppercase text-xs">
+              <tr className="border-b border-cream-500/20 text-left text-cream-50 uppercase text-xs">
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Account</th>
@@ -95,21 +95,21 @@ export default function AdminRsvps() {
             </thead>
             <tbody>
               {rsvps.map((rsvp) => (
-                <tr key={rsvp.id} className="border-b border-cream-300 last:border-0">
-                  <td className="px-4 py-3 text-brown-800">{rsvp.email}</td>
-                  <td className="px-4 py-3 text-brown-800">
+                <tr key={rsvp.id} className="border-b border-cream-500/10 last:border-0">
+                  <td className="px-4 py-3 text-cream-50">{rsvp.email}</td>
+                  <td className="px-4 py-3 text-cream-50">
                     {[rsvp.firstName, rsvp.lastName].filter(Boolean).join(' ') || '—'}
                   </td>
                   <td className="px-4 py-3">
                     {rsvp.finishedAccount ? (
                       <span className="text-green-700">✓</span>
                     ) : (
-                      <span className="text-cream-600">—</span>
+                      <span className="text-cream-200">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-cream-600">{rsvp.utmSource || '—'}</td>
-                  <td className="px-4 py-3 text-cream-600">{rsvp.referredBy || '—'}</td>
-                  <td className="px-4 py-3 text-cream-600">
+                  <td className="px-4 py-3 text-cream-200">{rsvp.utmSource || '—'}</td>
+                  <td className="px-4 py-3 text-cream-200">{rsvp.referredBy || '—'}</td>
+                  <td className="px-4 py-3 text-cream-200">
                     {new Date(rsvp.createdAt).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',

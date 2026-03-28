@@ -12,7 +12,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="text-center py-12">
-      <p className="text-brown-800">Redirecting to Review Queue...</p>
+      <p className="text-cream-50">Redirecting to Review Queue...</p>
     </div>
   );
 }

@@ -8,18 +8,26 @@ import Overview from '../dashboard/help/content/overview.mdx';
 import AboutCost from '../dashboard/help/content/about-cost.mdx';
 import SubmissionGuidelines from '../dashboard/help/content/submission-guidelines.mdx';
 import Parents from '../dashboard/help/content/parents.mdx';
+import DesignResources from '../dashboard/help/content/design-resources.mdx';
+import DesignTips from '../dashboard/help/content/design-tips.mdx';
+import SourcingParts from '../dashboard/help/content/sourcing-parts.mdx';
+import ProjectIdeas from '../dashboard/help/content/project-ideas.mdx';
 
-export type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents';
+export type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents' | 'design-resources' | 'design-tips' | 'sourcing-parts' | 'project-ideas';
 
 interface GuidesContentProps {
   activePage?: GuidePage;
   basePath?: string;
 }
 
-export const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; section: 'guides' | 'faq' }[] = [
+export const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; section: 'guides' | 'faq' | 'design' }[] = [
   { id: 'overview', label: 'Overview', section: 'guides' },
   { id: 'submission-guidelines', label: 'Submission Guidelines', section: 'guides' },
   { id: 'about-cost', label: 'About Cost', section: 'guides' },
+  { id: 'design-resources', label: 'Resource Collection', heading: 'Resource Collection', section: 'design' },
+  { id: 'design-tips', label: 'Design Tips', heading: 'Design Tips', section: 'design' },
+  { id: 'sourcing-parts', label: 'Sourcing Parts', heading: 'Sourcing Parts', section: 'design' },
+  { id: 'project-ideas', label: 'Project Ideas/Inspo', heading: 'Project Ideas/Inspo', section: 'design' },
   { id: 'faq', label: 'General FAQ', heading: 'Frequently Asked Questions', section: 'faq' },
   { id: 'parents', label: 'Parent Guide', heading: 'Guide for Parents', section: 'faq' },
 ];
@@ -43,16 +51,16 @@ const mdxComponents: MDXComponents = {
     <h4 className="text-brown-800 font-medium mt-4 mb-2">{children as React.ReactNode}</h4>
   ),
   p: ({ children }) => (
-    <p className="text-brown-800">{children as React.ReactNode}</p>
+    <p className="text-brown-800 font-sans">{children as React.ReactNode}</p>
   ),
   ul: ({ children }) => (
-    <ul className="list-disc list-inside text-brown-800 space-y-1">{children as React.ReactNode}</ul>
+    <ul className="list-disc list-inside text-brown-800 space-y-1 font-sans">{children as React.ReactNode}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-inside text-brown-800 space-y-1">{children as React.ReactNode}</ol>
+    <ol className="list-decimal list-inside text-brown-800 space-y-1 font-sans">{children as React.ReactNode}</ol>
   ),
   li: ({ children }) => (
-    <li className="text-brown-800">{children as React.ReactNode}</li>
+    <li className="text-brown-800 font-sans">{children as React.ReactNode}</li>
   ),
   strong: ({ children }) => (
     <strong className="font-bold">{children as React.ReactNode}</strong>
@@ -61,16 +69,18 @@ const mdxComponents: MDXComponents = {
     <em className="italic">{children as React.ReactNode}</em>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="mt-4 p-4 bg-orange-500/10 border border-orange-500/30 [&_p]:text-orange-600 [&_p]:m-0">{children as React.ReactNode}</blockquote>
+    <blockquote className="mt-4 p-4 bg-orange-500/10 border border-orange-500/30 font-sans [&_p]:text-orange-600 [&_p]:m-0">{children as React.ReactNode}</blockquote>
   ),
   table: ({ children }) => (
-    <table className="w-full text-sm text-brown-800 border-collapse">{children as React.ReactNode}</table>
+    <div className="overflow-x-auto -mx-1 px-1">
+      <table className="w-full text-sm text-brown-800 border-collapse">{children as React.ReactNode}</table>
+    </div>
   ),
   th: ({ children }) => (
     <th className="text-left text-brown-800 font-medium border-b border-cream-400 pb-2 pr-4">{children as React.ReactNode}</th>
   ),
   td: ({ children }) => (
-    <td className="text-brown-800 border-b border-cream-400 py-2 pr-4">{children as React.ReactNode}</td>
+    <td className="text-brown-800 font-sans border-b border-cream-400 py-2 pr-4">{children as React.ReactNode}</td>
   ),
 };
 
@@ -79,6 +89,10 @@ const PAGE_CONTENT: Record<GuidePage, React.ComponentType<any>> = {
   'overview': Overview,
   'submission-guidelines': SubmissionGuidelines,
   'about-cost': AboutCost,
+  'design-resources': DesignResources,
+  'design-tips': DesignTips,
+  'sourcing-parts': SourcingParts,
+  'project-ideas': ProjectIdeas,
   'faq': FAQ,
   'parents': Parents,
 };
@@ -99,7 +113,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
         <h3 className="text-brown-800 text-base md:text-lg mb-2 mt-4">{children as React.ReactNode}</h3>
       ) : null,
       p: ({ children }) => currentSection === faqTab ? (
-        <p className="text-brown-800 pb-4 border-b border-cream-400 last-of-type:border-0">{children as React.ReactNode}</p>
+        <p className="text-brown-800 font-sans pb-4 border-b border-cream-400 last-of-type:border-0">{children as React.ReactNode}</p>
       ) : null,
       a: ({ children, href }) => (
         <a href={href} className="text-orange-500 underline">{children as React.ReactNode}</a>
@@ -120,8 +134,10 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
 
   const currentPage = GUIDE_PAGES.find(p => p.id === activeGuidePage);
   const guidePages = GUIDE_PAGES.filter(p => p.section === 'guides');
+  const designPages = GUIDE_PAGES.filter(p => p.section === 'design');
   const faqPages = GUIDE_PAGES.filter(p => p.section === 'faq');
   const ActiveContent = PAGE_CONTENT[activeGuidePage];
+  const isDesignPage = designPages.some(p => p.id === activeGuidePage);
 
   return (
     <div className="relative flex flex-col md:block">
@@ -234,6 +250,24 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                 </button>
               );
             })}
+            <div className="border-t border-cream-400 my-3" />
+            <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">Design resources</p>
+            {designPages.map((page) => {
+              const className = `w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer block ${
+                activeGuidePage === page.id
+                  ? 'text-orange-500 bg-cream-200'
+                  : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
+              }`;
+              return basePath ? (
+                <Link key={page.id} href={`${basePath}/${page.id}`} className={className}>
+                  {page.label}
+                </Link>
+              ) : (
+                <button key={page.id} onClick={() => setActiveGuidePage(page.id)} className={className}>
+                  {page.label}
+                </button>
+              );
+            })}
           </div>
         </nav>
       </div>
@@ -241,9 +275,15 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
       {/* Content Area */}
       <div className="max-w-3xl mx-auto w-full">
         <div className="bg-cream-100 border-2 border-cream-400 p-4 md:p-6">
-          <h1 className="text-orange-500 text-xl md:text-2xl uppercase tracking-wide mb-4 md:mb-6">
+          <h1 className="text-orange-500 text-xl md:text-2xl uppercase tracking-wide mb-1">
             {currentPage?.heading ?? currentPage?.label}
           </h1>
+          {isDesignPage && (
+            <p className="text-brown-800/60 text-xs mb-4 md:mb-6">
+              Written by <a href="https://github.com/qcoral/" className="underline" target="_blank" rel="noopener noreferrer">Alex Ren</a> for <a href="https://hwdocs.hackclub.dev" className="underline" target="_blank" rel="noopener noreferrer">hwdocs.hackclub.dev</a>
+            </p>
+          )}
+          {!isDesignPage && <div className="mb-3 md:mb-5" />}
           {activeGuidePage === 'faq' ? (
             <div>
               <div className="flex flex-wrap gap-x-0.5 border-b border-cream-400 mb-6 -mx-1">

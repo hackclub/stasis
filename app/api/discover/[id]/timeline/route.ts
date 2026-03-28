@@ -44,6 +44,7 @@ export async function GET(
     where: { id },
     select: {
       userId: true,
+      deletedAt: true,
       hiddenFromGallery: true,
       user: {
         select: {
@@ -55,7 +56,7 @@ export async function GET(
     },
   });
 
-  if (!project || project.hiddenFromGallery) {
+  if (!project || project.deletedAt || project.hiddenFromGallery) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 

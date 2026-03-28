@@ -24,6 +24,7 @@ COPY --from=deps /app/app/generated/prisma ./app/generated/prisma
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DOCKER_BUILD=1
 ENV BETTER_AUTH_SECRET="build-time-placeholder-must-be-32-chars-long"
 
 RUN yarn run build
