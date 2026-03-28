@@ -102,7 +102,7 @@ export async function POST(request: Request) {
           _sum: { quantity: true },
           where: {
             itemId,
-            order: { teamId: user.teamId },
+            order: { teamId: user.teamId, status: { not: "CANCELLED" } },
           },
         })
         const totalUsage = usageResult._sum.quantity ?? 0

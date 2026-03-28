@@ -28,8 +28,17 @@ export async function DELETE(
     return NextResponse.json({ error: "Team is locked" }, { status: 403 })
   }
 
-  const isMember = team.members.some((m) => m.id === userId)
-  if (!isMember) {
+  // Verify caller is a member of this team or an admin
+  const callerIsMember = team.members.some((m) => m.id === session.user.id)
+  const callerIsAdmin = await prisma.userRole.findFirst({
+    where: { userId: session.user.id, role: "ADMIN" },
+  })
+  if (!callerIsMember && !callerIsAdmin) {
+    return NextResponse.json({ error: "You are not a member of this team" }, { status: 403 })
+  }
+
+  const targetIsMember = team.members.some((m) => m.id === userId)
+  if (!targetIsMember) {
     return NextResponse.json({ error: "User is not a member of this team" }, { status: 400 })
   }
 

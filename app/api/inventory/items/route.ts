@@ -20,7 +20,7 @@ export async function GET() {
     const usageRows = await prisma.orderItem.groupBy({
       by: ["itemId"],
       where: {
-        order: { teamId: user.teamId },
+        order: { teamId: user.teamId, status: { not: "CANCELLED" } },
       },
       _sum: { quantity: true },
     })
