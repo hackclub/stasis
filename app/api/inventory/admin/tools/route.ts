@@ -27,11 +27,13 @@ export async function POST(request: Request) {
     )
   }
 
+  const { sanitizeName, sanitizeDescription, validateImageUrl } = await import("@/lib/inventory/validation")
+
   const tool = await prisma.tool.create({
     data: {
-      name,
-      description: description ?? null,
-      imageUrl: imageUrl ?? null,
+      name: sanitizeName(name),
+      description: description ? sanitizeDescription(description) : null,
+      imageUrl: validateImageUrl(imageUrl),
     },
   })
 

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { removeFromTeam } from "@/lib/inventory/teams"
+import { logAudit, AuditAction } from "@/lib/audit"
 
 export async function DELETE(
   request: Request,
@@ -28,13 +29,15 @@ export async function DELETE(
     return NextResponse.json({ error: "Team is locked" }, { status: 403 })
   }
 
-  // Verify caller is a member of this team or an admin
-  const callerIsMember = team.members.some((m) => m.id === session.user.id)
+  // Only admins can remove other members (non-self removal)
+  // Users can remove themselves via the /leave endpoint
   const callerIsAdmin = await prisma.userRole.findFirst({
     where: { userId: session.user.id, role: "ADMIN" },
   })
-  if (!callerIsMember && !callerIsAdmin) {
-    return NextResponse.json({ error: "You are not a member of this team" }, { status: 403 })
+  const isSelfRemoval = session.user.id === userId
+
+  if (!isSelfRemoval && !callerIsAdmin) {
+    return NextResponse.json({ error: "Only admins can remove other team members" }, { status: 403 })
   }
 
   const targetIsMember = team.members.some((m) => m.id === userId)
@@ -43,6 +46,15 @@ export async function DELETE(
   }
 
   await removeFromTeam(userId, id)
+
+  logAudit({
+    action: isSelfRemoval ? AuditAction.INVENTORY_TEAM_LEAVE : AuditAction.INVENTORY_TEAM_KICK_MEMBER,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Team",
+    targetId: id,
+    metadata: { removedUserId: userId },
+  }).catch(() => {})
 
   return NextResponse.json({ success: true })
 }

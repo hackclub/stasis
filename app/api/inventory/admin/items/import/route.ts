@@ -2,6 +2,11 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
 import { logAdminAction, AuditAction } from "@/lib/audit"
+import {
+  sanitizeName,
+  sanitizeDescription,
+  validateImageUrl,
+} from "@/lib/inventory/validation"
 
 export async function POST(request: Request) {
   const result = await requireAdmin()
@@ -19,14 +24,28 @@ export async function POST(request: Request) {
     )
   }
 
-  const data = items.map((item: Record<string, unknown>) => ({
-    name: item.name as string,
-    description: ((item.description as string) || null),
-    imageUrl: ((item.imageUrl ?? item.image_url) as string) || null,
-    stock: Number(item.stock) || 0,
-    category: item.category as string,
-    maxPerTeam: Number(item.maxPerTeam ?? item.max_per_team) || 0,
-  }))
+  if (items.length > 500) {
+    return NextResponse.json(
+      { error: "Cannot import more than 500 items at once" },
+      { status: 400 }
+    )
+  }
+
+  const data = items.map((item: Record<string, unknown>) => {
+    const stock = Math.max(0, Math.floor(Number(item.stock) || 0))
+    const maxPerTeam = Math.max(0, Math.floor(Number(item.maxPerTeam ?? item.max_per_team) || 0))
+    if (!Number.isFinite(stock) || !Number.isFinite(maxPerTeam)) {
+      throw new Error("Invalid numeric values in import data")
+    }
+    return {
+      name: sanitizeName(String(item.name ?? "")),
+      description: item.description ? sanitizeDescription(String(item.description)) : null,
+      imageUrl: validateImageUrl(item.imageUrl ?? item.image_url),
+      stock,
+      category: sanitizeName(String(item.category ?? "")),
+      maxPerTeam,
+    }
+  })
 
   await prisma.$transaction(
     data.map((item) =>

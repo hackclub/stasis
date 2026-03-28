@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { removeFromTeam } from "@/lib/inventory/teams"
+import { logAudit, AuditAction } from "@/lib/audit"
 
 export async function POST(
   request: Request,
@@ -25,6 +26,14 @@ export async function POST(
   }
 
   await removeFromTeam(session.user.id, id)
+
+  logAudit({
+    action: AuditAction.INVENTORY_TEAM_LEAVE,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Team",
+    targetId: id,
+  }).catch(() => {})
 
   return NextResponse.json({ success: true })
 }

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { MAX_TEAM_SIZE } from "@/lib/inventory/config"
 import { syncTeamChannel } from "@/lib/inventory/team-channel"
+import { logAudit, AuditAction } from "@/lib/audit"
 
 export async function POST(
   request: Request,
@@ -20,6 +21,19 @@ export async function POST(
 
   if (!slackId || typeof slackId !== "string") {
     return NextResponse.json({ error: "slackId is required" }, { status: 400 })
+  }
+
+  // Verify caller is a member of this team or an admin
+  const caller = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { teamId: true },
+  })
+  const callerIsAdmin = await prisma.userRole.findFirst({
+    where: { userId: session.user.id, role: "ADMIN" },
+  })
+
+  if (caller?.teamId !== id && !callerIsAdmin) {
+    return NextResponse.json({ error: "You must be a member of this team to add members" }, { status: 403 })
   }
 
   const team = await prisma.team.findUnique({
@@ -56,6 +70,15 @@ export async function POST(
     where: { id: targetUser.id },
     data: { teamId: id },
   })
+
+  logAudit({
+    action: AuditAction.INVENTORY_TEAM_ADD_MEMBER,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Team",
+    targetId: id,
+    metadata: { addedUserId: targetUser.id },
+  }).catch(() => {})
 
   syncTeamChannel(id).catch(() => {})
 

@@ -1,14 +1,31 @@
 const connections = new Map<string, Set<ReadableStreamDefaultController>>()
 const encoder = new TextEncoder()
 
+const MAX_CONNECTIONS_PER_KEY = 50
+const MAX_TOTAL_CONNECTIONS = 500
+
+function totalConnectionCount(): number {
+  let count = 0
+  for (const set of connections.values()) count += set.size
+  return count
+}
+
 export function registerConnection(
   key: string,
   controller: ReadableStreamDefaultController
-) {
+): boolean {
+  if (totalConnectionCount() >= MAX_TOTAL_CONNECTIONS) {
+    return false
+  }
   if (!connections.has(key)) {
     connections.set(key, new Set())
   }
-  connections.get(key)!.add(controller)
+  const set = connections.get(key)!
+  if (set.size >= MAX_CONNECTIONS_PER_KEY) {
+    return false
+  }
+  set.add(controller)
+  return true
 }
 
 export function removeConnection(

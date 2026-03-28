@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { requireInventoryAccess } from "@/lib/inventory/access"
 import { MAX_TEAM_SIZE } from "@/lib/inventory/config"
 import { syncTeamChannel } from "@/lib/inventory/team-channel"
+import { logAudit, AuditAction } from "@/lib/audit"
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
+  const { session } = result
 
   const { id } = await params
 
@@ -46,6 +45,15 @@ export async function POST(
     where: { id: session.user.id },
     data: { teamId: id },
   })
+
+  logAudit({
+    action: AuditAction.INVENTORY_TEAM_JOIN,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Team",
+    targetId: id,
+    metadata: { teamName: team.name },
+  }).catch(() => {})
 
   syncTeamChannel(id).catch(() => {})
 

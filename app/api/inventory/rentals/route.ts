@@ -1,19 +1,22 @@
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { pushSSE } from "@/lib/inventory/sse"
 import { notifyRental } from "@/lib/inventory/notifications"
+import { requireInventoryAccess } from "@/lib/inventory/access"
+import { logAudit, AuditAction } from "@/lib/audit"
 import {
   MAX_CONCURRENT_RENTALS,
   TOOL_RENTAL_TIME_LIMIT_MINUTES,
 } from "@/lib/inventory/config"
+import {
+  sanitizeLocation,
+  validateFloor,
+} from "@/lib/inventory/validation"
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
+  const { session } = result
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -31,7 +34,7 @@ export async function GET() {
     where: { teamId: user.teamId },
     include: {
       tool: true,
-      rentedBy: { select: { id: true, name: true, email: true } },
+      rentedBy: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   })
@@ -40,10 +43,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
+  const { session } = result
 
   const body = await request.json()
   const { toolId, floor, location } = body as {
@@ -52,9 +54,31 @@ export async function POST(request: Request) {
     location: string
   }
 
-  if (!toolId || typeof floor !== "number" || !location) {
+  if (!toolId || typeof toolId !== "string") {
     return NextResponse.json(
-      { error: "toolId, floor, and location are required" },
+      { error: "toolId is required" },
+      { status: 400 }
+    )
+  }
+
+  if (!validateFloor(floor)) {
+    return NextResponse.json(
+      { error: "Invalid floor number" },
+      { status: 400 }
+    )
+  }
+
+  if (!location || typeof location !== "string") {
+    return NextResponse.json(
+      { error: "Location is required" },
+      { status: 400 }
+    )
+  }
+
+  const safeLocation = sanitizeLocation(location)
+  if (safeLocation.length === 0) {
+    return NextResponse.json(
+      { error: "Location is required" },
       { status: 400 }
     )
   }
@@ -108,12 +132,12 @@ export async function POST(request: Request) {
           teamId: user.teamId,
           rentedById: session.user.id,
           floor,
-          location,
+          location: safeLocation,
           dueAt,
         },
         include: {
           tool: true,
-          rentedBy: { select: { id: true, name: true, email: true } },
+          rentedBy: { select: { id: true, name: true } },
         },
       })
     })
@@ -121,6 +145,15 @@ export async function POST(request: Request) {
     const message = err instanceof Error ? err.message : "Failed to rent tool"
     return NextResponse.json({ error: message }, { status: 400 })
   }
+
+  logAudit({
+    action: AuditAction.INVENTORY_RENTAL_CREATE,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "ToolRental",
+    targetId: rental.id,
+    metadata: { toolId, teamId: rental.teamId, floor, location: safeLocation },
+  }).catch(() => {})
 
   notifyRental(rental.teamId, rental.tool.name, "Tool Rented")
   pushSSE(rental.teamId, { type: "rental_created", data: rental })

@@ -40,7 +40,12 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      registerConnection(teamId, controller)
+      const accepted = registerConnection(teamId, controller)
+      if (!accepted) {
+        controller.enqueue(encoder.encode("data: {\"type\":\"error\",\"data\":\"Too many connections\"}\n\n"))
+        controller.close()
+        return
+      }
 
       controller.enqueue(KEEPALIVE)
 

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { pushSSE } from "@/lib/inventory/sse"
 import { notifyOrderUpdate } from "@/lib/inventory/notifications"
+import { logAudit, AuditAction } from "@/lib/audit"
 
 export async function POST(
   _request: Request,
@@ -61,6 +62,15 @@ export async function POST(
       })
     }
   })
+
+  logAudit({
+    action: AuditAction.INVENTORY_ORDER_CANCEL_USER,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Order",
+    targetId: id,
+    metadata: { teamId: order.teamId },
+  }).catch(() => {})
 
   notifyOrderUpdate(order.teamId, order, "Cancelled")
   pushSSE(order.teamId, { type: "order_status_updated", data: { id, status: "CANCELLED" } })

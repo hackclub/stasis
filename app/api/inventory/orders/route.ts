@@ -1,15 +1,20 @@
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@/app/generated/prisma/client"
 import { pushSSE } from "@/lib/inventory/sse"
 import { notifyOrderUpdate } from "@/lib/inventory/notifications"
+import { requireInventoryAccess } from "@/lib/inventory/access"
+import { logAudit, AuditAction } from "@/lib/audit"
+import {
+  sanitizeLocation,
+  validateFloor,
+  validatePositiveInt,
+} from "@/lib/inventory/validation"
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
+  const { session } = result
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -27,7 +32,7 @@ export async function GET() {
     where: { teamId: user.teamId },
     include: {
       items: { include: { item: true } },
-      placedBy: { select: { id: true, name: true, email: true } },
+      placedBy: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   })
@@ -36,10 +41,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
+  const { session } = result
 
   const body = await request.json()
   const { items, floor, location } = body as {
@@ -52,11 +56,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Items are required" }, { status: 400 })
   }
 
-  if (typeof floor !== "number" || !location) {
+  if (!validateFloor(floor)) {
     return NextResponse.json(
-      { error: "Floor and location are required" },
+      { error: "Invalid floor number" },
       { status: 400 }
     )
+  }
+
+  if (!location || typeof location !== "string") {
+    return NextResponse.json(
+      { error: "Location is required" },
+      { status: 400 }
+    )
+  }
+
+  const safeLocation = sanitizeLocation(location)
+  if (safeLocation.length === 0) {
+    return NextResponse.json(
+      { error: "Location is required" },
+      { status: 400 }
+    )
+  }
+
+  for (const { quantity } of items) {
+    if (!validatePositiveInt(quantity)) {
+      return NextResponse.json(
+        { error: "Each item quantity must be a positive integer" },
+        { status: 400 }
+      )
+    }
   }
 
   let order
@@ -92,7 +120,7 @@ export async function POST(request: Request) {
       for (const { itemId, quantity } of items) {
         const item = await tx.item.findUnique({ where: { id: itemId } })
         if (!item) {
-          throw new Error(`Item ${itemId} not found`)
+          throw new Error("Item not found")
         }
         if (item.stock < quantity) {
           throw new Error(`Insufficient stock for ${item.name}`)
@@ -124,7 +152,7 @@ export async function POST(request: Request) {
           teamId: user.teamId,
           placedById: session.user.id,
           floor,
-          location,
+          location: safeLocation,
           items: {
             create: items.map(({ itemId, quantity }) => ({
               itemId,
@@ -134,14 +162,25 @@ export async function POST(request: Request) {
         },
         include: {
           items: { include: { item: true } },
-          placedBy: { select: { id: true, name: true, email: true } },
+          placedBy: { select: { id: true, name: true } },
         },
       })
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to place order"
     return NextResponse.json({ error: message }, { status: 400 })
   }
+
+  logAudit({
+    action: AuditAction.INVENTORY_ORDER_PLACE,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Order",
+    targetId: order.id,
+    metadata: { teamId: order.teamId, items: items.map(i => ({ itemId: i.itemId, quantity: i.quantity })), floor, location: safeLocation },
+  }).catch(() => {})
 
   notifyOrderUpdate(order.teamId, order, "Placed")
   pushSSE(order.teamId, { type: "order_placed", data: order })

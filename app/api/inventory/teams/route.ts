@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { requireInventoryAccess } from "@/lib/inventory/access"
 import { syncTeamChannel } from "@/lib/inventory/team-channel"
+import { logAudit, AuditAction } from "@/lib/audit"
+import { sanitizeName } from "@/lib/inventory/validation"
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
 
   const teams = await prisma.team.findMany({
     select: {
@@ -25,10 +24,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
+  const { session } = result
 
   const body = await request.json()
   const { name } = body
@@ -37,9 +35,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Team name is required" }, { status: 400 })
   }
 
-  const trimmedName = name.trim()
+  const safeName = sanitizeName(name)
+  if (safeName.length === 0) {
+    return NextResponse.json({ error: "Team name is required" }, { status: 400 })
+  }
 
-  const existing = await prisma.team.findUnique({ where: { name: trimmedName } })
+  const existing = await prisma.team.findUnique({ where: { name: safeName } })
   if (existing) {
     return NextResponse.json({ error: "A team with this name already exists" }, { status: 409 })
   }
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 
   const team = await prisma.$transaction(async (tx) => {
     const created = await tx.team.create({
-      data: { name: trimmedName },
+      data: { name: safeName },
     })
 
     await tx.user.update({
@@ -65,6 +66,15 @@ export async function POST(request: Request) {
 
     return created
   })
+
+  logAudit({
+    action: AuditAction.INVENTORY_TEAM_CREATE,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    targetType: "Team",
+    targetId: team.id,
+    metadata: { name: safeName },
+  }).catch(() => {})
 
   syncTeamChannel(team.id).catch(() => {})
 

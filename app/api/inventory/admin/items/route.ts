@@ -2,6 +2,13 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
 import { logAdminAction, AuditAction } from "@/lib/audit"
+import {
+  sanitizeName,
+  sanitizeDescription,
+  validateImageUrl,
+  validateNonNegativeInt,
+  validatePositiveInt,
+} from "@/lib/inventory/validation"
 
 export async function POST(request: Request) {
   const result = await requireAdmin()
@@ -19,13 +26,24 @@ export async function POST(request: Request) {
     )
   }
 
+  if (!validateNonNegativeInt(stock) || !validatePositiveInt(maxPerTeam)) {
+    return NextResponse.json(
+      { error: "stock and maxPerTeam must be valid positive integers" },
+      { status: 400 }
+    )
+  }
+
+  const safeName = sanitizeName(name)
+  const safeDescription = description ? sanitizeDescription(description) : null
+  const safeImageUrl = validateImageUrl(imageUrl)
+
   const item = await prisma.item.create({
     data: {
-      name,
-      description: description ?? null,
-      imageUrl: imageUrl ?? null,
+      name: safeName,
+      description: safeDescription,
+      imageUrl: safeImageUrl,
       stock,
-      category,
+      category: sanitizeName(category),
       maxPerTeam,
     },
   })

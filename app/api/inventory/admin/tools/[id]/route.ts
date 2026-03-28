@@ -19,12 +19,14 @@ export async function PATCH(
   const body = await request.json()
   const { name, description, imageUrl } = body
 
+  const { sanitizeName, sanitizeDescription, validateImageUrl } = await import("@/lib/inventory/validation")
+
   const tool = await prisma.tool.update({
     where: { id },
     data: {
-      ...(name !== undefined && { name }),
-      ...(description !== undefined && { description }),
-      ...(imageUrl !== undefined && { imageUrl }),
+      ...(name !== undefined && { name: sanitizeName(name) }),
+      ...(description !== undefined && { description: description ? sanitizeDescription(description) : null }),
+      ...(imageUrl !== undefined && { imageUrl: validateImageUrl(imageUrl) }),
     },
   })
 
