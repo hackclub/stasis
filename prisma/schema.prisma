@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
@@ -42,23 +41,37 @@ enum ReviewResult {
   REJECTED
 }
 
+enum OrderStatus {
+  PLACED
+  IN_PROGRESS
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum RentalStatus {
+  CHECKED_OUT
+  RETURNED
+}
+
 // This is the primary user object
 model User {
-  id                 String    @id @default(cuid())
-  email              String    @unique
+  id                 String   @id @default(cuid())
+  email              String   @unique
   name               String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  emailVerified      Boolean   @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  emailVerified      Boolean  @default(false)
   image              String?
-  slackId            String?   @unique
+  slackId            String?  @unique
   slackDisplayName   String?
+  nfcId              String?  @unique
   verificationStatus String?
-  hackatimeUserId    String?   @unique
+  hackatimeUserId    String?  @unique
   bio                String?
-  fraudConvicted     Boolean   @default(false)
-  tutorialDashboard  Boolean   @default(false)
-  tutorialProject    Boolean   @default(false)
+  fraudConvicted     Boolean  @default(false)
+  tutorialDashboard  Boolean  @default(false)
+  tutorialProject    Boolean  @default(false)
   eventPreference    String?
   pronouns           String?
   disableGrain       Boolean   @default(false)
@@ -71,20 +84,26 @@ model User {
   encryptedAddressCountry String?
   encryptedBirthday       String?
 
-  sessions           Session[]
-  accounts           Account[]
-  projects           Project[]
-  deletedProjects    Project[]     @relation("deletedProjects")
-  roles                  UserRole[]
-  currencyTransactions   CurrencyTransaction[]
-  kudosGiven             Kudos[]
-  sidekickAssignments    SidekickAssignment[] @relation("SidekickAssignments")
-  assignedSidekick       SidekickAssignment?  @relation("AssignedSidekick")
-  goalPrizes             UserGoalPrize[]
+  sessions             Session[]
+  accounts             Account[]
+  projects             Project[]
+  deletedProjects      Project[]     @relation("deletedProjects")
+  roles                UserRole[]
+  currencyTransactions CurrencyTransaction[]
+  kudosGiven           Kudos[]
+  sidekickAssignments  SidekickAssignment[]  @relation("SidekickAssignments")
+  assignedSidekick     SidekickAssignment?   @relation("AssignedSidekick")
+  goalPrizes           UserGoalPrize[]
 
+  // Inventory relations
+  teamId       String?
+  team         Team?        @relation("TeamMembers", fields: [teamId], references: [id])
+  ordersPlaced Order[]      @relation("OrdersPlaced")
+  toolsRented  ToolRental[] @relation("ToolsRented")
+
+  @@index([teamId])
   @@map("user")
 }
-
 
 // begin better-auth stuff
 model Session {
@@ -134,6 +153,7 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
 // end better-auth things
 
 enum ProjectTag {
@@ -193,24 +213,24 @@ enum BadgeType {
 }
 
 model Project {
-  id               String        @id @default(cuid())
-  title            String
-  description      String?
-  tags             ProjectTag[]
-  isStarter        Boolean       @default(false)
-  starterProjectId String?
-  githubRepo       String?
-  coverImage       String?
-  noBomNeeded      Boolean       @default(false)
-  bomTax           Float?
-  bomShipping      Float?
-  cartScreenshots  String[]      @default([])
-  tier             Int?
-  bitsAwarded           Int?          // Set atomically at build approval; null until then
-  hiddenFromGallery     Boolean       @default(false)
-  deletedAt             DateTime?
-  deletedById           String?
-  deletedBy             User?         @relation("deletedProjects", fields: [deletedById], references: [id], onDelete: SetNull)
+  id                String       @id @default(cuid())
+  title             String
+  description       String?
+  tags              ProjectTag[]
+  isStarter         Boolean      @default(false)
+  starterProjectId  String?
+  githubRepo        String?
+  coverImage        String?
+  noBomNeeded       Boolean      @default(false)
+  bomTax            Float?
+  bomShipping       Float?
+  cartScreenshots   String[]     @default([])
+  tier              Int?
+  bitsAwarded       Int? // Set atomically at build approval; null until then
+  hiddenFromGallery Boolean      @default(false)
+  deletedAt         DateTime?
+  deletedById       String?
+  deletedBy         User?        @relation("deletedProjects", fields: [deletedById], references: [id], onDelete: SetNull)
 
   // Stage-based status tracking
   designStatus          ProjectStatus @default(draft)
@@ -218,26 +238,26 @@ model Project {
   designReviewComments  String?
   designReviewedAt      DateTime?
   designReviewedBy      String?
-  
-  buildStatus           ProjectStatus @default(draft)
-  buildSubmissionNotes  String?
-  buildReviewComments   String?
-  buildReviewedAt       DateTime?
-  buildReviewedBy       String?
-  
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  userId           String
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workSessions     WorkSession[]
-  badges           ProjectBadge[]
-  bomItems         BOMItem[]
-  submissions      ProjectSubmission[]
-  reviewActions    ProjectReviewAction[]
-  kudos            Kudos[]
-  featuredAt       DateTime?
-  featuredById     String?
-  hackatimeProjects    HackatimeProject[]
+
+  buildStatus          ProjectStatus @default(draft)
+  buildSubmissionNotes String?
+  buildReviewComments  String?
+  buildReviewedAt      DateTime?
+  buildReviewedBy      String?
+
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  userId            String
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workSessions      WorkSession[]
+  badges            ProjectBadge[]
+  bomItems          BOMItem[]
+  submissions       ProjectSubmission[]
+  reviewActions     ProjectReviewAction[]
+  kudos             Kudos[]
+  featuredAt        DateTime?
+  featuredById      String?
+  hackatimeProjects HackatimeProject[]
 
   @@index([userId])
   @@map("project")
@@ -259,15 +279,15 @@ model HackatimeProject {
 }
 
 model ProjectSubmission {
-  id           String       @id @default(cuid())
-  projectId    String
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stage        ProjectStage
-  notes        String?
-  preReviewed  Boolean      @default(false)
-  createdAt    DateTime     @default(now())
-  reviews      SubmissionReview[]
-  claim        ReviewClaim?
+  id          String             @id @default(cuid())
+  projectId   String
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage       ProjectStage
+  notes       String?
+  preReviewed Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  reviews     SubmissionReview[]
+  claim       ReviewClaim?
 
   @@index([projectId])
   @@map("project_submission")
@@ -291,19 +311,19 @@ model ProjectReviewAction {
 }
 
 model WorkSession {
-  id             String            @id @default(cuid())
+  id             String             @id @default(cuid())
   title          String
   hoursClaimed   Float
   hoursApproved  Float?
   content        String?
   categories     SessionCategory[]
-  stage          ProjectStage      @default(BUILD)
+  stage          ProjectStage       @default(BUILD)
   reviewComments String?
   reviewedAt     DateTime?
   reviewedBy     String?
-  createdAt      DateTime          @default(now())
+  createdAt      DateTime           @default(now())
   projectId      String
-  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   media          SessionMedia[]
   timelapses     SessionTimelapse[]
 
@@ -371,13 +391,13 @@ model BOMItem {
 }
 
 model ProjectBadge {
-  id          String    @id @default(cuid())
-  badge       BadgeType
-  claimedAt   DateTime  @default(now())
-  grantedAt   DateTime?
-  grantedBy   String?
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  badge     BadgeType
+  claimedAt DateTime  @default(now())
+  grantedAt DateTime?
+  grantedBy String?
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, badge])
   @@index([projectId])
@@ -426,7 +446,8 @@ enum AuditAction {
   ADMIN_REJECT_BOM
   ADMIN_DELETE_PROJECT
   ADMIN_UNDELETE_PROJECT
-  
+
+
   REVIEWER_APPROVE
   REVIEWER_RETURN
   REVIEWER_REJECT
@@ -435,24 +456,51 @@ enum AuditAction {
 
   // Security events
   SUPERADMIN_GRANT
-  
+
   // User actions on sensitive data
   USER_DELETE_PROJECT
   USER_SUBMIT_PROJECT
   USER_UNSUBMIT_PROJECT
+
+  // Inventory admin actions
+  INVENTORY_IMPORT
+  INVENTORY_ORDER_STATUS_UPDATE
+  INVENTORY_ORDER_CANCEL
+  INVENTORY_RENTAL_RETURN
+  INVENTORY_TEAM_LOCK
+  INVENTORY_SETTINGS_UPDATE
+  INVENTORY_ITEM_CREATE
+  INVENTORY_ITEM_UPDATE
+  INVENTORY_ITEM_DELETE
+  INVENTORY_TOOL_CREATE
+  INVENTORY_TOOL_UPDATE
+  INVENTORY_TOOL_DELETE
+  INVENTORY_BADGE_ASSIGN
+
+  // Inventory user actions
+  INVENTORY_ORDER_PLACE
+  INVENTORY_ORDER_CANCEL_USER
+  INVENTORY_RENTAL_CREATE
+  INVENTORY_TEAM_CREATE
+  INVENTORY_TEAM_JOIN
+  INVENTORY_TEAM_LEAVE
+  INVENTORY_TEAM_DELETE
+  INVENTORY_TEAM_RENAME
+  INVENTORY_TEAM_KICK_MEMBER
+  INVENTORY_TEAM_ADD_MEMBER
 }
 
 model AuditLog {
-  id            String      @id @default(cuid())
-  action        AuditAction
-  actorId       String?
-  actorEmail    String?
-  actorIp       String?
+  id             String      @id @default(cuid())
+  action         AuditAction
+  actorId        String?
+  actorEmail     String?
+  actorIp        String?
   actorUserAgent String?
-  targetType    String?
-  targetId      String?
-  metadata      Json?
-  createdAt     DateTime    @default(now())
+  targetType     String?
+  targetId       String?
+  metadata       Json?
+  createdAt      DateTime    @default(now())
 
   @@index([actorId])
   @@index([action])
@@ -467,14 +515,14 @@ model CurrencyTransaction {
   id            String                  @id @default(cuid())
   userId        String
   user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId     String?                 // Associated project (for PROJECT_APPROVED entries)
-  amount        Int                     // Positive = credit, negative = debit (bits)
+  projectId     String? // Associated project (for PROJECT_APPROVED entries)
+  amount        Int // Positive = credit, negative = debit (bits)
   type          CurrencyTransactionType
   note          String?
-  shopItemId    String?                 // Shop item ID for SHOP_PURCHASE transactions
-  balanceBefore Int                     // Balance before this entry (audit trail)
-  balanceAfter  Int                     // Balance after this entry
-  createdBy     String?                 // Admin user ID; null if system-generated
+  shopItemId    String? // Shop item ID for SHOP_PURCHASE transactions
+  balanceBefore Int // Balance before this entry (audit trail)
+  balanceAfter  Int // Balance after this entry
+  createdBy     String? // Admin user ID; null if system-generated
   createdAt     DateTime                @default(now())
 
   @@index([userId])
@@ -485,34 +533,34 @@ model CurrencyTransaction {
 
 // Admin-managed shop items (excludes hardcoded Event Invite & Flight Stipend)
 model ShopItem {
-  id          String   @id @default(cuid())
+  id              String   @id @default(cuid())
   name            String
   description     String
   longDescription String?
   imageUrl        String?
-  price       Int      // Cost in bits
-  maxPerUser  Int      @default(0) // 0 = unlimited, 1 = one per user
-  active      Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  price           Int // Cost in bits
+  maxPerUser      Int      @default(0) // 0 = unlimited, 1 = one per user
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@map("shop_item")
 }
 
 // Temporary RSVP storage (fallback when Airtable is down)
 model TempRsvp {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  ip              String?
-  utmSource       String?
-  referredBy      String?
-  firstName       String?
-  lastName        String?
-  finishedAccount Boolean  @default(false)
-  syncedToAirtable Boolean @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  email            String   @unique
+  ip               String?
+  utmSource        String?
+  referredBy       String?
+  firstName        String?
+  lastName         String?
+  finishedAccount  Boolean  @default(false)
+  syncedToAirtable Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([syncedToAirtable])
   @@map("temp_rsvp")
@@ -533,15 +581,15 @@ model SidekickAssignment {
 
 // Two-pass submission review record
 model SubmissionReview {
-  id              String            @id @default(cuid())
-  submissionId    String
-  submission      ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  reviewerId      String
-  result          ReviewResult
-  isAdminReview   Boolean           @default(false)
-  feedback        String            // shown to submitter
-  reason          String?           // internal justification
-  invalidated     Boolean           @default(false)
+  id            String            @id @default(cuid())
+  submissionId  String
+  submission    ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  result        ReviewResult
+  isAdminReview Boolean           @default(false)
+  feedback      String // shown to submitter
+  reason        String? // internal justification
+  invalidated   Boolean           @default(false)
 
   // Optional overrides
   workUnitsOverride Float?
@@ -626,4 +674,109 @@ model UserGoalPrize {
   @@unique([userId, shopItemId])
   @@index([userId])
   @@map("user_goal_prize")
+}
+
+// ── Inventory Models ────────────────────────────────────────────────
+
+model Team {
+  id             String       @id @default(cuid())
+  name           String       @unique
+  locked         Boolean      @default(false)
+  slackChannelId String?
+  slackWelcomeTs String?
+  members        User[]       @relation("TeamMembers")
+  orders         Order[]
+  toolRentals    ToolRental[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("team")
+}
+
+model Item {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  imageUrl    String?
+  stock       Int
+  category    String
+  maxPerTeam  Int
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("item")
+}
+
+model Tool {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  available   Boolean      @default(true)
+  rentals     ToolRental[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("tool")
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  teamId     String
+  team       Team        @relation(fields: [teamId], references: [id])
+  placedById String
+  placedBy   User        @relation("OrdersPlaced", fields: [placedById], references: [id])
+  status     OrderStatus @default(PLACED)
+  floor      Int
+  location   String
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([teamId])
+  @@index([placedById])
+  @@map("order")
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id])
+  quantity Int
+
+  @@index([orderId])
+  @@index([itemId])
+  @@map("order_item")
+}
+
+model ToolRental {
+  id         String       @id @default(cuid())
+  toolId     String
+  tool       Tool         @relation(fields: [toolId], references: [id])
+  teamId     String
+  team       Team         @relation(fields: [teamId], references: [id])
+  rentedById String
+  rentedBy   User         @relation("ToolsRented", fields: [rentedById], references: [id])
+  status     RentalStatus @default(CHECKED_OUT)
+  floor      Int
+  location   String
+  dueAt      DateTime?
+  returnedAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([toolId])
+  @@index([teamId])
+  @@index([rentedById])
+  @@map("tool_rental")
+}
+
+model InventorySettings {
+  id      String  @id @default("singleton")
+  enabled Boolean @default(false)
+
+  @@map("inventory_settings")
 }

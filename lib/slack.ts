@@ -1,3 +1,36 @@
+export async function sendSlackMessage(
+  channel: string,
+  text: string,
+  options?: { blocks?: Record<string, unknown>[] }
+): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) {
+    return { ok: false, error: "SLACK_BOT_TOKEN not configured" };
+  }
+
+  try {
+    const blocks = options?.blocks ?? [
+      { type: "section", text: { type: "mrkdwn", text } },
+    ];
+
+    const res = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ channel, text, blocks }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      return { ok: false, error: `chat.postMessage: ${data.error}` };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+}
+
 export async function sendSlackDM(
   slackId: string,
   text: string,
