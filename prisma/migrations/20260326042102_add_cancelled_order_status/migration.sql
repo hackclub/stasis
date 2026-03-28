@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_ORDER_CANCEL';
+
+-- AlterEnum
+ALTER TYPE "OrderStatus" ADD VALUE 'CANCELLED';

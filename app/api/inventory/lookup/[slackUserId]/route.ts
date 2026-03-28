@@ -11,22 +11,34 @@ export async function GET(
 
   const { slackUserId } = await params
 
-  const user = await prisma.user.findUnique({
-    where: { slackId: slackUserId },
-    select: {
-      id: true,
-      name: true,
-      slackDisplayName: true,
-      image: true,
-      teamId: true,
-      team: {
-        select: {
-          id: true,
-          name: true,
-        },
+  // Try slackId first, then nfcId (for HID badge readers that send tag UIDs)
+  const userSelect = {
+    id: true,
+    name: true,
+    slackId: true,
+    slackDisplayName: true,
+    nfcId: true,
+    image: true,
+    teamId: true,
+    team: {
+      select: {
+        id: true,
+        name: true,
       },
     },
+  } as const
+
+  let user = await prisma.user.findUnique({
+    where: { slackId: slackUserId },
+    select: userSelect,
   })
+
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { nfcId: slackUserId },
+      select: userSelect,
+    })
+  }
 
   if (!user) {
     return NextResponse.json(
@@ -40,6 +52,8 @@ export async function GET(
       user: {
         id: user.id,
         name: user.slackDisplayName ?? user.name,
+        slackId: user.slackId,
+        nfcId: user.nfcId,
         image: user.image,
       },
       team: null,
@@ -52,7 +66,7 @@ export async function GET(
     prisma.order.findFirst({
       where: {
         teamId: user.teamId,
-        status: { not: "COMPLETED" },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
       },
       include: {
         items: { include: { item: true } },
@@ -80,6 +94,8 @@ export async function GET(
     user: {
       id: user.id,
       name: user.slackDisplayName ?? user.name,
+      slackId: user.slackId,
+      nfcId: user.nfcId,
       image: user.image,
     },
     team: user.team,

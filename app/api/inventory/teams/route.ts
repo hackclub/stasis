@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { syncTeamChannel } from "@/lib/inventory/team-channel"
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -64,6 +65,8 @@ export async function POST(request: Request) {
 
     return created
   })
+
+  syncTeamChannel(team.id).catch(() => {})
 
   return NextResponse.json(team, { status: 201 })
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { removeFromTeam } from "@/lib/inventory/teams"
 
 export async function POST(
   request: Request,
@@ -23,18 +24,7 @@ export async function POST(
     return NextResponse.json({ error: "You are not a member of this team" }, { status: 400 })
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: session.user.id },
-      data: { teamId: null },
-    })
-
-    const remaining = await tx.user.count({ where: { teamId: id } })
-
-    if (remaining === 0) {
-      await tx.team.delete({ where: { id } })
-    }
-  })
+  await removeFromTeam(session.user.id, id)
 
   return NextResponse.json({ success: true })
 }

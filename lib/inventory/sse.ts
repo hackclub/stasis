@@ -1,4 +1,5 @@
 const connections = new Map<string, Set<ReadableStreamDefaultController>>()
+const encoder = new TextEncoder()
 
 export function registerConnection(
   key: string,
@@ -25,7 +26,7 @@ export function pushSSE(
   teamId: string,
   event: { type: string; data: unknown }
 ) {
-  const encoded = new TextEncoder().encode(
+  const encoded = encoder.encode(
     `data: ${JSON.stringify(event)}\n\n`
   )
   for (const key of [teamId, "admin"]) {

@@ -3,14 +3,18 @@ import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
 import { OrderStatus } from "@/app/generated/prisma/client"
 
+const VALID_STATUSES = new Set<string>(Object.values(OrderStatus))
+
 export async function GET(request: Request) {
   const adminResult = await requireAdmin()
   if ("error" in adminResult) return adminResult.error
 
   const { searchParams } = new URL(request.url)
-  const status = searchParams.get("status") as OrderStatus | null
+  const statusParam = searchParams.get("status")
 
-  const where = status ? { status } : {}
+  const where = statusParam && VALID_STATUSES.has(statusParam)
+    ? { status: statusParam as OrderStatus }
+    : {}
 
   const orders = await prisma.order.findMany({
     where,

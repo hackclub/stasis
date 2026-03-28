@@ -3,10 +3,10 @@ import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
 import { logAdminAction, AuditAction } from "@/lib/audit"
 import { pushSSE } from "@/lib/inventory/sse"
-import { notifyTeam } from "@/lib/inventory/notifications"
+import { notifyOrderUpdate } from "@/lib/inventory/notifications"
 import { OrderStatus } from "@/app/generated/prisma/client"
 
-const VALID_STATUSES: OrderStatus[] = ["IN_PROGRESS", "READY", "COMPLETED"]
+const VALID_STATUSES: OrderStatus[] = ["IN_PROGRESS", "READY", "COMPLETED", "CANCELLED"]
 
 export async function PATCH(
   request: Request,
@@ -27,6 +27,56 @@ export async function PATCH(
     )
   }
 
+  // If cancelling, restore stock
+  if (status === "CANCELLED") {
+    const existing = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    })
+    if (!existing) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 })
+    }
+    if (existing.status === "READY" || existing.status === "COMPLETED" || existing.status === "CANCELLED") {
+      return NextResponse.json(
+        { error: "Cannot cancel an order that is already ready, completed, or cancelled" },
+        { status: 400 }
+      )
+    }
+
+    const order = await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id },
+        data: { status },
+        include: {
+          team: { select: { id: true, name: true } },
+          placedBy: { select: { id: true, name: true, email: true } },
+          items: { include: { item: true } },
+        },
+      })
+      for (const item of existing.items) {
+        await tx.item.update({
+          where: { id: item.itemId },
+          data: { stock: { increment: item.quantity } },
+        })
+      }
+      return updated
+    })
+
+    notifyOrderUpdate(order.teamId, order, "Cancelled")
+
+    await logAdminAction(
+      AuditAction.INVENTORY_ORDER_CANCEL,
+      session.user.id,
+      session.user.email,
+      "Order",
+      id,
+      { orderId: id, status }
+    )
+
+    pushSSE(order.teamId, { type: "order_status_updated", data: order })
+    return NextResponse.json(order)
+  }
+
   const order = await prisma.order.update({
     where: { id },
     data: { status },
@@ -38,9 +88,9 @@ export async function PATCH(
   })
 
   if (status === "READY") {
-    notifyTeam(order.teamId, "Your order is ready for pickup!")
-  } else if (status === "COMPLETED") {
-    notifyTeam(order.teamId, "Your order has been completed!")
+    notifyOrderUpdate(order.teamId, order, "Ready for Pickup")
+  } else if (status === "IN_PROGRESS") {
+    notifyOrderUpdate(order.teamId, order, "In Progress")
   }
 
   await logAdminAction(

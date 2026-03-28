@@ -20,6 +20,9 @@ ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_SETTINGS_UPDATE';
 ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_ITEM_CREATE';
 ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_ITEM_UPDATE';
 ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_ITEM_DELETE';
+ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_TOOL_CREATE';
+ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_TOOL_UPDATE';
+ALTER TYPE "AuditAction" ADD VALUE 'INVENTORY_TOOL_DELETE';
 
 -- AlterTable
 ALTER TABLE "user" ADD COLUMN     "teamId" TEXT;
@@ -114,6 +117,9 @@ CREATE TABLE "inventory_settings" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "team_name_key" ON "team"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "item_name_key" ON "item"("name");
 
 -- CreateIndex
 CREATE INDEX "order_teamId_idx" ON "order"("teamId");

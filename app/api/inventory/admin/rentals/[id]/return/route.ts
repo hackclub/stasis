@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin-auth"
 import { logAdminAction, AuditAction } from "@/lib/audit"
 import { pushSSE } from "@/lib/inventory/sse"
-import { notifyTeam } from "@/lib/inventory/notifications"
+import { notifyRental } from "@/lib/inventory/notifications"
 
 export async function PATCH(
   _request: Request,
@@ -53,10 +53,7 @@ export async function PATCH(
     return result
   })
 
-  notifyTeam(
-    updated.teamId,
-    `Tool ${updated.tool.name} has been returned`
-  )
+  notifyRental(updated.teamId, updated.tool.name, "Tool Returned")
 
   await logAdminAction(
     AuditAction.INVENTORY_RENTAL_RETURN,

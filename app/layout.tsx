@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Libre_Barcode_128, Libre_Barcode_39 } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
@@ -23,11 +23,14 @@ const libreBarcode39 = Libre_Barcode_39({
   variable: "--font-qr",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#C4B9A2",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://stasis.hackclub.com"),
   title: "Stasis",
   description: "A High School Hardware Hackathon in Austin, TX on May 15-18",
-  themeColor:"#C4B9A2",
   icons: {
     icon: "/favicon.svg",
   },

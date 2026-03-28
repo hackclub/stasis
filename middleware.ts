@@ -6,7 +6,7 @@ const securityHeaders = {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://avatars.slack-edge.com https://github.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://*.s3.amazonaws.com https://blueprint.hackclub.com https://cdn.hackclub.com https://user-cdn.hackclub-assets.com https://*.airtableusercontent.com https://www.freeiconspng.com https://hc-cdn.hel1.your-objectstorage.com data: blob:",
+    "img-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://avatars.slack-edge.com https://github.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://*.s3.amazonaws.com https://blueprint.hackclub.com https://cdn.hackclub.com https://user-cdn.hackclub-assets.com https://*.airtableusercontent.com https://www.freeiconspng.com https://hc-cdn.hel1.your-objectstorage.com https://mm.digikey.com data: blob:",
     "media-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com blob:",
     "connect-src 'self' https://api2.hackclub.com",
     "font-src 'self'",

@@ -9,9 +9,13 @@ interface ToolCardProps {
     available: boolean;
   };
   onRent: (toolId: string) => void;
+  inCart?: boolean;
+  canRent?: boolean;
 }
 
-export function ToolCard({ tool, onRent }: ToolCardProps) {
+export function ToolCard({ tool, onRent, inCart, canRent = true }: ToolCardProps) {
+  const disabled = !tool.available || inCart || !canRent;
+
   return (
     <div className="border-2 border-brown-800 bg-cream-100 p-4 flex flex-col">
       {/* Image */}
@@ -49,10 +53,14 @@ export function ToolCard({ tool, onRent }: ToolCardProps) {
       <div className="mt-auto">
         <button
           onClick={() => onRent(tool.id)}
-          disabled={!tool.available}
-          className="w-full py-2 text-sm uppercase tracking-wider border-2 border-brown-800 text-brown-800 hover:bg-brown-800 hover:text-cream-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brown-800 transition-colors cursor-pointer disabled:cursor-not-allowed"
+          disabled={disabled}
+          className={`w-full py-2 text-sm uppercase tracking-wider border-2 transition-colors cursor-pointer disabled:cursor-not-allowed ${
+            inCart
+              ? 'border-orange-500 bg-orange-500 text-cream-50'
+              : 'border-brown-800 text-brown-800 hover:bg-brown-800 hover:text-cream-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brown-800'
+          }`}
         >
-          Rent
+          {inCart ? 'In Cart' : 'Rent'}
         </button>
       </div>
     </div>

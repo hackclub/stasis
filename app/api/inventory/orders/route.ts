@@ -3,7 +3,7 @@ import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { pushSSE } from "@/lib/inventory/sse"
-import { notifyTeam } from "@/lib/inventory/notifications"
+import { notifyOrderUpdate } from "@/lib/inventory/notifications"
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -59,82 +59,91 @@ export async function POST(request: Request) {
     )
   }
 
-  const order = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { id: session.user.id },
-      include: { team: true },
-    })
-
-    if (!user?.teamId || !user.team) {
-      throw new Error("You must be on a team to place an order")
-    }
-
-    if (user.team.locked) {
-      throw new Error("Your team is locked and cannot place orders")
-    }
-
-    const activeOrder = await tx.order.findFirst({
-      where: {
-        teamId: user.teamId,
-        status: { not: "COMPLETED" },
-      },
-    })
-
-    if (activeOrder) {
-      throw new Error("Your team already has an active order")
-    }
-
-    for (const { itemId, quantity } of items) {
-      const item = await tx.item.findUnique({ where: { id: itemId } })
-      if (!item) {
-        throw new Error(`Item ${itemId} not found`)
-      }
-      if (item.stock < quantity) {
-        throw new Error(`Insufficient stock for ${item.name}`)
-      }
-
-      const usageResult = await tx.orderItem.aggregate({
-        _sum: { quantity: true },
-        where: {
-          itemId,
-          order: { teamId: user.teamId },
-        },
+  let order
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: session.user.id },
+        include: { team: true },
       })
-      const totalUsage = usageResult._sum.quantity ?? 0
 
-      if (totalUsage + quantity > item.maxPerTeam) {
-        throw new Error(
-          `Exceeds max per team for ${item.name} (limit: ${item.maxPerTeam}, used: ${totalUsage})`
-        )
+      if (!user?.teamId || !user.team) {
+        throw new Error("You must be on a team to place an order")
       }
 
-      await tx.item.update({
-        where: { id: itemId },
-        data: { stock: { decrement: quantity } },
-      })
-    }
+      if (user.team.locked) {
+        throw new Error("Your team is locked and cannot place orders")
+      }
 
-    return tx.order.create({
-      data: {
-        teamId: user.teamId,
-        placedById: session.user.id,
-        floor,
-        location,
-        items: {
-          create: items.map(({ itemId, quantity }) => ({
+      const allowMultiple = process.env.INVENTORY_ALLOW_MULTIPLE_ORDERS === "true"
+      if (!allowMultiple) {
+        const activeOrder = await tx.order.findFirst({
+          where: {
+            teamId: user.teamId,
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
+        })
+
+        if (activeOrder) {
+          throw new Error("Your team already has an active order")
+        }
+      }
+
+      for (const { itemId, quantity } of items) {
+        const item = await tx.item.findUnique({ where: { id: itemId } })
+        if (!item) {
+          throw new Error(`Item ${itemId} not found`)
+        }
+        if (item.stock < quantity) {
+          throw new Error(`Insufficient stock for ${item.name}`)
+        }
+
+        const usageResult = await tx.orderItem.aggregate({
+          _sum: { quantity: true },
+          where: {
             itemId,
-            quantity,
-          })),
-        },
-      },
-      include: {
-        items: { include: { item: true } },
-        placedBy: { select: { id: true, name: true, email: true } },
-      },
-    })
-  })
+            order: { teamId: user.teamId },
+          },
+        })
+        const totalUsage = usageResult._sum.quantity ?? 0
 
-  notifyTeam(order.teamId, "Your team's order has been placed!")
+        if (totalUsage + quantity > item.maxPerTeam) {
+          throw new Error(
+            `Exceeds max per team for ${item.name} (limit: ${item.maxPerTeam}, used: ${totalUsage})`
+          )
+        }
+
+        await tx.item.update({
+          where: { id: itemId },
+          data: { stock: { decrement: quantity } },
+        })
+      }
+
+      return tx.order.create({
+        data: {
+          teamId: user.teamId,
+          placedById: session.user.id,
+          floor,
+          location,
+          items: {
+            create: items.map(({ itemId, quantity }) => ({
+              itemId,
+              quantity,
+            })),
+          },
+        },
+        include: {
+          items: { include: { item: true } },
+          placedBy: { select: { id: true, name: true, email: true } },
+        },
+      })
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to place order"
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+
+  notifyOrderUpdate(order.teamId, order, "Placed")
   pushSSE(order.teamId, { type: "order_placed", data: order })
 
   return NextResponse.json(order, { status: 201 })

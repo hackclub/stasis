@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { MAX_TEAM_SIZE } from "@/lib/inventory/config"
+import { syncTeamChannel } from "@/lib/inventory/team-channel"
 
 export async function POST(
   request: Request,
@@ -51,12 +52,12 @@ export async function POST(
     return NextResponse.json({ error: "User is already on a team" }, { status: 400 })
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: targetUser.id },
-      data: { teamId: id },
-    })
+  await prisma.user.update({
+    where: { id: targetUser.id },
+    data: { teamId: id },
   })
+
+  syncTeamChannel(id).catch(() => {})
 
   return NextResponse.json({ success: true })
 }

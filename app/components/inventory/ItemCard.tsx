@@ -21,12 +21,13 @@ export function ItemCard({ item, onAdd }: ItemCardProps) {
   const canAdd = remaining > 0 && item.stock > 0;
   const maxQuantity = Math.min(remaining, item.stock);
   const [quantity, setQuantity] = useState(1);
+  const [justAdded, setJustAdded] = useState(false);
 
   const decrement = () => setQuantity(q => Math.max(1, q - 1));
   const increment = () => setQuantity(q => Math.min(maxQuantity, q + 1));
 
   return (
-    <div className="border-2 border-brown-800 bg-cream-100 p-4 flex flex-col">
+    <div className={`border-2 border-brown-800 bg-cream-100 p-4 flex flex-col ${!canAdd ? 'opacity-60' : ''}`}>
       {/* Image */}
       {item.imageUrl ? (
         <img
@@ -57,7 +58,7 @@ export function ItemCard({ item, onAdd }: ItemCardProps) {
         {/* Stock info */}
         <div className="flex justify-between text-xs text-brown-800/60 mb-3">
           <span>{item.stock} in stock</span>
-          <span>{remaining} of {item.maxPerTeam} remaining</span>
+          <span className={remaining === 0 ? 'text-red-600 font-bold' : ''}>{remaining} of {item.maxPerTeam} remaining</span>
         </div>
 
         {/* Quantity selector + Add button */}
@@ -82,11 +83,20 @@ export function ItemCard({ item, onAdd }: ItemCardProps) {
             </button>
           </div>
           <button
-            onClick={() => { onAdd(item.id, quantity); setQuantity(1); }}
-            disabled={!canAdd}
-            className="flex-1 py-1 text-sm uppercase tracking-wider border-2 border-brown-800 text-brown-800 hover:bg-brown-800 hover:text-cream-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brown-800 transition-colors cursor-pointer disabled:cursor-not-allowed"
+            onClick={() => {
+              onAdd(item.id, quantity);
+              setQuantity(1);
+              setJustAdded(true);
+              setTimeout(() => setJustAdded(false), 1500);
+            }}
+            disabled={!canAdd || justAdded}
+            className={`flex-1 py-1 text-sm uppercase tracking-wider border-2 transition-colors cursor-pointer disabled:cursor-not-allowed ${
+              justAdded
+                ? 'border-orange-500 bg-orange-500 text-cream-50'
+                : 'border-brown-800 text-brown-800 hover:bg-brown-800 hover:text-cream-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brown-800'
+            }`}
           >
-            Add to Cart
+            {justAdded ? 'Added!' : !canAdd ? 'Unavailable' : 'Add to Cart'}
           </button>
         </div>
       </div>

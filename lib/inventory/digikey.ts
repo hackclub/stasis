@@ -33,9 +33,18 @@ async function getToken(): Promise<string> {
   return tokenCache.accessToken
 }
 
+export interface DigiKeyResult {
+  name: string
+  description: string
+  manufacturer: string
+  partNumber: string
+  imageUrl: string
+  category: string
+}
+
 export async function searchDigiKey(
   query: string
-): Promise<{ name: string; imageUrl: string }[]> {
+): Promise<DigiKeyResult[]> {
   const token = await getToken()
 
   const res = await fetch(
@@ -61,16 +70,18 @@ export async function searchDigiKey(
   const data = await res.json()
   const products = data.Products ?? data.products ?? []
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return products
-    .filter(
-      (p: { PrimaryPhoto?: string; ProductDescription?: string }) =>
-        p.PrimaryPhoto
-    )
-    .map(
-      (p: { PrimaryPhoto: string; ProductDescription?: string; ManufacturerPartNumber?: string }) => ({
-        name:
-          p.ProductDescription ?? p.ManufacturerPartNumber ?? "Unknown",
-        imageUrl: p.PrimaryPhoto,
-      })
-    )
+    .filter((p: any) => p.PhotoUrl || p.PrimaryPhoto)
+    .map((p: any) => ({
+      name: p.ManufacturerProductNumber ?? p.ManufacturerPartNumber ?? "Unknown",
+      description:
+        p.Description?.ProductDescription ??
+        p.ProductDescription ??
+        "",
+      manufacturer: p.Manufacturer?.Name ?? "",
+      partNumber: p.ManufacturerProductNumber ?? p.ManufacturerPartNumber ?? "",
+      imageUrl: p.PhotoUrl ?? p.PrimaryPhoto,
+      category: p.Category?.Name ?? "",
+    }))
 }

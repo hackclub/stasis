@@ -8,15 +8,23 @@ interface CheckoutItem {
   quantity: number;
 }
 
+interface CheckoutTool {
+  toolId: string;
+  name: string;
+}
+
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   items: CheckoutItem[];
+  tools: CheckoutTool[];
   onConfirm: (floor: number, location: string) => void;
   isSubmitting?: boolean;
+  venueFloors?: number;
+  error?: string | null;
 }
 
-export function CheckoutModal({ isOpen, onClose, items, onConfirm, isSubmitting }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, items, tools, onConfirm, isSubmitting, venueFloors = 3, error }: CheckoutModalProps) {
   const [floor, setFloor] = useState(1);
   const [location, setLocation] = useState('');
 
@@ -26,22 +34,38 @@ export function CheckoutModal({ isOpen, onClose, items, onConfirm, isSubmitting 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-mono">
-      <div className="absolute inset-0 bg-[#3D3229]/80" onClick={onClose} />
-      <div className="relative bg-cream-100 border-2 border-brown-800 p-8 max-w-md w-full">
-        <h2 className="text-brown-800 font-bold text-lg uppercase tracking-wide mb-6">Confirm Order</h2>
+      <div className="absolute inset-0 bg-[#3D3229]/80" />
+      <div className="relative bg-cream-100 border-2 border-brown-800 p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <h2 className="text-brown-800 font-bold text-lg uppercase tracking-wide mb-6">Confirm Checkout</h2>
 
-        {/* Order summary */}
-        <div className="mb-6">
-          <h3 className="text-brown-800 text-sm uppercase tracking-wider mb-2">Items</h3>
-          <ul className="space-y-1">
-            {items.map(item => (
-              <li key={item.itemId} className="flex justify-between text-sm text-brown-800">
-                <span>{item.name}</span>
-                <span className="text-brown-800/60">x{item.quantity}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Parts summary */}
+        {items.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-brown-800 text-sm uppercase tracking-wider mb-2">Parts</h3>
+            <ul className="space-y-1">
+              {items.map(item => (
+                <li key={item.itemId} className="flex justify-between text-sm text-brown-800">
+                  <span>{item.name}</span>
+                  <span className="text-brown-800/60">x{item.quantity}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Tool rentals summary */}
+        {tools.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-brown-800 text-sm uppercase tracking-wider mb-2">Tool Rentals</h3>
+            <ul className="space-y-1">
+              {tools.map(tool => (
+                <li key={tool.toolId} className="text-sm text-brown-800">{tool.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {(items.length > 0 || tools.length > 0) && <div className="border-t border-cream-400 mb-4" />}
 
         {/* Floor dropdown */}
         <div className="mb-4">
@@ -51,9 +75,9 @@ export function CheckoutModal({ isOpen, onClose, items, onConfirm, isSubmitting 
             onChange={e => setFloor(Number(e.target.value))}
             className="w-full border-2 border-brown-800 bg-cream-50 text-brown-800 px-3 py-2 text-sm"
           >
-            <option value={1}>Floor 1</option>
-            <option value={2}>Floor 2</option>
-            <option value={3}>Floor 3</option>
+            {Array.from({ length: venueFloors }, (_, i) => (
+              <option key={i + 1} value={i + 1}>Floor {i + 1}</option>
+            ))}
           </select>
         </div>
 
@@ -68,6 +92,12 @@ export function CheckoutModal({ isOpen, onClose, items, onConfirm, isSubmitting 
             className="w-full border-2 border-brown-800 bg-cream-50 text-brown-800 px-3 py-2 text-sm placeholder:text-brown-800/30"
           />
         </div>
+
+        {error && (
+          <div className="mb-4 border-2 border-red-600 bg-red-50 px-3 py-2 text-red-800 text-sm">
+            {error}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">

@@ -3,6 +3,9 @@ import { headers } from "next/headers"
 import { NextRequest } from "next/server"
 import { registerConnection, removeConnection } from "@/lib/inventory/sse"
 
+const encoder = new TextEncoder()
+const KEEPALIVE = encoder.encode(": keepalive\n\n")
+
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
@@ -15,19 +18,16 @@ export async function GET(request: NextRequest) {
     start(controller) {
       registerConnection(teamId, controller)
 
-      // Send initial keepalive
-      controller.enqueue(new TextEncoder().encode(": keepalive\n\n"))
+      controller.enqueue(KEEPALIVE)
 
-      // Keepalive interval
       const interval = setInterval(() => {
         try {
-          controller.enqueue(new TextEncoder().encode(": keepalive\n\n"))
+          controller.enqueue(KEEPALIVE)
         } catch {
           clearInterval(interval)
         }
       }, 30_000)
 
-      // Clean up on abort
       request.signal.addEventListener("abort", () => {
         clearInterval(interval)
         removeConnection(teamId, controller)

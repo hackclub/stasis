@@ -3,7 +3,11 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
-import { MIN_BITS_FOR_INVENTORY } from "./config"
+import {
+  MIN_BITS_FOR_INVENTORY,
+  VENUE_FLOORS,
+  MAX_CONCURRENT_RENTALS,
+} from "./config"
 
 export async function checkInventoryAccess(userId: string) {
   const [settings, balanceResult, user, roles] = await Promise.all([
@@ -25,15 +29,19 @@ export async function checkInventoryAccess(userId: string) {
   const isAdmin = hasRole(roles, Role.ADMIN)
   const enabled = settings?.enabled ?? false
   const balance = balanceResult._sum.amount ?? 0
+  const allowMultipleOrders = process.env.INVENTORY_ALLOW_MULTIPLE_ORDERS === "true"
+  const config = { venueFloors: VENUE_FLOORS, maxConcurrentRentals: MAX_CONCURRENT_RENTALS, allowMultipleOrders }
 
   if (isAdmin) {
     return {
       allowed: true,
+      reason: null,
       isAdmin: true,
       teamId: user?.teamId ?? null,
       teamName: user?.team?.name ?? null,
       balance,
       enabled,
+      ...config,
     }
   }
 
@@ -46,6 +54,7 @@ export async function checkInventoryAccess(userId: string) {
       teamName: null,
       balance,
       enabled,
+      ...config,
     }
   }
 
@@ -58,16 +67,19 @@ export async function checkInventoryAccess(userId: string) {
       teamName: null,
       balance,
       enabled,
+      ...config,
     }
   }
 
   return {
     allowed: true,
+    reason: null,
     isAdmin: false,
     teamId: user?.teamId ?? null,
     teamName: user?.team?.name ?? null,
     balance,
     enabled,
+    ...config,
   }
 }
 

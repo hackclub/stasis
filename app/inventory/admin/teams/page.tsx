@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface TeamMember {
   id: string;
@@ -97,8 +97,8 @@ export default function AdminTeamsPage() {
             </thead>
             <tbody>
               {teams.map((team) => (
-                <>
-                  <tr key={team.id} className="border-t border-cream-200">
+                <React.Fragment key={team.id}>
+                  <tr className="border-t border-cream-200">
                     <td className="px-3 py-2 text-brown-800 font-bold">
                       <button
                         onClick={() => toggleExpand(team.id)}
@@ -162,7 +162,7 @@ export default function AdminTeamsPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>

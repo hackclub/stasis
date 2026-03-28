@@ -2,18 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from '@/lib/auth-client';
-import { useInventorySSE } from '@/lib/hooks/useInventorySSE';
+import { useInventorySSE } from '@/lib/inventory/useInventorySSE';
 import { OrderStatusBar } from '@/app/components/inventory/OrderStatusBar';
 import { RentalTimer } from '@/app/components/inventory/RentalTimer';
-import Link from 'next/link';
-
-interface AccessInfo {
-  allowed: boolean;
-  reason?: string;
-  isAdmin: boolean;
-  teamId?: string;
-  teamName?: string;
-}
+import { TeamPanel } from '@/app/components/inventory/TeamPanel';
+import { useInventoryAccess } from '../InventoryAccessContext';
 
 interface OrderItem {
   id: string;
@@ -23,7 +16,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  status: 'PLACED' | 'IN_PROGRESS' | 'READY' | 'COMPLETED';
+  status: 'PLACED' | 'IN_PROGRESS' | 'READY' | 'COMPLETED' | 'CANCELLED';
   floor: number;
   location: string;
   items: OrderItem[];
@@ -43,93 +36,78 @@ interface Rental {
   rentedBy: { id: string; name: string; email: string };
 }
 
-interface TeamDetail {
-  id: string;
-  name: string;
-  members: Array<{ id: string; name: string; image?: string }>;
-}
-
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const [access, setAccess] = useState<AccessInfo | null>(null);
+  const access = useInventoryAccess();
   const [orders, setOrders] = useState<Order[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
-  const [team, setTeam] = useState<TeamDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
 
   const lastEvent = useInventorySSE(access?.teamId ?? null);
 
-  const fetchAccess = useCallback(async () => {
-    try {
-      const res = await fetch('/api/inventory/access');
-      if (!res.ok) return null;
-      const data = await res.json();
-      setAccess(data);
-      return data as AccessInfo;
-    } catch {
-      return null;
-    }
-  }, []);
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(null), 5000);
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
       const res = await fetch('/api/inventory/orders');
-      if (!res.ok) return;
-      const data = await res.json();
-      setOrders(data);
-    } catch {
-      // Ignore
-    }
+      if (res.ok) setOrders(await res.json());
+    } catch {}
   }, []);
 
   const fetchRentals = useCallback(async () => {
     try {
       const res = await fetch('/api/inventory/rentals');
-      if (!res.ok) return;
-      const data = await res.json();
-      setRentals(data);
-    } catch {
-      // Ignore
-    }
+      if (res.ok) setRentals(await res.json());
+    } catch {}
   }, []);
 
-  const fetchTeam = useCallback(async (teamId: string) => {
-    try {
-      const res = await fetch(`/api/inventory/teams/${teamId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setTeam(data);
-    } catch {
-      // Ignore
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    if (access?.teamId) {
+      await Promise.all([fetchOrders(), fetchRentals()]);
     }
-  }, []);
+    setLoading(false);
+  }, [access?.teamId, fetchOrders, fetchRentals]);
 
   useEffect(() => {
     if (!session) return;
-    (async () => {
-      const accessData = await fetchAccess();
-      if (accessData?.teamId) {
-        await Promise.all([
-          fetchOrders(),
-          fetchRentals(),
-          fetchTeam(accessData.teamId),
-        ]);
-      }
-      setLoading(false);
-    })();
-  }, [session, fetchAccess, fetchOrders, fetchRentals, fetchTeam]);
+    loadData();
+  }, [session, loadData]);
 
-  // Re-fetch on SSE events
   useEffect(() => {
     if (!lastEvent) return;
     const type = lastEvent.type;
-    if (type === 'order_placed' || type === 'order_updated') {
+    if (type === 'order_placed' || type === 'order_status_updated') {
       fetchOrders();
     }
     if (type === 'rental_created' || type === 'rental_returned') {
       fetchRentals();
     }
   }, [lastEvent, fetchOrders, fetchRentals]);
+
+  const cancelOrder = async (orderId: string) => {
+    setCancellingOrder(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/inventory/orders/${orderId}/cancel`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to cancel order');
+      }
+      showSuccess('Order cancelled.');
+      fetchOrders();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel order');
+    } finally {
+      setCancellingOrder(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -139,39 +117,46 @@ export default function DashboardPage() {
     );
   }
 
+  // No team -- delegate entirely to TeamPanel
   if (!access?.teamId) {
     return (
-      <div className="text-center py-20">
-        <h2 className="text-brown-800 text-lg uppercase tracking-wide mb-4">No Team</h2>
-        <p className="text-brown-800/60 text-sm mb-6">
-          You need to join or create a team before using inventory.
-        </p>
-        <Link
-          href="/inventory/team"
-          className="inline-block px-6 py-2 border-2 border-brown-800 text-brown-800 uppercase text-sm tracking-wider hover:bg-brown-800 hover:text-cream-50 transition-colors"
-        >
-          Go to Team Page
-        </Link>
-      </div>
+      <TeamPanel
+        teamId={undefined}
+        currentUserId={session?.user.id ?? ''}
+        onTeamChanged={loadData}
+      />
     );
   }
 
-  const activeOrder = orders.find(o => o.status !== 'COMPLETED');
-  const pastOrders = orders.filter(o => o.status === 'COMPLETED');
+  const activeOrder = orders.find(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED');
+  const pastOrders = orders.filter(o => o.status === 'COMPLETED' || o.status === 'CANCELLED');
   const activeRentals = rentals.filter(r => r.status === 'CHECKED_OUT');
   const pastRentals = rentals.filter(r => r.status === 'RETURNED');
 
   return (
     <div className="space-y-8">
+      {successMessage && (
+        <div className="border-2 border-green-600 bg-green-50 px-4 py-3 text-green-800 text-sm">
+          {successMessage}
+        </div>
+      )}
+      {error && (
+        <div className="border-2 border-red-600 bg-red-50 px-4 py-3 text-red-800 text-sm">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">Dismiss</button>
+        </div>
+      )}
+
       {/* Active Order */}
       <section>
         <h2 className="text-brown-800 font-bold text-sm uppercase tracking-wide mb-4">Active Order</h2>
         {activeOrder ? (
           <div className="border-2 border-brown-800 bg-cream-100 p-6">
             <div className="mb-4">
-              <OrderStatusBar status={activeOrder.status} />
+              <OrderStatusBar status={activeOrder.status as 'PLACED' | 'IN_PROGRESS' | 'READY' | 'COMPLETED'} />
             </div>
             <div className="flex flex-wrap gap-4 text-xs text-brown-800/60 mb-4">
+              <span className="font-bold text-brown-800/80">#{activeOrder.id.slice(-6).toUpperCase()}</span>
               <span>Floor {activeOrder.floor}</span>
               <span>{activeOrder.location}</span>
               <span>Placed by {activeOrder.placedBy.name}</span>
@@ -185,6 +170,15 @@ export default function DashboardPage() {
                 </li>
               ))}
             </ul>
+            {(activeOrder.status === 'PLACED' || activeOrder.status === 'IN_PROGRESS') && (
+              <button
+                onClick={() => cancelOrder(activeOrder.id)}
+                disabled={cancellingOrder}
+                className="mt-4 px-4 py-2 text-sm uppercase tracking-wider border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-cream-50 disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
+              >
+                {cancellingOrder ? 'Cancelling...' : 'Cancel Order'}
+              </button>
+            )}
           </div>
         ) : (
           <p className="text-brown-800/50 text-sm">No active order.</p>
@@ -218,27 +212,12 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Team Info */}
-      {team && (
-        <section>
-          <h2 className="text-brown-800 font-bold text-sm uppercase tracking-wide mb-4">Team</h2>
-          <div className="border-2 border-brown-800 bg-cream-100 p-4">
-            <h3 className="text-brown-800 font-bold text-sm mb-3">{team.name}</h3>
-            <div className="flex flex-wrap gap-3">
-              {team.members.map(member => (
-                <div key={member.id} className="flex items-center gap-2">
-                  {member.image ? (
-                    <img src={member.image} alt="" className="w-6 h-6 border border-cream-400" />
-                  ) : (
-                    <div className="w-6 h-6 bg-cream-200 border border-cream-400" />
-                  )}
-                  <span className="text-brown-800 text-xs">{member.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Team */}
+      <TeamPanel
+        teamId={access.teamId}
+        currentUserId={session?.user.id ?? ''}
+        onTeamChanged={loadData}
+      />
 
       {/* Order History */}
       <section>
@@ -248,21 +227,27 @@ export default function DashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-cream-200 text-brown-800 text-xs uppercase tracking-wider">
+                  <th className="text-left px-4 py-2">Order</th>
                   <th className="text-left px-4 py-2">Date</th>
                   <th className="text-left px-4 py-2">Items</th>
-                  <th className="text-left px-4 py-2">Placed By</th>
+                  <th className="text-left px-4 py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {pastOrders.map(order => (
                   <tr key={order.id} className="border-t border-cream-400 bg-cream-100">
+                    <td className="px-4 py-2 text-brown-800 font-bold whitespace-nowrap">
+                      #{order.id.slice(-6).toUpperCase()}
+                    </td>
                     <td className="px-4 py-2 text-brown-800/70 whitespace-nowrap">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2 text-brown-800">
                       {order.items.map(oi => `${oi.item.name} x${oi.quantity}`).join(', ')}
                     </td>
-                    <td className="px-4 py-2 text-brown-800/70">{order.placedBy.name}</td>
+                    <td className="px-4 py-2 text-brown-800/70 text-xs uppercase">
+                      {order.status === 'CANCELLED' ? 'Cancelled' : 'Completed'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

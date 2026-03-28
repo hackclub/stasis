@@ -44,6 +44,7 @@ enum OrderStatus {
   IN_PROGRESS
   READY
   COMPLETED
+  CANCELLED
 }
 
 enum RentalStatus {
@@ -62,6 +63,7 @@ model User {
   image              String?
   slackId            String?  @unique
   slackDisplayName   String?
+  nfcId              String?  @unique
   verificationStatus String?
   hackatimeUserId    String?  @unique
   bio                String?
@@ -449,12 +451,16 @@ enum AuditAction {
   // Inventory actions
   INVENTORY_IMPORT
   INVENTORY_ORDER_STATUS_UPDATE
+  INVENTORY_ORDER_CANCEL
   INVENTORY_RENTAL_RETURN
   INVENTORY_TEAM_LOCK
   INVENTORY_SETTINGS_UPDATE
   INVENTORY_ITEM_CREATE
   INVENTORY_ITEM_UPDATE
   INVENTORY_ITEM_DELETE
+  INVENTORY_TOOL_CREATE
+  INVENTORY_TOOL_UPDATE
+  INVENTORY_TOOL_DELETE
 }
 
 model AuditLog {
@@ -633,21 +639,23 @@ model Kudos {
 // ── Inventory Models ────────────────────────────────────────────────
 
 model Team {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  locked      Boolean      @default(false)
-  members     User[]       @relation("TeamMembers")
-  orders      Order[]
-  toolRentals ToolRental[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  name           String       @unique
+  locked         Boolean      @default(false)
+  slackChannelId String?
+  slackWelcomeTs String?
+  members        User[]       @relation("TeamMembers")
+  orders         Order[]
+  toolRentals    ToolRental[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@map("team")
 }
 
 model Item {
   id          String      @id @default(cuid())
-  name        String
+  name        String      @unique
   description String?
   imageUrl    String?
   stock       Int

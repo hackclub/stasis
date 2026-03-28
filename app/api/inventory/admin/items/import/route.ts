@@ -21,14 +21,28 @@ export async function POST(request: Request) {
 
   const data = items.map((item: Record<string, unknown>) => ({
     name: item.name as string,
-    description: (item.description as string) ?? null,
-    imageUrl: (item.imageUrl as string) ?? null,
-    stock: item.stock as number,
+    description: ((item.description as string) || null),
+    imageUrl: ((item.imageUrl ?? item.image_url) as string) || null,
+    stock: Number(item.stock) || 0,
     category: item.category as string,
-    maxPerTeam: item.maxPerTeam as number,
+    maxPerTeam: Number(item.maxPerTeam ?? item.max_per_team) || 0,
   }))
 
-  const result2 = await prisma.item.createMany({ data })
+  await prisma.$transaction(
+    data.map((item) =>
+      prisma.item.upsert({
+        where: { name: item.name },
+        update: {
+          description: item.description,
+          imageUrl: item.imageUrl,
+          stock: item.stock,
+          category: item.category,
+          maxPerTeam: item.maxPerTeam,
+        },
+        create: item,
+      })
+    )
+  )
 
   await logAdminAction(
     AuditAction.INVENTORY_IMPORT,
@@ -36,8 +50,8 @@ export async function POST(request: Request) {
     session.user.email,
     "Item",
     undefined,
-    { count: result2.count }
+    { count: data.length }
   )
 
-  return NextResponse.json({ imported: result2.count }, { status: 201 })
+  return NextResponse.json({ imported: data.length }, { status: 201 })
 }
