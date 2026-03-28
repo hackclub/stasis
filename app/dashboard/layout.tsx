@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRoles, Role } from "@/lib/hooks/useRoles";
+import { TamagotchiCompanion } from '../components/tamagotchi/TamagotchiCompanion';
 
 
 
@@ -245,6 +246,9 @@ export default function DashboardLayout({
       </div>
 
       <PlatformNoiseOverlay />
+
+      {/* Tamagotchi Streak Challenge — bottom-center persistent companion */}
+      {session && <TamagotchiCompanion />}
     </>
   );
 }

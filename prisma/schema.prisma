@@ -81,6 +81,7 @@ model User {
   sidekickAssignments    SidekickAssignment[] @relation("SidekickAssignments")
   assignedSidekick       SidekickAssignment?  @relation("AssignedSidekick")
   goalPrizes             UserGoalPrize[]
+  streakReward           StreakReward?
 
   @@map("user")
 }
@@ -626,4 +627,17 @@ model UserGoalPrize {
   @@unique([userId, shopItemId])
   @@index([userId])
   @@map("user_goal_prize")
+}
+
+// Tamagotchi Streak Challenge reward tracking
+model StreakReward {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedAt DateTime
+  claimed     Boolean  @default(false)
+  shipped     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("streak_reward")
 }

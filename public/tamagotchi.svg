@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Body -->
+  <ellipse cx="32" cy="36" rx="22" ry="20" fill="#E86A3A"/>
+  <!-- Inner body -->
+  <ellipse cx="32" cy="36" rx="18" ry="16" fill="#FC8A58"/>
+  <!-- Left eye -->
+  <circle cx="24" cy="32" r="4" fill="white"/>
+  <circle cx="25" cy="32.5" r="2.2" fill="#403529"/>
+  <circle cx="26" cy="31.5" r="0.8" fill="white"/>
+  <!-- Right eye -->
+  <circle cx="40" cy="32" r="4" fill="white"/>
+  <circle cx="41" cy="32.5" r="2.2" fill="#403529"/>
+  <circle cx="42" cy="31.5" r="0.8" fill="white"/>
+  <!-- Mouth (smile) -->
+  <path d="M27 41 Q32 46 37 41" fill="none" stroke="#403529" stroke-width="2" stroke-linecap="round"/>
+  <!-- Blush -->
+  <ellipse cx="20" cy="38" rx="3.5" ry="2" fill="#E86A3A" opacity="0.5"/>
+  <ellipse cx="44" cy="38" rx="3.5" ry="2" fill="#E86A3A" opacity="0.5"/>
+  <!-- Antenna/bump -->
+  <circle cx="32" cy="18" r="4" fill="#E86A3A"/>
+  <rect x="30" y="18" width="4" height="6" fill="#E86A3A"/>
+</svg>
