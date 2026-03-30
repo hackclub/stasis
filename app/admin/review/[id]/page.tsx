@@ -1192,14 +1192,28 @@ export default function ReviewDetailPage() {
                     )}
                   </div>
 
+                  {(workUnitsOverride || tierOverride || grantOverride || categoryOverride) && (
+                    <div className="mb-3 bg-yellow-500/10 border border-yellow-500/40 p-2">
+                      <p className="text-yellow-400 text-xs">
+                        Overriding first-pass values:{' '}
+                        {[
+                          workUnitsOverride && `hours → ${workUnitsOverride}h`,
+                          tierOverride && `tier → ${tierOverride}`,
+                          grantOverride && `grant → $${grantOverride}`,
+                          categoryOverride && `category → ${categoryOverride}`,
+                        ].filter(Boolean).join(', ')}
+                        {' '}(still credited to {firstPassReview.reviewerName || 'original reviewer'})
+                      </p>
+                    </div>
+                  )}
                   <div className="flex gap-3 flex-wrap">
                     <button
                       onClick={() => submitReview('APPROVED', {
                         feedback: firstPassReview.feedback || undefined,
                         reason: firstPassReview.reason || undefined,
-                        workUnitsOverride: firstPassReview.workUnitsOverride ?? undefined,
-                        tierOverride: firstPassReview.tierOverride ?? undefined,
-                        grantOverride: firstPassReview.grantOverride ?? undefined,
+                        workUnitsOverride: workUnitsOverride ? parseFloat(workUnitsOverride) : (firstPassReview.workUnitsOverride ?? undefined),
+                        tierOverride: tierOverride ? parseInt(tierOverride) : (firstPassReview.tierOverride ?? undefined),
+                        grantOverride: grantOverride ? parseInt(grantOverride) : (firstPassReview.grantOverride ?? undefined),
                         firstPassReviewerId: firstPassReview.reviewerId || undefined,
                       })}
                       disabled={submitting || project.user.fraudConvicted}
