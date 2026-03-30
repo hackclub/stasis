@@ -242,11 +242,11 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
     for (let i = 0; i < windowLen; i++) t.push(setTimeout(() => setVisibleSquares(i + 1), 1500 + i * 280));
     const tamaTime = 1500 + (windowLen - 1) * 280 + 500;
     t.push(setTimeout(() => setShowTamagotchi(true), tamaTime));
-    const titleTime = tamaTime + 1500;
+    const titleTime = tamaTime + 1200;
     t.push(setTimeout(() => setShowTitle(true), titleTime));
-    const subTime = titleTime + 1200;
+    const subTime = titleTime + 900;
     t.push(setTimeout(() => setShowSubtitle(true), subTime));
-    const btnTime = subTime + 2600;
+    const btnTime = subTime + 1800;
     t.push(setTimeout(() => setShowButton(true), btnTime));
     t.push(setTimeout(() => setShowBackButton(true), btnTime + 800));
     return () => t.forEach(clearTimeout);
@@ -450,7 +450,7 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
           transition: 'transform 0.6s cubic-bezier(0.16,1,0.2,1)',
         }}>
           <h1 className="text-orange-500 text-2xl sm:text-4xl md:text-5xl font-bold uppercase tracking-wider text-center">
-            <ScrambleText text={TITLE_TEXT} active={showTitle} totalDuration={1800} scrambleDuration={300} />
+            <ScrambleText text={TITLE_TEXT} active={showTitle} totalDuration={1200} scrambleDuration={200} />
           </h1>
         </div>
 
@@ -461,7 +461,7 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
         }}>
           <p className="mt-4 sm:mt-5 text-sm sm:text-lg md:text-xl uppercase tracking-wide leading-relaxed text-center max-w-3xl">
             <ScrambleText
-              text={SUBTITLE_TEXT} active={showSubtitle} totalDuration={2200} scrambleDuration={300}
+              text={SUBTITLE_TEXT} active={showSubtitle} totalDuration={1500} scrambleDuration={200}
               renderChar={(char, index, visible, onHover) => {
                 const hl = index >= HIGHLIGHT_START && index < HIGHLIGHT_END;
                 return (
