@@ -40,7 +40,7 @@ export function TamagotchiCompanion() {
 
   return (
     <>
-      <TamagotchiPeek onClick={() => setOverlayOpen(true)} />
+      <TamagotchiPeek onClick={() => setOverlayOpen(true)} todayComplete={status.todayProgress.complete} />
       {overlayOpen && (
         <TamagotchiOverlay onClose={() => setOverlayOpen(false)} status={status} />
       )}

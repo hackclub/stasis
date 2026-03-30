@@ -706,7 +706,7 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
             The Tamagotchi Streak Challenge
           </h2>
           <p className="mt-4 sm:mt-5 text-cream-300 text-xs sm:text-sm md:text-base leading-relaxed uppercase tracking-wide">
-            During the two weeks from <span className="text-orange-500">3/27</span> to <span className="text-orange-500">4/10</span>, post a journal entry every day. Hit a seven-day streak and we&apos;ll send you a real Tamagotchi pet.
+            During the two weeks from <span className="text-orange-500">3/27</span> to <span className="text-orange-500">4/10</span>, post a journal entry every day. Hit a seven-day streak and we&apos;ll send you a real <a href="https://en.wikipedia.org/wiki/Tamagotchi" target="_blank" rel="noopener noreferrer" className="text-orange-500 underline">Tamagotchi pet</a>.
           </p>
           <p className="mt-3 text-cream-300 text-xs sm:text-sm md:text-base leading-relaxed uppercase tracking-wide">
             Make it count! Your entries should reflect real work, and we&apos;ll be rejecting those that don&apos;t. We&apos;ll be lenient, but don&apos;t try to cheat the system.

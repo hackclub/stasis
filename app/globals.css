@@ -172,12 +172,14 @@ a:focus-visible {
 }
 
 /* Tamagotchi Streak Challenge animations */
-@keyframes tamagotchi-nudge {
-	0%, 85%, 100% { transform: translateY(0); }
-	89%           { transform: translateY(-8px); }
-	93%           { transform: translateY(0); }
-	95%           { transform: translateY(-4px); }
-	97%           { transform: translateY(0); }
+@keyframes tamagotchi-hop {
+	0%   { transform: translateY(0); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	20%  { transform: translateY(-14px); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
+	45%  { transform: translateY(2px); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	62%  { transform: translateY(-5px); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
+	78%  { transform: translateY(1px); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	90%  { transform: translateY(-2px); animation-timing-function: ease-out; }
+	100% { transform: translateY(0); }
 }
 
 @keyframes tamagotchi-fly-up {
