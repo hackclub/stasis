@@ -6,6 +6,7 @@ import {
   TAMAGOTCHI_EVENT,
   getEventDayDates,
   getWindowDates,
+  findStreakStart,
   getLocalDateStr,
   getEffectiveDate,
   validateTimezone,
@@ -106,10 +107,13 @@ export async function GET(request: NextRequest) {
   // Compute streaks across all event days
   const { currentStreak, bestStreak, challengeComplete } = computeStreaks(allDays)
 
+  // Find where the current streak attempt starts
+  const streakStart = findStreakStart(allDays, today)
+
   // Split into window / past / future
-  const windowDateStrs = getWindowDates(today)
+  const windowDateStrs = getWindowDates(streakStart)
   const windowDays = allDays.filter(d => windowDateStrs.includes(d.date))
-  const pastDays = allDays.filter(d => d.date < today && d.date >= TAMAGOTCHI_EVENT.START)
+  const pastDays = allDays.filter(d => d.date < streakStart && d.date >= TAMAGOTCHI_EVENT.START)
   const lastWindowDate = windowDateStrs[windowDateStrs.length - 1] ?? today
   const futureDays = allDays.filter(d => d.date > lastWindowDate && d.date <= TAMAGOTCHI_EVENT.END)
 

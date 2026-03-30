@@ -175,6 +175,7 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
   const skipIntro = typeof window !== 'undefined' && !!localStorage.getItem('tamagotchi_started');
   const windowLen = status.windowDays.length;
   const lastWindowIdx = windowLen - 1;
+  const todayIdx = status.windowDays.findIndex(d => d.isToday);
 
   const gridSpeedRef = useRef(skipIntro ? 0.2 : 3);
   const gridOffsetRef = useRef(0);
@@ -359,11 +360,11 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
     if (!day) return 'bg-brown-900 border-3 border-[#4D4238]';
 
     if (detailMode) {
-      // Last square (tamagotchi goal)
-      if (i === lastWindowIdx) return 'bg-brown-900 border-3 border-orange-500';
-      // Completed day
+      // Completed day (orange bg)
       if (day.completed) return 'bg-orange-500';
-      // Today (first square) — bright glow border
+      // Last square (tamagotchi goal, not yet completed)
+      if (i === lastWindowIdx) return 'bg-brown-900 border-3 border-orange-500';
+      // Today — bright glow border
       if (day.isToday) return 'bg-brown-900 border-3 border-orange-500 border-glow';
       // Future unfinished
       return 'bg-brown-900 border-3 border-[#4D4238]';
@@ -376,7 +377,12 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
 
   const getLineClass = (i: number) => {
     if (visibleSquares <= i) return '';
-    if (detailMode) return 'bg-[#4D4238]';
+    if (detailMode) {
+      const prev = status.windowDays[i - 1];
+      const curr = status.windowDays[i];
+      if (prev?.completed && curr?.completed) return 'bg-orange-500/30';
+      return 'bg-[#4D4238]';
+    }
     if (squareColors[i - 1] && squareColors[i]) return 'bg-orange-500/20 led-flicker-slow';
     return 'bg-[#4D4238] led-flicker-slow';
   };
@@ -497,14 +503,14 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
           transform: squaresFlip != null ? `translateY(${squaresFlip}px)` : 'none',
           transition: squaresFlip === 0 ? 'transform 0.7s cubic-bezier(0.16,1,0.2,1)' : 'none',
         }}>
-          <div className="flex items-center">
+          <div className="relative flex items-center justify-center">
 
-            {/* ===== LEFT EXTRA SQUARES (past days, detail mode only) ===== */}
+            {/* ===== LEFT EXTRA SQUARES (past days, detail mode only) — absolute so they don't shift center ===== */}
             {detailMode && pastVisible > 0 && (
-              <>
+              <div className="absolute right-full flex items-center">
                 {pastOverflow > 0 && (
                   <span className="text-[9px] sm:text-[10px] text-cream-300/40 uppercase tracking-wide mr-2 whitespace-nowrap">
-                    {status.pastDays.length}d ago
+                    {status.pastDays.length} days since start
                   </span>
                 )}
                 {pastToShow.map((day, idx) => {
@@ -530,7 +536,7 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
                     </div>
                   );
                 })}
-              </>
+              </div>
             )}
 
             {/* ===== MAIN WINDOW SQUARES ===== */}
@@ -617,19 +623,21 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
                   )}
 
                   {/* Date labels (detail mode) */}
-                  {detailMode && i === 0 && (
-                    <div className="absolute -top-10 left-1/2 whitespace-nowrap text-[10px] sm:text-xs text-cream-300 uppercase bg-brown-900 border border-[#4D4238] px-1.5 py-0.5"
+                  {/* "Today" label follows the actual today square */}
+                  {detailMode && i === todayIdx && (
+                    <div className="absolute -top-10 left-1/2 whitespace-nowrap text-[10px] sm:text-xs text-cream-300 uppercase bg-brown-900 border border-[#4D4238] px-1.5 py-0.5 z-10"
                       style={{
                         transform: `translateX(-50%) translateY(${showFirstLabel ? '0px' : '10px'})`,
                         opacity: showFirstLabel ? 1 : 0,
                         transition: 'all 0.4s cubic-bezier(0.16, 1, 0.2, 1)',
                       }}
                     >
-                      Today ({fmtDate(status.windowDays[0]?.date ?? '')})
+                      Today ({fmtDate(status.windowDays[i]?.date ?? '')})
                     </div>
                   )}
-                  {detailMode && i === lastWindowIdx && (
-                    <div className="absolute -top-10 left-1/2 whitespace-nowrap text-[10px] sm:text-xs text-cream-300 uppercase bg-brown-900 border border-[#4D4238] px-1.5 py-0.5"
+                  {/* Last square label (goal date) — always visible, only if not also today */}
+                  {detailMode && i === lastWindowIdx && todayIdx !== lastWindowIdx && (
+                    <div className="absolute -top-10 left-1/2 whitespace-nowrap text-[10px] sm:text-xs text-cream-300 uppercase bg-brown-900 border border-[#4D4238] px-1.5 py-0.5 z-10"
                       style={{
                         transform: `translateX(-50%) translateY(${showLastLabel ? '0px' : '10px'})`,
                         opacity: showLastLabel ? 1 : 0,
@@ -639,8 +647,8 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
                       {fmtDate(status.windowDays[lastWindowIdx]?.date ?? '')}
                     </div>
                   )}
-                  {/* Hover date label for intermediate squares */}
-                  {detailMode && hoveredSquare === status.windowDays[i]?.date && i > 0 && i < lastWindowIdx && (
+                  {/* Hover date label for all non-today, non-last squares */}
+                  {detailMode && hoveredSquare === status.windowDays[i]?.date && i !== todayIdx && i !== lastWindowIdx && (
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] sm:text-xs text-cream-300 uppercase bg-brown-900 border border-[#4D4238] px-1.5 py-0.5 pointer-events-none led-flicker-slow z-10">
                       {fmtDate(status.windowDays[i].date)}
                     </div>
@@ -649,9 +657,9 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
               </div>
             ))}
 
-            {/* ===== RIGHT EXTRA SQUARES (future days after window, detail mode only) ===== */}
+            {/* ===== RIGHT EXTRA SQUARES (future days after window, detail mode only) — absolute so they don't shift center ===== */}
             {detailMode && futureVisible > 0 && (
-              <>
+              <div className="absolute left-full flex items-center">
                 {futureToShow.map((day, idx) => {
                   const opacity = idx >= 2 ? 0.2 : idx === 1 ? 0.4 : 0.7;
                   return (
@@ -675,11 +683,11 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
                   );
                 })}
                 {futureOverflow > 0 && (
-                  <span className="text-[9px] sm:text-[10px] text-cream-300/40 uppercase tracking-wide ml-2 whitespace-nowrap">
-                    {status.futureDays.length}d left
+                  <span className="text-[9px] sm:text-[10px] text-cream-300/40 uppercase tracking-wide ml-4 whitespace-nowrap">
+                    {status.windowDays.filter(d => d.isFuture).length + status.futureDays.length} days remaining
                   </span>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -687,7 +695,7 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
 
       {/* ===== DETAIL TEXT ===== */}
       {detailMode && (
-        <div className="absolute left-1/2 -translate-x-1/2 top-[22vh] sm:top-[20vh] z-20 w-full max-w-2xl px-6 sm:px-8"
+        <div className="absolute left-1/2 -translate-x-1/2 top-[14vh] sm:top-[18vh] md:top-[20vh] z-20 w-full max-w-2xl px-6 sm:px-8"
           style={{
             transform: showDetailText ? 'translateY(0)' : 'translateY(-40px)',
             opacity: showDetailText ? 1 : 0,
@@ -701,7 +709,7 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
             During the two weeks from <span className="text-orange-500">3/27</span> to <span className="text-orange-500">4/10</span>, post a journal entry every day. Hit a seven-day streak and we&apos;ll send you a real Tamagotchi pet.
           </p>
           <p className="mt-3 text-cream-300 text-xs sm:text-sm md:text-base leading-relaxed uppercase tracking-wide">
-            Make it count &mdash; your entries should reflect real work, not just a quick line to keep the streak alive.
+            Make it count! Your entries should reflect real work, and we&apos;ll be rejecting those that don&apos;t. We&apos;ll be lenient, but don&apos;t try to cheat the system.
           </p>
           <p className="mt-3 text-cream-300 text-xs sm:text-sm md:text-base leading-relaxed uppercase tracking-wide">
             You have a streak of <span className="text-orange-500">{status.currentStreak}</span> days so far.{' '}
@@ -716,6 +724,11 @@ export function TamagotchiOverlay({ onClose, status }: Props) {
                   <a href="https://hackclub.enterprise.slack.com/archives/C09HSQM550A" target="_blank" rel="noopener noreferrer" className="text-orange-500 underline">#stasis</a> :)</>
               : <>You have <span className="text-orange-500">{Math.max(1, 24 - new Date().getHours())}</span> hours left to maintain your streak! Don&apos;t forget ;)</>}
           </p>
+          {status.todayProgress.complete && !status.challengeComplete && (
+            <p className="mt-3 text-cream-300 text-xs sm:text-sm md:text-base leading-relaxed uppercase tracking-wide">
+              Only <span className="text-orange-500">{7 - status.currentStreak}</span> days to go!
+            </p>
+          )}
           {!status.canStillComplete && !status.challengeComplete && (
             <p className="mt-3 text-cream-300/60 text-xs sm:text-sm leading-relaxed uppercase tracking-wide">
               There are fewer than 7 days remaining in the event. You can no longer complete the streak, but keep building and journaling!

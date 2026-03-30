@@ -1,10 +1,10 @@
 // Tamagotchi Streak Challenge — event configuration and helpers
 
 export const TAMAGOTCHI_EVENT = {
-  START: '2026-03-27',
-  END: '2026-04-10',
+  START: '2026-03-30',
+  END: '2026-04-13',
   STREAK_GOAL: 7,
-  TOTAL_DAYS: 14,
+  TOTAL_DAYS: 15,
   // Show UI for 7 days after event ends so winners can see completion state
   GRACE_DAYS: 7,
   // Sessions created within this many minutes after midnight count for the previous day
@@ -111,10 +111,10 @@ export function getEventDayDates(): string[] {
   return dates;
 }
 
-/** Get the window dates: today through min(today+6, eventEnd) */
-export function getWindowDates(today: string): string[] {
+/** Get the window dates: streakStart through min(streakStart+6, eventEnd) */
+export function getWindowDates(streakStart: string): string[] {
   const dates: string[] = [];
-  const start = new Date(today + 'T12:00:00Z'); // noon to avoid DST issues
+  const start = new Date(streakStart + 'T12:00:00Z');
   for (let i = 0; i < TAMAGOTCHI_EVENT.STREAK_GOAL; i++) {
     const d = new Date(start);
     d.setUTCDate(d.getUTCDate() + i);
@@ -124,6 +124,32 @@ export function getWindowDates(today: string): string[] {
     dates.push(dateStr);
   }
   return dates;
+}
+
+/**
+ * Find the start date of the current streak attempt.
+ * Walks backwards from today through consecutive completed days.
+ * If no streak, returns today (fresh attempt).
+ */
+export function findStreakStart(days: TamagotchiDay[], today: string): string {
+  const todayIdx = days.findIndex(d => d.date === today);
+  if (todayIdx < 0) return today;
+
+  // Start from today if it's complete, or yesterday if not
+  let idx = todayIdx;
+  if (!days[idx].completed && idx > 0) {
+    idx = todayIdx - 1;
+  }
+
+  // If this day isn't complete either, no active streak — fresh start from today
+  if (!days[idx].completed) return today;
+
+  // Walk backwards through consecutive completed days
+  while (idx > 0 && days[idx - 1].completed) {
+    idx--;
+  }
+
+  return days[idx].date;
 }
 
 /** Is today within the event window? */
