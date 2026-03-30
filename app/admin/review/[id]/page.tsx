@@ -121,7 +121,8 @@ const JUSTIFICATION_SHORTCUTS = [
   { label: 'Small', text: 'This is a relatively small project and not that crazy. It seems to be one of the users first and is definitely shipped. Because of that, I am approving regardless.' },
   { label: 'Magic', text: 'This project has a incredubly high quality project and all of the hours are logged. I would say this project would qualify as magic. I am deflating this just to be safe.' },
   { label: 'Trusted', text: 'This is a very trusted user and I have talked with this person multiple times about this project and seen them working on it throughout Slack.' },
-  { label: 'Spotify', text: 'This project follows the Spotify Display guide which takes around 5-10 hours to complete. This project is of average quality and is either within this range or was deflated down to that range.' },
+  { label: 'Spotify', text: 'This project follows the Spotify display guide which is projected to take 5-10 hours by the guide\'s author, Ducc. This is either right in that range or was deflated to be within it.' },
+  { label: 'Blinky', text: 'This is a Blinky Board guide which takes around 5 hours by historical data from running this guide at events. This is either right in that range or was deflated to be within it.' },
 ];
 
 const FEEDBACK_SHORTCUTS = [
@@ -1071,7 +1072,7 @@ export default function ReviewDetailPage() {
             </div>
 
             <div className="mb-4">
-              <label className="text-cream-200 text-xs uppercase block mb-1">Internal Justification</label>
+              <label className="text-cream-200 text-xs uppercase block mb-1">Internal Justification{!isAdmin && <span className="text-cream-500 normal-case ml-1">(optional)</span>}</label>
               {isAdmin && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {JUSTIFICATION_SHORTCUTS.map((s, i) => (

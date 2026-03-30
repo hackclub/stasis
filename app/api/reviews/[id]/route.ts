@@ -133,14 +133,8 @@ export async function GET(
     return sum + hours
   }, 0)
 
-<<<<<<< HEAD
   // Compute stats — for build reviews, only count sessions after design approval
   const allWorkSessions = project.workSessions
-=======
-  // Compute stats
-  const allWorkSessions = project.workSessions
-  // For build reviews, only count sessions logged after design approval
->>>>>>> dc04faf (Added impersonation)
   const workSessions = activeStage === "BUILD" && project.designReviewedAt
     ? allWorkSessions.filter((s) => s.createdAt > project.designReviewedAt!)
     : allWorkSessions
