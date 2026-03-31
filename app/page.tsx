@@ -548,6 +548,7 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
               </h2>
               <ul className="space-y-2 text-[14px] md:text-[18px] leading-snug text-left text-brown-800">
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>{event === 'opensauce' ? 'Make 2 hardware projects (~35 hrs)' : 'Make 3 hardware projects (~45 hrs)'}</ScrambleText></span></li>
+                <li className="flex gap-2"><span>•</span><span><ScrambleText>Get up to $300 to fund your projects</ScrambleText></span></li>
                 <li className="flex gap-2"><span>•</span><span><ScrambleText>{event === 'opensauce' ? 'Fly to the Bay Area for Open Sauce on July 17-19! (travel stipends available)' : 'Fly to Austin, TX! (travel stipends available)'}</ScrambleText></span></li>
               </ul>
 
