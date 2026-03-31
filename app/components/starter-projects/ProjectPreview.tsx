@@ -21,7 +21,7 @@ interface Props {
 export function ProjectPreview({ project, onClick, selected = false, tier }: Readonly<Props>) {
   const [failed, setFailed] = useState(false);
 
-  const src = project.image ? `/projects/${project.image}` : `/projects/${project.id}.png`;
+  const src = project.image ? `/projects/${project.image}` : `/projects/${project.id}.webp`;
 
   return (
     <>
