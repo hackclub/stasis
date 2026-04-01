@@ -20,9 +20,14 @@ async function slackApi(method: string, body: Record<string, unknown>) {
   return data
 }
 
+function escapeSlackMrkdwn(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
 function buildWelcomeBlocks(teamName: string, memberNames: string[]) {
-  const memberList = memberNames.length > 0
-    ? memberNames.map((n) => `- ${n}`).join("\n")
+  const escapedNames = memberNames.map(escapeSlackMrkdwn)
+  const memberList = escapedNames.length > 0
+    ? escapedNames.map((n) => `- ${n}`).join("\n")
     : "_No members yet_"
 
   return [

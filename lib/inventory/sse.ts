@@ -56,5 +56,6 @@ export function pushSSE(
         set.delete(ctrl)
       }
     }
+    if (set.size === 0) connections.delete(key)
   }
 }

@@ -274,7 +274,7 @@ export default function BrowsePage() {
   const canRentMore = activeRentals.length + cartTools.length < maxRentals;
   const cartTotal = cart.reduce((s, c) => s + c.quantity, 0) + cartTools.length;
 
-  if (loading && toolsLoading) {
+  if (loading || toolsLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="loader" />

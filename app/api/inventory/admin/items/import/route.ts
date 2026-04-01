@@ -31,29 +31,37 @@ export async function POST(request: Request) {
     )
   }
 
-  const data = items.map((item: Record<string, unknown>) => {
-    const stock = Math.max(0, Math.floor(Number(item.stock) || 0))
-    const maxPerTeam = Math.max(0, Math.floor(Number(item.maxPerTeam ?? item.max_per_team) || 0))
-    if (!Number.isFinite(stock) || !Number.isFinite(maxPerTeam)) {
-      throw new Error("Invalid numeric values in import data")
-    }
-    if (maxPerTeam <= 0) {
-      throw new Error(`maxPerTeam must be a positive integer for item "${sanitizeName(String(item.name ?? ""))}"`)
-    }
-    const name = sanitizeName(String(item.name ?? ""))
-    const category = sanitizeName(String(item.category ?? ""))
-    if (!name || !category) {
-      throw new Error(`Name and category are required for all items`)
-    }
-    return {
-      name,
-      description: item.description ? sanitizeDescription(String(item.description)) : null,
-      imageUrl: validateImageUrl(item.imageUrl ?? item.image_url),
-      stock,
-      category,
-      maxPerTeam,
-    }
-  })
+  let data
+  try {
+    data = items.map((item: Record<string, unknown>) => {
+      const stock = Math.max(0, Math.floor(Number(item.stock) || 0))
+      const maxPerTeam = Math.max(0, Math.floor(Number(item.maxPerTeam ?? item.max_per_team) || 0))
+      if (!Number.isFinite(stock) || !Number.isFinite(maxPerTeam)) {
+        throw new Error("Invalid numeric values in import data")
+      }
+      if (maxPerTeam <= 0) {
+        throw new Error(`maxPerTeam must be a positive integer for item "${sanitizeName(String(item.name ?? ""))}"`)
+      }
+      const name = sanitizeName(String(item.name ?? ""))
+      const category = sanitizeName(String(item.category ?? ""))
+      if (!name || !category) {
+        throw new Error("Name and category are required for all items")
+      }
+      return {
+        name,
+        description: item.description ? sanitizeDescription(String(item.description)) : null,
+        imageUrl: validateImageUrl(item.imageUrl ?? item.image_url),
+        stock,
+        category,
+        maxPerTeam,
+      }
+    })
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Invalid import data" },
+      { status: 400 }
+    )
+  }
 
   await prisma.$transaction(
     data.map((item) =>
