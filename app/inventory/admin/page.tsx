@@ -42,7 +42,7 @@ interface LookupResult {
   };
   team?: { name: string };
   activeOrder?: Order;
-  activeRentals?: { id: string; toolName: string; checkedOutAt: string }[];
+  activeRentals?: { id: string; tool: { name: string }; createdAt: string }[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -269,7 +269,7 @@ export default function AdminActivityPage() {
               <div className="mt-3 pt-3 border-t border-cream-200">
                 <p className="text-xs uppercase tracking-wider text-brown-800/60 mb-1">Active Rentals</p>
                 <ul className="text-sm text-brown-800/80">
-                  {lookupResult.activeRentals.map((r) => <li key={r.id}>{r.toolName}</li>)}
+                  {lookupResult.activeRentals.map((r) => <li key={r.id}>{r.tool.name}</li>)}
                 </ul>
               </div>
             )}

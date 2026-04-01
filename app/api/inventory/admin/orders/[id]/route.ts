@@ -79,6 +79,11 @@ export async function PATCH(
     return NextResponse.json(order)
   }
 
+  const existing = await prisma.order.findUnique({ where: { id }, select: { id: true } })
+  if (!existing) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 })
+  }
+
   const order = await prisma.order.update({
     where: { id },
     data: { status },

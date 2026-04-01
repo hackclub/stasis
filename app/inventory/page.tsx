@@ -219,7 +219,8 @@ export default function BrowsePage() {
       }
 
       // Create tool rentals
-      const failedRentals: string[] = [];
+      const failedRentalIds: Set<string> = new Set();
+      const failedRentalNames: string[] = [];
       if (cartTools.length > 0) {
         const rentalOutcomes = await Promise.allSettled(
           cartTools.map(async (tool) => {
@@ -240,20 +241,21 @@ export default function BrowsePage() {
           if (outcome.status === 'fulfilled') {
             results.push(`${outcome.value.name} rented`);
           } else {
-            failedRentals.push(cartTools[i].name);
+            failedRentalIds.add(cartTools[i].toolId);
+            failedRentalNames.push(cartTools[i].name);
           }
         }
       }
 
       setCart([]);
-      setCartTools(prev => prev.filter(t => failedRentals.includes(t.name)));
+      setCartTools(prev => prev.filter(t => failedRentalIds.has(t.toolId)));
       setCheckoutOpen(false);
 
-      if (failedRentals.length > 0 && results.length > 0) {
+      if (failedRentalNames.length > 0 && results.length > 0) {
         setSuccessMessage(results.join('. ') + '. Check Team Home for status.');
-        setError(`Failed to rent: ${failedRentals.join(', ')}`);
-      } else if (failedRentals.length > 0) {
-        setError(`Failed to rent: ${failedRentals.join(', ')}`);
+        setError(`Failed to rent: ${failedRentalNames.join(', ')}`);
+      } else if (failedRentalNames.length > 0) {
+        setError(`Failed to rent: ${failedRentalNames.join(', ')}`);
       } else {
         setSuccessMessage(results.join('. ') + '. Check Team Home for status.');
       }
@@ -395,7 +397,7 @@ export default function BrowsePage() {
               onRemoveItem={removeFromCart}
               onRemoveTool={removeToolFromCart}
               onCheckout={() => { setError(null); setCheckoutOpen(true); }}
-              disabled={!allowMultipleOrders && hasActiveOrder && cart.length > 0 && cartTools.length === 0}
+              disabled={!allowMultipleOrders && hasActiveOrder && cart.length > 0}
               hasActiveOrder={!allowMultipleOrders && hasActiveOrder}
             />
           </div>
@@ -426,7 +428,7 @@ export default function BrowsePage() {
                   setCartOpen(false);
                   setError(null); setCheckoutOpen(true);
                 }}
-                disabled={!allowMultipleOrders && hasActiveOrder && cart.length > 0 && cartTools.length === 0}
+                disabled={!allowMultipleOrders && hasActiveOrder && cart.length > 0}
                 hasActiveOrder={!allowMultipleOrders && hasActiveOrder}
               />
             </div>

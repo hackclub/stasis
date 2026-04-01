@@ -40,12 +40,17 @@ export async function POST(request: Request) {
     if (maxPerTeam <= 0) {
       throw new Error(`maxPerTeam must be a positive integer for item "${sanitizeName(String(item.name ?? ""))}"`)
     }
+    const name = sanitizeName(String(item.name ?? ""))
+    const category = sanitizeName(String(item.category ?? ""))
+    if (!name || !category) {
+      throw new Error(`Name and category are required for all items`)
+    }
     return {
-      name: sanitizeName(String(item.name ?? "")),
+      name,
       description: item.description ? sanitizeDescription(String(item.description)) : null,
       imageUrl: validateImageUrl(item.imageUrl ?? item.image_url),
       stock,
-      category: sanitizeName(String(item.category ?? "")),
+      category,
       maxPerTeam,
     }
   })
