@@ -91,6 +91,8 @@ export async function PATCH(
     notifyOrderUpdate(order.teamId, order, "Ready for Pickup")
   } else if (status === "IN_PROGRESS") {
     notifyOrderUpdate(order.teamId, order, "In Progress")
+  } else if (status === "COMPLETED") {
+    notifyOrderUpdate(order.teamId, order, "Completed")
   }
 
   await logAdminAction(

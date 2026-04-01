@@ -29,15 +29,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Team is locked" }, { status: 403 })
   }
 
-  // Only admins can remove other members (non-self removal)
-  // Users can remove themselves via the /leave endpoint
-  const callerIsAdmin = await prisma.userRole.findFirst({
-    where: { userId: session.user.id, role: "ADMIN" },
-  })
+  // Any current team member can remove other members (self-removal uses /leave)
+  const callerIsMember = team.members.some((m) => m.id === session.user.id)
   const isSelfRemoval = session.user.id === userId
 
-  if (!isSelfRemoval && !callerIsAdmin) {
-    return NextResponse.json({ error: "Only admins can remove other team members" }, { status: 403 })
+  if (!callerIsMember) {
+    return NextResponse.json({ error: "Only team members can remove users from this team" }, { status: 403 })
   }
 
   const targetIsMember = team.members.some((m) => m.id === userId)

@@ -45,7 +45,7 @@ export default function DashboardLayout({
       fetch('/api/inventory/access')
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data?.enabled || data?.isAdmin) setInventoryEnabled(true);
+          if (data?.allowed || data?.isAdmin) setInventoryEnabled(true);
         })
         .catch(() => {});
     }

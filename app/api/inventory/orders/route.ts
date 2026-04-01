@@ -117,7 +117,13 @@ export async function POST(request: Request) {
         }
       }
 
+      // Merge duplicate itemIds by summing quantities
+      const mergedItems = new Map<string, number>()
       for (const { itemId, quantity } of items) {
+        mergedItems.set(itemId, (mergedItems.get(itemId) ?? 0) + quantity)
+      }
+
+      for (const [itemId, quantity] of mergedItems) {
         const item = await tx.item.findUnique({ where: { id: itemId } })
         if (!item) {
           throw new Error("Item not found")
@@ -154,7 +160,7 @@ export async function POST(request: Request) {
           floor,
           location: safeLocation,
           items: {
-            create: items.map(({ itemId, quantity }) => ({
+            create: Array.from(mergedItems, ([itemId, quantity]) => ({
               itemId,
               quantity,
             })),

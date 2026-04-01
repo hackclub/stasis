@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
   if (!validateNonNegativeInt(stock) || !validatePositiveInt(maxPerTeam)) {
     return NextResponse.json(
-      { error: "stock and maxPerTeam must be valid positive integers" },
+      { error: "stock must be a non-negative integer and maxPerTeam must be a positive integer" },
       { status: 400 }
     )
   }

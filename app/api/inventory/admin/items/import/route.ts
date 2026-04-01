@@ -37,6 +37,9 @@ export async function POST(request: Request) {
     if (!Number.isFinite(stock) || !Number.isFinite(maxPerTeam)) {
       throw new Error("Invalid numeric values in import data")
     }
+    if (maxPerTeam <= 0) {
+      throw new Error(`maxPerTeam must be a positive integer for item "${sanitizeName(String(item.name ?? ""))}"`)
+    }
     return {
       name: sanitizeName(String(item.name ?? "")),
       description: item.description ? sanitizeDescription(String(item.description)) : null,

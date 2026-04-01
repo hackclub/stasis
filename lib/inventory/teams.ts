@@ -15,7 +15,14 @@ export async function removeFromTeam(userId: string, teamId: string) {
     const count = await tx.user.count({ where: { teamId } })
 
     if (count === 0) {
-      await tx.team.delete({ where: { id: teamId } })
+      // Only delete team if no orders or rentals reference it
+      const [orderCount, rentalCount] = await Promise.all([
+        tx.order.count({ where: { teamId } }),
+        tx.toolRental.count({ where: { teamId } }),
+      ])
+      if (orderCount === 0 && rentalCount === 0) {
+        await tx.team.delete({ where: { id: teamId } })
+      }
     }
     return count
   })

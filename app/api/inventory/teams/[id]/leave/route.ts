@@ -16,13 +16,23 @@ export async function POST(
 
   const { id } = await params
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { teamId: true },
-  })
+  const [user, team] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { teamId: true },
+    }),
+    prisma.team.findUnique({
+      where: { id },
+      select: { locked: true },
+    }),
+  ])
 
   if (user?.teamId !== id) {
     return NextResponse.json({ error: "You are not a member of this team" }, { status: 400 })
+  }
+
+  if (team?.locked) {
+    return NextResponse.json({ error: "Team is locked and cannot be modified" }, { status: 400 })
   }
 
   await removeFromTeam(session.user.id, id)
