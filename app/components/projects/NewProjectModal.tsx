@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { AVAILABLE_BADGES, MAX_BADGES_PER_PROJECT, getBadgeImage } from "@/lib/badges"
@@ -38,6 +38,14 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [alreadyClaimedBadges, setAlreadyClaimedBadges] = useState<BadgeType[]>([])
   const [journalFile, setJournalFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [canScrollDown, setCanScrollDown] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 8)
+  }, [])
 
   const fetchClaimedBadges = useCallback(async () => {
     try {
@@ -49,6 +57,10 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
       console.error('Failed to fetch claimed badges:', err)
     }
   }, [])
+
+  useEffect(() => {
+    checkScroll()
+  }, [step, isOpen, checkScroll])
 
   useEffect(() => {
     if (!isOpen) return
@@ -201,7 +213,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div ref={scrollRef} onScroll={checkScroll} className="relative flex-1 overflow-y-auto p-6 space-y-6">
             {error && (
               <div className="bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 text-sm">
                 {error}
@@ -454,6 +466,11 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               </div>
             )}
           </div>
+
+          {/* Subtle scroll indicator */}
+          <div
+            className={`shrink-0 h-6 -mt-6 relative z-10 pointer-events-none bg-gradient-to-t from-cream-100 to-transparent transition-opacity duration-300 ${canScrollDown ? 'opacity-100' : 'opacity-0'}`}
+          />
 
           {/* Fixed navigation */}
           <div className="shrink-0 px-6 pb-6 pt-4 border-t border-cream-300">

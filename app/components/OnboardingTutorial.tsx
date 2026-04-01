@@ -394,16 +394,20 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoal
     return { w: Math.min(440, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 440), h: 240 };
   }, [isGoalPickerStep, isPrizePickerStep]);
 
-  const tooltipPosition = useMemo((): CSSProperties => {
+  const { tooltipPosition, tooltipTopPx } = useMemo((): { tooltipPosition: CSSProperties; tooltipTopPx: number } => {
     const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
     const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
     const tw = tooltipSizeEstimate.w;
     const th = tooltipSizeEstimate.h;
 
     if (isCenter || !highlightRect) {
+      const finalTop = Math.max(16, (vh - th) / 2);
       return {
-        top: `${Math.max(16, (vh - th) / 2)}px`,
-        left: `${Math.max(16, (vw - tw) / 2)}px`,
+        tooltipPosition: {
+          top: `${finalTop}px`,
+          left: `${Math.max(16, (vw - tw) / 2)}px`,
+        },
+        tooltipTopPx: finalTop,
       };
     }
 
@@ -446,9 +450,13 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoal
       left = Math.max(16, (vw - tw) / 2);
     }
 
+    const finalTop = Math.max(8, top);
     return {
-      top: `${Math.max(8, top)}px`,
-      left: `${Math.max(8, left)}px`,
+      tooltipPosition: {
+        top: `${finalTop}px`,
+        left: `${Math.max(8, left)}px`,
+      },
+      tooltipTopPx: finalTop,
     };
   }, [isCenter, highlightRect, step.id, step.position, tooltipSizeEstimate]);
 
@@ -459,6 +467,86 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoal
   if (isGoalPickerStep && selectedGoal === 'prizes') {
     nextButtonText = 'Pick Prizes';
   }
+
+  const tooltipContent = (
+    <>
+      {/* Progress indicator */}
+      <div className="flex gap-1 mb-4">
+        {TUTORIAL_STEPS.map((_, index) => (
+          <div
+            key={index}
+            className={`h-1 flex-1 transition-colors ${
+              index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Step counter */}
+      <p className="text-cream-500 text-xs uppercase tracking-wider mb-2">
+        Step {currentStep + 1} of {TUTORIAL_STEPS.length}
+      </p>
+
+      {/* Title */}
+      <h3 className="text-brown-800 text-lg font-medium mb-3">
+        {step.title}
+      </h3>
+
+      {/* Goal picker step */}
+      {isGoalPickerStep ? (
+        <div>
+          <p className="text-brown-800 text-sm leading-relaxed mb-5">
+            Through Stasis, you can work toward different goals! Pick which one you want to work toward — you&apos;ll earn bits by building hardware projects. You can change your selection at any time.
+          </p>
+
+          <GoalPicker selectedGoal={selectedGoal} onSelect={wrappedSetSelectedGoal} />
+        </div>
+      ) : isPrizePickerStep ? (
+        <PrizeGoalPicker
+          initialSelection={selectedPrizeIds}
+          onConfirm={handlePrizeConfirm}
+          onBack={handlePrizeBack}
+        />
+      ) : (
+        /* Normal step content */
+        <p className="text-brown-800 text-sm leading-relaxed mb-6">
+          {renderContent(step.content)}
+        </p>
+      )}
+
+      {/* Navigation - hide for prize picker (it has its own buttons) */}
+      {!isPrizePickerStep && (
+        <div className={`flex items-center justify-between ${isGoalPickerStep ? 'mt-5' : ''}`}>
+          <div className="flex gap-2">
+            <button
+              onClick={handleNext}
+              disabled={isGoalPickerStep && !selectedGoal}
+              className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {nextButtonText}
+            </button>
+            {currentStep > 0 && (
+              <button
+                onClick={handlePrev}
+                className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Back
+              </button>
+            )}
+          </div>
+
+          {currentStep < TUTORIAL_STEPS.length - 1 && (
+            <button
+              onClick={handleSkip}
+              className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
+            >
+              Skip tutorial
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="fixed inset-0 z-[100]">
@@ -509,84 +597,10 @@ export function OnboardingTutorial({ type, forceShow = false, onComplete, onGoal
         positionTransition={300}
         duration={200}
       >
-        <div className={`p-6 overflow-y-auto max-h-[calc(100vh-2rem)] ${
+        <div className={`p-6 overflow-y-auto ${
           isGoalPickerStep ? 'w-[min(1160px,95vw)]' : isPrizePickerStep ? 'w-[min(780px,95vw)]' : 'w-[min(440px,95vw)]'
-        }`}>
-          {/* Progress indicator */}
-          <div className="flex gap-1 mb-4">
-            {TUTORIAL_STEPS.map((_, index) => (
-              <div
-                key={index}
-                className={`h-1 flex-1 transition-colors ${
-                  index <= currentStep ? 'bg-orange-500' : 'bg-cream-400'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Step counter */}
-          <p className="text-cream-500 text-xs uppercase tracking-wider mb-2">
-            Step {currentStep + 1} of {TUTORIAL_STEPS.length}
-          </p>
-
-          {/* Title */}
-          <h3 className="text-brown-800 text-lg font-medium mb-3">
-            {step.title}
-          </h3>
-
-          {/* Goal picker step */}
-          {isGoalPickerStep ? (
-            <div>
-              <p className="text-brown-800 text-sm leading-relaxed mb-5">
-                Through Stasis, you can work toward different goals! Pick which one you want to work toward — you&apos;ll earn bits by building hardware projects. You can change your selection at any time.
-              </p>
-
-              <GoalPicker selectedGoal={selectedGoal} onSelect={wrappedSetSelectedGoal} />
-            </div>
-          ) : isPrizePickerStep ? (
-            <PrizeGoalPicker
-              initialSelection={selectedPrizeIds}
-              onConfirm={handlePrizeConfirm}
-              onBack={handlePrizeBack}
-            />
-          ) : (
-            /* Normal step content */
-            <p className="text-brown-800 text-sm leading-relaxed mb-6">
-              {renderContent(step.content)}
-            </p>
-          )}
-
-          {/* Navigation - hide for prize picker (it has its own buttons) */}
-          {!isPrizePickerStep && (
-            <div className={`flex items-center justify-between ${isGoalPickerStep ? 'mt-5' : ''}`}>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleNext}
-                  disabled={isGoalPickerStep && !selectedGoal}
-                  className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {nextButtonText}
-                </button>
-                {currentStep > 0 && (
-                  <button
-                    onClick={handlePrev}
-                    className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    Back
-                  </button>
-                )}
-              </div>
-
-              {currentStep < TUTORIAL_STEPS.length - 1 && (
-                <button
-                  onClick={handleSkip}
-                  className="text-cream-500 text-sm hover:text-brown-800 transition-colors cursor-pointer"
-                >
-                  Skip tutorial
-                </button>
-              )}
-            </div>
-          )}
+        }`} style={{ maxHeight: `calc(100dvh - ${tooltipTopPx}px - 1rem)` }}>
+          {tooltipContent}
         </div>
       </AnimatedResize>
     </div>

@@ -99,14 +99,14 @@ export async function GET(request: NextRequest) {
       where: projectWhere,
       include: {
         user: { select: { id: true, name: true, email: true, image: true } },
-        workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true } },
+        workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true, createdAt: true } },
         bomItems: { select: { id: true, totalCost: true, status: true } },
         submissions: {
           select: { id: true, stage: true, preReviewed: true },
           orderBy: { createdAt: "desc" },
         },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { updatedAt: "asc" },
       skip: offset,
       take: limit,
     }),
@@ -115,14 +115,19 @@ export async function GET(request: NextRequest) {
 
   // Transform for the frontend
   const items = projects.map((project) => {
-    const totalWorkUnits = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
-    const entryCount = project.workSessions.length
-    const bomCost = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
-
     // Determine which stage is in review
     const designInReview = project.designStatus === "in_review"
     const buildInReview = project.buildStatus === "in_review"
     const activeStage = buildInReview ? "BUILD" : designInReview ? "DESIGN" : "DESIGN"
+
+    // For build reviews, only count hours logged after design approval
+    const relevantSessions = activeStage === "BUILD" && project.designReviewedAt
+      ? project.workSessions.filter((s) => s.createdAt > project.designReviewedAt!)
+      : project.workSessions
+    const totalWorkUnits = relevantSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+    const allWorkUnits = project.workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+    const entryCount = relevantSessions.length
+    const bomCost = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
 
     // Check if the latest submission for the active stage has been pre-reviewed
     const activeSubmission = project.submissions.find((s) => s.stage === activeStage)
@@ -140,6 +145,7 @@ export async function GET(request: NextRequest) {
       tier: project.tier,
       author: project.user,
       workUnits: Math.round(totalWorkUnits * 10) / 10,
+      totalWorkUnits: Math.round(allWorkUnits * 10) / 10,
       entryCount,
       bomCost: Math.round(bomCost * 100) / 100,
       bomTax: project.bomTax ?? 0,
@@ -161,9 +167,11 @@ export async function GET(request: NextRequest) {
     }
   })
 
-  // Sort by most hours if requested
+  // Sort by time waiting (longest first), with pre-reviewed items always on top
   if (sort === "most_hours") {
     items.sort((a, b) => b.workUnits - a.workUnits)
+  } else {
+    items.sort((a, b) => b.waitingMs - a.waitingMs)
   }
 
   // Always sort pre-reviewed (first-pass reviewed) items to the top

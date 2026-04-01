@@ -464,7 +464,7 @@ export async function syncProjectToAirtable(
   project: { id: string; tier?: number | null; githubRepo: string | null; description: string | null; coverImage: string | null; starterProjectId?: string | null; workSessions: { hoursClaimed: number; stage?: string }[] },
   hoursJustification?: string,
   airtableGrantAmount?: number | null,
-  options?: { buildOnly?: boolean },
+  options?: { buildOnly?: boolean; approvedHours?: number },
 ): Promise<void> {
   const { decryptPII } = await import('./pii');
 
@@ -515,7 +515,7 @@ export async function syncProjectToAirtable(
     firmwareHours = results.reduce((sum, h) => sum + h, 0);
   }
 
-  const totalHours = workSessionHours + firmwareHours;
+  const totalHours = options?.approvedHours != null ? options.approvedHours : (workSessionHours + firmwareHours);
 
   await submitYSWSProjectSubmission({
     githubUrl: project.githubRepo,

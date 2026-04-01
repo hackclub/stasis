@@ -155,22 +155,9 @@ export async function POST(
     )
   }
 
-  if (typeof hoursClaimed !== "number" || hoursClaimed <= 0 || hoursClaimed > 24) {
+  if (typeof hoursClaimed !== "number" || hoursClaimed <= 0 || hoursClaimed > 100) {
     return NextResponse.json(
-      { error: "Hours must be between 0 and 24" },
-      { status: 400 }
-    )
-  }
-
-  const MAX_PROJECT_HOURS = 100
-  const existingHours = await prisma.workSession.aggregate({
-    where: { projectId },
-    _sum: { hoursClaimed: true },
-  })
-  const totalAfter = (existingHours._sum.hoursClaimed ?? 0) + hoursClaimed
-  if (totalAfter > MAX_PROJECT_HOURS) {
-    return NextResponse.json(
-      { error: `Total project hours cannot exceed ${MAX_PROJECT_HOURS}. Current total: ${existingHours._sum.hoursClaimed ?? 0}h.` },
+      { error: "Hours must be between 0 and 100" },
       { status: 400 }
     )
   }

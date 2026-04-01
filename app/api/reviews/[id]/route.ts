@@ -133,15 +133,22 @@ export async function GET(
     return sum + hours
   }, 0)
 
-  // Compute stats
-  const workSessions = project.workSessions
+  // Compute stats — for build reviews, only count sessions after design approval
+  const allWorkSessions = project.workSessions
+  const workSessions = activeStage === "BUILD" && project.designReviewedAt
+    ? allWorkSessions.filter((s) => s.createdAt > project.designReviewedAt!)
+    : allWorkSessions
   const journalHours = workSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+  const allJournalHours = allWorkSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
   const totalWorkUnits = journalHours + firmwareHours
   const entryCount = workSessions.length
   const avgWorkUnits = entryCount > 0 ? journalHours / entryCount : 0
   const maxWorkUnits = entryCount > 0 ? Math.max(...workSessions.map((s) => s.hoursClaimed)) : 0
   const minWorkUnits = entryCount > 0 ? Math.min(...workSessions.map((s) => s.hoursClaimed)) : 0
   const bomCost = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
+  const designHours = activeStage === "BUILD" && project.designReviewedAt
+    ? allWorkSessions.filter((s) => s.createdAt <= project.designReviewedAt!).reduce((sum, s) => sum + s.hoursClaimed, 0)
+    : 0
 
   // Get submission notes if available
   const latestSubmission = await prisma.projectSubmission.findFirst({
@@ -323,6 +330,8 @@ export async function GET(
         hackatimeProjects: hackatimeProjectsWithHours,
         firmwareHours: Math.round(firmwareHours * 10) / 10,
         journalHours: Math.round(journalHours * 10) / 10,
+        allJournalHours: Math.round(allJournalHours * 10) / 10,
+        designHours: Math.round(designHours * 10) / 10,
         totalWorkUnits: Math.round(totalWorkUnits * 10) / 10,
         entryCount,
         avgWorkUnits: Math.round(avgWorkUnits * 10) / 10,

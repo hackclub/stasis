@@ -40,6 +40,10 @@ export default function BitsLedgerPage() {
   const [adjustError, setAdjustError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  // Resync pending bits
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncResult, setResyncResult] = useState<string | null>(null);
+
   const fetchEntries = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
@@ -163,6 +167,54 @@ export default function BitsLedgerPage() {
             {adjusting ? 'Saving...' : 'Create Adjustment'}
           </button>
         </form>
+      </div>
+
+      {/* Resync Pending Bits */}
+      <div className="bg-brown-800 border-2 border-cream-500/20 p-6">
+        <h2 className="text-cream-50 text-lg uppercase tracking-wide mb-2">Resync Pending Bits</h2>
+        <p className="text-cream-200 text-sm mb-4">
+          Backfills DESIGN_APPROVED pending-bits entries for projects that were approved before the feature launched.
+        </p>
+        {resyncResult && <p className="text-cream-50 text-sm mb-3">{resyncResult}</p>}
+        <button
+          disabled={resyncing}
+          onClick={async () => {
+            setResyncing(true);
+            setResyncResult(null);
+            try {
+              // Dry run first
+              const dryRes = await fetch('/api/admin/currency/backfill-pending', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+              });
+              const dryData = await dryRes.json();
+              if (dryData.count === 0) {
+                setResyncResult('All projects already have pending bits entries — nothing to backfill.');
+                return;
+              }
+              if (!confirm(`This will backfill pending bits for ${dryData.count} project(s). Continue?`)) {
+                setResyncResult('Cancelled.');
+                return;
+              }
+              const commitRes = await fetch('/api/admin/currency/backfill-pending', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ commit: true }),
+              });
+              const commitData = await commitRes.json();
+              setResyncResult(`Backfilled ${commitData.backfilled} project(s).`);
+              fetchEntries();
+            } catch {
+              setResyncResult('Network error — could not resync.');
+            } finally {
+              setResyncing(false);
+            }
+          }}
+          className="bg-orange-500 hover:bg-orange-400 text-white px-6 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+        >
+          {resyncing ? 'Resyncing...' : 'Resync Pending Bits'}
+        </button>
       </div>
 
       {/* Filter */}

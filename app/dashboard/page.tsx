@@ -546,10 +546,11 @@ export default function ProjectsPage() {
 
       {/* Goal change confirmation dialog */}
       {showGoalPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-[#3D3229]/80" onClick={() => setShowGoalPicker(false)} />
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-[#3D3229]/80" onClick={() => setShowGoalPicker(false)} />
+          <div className="flex min-h-full items-center justify-center py-4">
           <AnimatedResize className="relative bg-cream-100 border-2 border-brown-800 shadow-lg mx-4" duration={200}>
-            <div className={`p-6 overflow-y-auto max-h-[calc(100vh-2rem)] ${goalPickerMode === 'goal' ? 'w-[min(1160px,95vw)]' : 'w-[min(780px,95vw)]'}`}>
+            <div className={`p-6 ${goalPickerMode === 'goal' ? 'w-[min(1160px,95vw)]' : 'w-[min(780px,95vw)]'}`}>
               {goalPickerMode === 'goal' ? (
                 <>
                   <div className="flex justify-between items-center mb-3">
@@ -610,6 +611,7 @@ export default function ProjectsPage() {
               )}
             </div>
           </AnimatedResize>
+          </div>
         </div>
       )}
     </>

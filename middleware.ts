@@ -11,6 +11,7 @@ const securityHeaders = {
     "connect-src 'self' https://api2.hackclub.com",
     "font-src 'self'",
     "worker-src 'self' blob:",
+    "frame-src 'self' https://www.youtube.com https://youtube.com",
     "frame-ancestors 'none'",
   ].join("; "),
   "X-Content-Type-Options": "nosniff",

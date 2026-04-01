@@ -191,7 +191,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                   return basePath ? (
                     <Link
                       key={page.id}
-                      href={`${basePath}/${page.id}`}
+                      href={page.id === 'overview' ? basePath : `${basePath}/${page.id}`}
                       onClick={() => setMobileMenuOpen(false)}
                       className={className}
                     >
@@ -223,7 +223,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                   : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
               }`;
               return basePath ? (
-                <Link key={page.id} href={`${basePath}/${page.id}`} className={className}>
+                <Link key={page.id} href={page.id === 'overview' ? basePath : `${basePath}/${page.id}`} className={className}>
                   {page.label}
                 </Link>
               ) : (
@@ -241,7 +241,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                   : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
               }`;
               return basePath ? (
-                <Link key={page.id} href={`${basePath}/${page.id}`} className={className}>
+                <Link key={page.id} href={page.id === 'overview' ? basePath : `${basePath}/${page.id}`} className={className}>
                   {page.label}
                 </Link>
               ) : (
@@ -259,7 +259,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                   : 'text-brown-800 hover:text-orange-500 hover:bg-cream-200'
               }`;
               return basePath ? (
-                <Link key={page.id} href={`${basePath}/${page.id}`} className={className}>
+                <Link key={page.id} href={page.id === 'overview' ? basePath : `${basePath}/${page.id}`} className={className}>
                   {page.label}
                 </Link>
               ) : (
@@ -309,7 +309,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
                 <>
                   {!basePath && (
                     <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-600 text-sm">
-                      This guide is also available at <Link href="/help/parents" className="underline">stasis.hackclub.com/help/parents</Link> for sharing with parents who don&apos;t have a Stasis account.
+                      This guide is also available at <Link href="/docs/parents" className="underline">stasis.hackclub.com/docs/parents</Link> for sharing with parents who don&apos;t have a Stasis account.
                     </div>
                   )}
                   <div className="p-4 bg-orange-500/10 border border-orange-500/30 text-orange-600 text-sm">

@@ -622,7 +622,7 @@ function PreviewImage({
         >
           <img
             key={projects[previousIndex].id}
-            src={`/projects/${projects[previousIndex].image ?? projects[previousIndex].id + '.png'}`}
+            src={`/projects/${projects[previousIndex].image ?? projects[previousIndex].id + '.webp'}`}
             alt={projects[previousIndex].name}
             className="w-full h-full object-contain"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -635,7 +635,7 @@ function PreviewImage({
       >
         <img
           key={projects[currentIndex].id}
-          src={`/projects/${projects[currentIndex].image ?? projects[currentIndex].id + '.png'}`}
+          src={`/projects/${projects[currentIndex].image ?? projects[currentIndex].id + '.webp'}`}
           alt={projects[currentIndex].name}
           className="w-full h-full object-contain"
           onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}

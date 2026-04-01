@@ -51,8 +51,8 @@ export async function POST(
     )
   }
 
-  // Internal justification required for approvals only
-  if (result === "APPROVED" && (!reason || typeof reason !== "string" || reason.trim().length === 0)) {
+  // Internal justification required for admin (second-pass) approvals only
+  if (result === "APPROVED" && isAdmin && (!reason || typeof reason !== "string" || reason.trim().length === 0)) {
     return NextResponse.json(
       { error: "Internal justification is required" },
       { status: 400 }
@@ -283,7 +283,7 @@ export async function POST(
           await tx.workSession.update({
             where: { id: session.id },
             data: {
-              hoursApproved: workUnitsOverride ?? session.hoursClaimed,
+              hoursApproved: session.hoursClaimed,
               reviewedAt: new Date(),
               reviewedBy: reviewerId,
             },
@@ -392,96 +392,126 @@ export async function POST(
 
     // Sync to Airtable on approval
     {
-      const approvedBom = project!.bomItems.filter((b) => b.status === "approved" || b.status === "pending")
-      const bomItemsCost = approvedBom.reduce((sum, b) => sum + b.totalCost, 0)
-      const bomTax = project!.bomTax ?? 0
-      const bomShip = project!.bomShipping ?? 0
-      const bomCost = bomItemsCost + bomTax + bomShip
-
-      const sessions = project!.workSessions
-      const designSessions = sessions.filter((s) => s.stage === "DESIGN")
-      const buildSessions = sessions.filter((s) => s.stage === "BUILD")
-      const designHours = designSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
-      const buildHours = buildSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
-
+      const isBuildApproval = stageKey === "build"
       const tierInfo = project!.tier ? getTierById(project!.tier) : null
-      const badges = project!.badges
       const reviewerName = authCheck.session.user.name || "Unknown"
       const reviewerEmail = authCheck.session.user.email || "unknown"
       const dateStr = new Date().toISOString().slice(0, 10)
       const reasonText = typeof reason === "string" && reason.trim() ? reason.trim() : null
+      const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000"
 
-      const isBuildApproval = stageKey === "build"
+      const sessions = project!.workSessions
+      const relevantSessions = isBuildApproval
+        ? sessions.filter((s) => s.stage === "BUILD")
+        : sessions
+      const journalHours = relevantSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
+      const journalCount = relevantSessions.length
 
-      // For build approvals, count only build-stage hours
-      const relevantSessions = isBuildApproval ? buildSessions : sessions
-      const relevantHours = isBuildApproval ? buildHours : (designHours + buildHours)
-      const relevantCount = relevantSessions.length
+      // Fetch hackatime hours
+      const hackatimeProjects = await prisma.hackatimeProject.findMany({
+        where: { projectId: project!.id },
+      })
+      let hackatimeHours = 0
+      const hackatimeUser = await prisma.user.findUnique({
+        where: { id: project!.userId },
+        select: { hackatimeUserId: true },
+      })
+      if (hackatimeProjects.length > 0 && hackatimeUser?.hackatimeUserId) {
+        const { fetchHackatimeProjectSeconds } = await import("@/lib/hackatime")
+        for (const hp of hackatimeProjects) {
+          if (hp.hoursApproved !== null) {
+            hackatimeHours += hp.hoursApproved
+          } else {
+            const secs = await fetchHackatimeProjectSeconds(hackatimeUser.hackatimeUserId, hp.hackatimeProject)
+            hackatimeHours += secs / 3600
+          }
+        }
+      }
+      hackatimeHours = Math.round(hackatimeHours * 10) / 10
+
+      // Fetch timelapse hours from session timelapses
+      const sessionIds = relevantSessions.map((s) => s.id)
+      const timelapses = sessionIds.length > 0
+        ? await prisma.sessionTimelapse.findMany({
+            where: { workSessionId: { in: sessionIds } },
+            select: { duration: true },
+          })
+        : []
+      const timelapseHours = Math.round(timelapses.reduce((sum, t) => sum + (t.duration ?? 0), 0) / 3600 * 10) / 10
+
+      // Build the hours description parts
+      const hoursParts: string[] = []
+      hoursParts.push(`${journalHours.toFixed(1)} hours across ${journalCount} journal entr${journalCount === 1 ? "y" : "ies"}`)
+      if (hackatimeHours > 0) hoursParts.push(`${hackatimeHours} hours of hackatime`)
+      if (timelapseHours > 0) hoursParts.push(`${timelapseHours} hours of lapse`)
+
+      // Fetch first-pass review (non-admin) justification if it exists
+      const latestSubmission = await prisma.projectSubmission.findFirst({
+        where: { projectId: project!.id, stage: stage! },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      })
+      let firstPassReason: string | null = null
+      let firstPassReviewerName: string | null = null
+      if (latestSubmission) {
+        const firstPass = await prisma.submissionReview.findFirst({
+          where: { submissionId: latestSubmission.id, isAdminReview: false, result: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          select: { reason: true, reviewerId: true },
+        })
+        if (firstPass) {
+          firstPassReason = firstPass.reason
+          const fpUser = await prisma.user.findUnique({
+            where: { id: firstPass.reviewerId },
+            select: { name: true, email: true },
+          })
+          firstPassReviewerName = fpUser?.name || fpUser?.email || "Unknown"
+        }
+      }
 
       const lines: string[] = []
 
-      if (isBuildApproval) {
-        lines.push(`**Build Review**`)
-        lines.push("")
-
-        // Include design review justification
-        const designReviewAction = await prisma.projectReviewAction.findFirst({
-          where: { projectId: project!.id, stage: "DESIGN", decision: "APPROVED" },
-          orderBy: { createdAt: "desc" },
-          select: { comments: true, createdAt: true, reviewerId: true },
-        })
-        if (designReviewAction) {
-          const designReviewer = designReviewAction.reviewerId
-            ? await prisma.user.findUnique({ where: { id: designReviewAction.reviewerId }, select: { name: true, email: true } })
-            : null
-          const designDate = designReviewAction.createdAt.toISOString().slice(0, 10)
-          lines.push(`--- Design Review (approved ${designDate} by ${designReviewer?.name || designReviewer?.email || "Unknown"}) ---`)
-          if (designReviewAction.comments) lines.push(designReviewAction.comments)
-          lines.push(`  Design hours: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
-          lines.push("")
-          lines.push(`--- Build Review ---`)
-        }
-      }
-
-      lines.push(`Project: "${project!.title}" (${stageKey} approval)`)
-      lines.push(`User: ${project!.user.name || "Unknown"}`)
+      lines.push(isBuildApproval ? `**Build Review**` : `**Design Review**`)
+      lines.push("")
       if (tierInfo) lines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
-      lines.push("")
-      lines.push(`This user logged ${relevantHours.toFixed(1)} ${isBuildApproval ? "build " : ""}hours across ${relevantCount} journal entr${relevantCount === 1 ? "y" : "ies"}.`)
-      if (!isBuildApproval) {
-        if (designSessions.length > 0) lines.push(`  Design: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
-        if (buildSessions.length > 0) lines.push(`  Build: ${buildHours.toFixed(1)}h across ${buildSessions.length} entr${buildSessions.length === 1 ? "y" : "ies"}`)
+      lines.push(`This user logged ${hoursParts.join(", ")}.`)
+      if (workUnitsOverride != null && workUnitsOverride !== journalHours) {
+        lines.push(`Reviewer overrode hours to ${workUnitsOverride}h (claimed ${journalHours.toFixed(1)}h → approved ${workUnitsOverride}h)`)
       }
       lines.push("")
-      if (approvedBom.length > 0 || bomTax > 0 || bomShip > 0) {
-        const costParts = [`$${bomItemsCost.toFixed(2)} parts`]
-        if (bomTax > 0) costParts.push(`$${bomTax.toFixed(2)} tax`)
-        if (bomShip > 0) costParts.push(`$${bomShip.toFixed(2)} shipping`)
-        lines.push(`BOM (${approvedBom.length} item${approvedBom.length === 1 ? "" : "s"}, ${costParts.join(" + ")} = $${bomCost.toFixed(2)} total):`)
-        for (const item of approvedBom) {
-          const detail = item.quantity != null && item.quantity > 1
-            ? `${item.quantity}x = $${item.totalCost.toFixed(2)}`
-            : `$${item.totalCost.toFixed(2)}`
-          lines.push(`  - ${item.name}: ${detail}${item.status === "pending" ? " (pending)" : ""}`)
-        }
-        lines.push("")
-      } else {
-        lines.push(`BOM: None${project!.noBomNeeded ? " (marked as no BOM needed)" : ""}`)
-        lines.push("")
-      }
-      if (badges.length > 0) {
-        lines.push(`Badges: ${badges.map((b) => b.badge).join(", ")}`)
-        lines.push("")
-      }
-      if (project!.githubRepo) lines.push(`GitHub: ${project!.githubRepo}`)
-      if (project!.description) lines.push(`Description: ${project!.description}`)
+
+      lines.push(`Part of the time for this project was tracked via journaling. After making sure the project worked, and was shipped, the second pass reviewer decided the deflation.`)
       lines.push("")
+
+      // First-pass (non-admin) reviewer's internal justification
+      if (firstPassReason) {
+        lines.push(`First-pass reviewer (${firstPassReviewerName}): "${firstPassReason}"`)
+        lines.push("")
+      }
+
+      // Second-pass (admin) reviewer's internal justification
+      if (reasonText) {
+        lines.push(`Second-pass reviewer (${reviewerName}): "${reasonText}"`)
+        lines.push("")
+      }
+
       lines.push(`On ${dateStr}, ${reviewerName} (${reviewerEmail}) decided "approved"${reasonText ? ` with reason: ${reasonText}` : "."}`)
+      lines.push("")
+      lines.push(`The full journal for this project can be found at ${baseUrl}/dashboard/discover/${project!.id}.`)
 
       const hoursJustification = lines.join("\n")
 
       try {
-        await syncProjectToAirtable(project!.userId, project!, hoursJustification, effectiveGrant ?? bomCost, isBuildApproval ? { buildOnly: true } : undefined)
+        const approvedBom = project!.bomItems.filter((b) => b.status === "approved" || b.status === "pending")
+        const bomItemsCost = approvedBom.reduce((sum, b) => sum + b.totalCost, 0)
+        const bomTax = project!.bomTax ?? 0
+        const bomShip = project!.bomShipping ?? 0
+        const bomCost = bomItemsCost + bomTax + bomShip
+
+        const syncOptions: { buildOnly?: boolean; approvedHours?: number } = {}
+        if (isBuildApproval) syncOptions.buildOnly = true
+        if (workUnitsOverride != null) syncOptions.approvedHours = workUnitsOverride
+        await syncProjectToAirtable(project!.userId, project!, hoursJustification, effectiveGrant ?? bomCost, syncOptions)
       } catch (err) {
         console.error(`Failed to sync project to Airtable on ${stageKey} approval:`, err)
       }

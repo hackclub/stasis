@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { GOAL_LABELS, type GoalPreference } from '@/lib/tiers';
 
@@ -82,12 +83,14 @@ const PRONOUN_OPTIONS = [
 ];
 
 export default function AdminUsersPage() {
+  const urlSearchParams = useSearchParams();
+  const initialSearch = urlSearchParams.get('search') || '';
   const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [filterFraud, setFilterFraud] = useState<boolean | null>(null);
   const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR' | 'AUDITOR' | null>(null);
   const [filterAddress, setFilterAddress] = useState<boolean | null>(null);
@@ -844,6 +847,30 @@ export default function AdminUsersPage() {
                             : user.shopPurchaseCount === 0
                               ? 'No Purchases'
                               : `View ${user.shopPurchaseCount} Purchase${user.shopPurchaseCount !== 1 ? 's' : ''}`}
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm(`Impersonate ${user.name || user.email}? You will be logged in as this user.`)) return;
+                            try {
+                              const res = await fetch('/api/admin/impersonate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: user.id }),
+                              });
+                              if (!res.ok) {
+                                const err = await res.json();
+                                alert(err.error || 'Failed to impersonate');
+                                return;
+                              }
+                              window.location.href = '/dashboard';
+                            } catch {
+                              alert('Failed to impersonate');
+                            }
+                          }}
+                          className="px-4 py-2 text-sm uppercase bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer"
+                        >
+                          Impersonate
                         </button>
                       </div>
                     </div>

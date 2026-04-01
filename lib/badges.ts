@@ -47,5 +47,5 @@ export const BADGE_IMAGES: Record<string, string> = {
 }
 
 export function getBadgeImage(badge: string): string {
-  return BADGE_IMAGES[badge] || "/badge-placeholder.png"
+  return BADGE_IMAGES[badge] || "/badge-placeholder.webp"
 }

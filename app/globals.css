@@ -172,29 +172,83 @@ a:focus-visible {
 }
 
 /* Tamagotchi Streak Challenge animations */
-@keyframes tamagotchi-bounce {
+@keyframes tamagotchi-hop {
+	0%   { transform: translateY(0); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	20%  { transform: translateY(-14px); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
+	45%  { transform: translateY(2px); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	62%  { transform: translateY(-5px); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
+	78%  { transform: translateY(1px); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	90%  { transform: translateY(-2px); animation-timing-function: ease-out; }
+	100% { transform: translateY(0); }
+}
+
+@keyframes tamagotchi-fly-up {
+	from { transform: translateY(100%); }
+	to   { transform: translateY(0); }
+}
+
+@keyframes tamagotchi-fly-down {
+	from { transform: translateY(0); }
+	to   { transform: translateY(100%); }
+}
+
+@keyframes tamagotchi-float {
 	0%, 100% { transform: translateY(0); }
-	50%      { transform: translateY(-4px); }
+	50%      { transform: translateY(-8px); }
 }
 
-@keyframes streak-pulse {
-	0%, 100% { border-color: var(--color-orange-500); box-shadow: 0 0 0 0 rgba(232, 106, 58, 0.3); }
-	50%      { border-color: var(--color-orange-400); box-shadow: 0 0 0 4px rgba(232, 106, 58, 0); }
+@keyframes shape-hop {
+	0%   { transform: translateY(0); }
+	12%  { transform: translateY(-14px); }
+	40%  { transform: translateY(2px); }
+	65%  { transform: translateY(-3px); }
+	100% { transform: translateY(0); }
 }
 
-@keyframes streak-milestone {
-	0%, 100% { box-shadow: 0 0 0 0 rgba(225, 171, 85, 0.4); }
-	50%      { box-shadow: 0 0 8px 2px rgba(225, 171, 85, 0.3); }
+@keyframes shape-hop-pulse {
+	0%   { transform: translateY(0); filter: brightness(1); }
+	15%  { transform: translateY(-6px); filter: brightness(2); }
+	45%  { transform: translateY(1px); filter: brightness(1.2); }
+	100% { transform: translateY(0); filter: brightness(1); }
 }
 
-@keyframes streak-panel-up {
-	from { transform: translateX(-50%) translateY(100%); opacity: 0; }
-	to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+.led-flicker-slow {
+	animation: led-flicker-on 0.45s ease-out;
 }
 
-@keyframes streak-node-fill {
-	0%   { transform: scale(0.5); opacity: 0; }
-	60%  { transform: scale(1.2); }
-	100% { transform: scale(1); opacity: 1; }
+.shape-enter {
+	animation: shape-hop 0.5s ease-out, led-flicker-on 0.45s ease-out;
+}
+
+@keyframes led-flicker-off {
+	0%   { opacity: 1; }
+	25%  { opacity: 0.3; }
+	50%  { opacity: 0.7; }
+	75%  { opacity: 0; }
+	85%  { opacity: 0.3; }
+	100% { opacity: 0; }
+}
+
+.led-flicker-out {
+	animation: led-flicker-off 0.3s ease-out forwards;
+}
+
+@keyframes border-glow-orange {
+	0%, 100% { border-color: #4D4238; }
+	50%      { border-color: var(--color-orange-500); }
+}
+
+.border-glow {
+	animation: border-glow-orange 2s ease-in-out infinite;
+}
+
+@keyframes line-pulse-orange {
+	0%   { background-color: #4D4238; }
+	50%  { background-color: var(--color-orange-500); }
+	100% { background-color: #4D4238; }
+}
+
+.shape-pulse {
+	animation: shape-hop-pulse 0.35s ease-out;
 }
 

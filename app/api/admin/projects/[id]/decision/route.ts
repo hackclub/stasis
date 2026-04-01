@@ -423,6 +423,11 @@ export async function POST(
         if (tierInfo) justLines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
         justLines.push("")
         justLines.push(`This user logged ${buildHours.toFixed(1)} build hours across ${buildSessions.length} journal entr${buildSessions.length === 1 ? "y" : "ies"}.`)
+        const approvedBuildHours = buildSessions.reduce((sum, s) => sum + (s.hoursApproved ?? s.hoursClaimed), 0)
+        const buildDeflation = buildHours - approvedBuildHours
+        if (buildDeflation !== 0) {
+          justLines.push(`Journal deflated by ${buildDeflation.toFixed(1)}h (claimed ${buildHours.toFixed(1)}h → approved ${approvedBuildHours.toFixed(1)}h)`)
+        }
         justLines.push("")
 
         const approvedBom = updatedProject.bomItems.filter((b: { status: string }) => b.status === "approved" || b.status === "pending")

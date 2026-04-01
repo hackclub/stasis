@@ -161,6 +161,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [editBomForm, setEditBomForm] = useState({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' });
   const [savingBomEdit, setSavingBomEdit] = useState(false);
   const [showBomImport, setShowBomImport] = useState(false);
+  const [deletingAllBom, setDeletingAllBom] = useState(false);
+  const [showDeleteAllBomConfirm, setShowDeleteAllBomConfirm] = useState(false);
+  const [deleteAllBomTyped, setDeleteAllBomTyped] = useState('');
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
@@ -729,6 +732,34 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       alert('Failed to delete BOM item');
     } finally {
       setDeletingBomId(null);
+    }
+  };
+
+  const handleDeleteAllBomItems = async () => {
+    if (!project) return;
+
+    setDeletingAllBom(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/bom`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        const updatedRes = await fetch(`/api/projects/${projectId}`);
+        if (updatedRes.ok) {
+          setProject(await updatedRes.json());
+        }
+        setShowDeleteAllBomConfirm(false);
+        setDeleteAllBomTyped('');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete all BOM items');
+      }
+    } catch (error) {
+      console.error('Failed to delete all BOM items:', error);
+      alert('Failed to delete all BOM items');
+    } finally {
+      setDeletingAllBom(false);
     }
   };
 
@@ -1865,6 +1896,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   Import CSV
                 </button>
               )}
+              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (project.bomItems ?? []).length > 0 && (
+                <button
+                  onClick={() => setShowDeleteAllBomConfirm(true)}
+                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Delete All Items
+                </button>
+              )}
               {((project.bomItems ?? []).length > 0 || (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested")) && (
                 <div className="w-px h-4 bg-cream-400" />
               )}
@@ -1899,6 +1938,44 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   if (res.ok) setProject(await res.json());
                 }}
               />
+            )}
+            {showDeleteAllBomConfirm && project && (
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                <div className="bg-cream-100 border-2 border-red-600 p-8 max-w-md w-full mx-4">
+                  <h3 className="text-red-600 text-xl uppercase tracking-wide mb-2 text-center">Delete All BOM Items</h3>
+                  <div className="bg-red-600/10 border border-red-600 p-4 mb-4">
+                    <p className="text-red-600 text-sm text-center font-medium">
+                      This will permanently delete all {(project.bomItems ?? []).length} item{(project.bomItems ?? []).length === 1 ? '' : 's'} from your Bill of Materials. This action cannot be undone.
+                    </p>
+                  </div>
+                  <p className="text-brown-800 text-sm mb-2">
+                    Type <span className="font-bold text-red-600">DELETE</span> to confirm:
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteAllBomTyped}
+                    onChange={(e) => setDeleteAllBomTyped(e.target.value)}
+                    className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-red-600 focus:outline-none mb-4"
+                    placeholder="Type DELETE here"
+                    autoFocus
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setShowDeleteAllBomConfirm(false); setDeleteAllBomTyped(''); }}
+                      className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAllBomItems}
+                      disabled={deleteAllBomTyped !== 'DELETE' || deletingAllBom}
+                      className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                    >
+                      {deletingAllBom ? 'Deleting...' : 'Delete All Items'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -2212,7 +2289,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </p>
                     <p className="text-red-500 text-sm font-medium mb-4">
                       IMPORTANT: Before submitting, please make sure to read the{' '}
-                      <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
+                      <Link href="/docs/submission-guidelines" className="underline hover:text-red-400">
                         submission guidelines
                       </Link>
                       .
@@ -2307,7 +2384,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </p>
                     <p className="text-red-500 text-sm font-medium mb-4">
                       IMPORTANT: Before submitting, please make sure to read the{' '}
-                      <Link href="/dashboard/help#submission-guidelines" className="underline hover:text-red-400">
+                      <Link href="/docs/submission-guidelines" className="underline hover:text-red-400">
                         submission guidelines
                       </Link>
                       .

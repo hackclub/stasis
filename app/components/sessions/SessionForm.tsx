@@ -549,8 +549,8 @@ export function SessionForm({
             return;
         }
 
-        if (hoursNum > 24) {
-            setError('Session cannot exceed 24 hours');
+        if (hoursNum > 100) {
+            setError('Session cannot exceed 100 hours');
             return;
         }
 

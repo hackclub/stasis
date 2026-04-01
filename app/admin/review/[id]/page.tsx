@@ -65,6 +65,9 @@ interface ReviewData {
       }>;
       firmwareHours: number;
       journalHours: number;
+      allJournalHours: number;
+      designHours: number;
+      designReviewedAt: string | null;
       submissions: Array<{ id: string; stage: string; createdAt: string }>;
     };
     reviews: Array<{
@@ -118,7 +121,8 @@ const JUSTIFICATION_SHORTCUTS = [
   { label: 'Small', text: 'This is a relatively small project and not that crazy. It seems to be one of the users first and is definitely shipped. Because of that, I am approving regardless.' },
   { label: 'Magic', text: 'This project has a incredubly high quality project and all of the hours are logged. I would say this project would qualify as magic. I am deflating this just to be safe.' },
   { label: 'Trusted', text: 'This is a very trusted user and I have talked with this person multiple times about this project and seen them working on it throughout Slack.' },
-  { label: 'Spotify', text: 'This project follows the Spotify Display guide which takes around 5-10 hours to complete. This project is of average quality and is either within this range or was deflated down to that range.' },
+  { label: 'Spotify', text: 'This project follows the Spotify display guide which is projected to take 5-10 hours by the guide\'s author, Ducc. This is either right in that range or was deflated to be within it.' },
+  { label: 'Blinky', text: 'This is a Blinky Board guide which takes around 5 hours by historical data from running this guide at events. This is either right in that range or was deflated to be within it.' },
 ];
 
 const FEEDBACK_SHORTCUTS = [
@@ -173,6 +177,7 @@ export default function ReviewDetailPage() {
   const noteTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showFraudWarning, setShowFraudWarning] = useState(true);
   const [flaggingFraud, setFlaggingFraud] = useState(false);
+  const [airtableDuplicate, setAirtableDuplicate] = useState(false);
   const [modifyingPreReview, setModifyingPreReview] = useState(false);
   const [checkedJustifications, setCheckedJustifications] = useState<Set<number>>(new Set());
   const [checkedFeedback, setCheckedFeedback] = useState<Set<number>>(new Set());
@@ -196,6 +201,15 @@ export default function ReviewDetailPage() {
   }, [id, router, filterQS]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Check if project already exists in Airtable Unified DB
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/reviews/${id}/airtable-check`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((d) => { if (d?.found) setAirtableDuplicate(true); })
+      .catch(() => {});
+  }, [id]);
 
   // Auto-populate work units override based on starter project guide
   useEffect(() => {
@@ -457,6 +471,19 @@ export default function ReviewDetailPage() {
         </div>
       )}
 
+      {/* ── Airtable Duplicate Warning ── */}
+      {airtableDuplicate && (
+        <div className="bg-red-500/15 border-2 border-red-500 p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">⚠️</span>
+            <h2 className="text-red-400 text-lg uppercase tracking-wider font-bold">Already in Unified DB</h2>
+          </div>
+          <p className="text-red-400/80 text-sm">
+            This project&apos;s GitHub URL already exists as a record in the Airtable Unified DB. It may have already been submitted and approved through another YSWS program. Verify before approving.
+          </p>
+        </div>
+      )}
+
       {/* ── Fraud / Trust Warning ── */}
       {project.user.fraudConvicted && showFraudWarning && (
         <div className="bg-red-500/15 border-2 border-red-500 p-6 relative">
@@ -586,7 +613,7 @@ export default function ReviewDetailPage() {
             )}
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-cream-50 text-sm">{project.user.name || project.user.email}</p>
+                <Link href={`/admin/users?search=${encodeURIComponent(project.user.email)}`} className="text-cream-50 text-sm hover:text-orange-400 transition-colors underline decoration-cream-500/30 hover:decoration-orange-400">{project.user.name || project.user.email}</Link>
                 {project.user.fraudConvicted ? (
                   <span className="text-xs px-2 py-0.5 bg-red-600 text-white uppercase">Fraud</span>
                 ) : hackatimeTrustLevel === 'red' ? (
@@ -597,15 +624,39 @@ export default function ReviewDetailPage() {
                   <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-50 border border-cream-500/20 uppercase">Unscored</span>
                 )}
               </div>
-              <p className="text-cream-200 text-xs">
-                Submitted {new Date(submission.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-cream-200 text-xs">
+                  Submitted {new Date(submission.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+                {project.user.slackId && (
+                  <>
+                    <span className="text-cream-500 text-xs">·</span>
+                    <span className="text-cream-300 text-xs font-mono">{project.user.slackId}</span>
+                    <a
+                      href={`https://hackclub.enterprise.slack.com/team/${project.user.slackId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2 py-0.5 bg-cream-500/10 hover:bg-cream-500/20 text-cream-200 border border-cream-500/20 rounded transition-colors"
+                    >
+                      DM on Slack
+                    </a>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
+          {submission.stage === 'BUILD' && project.designHours > 0 && (
+            <div className="mb-3 px-3 py-2 bg-green-500/10 border border-green-500/30 text-sm">
+              <span className="text-green-400">Build review:</span>
+              <span className="text-cream-50 ml-2">Showing {project.journalHours}h logged after design approval</span>
+              <span className="text-cream-500 ml-1">({project.designHours}h design + {project.journalHours}h build = {project.allJournalHours}h total)</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-4 text-sm">
             <div>
-              <p className="text-cream-200 text-xs uppercase">Work Units</p>
+              <p className="text-cream-200 text-xs uppercase">{submission.stage === 'BUILD' ? 'Build Hours' : 'Work Units'}</p>
               <p className="text-cream-50">{project.totalWorkUnits}h</p>
             </div>
             <div>
@@ -1044,7 +1095,7 @@ export default function ReviewDetailPage() {
             </div>
 
             <div className="mb-4">
-              <label className="text-cream-200 text-xs uppercase block mb-1">Internal Justification</label>
+              <label className="text-cream-200 text-xs uppercase block mb-1">Internal Justification{!isAdmin && <span className="text-cream-500 normal-case ml-1">(optional)</span>}</label>
               {isAdmin && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {JUSTIFICATION_SHORTCUTS.map((s, i) => (
@@ -1123,7 +1174,7 @@ export default function ReviewDetailPage() {
                   <div className="mb-4 bg-orange-500/10 border border-orange-500/40 p-4">
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-orange-400 text-xs uppercase font-medium">
-                        First-pass review by {firstPassReview.reviewerName || 'Reviewer'}
+                        First-pass review by <Link href={`/admin/users?search=${encodeURIComponent(firstPassReview.reviewerId)}`} className="hover:text-orange-300 underline decoration-orange-400/30 hover:decoration-orange-300">{firstPassReview.reviewerName || 'Reviewer'}</Link>
                       </p>
                       <span className="text-cream-200 text-xs">
                         {new Date(firstPassReview.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -1176,14 +1227,28 @@ export default function ReviewDetailPage() {
                     )}
                   </div>
 
+                  {(workUnitsOverride || tierOverride || grantOverride || categoryOverride) && (
+                    <div className="mb-3 bg-yellow-500/10 border border-yellow-500/40 p-2">
+                      <p className="text-yellow-400 text-xs">
+                        Overriding first-pass values:{' '}
+                        {[
+                          workUnitsOverride && `hours → ${workUnitsOverride}h`,
+                          tierOverride && `tier → ${tierOverride}`,
+                          grantOverride && `grant → $${grantOverride}`,
+                          categoryOverride && `category → ${categoryOverride}`,
+                        ].filter(Boolean).join(', ')}
+                        {' '}(still credited to {firstPassReview.reviewerName || 'original reviewer'})
+                      </p>
+                    </div>
+                  )}
                   <div className="flex gap-3 flex-wrap">
                     <button
                       onClick={() => submitReview('APPROVED', {
                         feedback: firstPassReview.feedback || undefined,
                         reason: firstPassReview.reason || undefined,
-                        workUnitsOverride: firstPassReview.workUnitsOverride ?? undefined,
-                        tierOverride: firstPassReview.tierOverride ?? undefined,
-                        grantOverride: firstPassReview.grantOverride ?? undefined,
+                        workUnitsOverride: workUnitsOverride ? parseFloat(workUnitsOverride) : (firstPassReview.workUnitsOverride ?? undefined),
+                        tierOverride: tierOverride ? parseInt(tierOverride) : (firstPassReview.tierOverride ?? undefined),
+                        grantOverride: grantOverride ? parseInt(grantOverride) : (firstPassReview.grantOverride ?? undefined),
                         firstPassReviewerId: firstPassReview.reviewerId || undefined,
                       })}
                       disabled={submitting || project.user.fraudConvicted}
@@ -1299,7 +1364,7 @@ function ReviewCard({ review, defaultExpanded }: {
             {review.result}
           </span>
           {review.reviewerName && (
-            <span className="text-cream-50 text-xs font-medium">by {review.reviewerName}</span>
+            <Link href={`/admin/users?search=${encodeURIComponent(review.reviewerId)}`} className="text-cream-50 text-xs font-medium hover:text-orange-400 transition-colors">by {review.reviewerName}</Link>
           )}
           <span className="text-cream-200 text-xs">
             {new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}

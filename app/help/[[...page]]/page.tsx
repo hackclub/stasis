@@ -12,5 +12,5 @@ export default function HelpPage({ params }: { params: Promise<{ page?: string[]
     notFound();
   }
 
-  return <GuidesContent activePage={pageId} basePath="/help" />;
+  return <GuidesContent activePage={pageId} basePath="/docs" />;
 }

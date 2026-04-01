@@ -23,6 +23,7 @@ interface QueueItem {
   tier: number | null;
   author: ReviewAuthor;
   workUnits: number;
+  totalWorkUnits: number;
   entryCount: number;
   bomCost: number;
   costPerUnit: number;
@@ -74,9 +75,13 @@ const TIER_COLORS: Record<number, string> = {
   5: 'bg-orange-500/20 text-orange-400',
 };
 
+type ReviewTab = 'DESIGN' | 'BUILD';
+
 export default function ReviewQueuePage() {
   const router = useRouter();
-  const [data, setData] = useState<QueueResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<ReviewTab>('DESIGN');
+  const [designData, setDesignData] = useState<QueueResponse | null>(null);
+  const [buildData, setBuildData] = useState<QueueResponse | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -84,12 +89,14 @@ export default function ReviewQueuePage() {
   const [statsTab, setStatsTab] = useState<'weekly' | 'allTime'>('weekly');
   const [navigating, setNavigating] = useState(false);
 
+  const data = activeTab === 'DESIGN' ? designData : buildData;
+
   // Navigate into the review flow with a filter applied
   async function startFilteredReview(filterCategory: string, filterGuide: string, filterNameSearch?: string, filterSort?: string) {
     setNavigating(true);
     try {
       const params = new URLSearchParams();
-      if (filterCategory) params.set('category', filterCategory);
+      params.set('category', filterCategory || activeTab);
       if (filterGuide) params.set('guide', filterGuide);
       if (filterNameSearch) params.set('nameSearch', filterNameSearch);
       if (filterSort) params.set('sort', filterSort);
@@ -99,7 +106,7 @@ export default function ReviewQueuePage() {
         const { items } = await res.json();
         if (items.length > 0) {
           const qp = new URLSearchParams();
-          if (filterCategory) qp.set('category', filterCategory);
+          qp.set('category', filterCategory || activeTab);
           if (filterGuide) qp.set('guide', filterGuide);
           if (filterNameSearch) qp.set('nameSearch', filterNameSearch);
           if (filterSort) qp.set('sort', filterSort);
@@ -115,16 +122,26 @@ export default function ReviewQueuePage() {
     }
   }
 
-  const fetchQueue = useCallback(async () => {
+  const fetchQueues = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      params.set('limit', '500');
-      const res = await fetch(`/api/reviews?${params}`);
-      if (res.ok) setData(await res.json());
+      const baseParams = new URLSearchParams();
+      if (search) baseParams.set('search', search);
+      baseParams.set('limit', '500');
+
+      const designParams = new URLSearchParams(baseParams);
+      designParams.set('category', 'DESIGN');
+      const buildParams = new URLSearchParams(baseParams);
+      buildParams.set('category', 'BUILD');
+
+      const [designRes, buildRes] = await Promise.all([
+        fetch(`/api/reviews?${designParams}`),
+        fetch(`/api/reviews?${buildParams}`),
+      ]);
+      if (designRes.ok) setDesignData(await designRes.json());
+      if (buildRes.ok) setBuildData(await buildRes.json());
     } catch (err) {
-      console.error('Failed to fetch queue:', err);
+      console.error('Failed to fetch queues:', err);
     } finally {
       setLoading(false);
     }
@@ -139,13 +156,16 @@ export default function ReviewQueuePage() {
     }
   }, []);
 
-  useEffect(() => { fetchQueue(); }, [fetchQueue]);
+  useEffect(() => { fetchQueues(); }, [fetchQueues]);
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearch(searchInput);
-     };
+  };
+
+  const designCount = designData?.total ?? 0;
+  const buildCount = buildData?.total ?? 0;
 
   return (
     <>
@@ -154,7 +174,16 @@ export default function ReviewQueuePage() {
         {/* Pending Count */}
         <div className="bg-brown-800 border border-cream-500/20 rounded p-4">
           <p className="text-cream-200 text-xs uppercase tracking-wider mb-1">Pending Submissions</p>
-          <p className="text-orange-500 text-2xl font-bold">{stats?.pendingCount ?? '...'}</p>
+          <div className="flex items-baseline gap-4">
+            <div>
+              <span className="text-blue-400 text-2xl font-bold">{designCount}</span>
+              <span className="text-cream-200 text-xs ml-1">design</span>
+            </div>
+            <div>
+              <span className="text-green-400 text-2xl font-bold">{buildCount}</span>
+              <span className="text-cream-200 text-xs ml-1">build</span>
+            </div>
+          </div>
           <p className="text-cream-200 text-xs mt-1">
             {stats ? `${stats.totalPendingWorkUnits}h total work units` : ''}
           </p>
@@ -195,13 +224,43 @@ export default function ReviewQueuePage() {
                   {s.reviewer.image && (
                     <img src={s.reviewer.image} alt="" className="w-5 h-5 rounded-full" />
                   )}
-                  <span className="text-cream-50 text-sm">{s.reviewer.name || 'Unknown'}</span>
+                  <Link href={`/admin/users?search=${encodeURIComponent(s.reviewer.id)}`} className="text-cream-50 text-sm hover:text-orange-400 transition-colors">{s.reviewer.name || 'Unknown'}</Link>
                   <span className="text-orange-500 text-sm font-bold">{s.count}</span>
                 </div>
               )
             ) || <span className="text-cream-200 text-sm">No reviews yet</span>}
           </div>
         </div>
+      </div>
+
+      {/* Design / Build Tabs */}
+      <div className="mb-4 flex items-center gap-0 border-b border-cream-500/20">
+        <button
+          onClick={() => setActiveTab('DESIGN')}
+          className={`px-6 py-2.5 text-sm uppercase tracking-wider font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
+            activeTab === 'DESIGN'
+              ? 'text-blue-400 border-blue-400'
+              : 'text-cream-200 border-transparent hover:text-cream-50'
+          }`}
+        >
+          Design Review
+          <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+            activeTab === 'DESIGN' ? 'bg-blue-500/20' : 'bg-cream-500/10'
+          }`}>{designCount}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('BUILD')}
+          className={`px-6 py-2.5 text-sm uppercase tracking-wider font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
+            activeTab === 'BUILD'
+              ? 'text-green-400 border-green-400'
+              : 'text-cream-200 border-transparent hover:text-cream-50'
+          }`}
+        >
+          Build Review
+          <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+            activeTab === 'BUILD' ? 'bg-green-500/20' : 'bg-cream-500/10'
+          }`}>{buildCount}</span>
+        </button>
       </div>
 
       {/* Legend */}
@@ -218,30 +277,16 @@ export default function ReviewQueuePage() {
         </div>
       )}
 
-      {/* Toolbar — each filter button starts reviewing with that filter */}
+      {/* Toolbar */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap items-center">
           <span className="text-xs text-cream-200 uppercase tracking-wider mr-1">Review:</span>
           <button
-            onClick={() => startFilteredReview('', '', '', '')}
+            onClick={() => startFilteredReview(activeTab, '', '', '')}
             disabled={navigating}
             className="px-4 py-1.5 text-xs uppercase tracking-wider border border-orange-500 bg-orange-500 text-white hover:bg-orange-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {navigating ? 'Loading...' : 'All'}
-          </button>
-          <button
-            onClick={() => startFilteredReview('DESIGN', '', '', '')}
-            disabled={navigating}
-            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Design
-          </button>
-          <button
-            onClick={() => startFilteredReview('BUILD', '', '', '')}
-            disabled={navigating}
-            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Build
+            {navigating ? 'Loading...' : `All ${activeTab === 'DESIGN' ? 'Design' : 'Build'}`}
           </button>
 
           <span className="border-l border-cream-500/30 mx-1 hidden sm:inline-block" />
@@ -249,7 +294,7 @@ export default function ReviewQueuePage() {
           {starterProjects.map((sp) => (
             <button
               key={sp.id}
-              onClick={() => startFilteredReview('', sp.id, '', '')}
+              onClick={() => startFilteredReview(activeTab, sp.id, '', '')}
               disabled={navigating}
               className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -258,7 +303,7 @@ export default function ReviewQueuePage() {
             </button>
           ))}
           <button
-            onClick={() => startFilteredReview('', 'custom', '', '')}
+            onClick={() => startFilteredReview(activeTab, 'custom', '', '')}
             disabled={navigating}
             className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -269,21 +314,21 @@ export default function ReviewQueuePage() {
           <span className="border-l border-cream-500/30 mx-1 hidden sm:inline-block" />
 
           <button
-            onClick={() => startFilteredReview('', '', 'devboard', '')}
+            onClick={() => startFilteredReview(activeTab, '', 'devboard', '')}
             disabled={navigating}
             className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Devboard (name)
           </button>
           <button
-            onClick={() => startFilteredReview('', '', 'keyboard', '')}
+            onClick={() => startFilteredReview(activeTab, '', 'keyboard', '')}
             disabled={navigating}
             className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Keyboard (name)
           </button>
           <button
-            onClick={() => startFilteredReview('', '', '', 'most_hours')}
+            onClick={() => startFilteredReview(activeTab, '', '', 'most_hours')}
             disabled={navigating}
             className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -324,7 +369,7 @@ export default function ReviewQueuePage() {
         </div>
       ) : !data || data.items.length === 0 ? (
         <div className="bg-brown-800 border border-cream-500/20 rounded p-8 text-center">
-          <p className="text-cream-200">No submissions in queue</p>
+          <p className="text-cream-200">No {activeTab.toLowerCase()} submissions in queue</p>
         </div>
       ) : (
         <>
@@ -334,12 +379,13 @@ export default function ReviewQueuePage() {
                 <tr className="border-b border-cream-500/20">
                   <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Title</th>
                   <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden lg:table-cell">Author</th>
-                  <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Category</th>
                   <th className="text-left text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">Tier</th>
                   <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">BOM</th>
                   <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">$/h</th>
                   <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden md:table-cell">bits/h</th>
-                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Work Units</th>
+                  <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2">
+                    {activeTab === 'BUILD' ? 'Build Hours' : 'Work Units'}
+                  </th>
                   <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2 hidden lg:table-cell">Entries</th>
                   <th className="text-right text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Waiting</th>
                   <th className="text-center text-xs uppercase tracking-wider text-cream-200 px-3 py-2">Action</th>
@@ -390,15 +436,6 @@ export default function ReviewQueuePage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-3">
-                        <span className={`text-xs uppercase px-2 py-0.5 ${
-                          item.category === 'DESIGN'
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : 'bg-green-500/20 text-green-400'
-                        }`}>
-                          {item.category}
-                        </span>
-                      </td>
                       <td className="px-3 py-3 hidden md:table-cell">
                         {tierInfo && (
                           <span className={`text-xs px-2 py-0.5 ${TIER_COLORS[item.tier!] || ''}`}>
@@ -417,6 +454,9 @@ export default function ReviewQueuePage() {
                       </td>
                       <td className="px-3 py-3 text-right text-sm text-cream-100">
                         {item.workUnits}h
+                        {activeTab === 'BUILD' && item.totalWorkUnits !== item.workUnits && (
+                          <span className="text-cream-500 text-xs ml-1">/ {item.totalWorkUnits}h total</span>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-right text-sm text-cream-100 hidden lg:table-cell">
                         {item.entryCount}
@@ -427,7 +467,7 @@ export default function ReviewQueuePage() {
                       <td className="px-3 py-3 text-center">
                         <div>
                           <Link
-                            href={`/admin/review/${item.id}`}
+                            href={`/admin/review/${item.id}?category=${activeTab}`}
                             className={`inline-block px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
                               item.claimedByOther
                                 ? 'border-cream-500/20 text-cream-500 cursor-not-allowed'

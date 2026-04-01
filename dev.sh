@@ -65,7 +65,7 @@ echo "📦 Generating Prisma client..."
 yarn prisma generate || { echo "Prisma client generation failed"; exit 1; }
 
 echo "🔄 Running Prisma migrations..."
-yarn prisma migrate dev || { echo "Prisma migrate failed"; exit 1; }
+yarn prisma migrate deploy || { echo "Prisma migrate failed"; exit 1; }
 
 echo "✅ Prisma setup complete!"
 echo "🚀 Starting Next.js development server..."

@@ -6,6 +6,46 @@ import { sanitize } from "@/lib/sanitize"
 import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { id } = await params
+  const roles = await getUserRoles(session.user.id)
+  const isAdmin = hasRole(roles, Role.ADMIN)
+
+  const project = await prisma.project.findUnique({
+    where: { id },
+    select: { userId: true, deletedAt: true, designStatus: true },
+  })
+
+  if (!project || project.deletedAt) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 })
+  }
+
+  if (project.userId !== session.user.id && !isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  if (project.designStatus === "in_review" || project.designStatus === "approved") {
+    return NextResponse.json(
+      { error: "Cannot delete BOM items after design approval or while in review" },
+      { status: 403 }
+    )
+  }
+
+  const { count } = await prisma.bOMItem.deleteMany({
+    where: { projectId: id },
+  })
+
+  return NextResponse.json({ success: true, deletedCount: count })
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
