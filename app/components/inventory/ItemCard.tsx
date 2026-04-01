@@ -13,11 +13,12 @@ interface ItemCardProps {
     maxPerTeam: number;
     teamUsed?: number;
   };
+  cartQuantity?: number;
   onAdd: (itemId: string, quantity: number) => void;
 }
 
-export function ItemCard({ item, onAdd }: ItemCardProps) {
-  const remaining = item.maxPerTeam - (item.teamUsed ?? 0);
+export function ItemCard({ item, cartQuantity = 0, onAdd }: ItemCardProps) {
+  const remaining = item.maxPerTeam - (item.teamUsed ?? 0) - cartQuantity;
   const canAdd = remaining > 0 && item.stock > 0;
   const maxQuantity = Math.min(remaining, item.stock);
   const [quantity, setQuantity] = useState(1);

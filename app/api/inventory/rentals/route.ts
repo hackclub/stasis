@@ -95,11 +95,18 @@ export async function POST(request: Request) {
         throw new Error("You must be on a team to rent a tool")
       }
 
-      const tool = await tx.tool.findUnique({ where: { id: toolId } })
-      if (!tool) {
-        throw new Error("Tool not found")
+      if (user.team.locked) {
+        throw new Error("Your team is locked and cannot rent tools")
       }
-      if (!tool.available) {
+
+      // Conditionally mark tool as unavailable only if currently available (prevents double-rent race)
+      const updated = await tx.tool.updateMany({
+        where: { id: toolId, available: true },
+        data: { available: false },
+      })
+      if (updated.count === 0) {
+        const tool = await tx.tool.findUnique({ where: { id: toolId } })
+        if (!tool) throw new Error("Tool not found")
         throw new Error("Tool is not available")
       }
 
@@ -115,11 +122,6 @@ export async function POST(request: Request) {
           `Your team already has ${MAX_CONCURRENT_RENTALS} active rental(s)`
         )
       }
-
-      await tx.tool.update({
-        where: { id: toolId },
-        data: { available: false },
-      })
 
       const dueAt =
         TOOL_RENTAL_TIME_LIMIT_MINUTES > 0

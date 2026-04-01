@@ -219,8 +219,9 @@ export default function BrowsePage() {
       }
 
       // Create tool rentals
+      const failedRentals: string[] = [];
       if (cartTools.length > 0) {
-        const rentalResults = await Promise.all(
+        const rentalOutcomes = await Promise.allSettled(
           cartTools.map(async (tool) => {
             const res = await fetch('/api/inventory/rentals', {
               method: 'POST',
@@ -231,16 +232,32 @@ export default function BrowsePage() {
               const data = await res.json();
               throw new Error(data.error || `Failed to rent ${tool.name}`);
             }
-            return `${tool.name} rented`;
+            return { name: tool.name, toolId: tool.toolId };
           })
         );
-        results.push(...rentalResults);
+        for (let i = 0; i < rentalOutcomes.length; i++) {
+          const outcome = rentalOutcomes[i];
+          if (outcome.status === 'fulfilled') {
+            results.push(`${outcome.value.name} rented`);
+          } else {
+            failedRentals.push(cartTools[i].name);
+          }
+        }
       }
 
       setCart([]);
-      setCartTools([]);
+      setCartTools(prev => prev.filter(t => failedRentals.includes(t.name)));
       setCheckoutOpen(false);
-      setSuccessMessage(results.join('. ') + '. Check Team Home for status.');
+
+      if (failedRentals.length > 0 && results.length > 0) {
+        setSuccessMessage(results.join('. ') + '. Check Team Home for status.');
+        setError(`Failed to rent: ${failedRentals.join(', ')}`);
+      } else if (failedRentals.length > 0) {
+        setError(`Failed to rent: ${failedRentals.join(', ')}`);
+      } else {
+        setSuccessMessage(results.join('. ') + '. Check Team Home for status.');
+      }
+
       fetchItems();
       fetchTools();
       fetchRentals();
@@ -315,7 +332,7 @@ export default function BrowsePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredItems.map(item => (
-                  <ItemCard key={item.id} item={item} onAdd={addToCart} />
+                  <ItemCard key={item.id} item={item} cartQuantity={cart.find(c => c.itemId === item.id)?.quantity ?? 0} onAdd={addToCart} />
                 ))}
               </div>
             )}

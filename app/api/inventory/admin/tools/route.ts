@@ -29,9 +29,14 @@ export async function POST(request: Request) {
 
   const { sanitizeName, sanitizeDescription, validateImageUrl } = await import("@/lib/inventory/validation")
 
+  const safeName = sanitizeName(name)
+  if (!safeName) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 })
+  }
+
   const tool = await prisma.tool.create({
     data: {
-      name: sanitizeName(name),
+      name: safeName,
       description: description ? sanitizeDescription(description) : null,
       imageUrl: validateImageUrl(imageUrl),
     },

@@ -6,15 +6,15 @@ export async function register() {
     const { startOverdueChecker } = await import("./lib/inventory/overdue-checker");
     startOverdueChecker();
 
-    // Backfill Slack group DMs for teams that don't have one yet
+    // Backfill Slack group DMs for teams that don't have one yet (batched to avoid rate limits)
     const { syncTeamChannel } = await import("./lib/inventory/team-channel");
     const prisma = (await import("./lib/prisma")).default;
     prisma.team.findMany({
       where: { slackChannelId: null },
       select: { id: true },
-    }).then((teams) => {
+    }).then(async (teams) => {
       for (const team of teams) {
-        syncTeamChannel(team.id).catch(() => {});
+        await syncTeamChannel(team.id).catch(() => {});
       }
     }).catch(() => {});
   }

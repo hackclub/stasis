@@ -34,6 +34,13 @@ export async function POST(request: Request) {
   }
 
   const safeName = sanitizeName(name)
+  const safeCategory = sanitizeName(category)
+  if (!safeName || !safeCategory) {
+    return NextResponse.json(
+      { error: "Name and category are required" },
+      { status: 400 }
+    )
+  }
   const safeDescription = description ? sanitizeDescription(description) : null
   const safeImageUrl = validateImageUrl(imageUrl)
 
@@ -43,7 +50,7 @@ export async function POST(request: Request) {
       description: safeDescription,
       imageUrl: safeImageUrl,
       stock,
-      category: sanitizeName(category),
+      category: safeCategory,
       maxPerTeam,
     },
   })

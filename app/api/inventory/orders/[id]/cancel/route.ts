@@ -47,21 +47,33 @@ export async function POST(
     )
   }
 
-  // Cancel and restore stock
-  await prisma.$transaction(async (tx) => {
+  // Cancel and restore stock (re-check status inside transaction to prevent race)
+  const cancelled = await prisma.$transaction(async (tx) => {
+    const current = await tx.order.findUnique({ where: { id }, select: { status: true } })
+    if (!current || current.status === "READY" || current.status === "COMPLETED" || current.status === "CANCELLED") {
+      return false
+    }
+
     await tx.order.update({
       where: { id },
       data: { status: "CANCELLED" },
     })
 
-    // Restore stock for each item
     for (const item of order.items) {
       await tx.item.update({
         where: { id: item.itemId },
         data: { stock: { increment: item.quantity } },
       })
     }
+    return true
   })
+
+  if (!cancelled) {
+    return NextResponse.json(
+      { error: "Cannot cancel an order that is already ready, completed, or cancelled" },
+      { status: 400 }
+    )
+  }
 
   logAudit({
     action: AuditAction.INVENTORY_ORDER_CANCEL_USER,

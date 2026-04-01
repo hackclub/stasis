@@ -29,21 +29,17 @@ export async function PATCH(
 
   // If cancelling, restore stock
   if (status === "CANCELLED") {
-    const existing = await prisma.order.findUnique({
-      where: { id },
-      include: { items: true },
-    })
-    if (!existing) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 })
-    }
-    if (existing.status === "READY" || existing.status === "COMPLETED" || existing.status === "CANCELLED") {
-      return NextResponse.json(
-        { error: "Cannot cancel an order that is already ready, completed, or cancelled" },
-        { status: 400 }
-      )
-    }
+    // Validate and cancel inside transaction to prevent race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.order.findUnique({
+        where: { id },
+        include: { items: true },
+      })
+      if (!existing) return { error: "Order not found", status: 404 } as const
+      if (existing.status === "READY" || existing.status === "COMPLETED" || existing.status === "CANCELLED") {
+        return { error: "Cannot cancel an order that is already ready, completed, or cancelled", status: 400 } as const
+      }
 
-    const order = await prisma.$transaction(async (tx) => {
       const updated = await tx.order.update({
         where: { id },
         data: { status },
@@ -61,6 +57,12 @@ export async function PATCH(
       }
       return updated
     })
+
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
+    }
+
+    const order = result
 
     notifyOrderUpdate(order.teamId, order, "Cancelled")
 

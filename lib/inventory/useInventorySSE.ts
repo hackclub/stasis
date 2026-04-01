@@ -29,7 +29,9 @@ export function useInventorySSE(teamId: string | null) {
     es.onerror = () => {
       es.close()
       eventSourceRef.current = null
-      // Reconnect after 3 seconds
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
       reconnectTimeoutRef.current = setTimeout(connect, 3000)
     }
   }, [teamId])
