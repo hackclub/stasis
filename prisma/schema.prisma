@@ -62,6 +62,8 @@ model User {
   eventPreference    String?
   pronouns           String?
   disableGrain       Boolean   @default(false)
+  utmSource          String?
+  signupPage         String?
 
   // Encrypted PII fields (AES-256-GCM) — only populated when PULL_HCA_PII is set
   encryptedAddressStreet  String?

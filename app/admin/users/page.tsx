@@ -43,6 +43,8 @@ interface AdminUser {
   verificationStatus: string | null;
   pronouns: string | null;
   eventPreference: string | null;
+  utmSource: string | null;
+  signupPage: string | null;
   hasAddress: boolean;
   totalProjects: number;
   totalHoursClaimed: number;
@@ -721,6 +723,14 @@ export default function AdminUsersPage() {
                         <div>
                           <p className="text-cream-200 uppercase text-xs mb-1">Target Goal</p>
                           <p className="text-cream-50">{user.eventPreference ? GOAL_LABELS[user.eventPreference as GoalPreference] : '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">UTM Source</p>
+                          <p className="text-cream-50">{user.utmSource || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Signup Page</p>
+                          <p className="text-cream-50">{user.signupPage || '—'}</p>
                         </div>
                       </div>
 

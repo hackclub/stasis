@@ -86,6 +86,8 @@ export async function GET(request: NextRequest) {
         verificationStatus: true,
         pronouns: true,
         eventPreference: true,
+        utmSource: true,
+        signupPage: true,
         encryptedAddressStreet: true,
         encryptedAddressCity: true,
         encryptedAddressState: true,
