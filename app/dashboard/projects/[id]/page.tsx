@@ -134,6 +134,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [uploading, setUploading] = useState(false);
   const [showDesignSubmitDialog, setShowDesignSubmitDialog] = useState(false);
   const [showBuildSubmitDialog, setShowBuildSubmitDialog] = useState(false);
+  const [showDesignBlockers, setShowDesignBlockers] = useState(false);
+  const [showBuildBlockers, setShowBuildBlockers] = useState(false);
+  const [designBlockerFlash, setDesignBlockerFlash] = useState(0);
+  const [buildBlockerFlash, setBuildBlockerFlash] = useState(0);
   const [submissionNotes, setSubmissionNotes] = useState('');
   const [showDesignUnsubmitDialog, setShowDesignUnsubmitDialog] = useState(false);
   const [showBuildUnsubmitDialog, setShowBuildUnsubmitDialog] = useState(false);
@@ -188,6 +192,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [alreadyClaimedBadges, setAlreadyClaimedBadges] = useState<BadgeType[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showTierHelp, setShowTierHelp] = useState(false);
+  const [showTypeHelp, setShowTypeHelp] = useState(false);
+  const [showTierPicker, setShowTierPicker] = useState(false);
+  const tierHelpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typeHelpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [importingJournal, setImportingJournal] = useState(false);
 
@@ -504,6 +513,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (stage === "design") {
       setShowDesignSubmitDialog(true);
     } else {
+      setSubmitStep('confirm');
       setShowBuildSubmitDialog(true);
     }
     startBackgroundScan();
@@ -622,6 +632,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     hasNewBuildSessions &&
     isVerified &&
     hasAddress;
+
+  const designSubmitBlockers: string[] = project ? [
+    ...(!project.description?.trim() ? ['Add a project description'] : []),
+    ...(!project.coverImage ? ['Upload a project image'] : []),
+    ...(!project.githubRepo ? ['Link a GitHub repo'] : []),
+    ...(project.bomItems.length === 0 && !project.noBomNeeded ? ['Add BOM items or mark as no parts needed'] : []),
+    ...(!project.noBomNeeded && project.bomItems.length > 0 && project.cartScreenshots.length === 0 ? ['Upload a cart screenshot'] : []),
+    ...(designSessions.length === 0 ? ['Log at least 1 journal entry'] : []),
+    ...(!isVerified ? ['Verify your email'] : []),
+    ...(!hasAddress ? ['Add your shipping address in settings'] : []),
+  ] : [];
+
+  const buildSubmitBlockers: string[] = project ? [
+    ...(buildSessions.length === 0 ? ['Log at least 1 journal entry'] : []),
+    ...(!hasNewBuildSessions ? ['Log a new journal entry since your last submission'] : []),
+    ...(!isVerified ? ['Verify your email'] : []),
+    ...(!hasAddress ? ['Add your shipping address in settings'] : []),
+  ] : [];
 
   const handleRequestUpdate = async () => {
     if (!project) return;
@@ -1004,7 +1032,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       <div>
           {/* Project Header */}
           <div className="mb-8">
-            <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex flex-col-reverse md:flex-row md:items-start md:justify-between gap-4">
               <div className="flex-1">
                 {editingField === 'title' ? (
                   <div className="mb-2">
@@ -1058,123 +1086,215 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     )}
                   </p>
                 )}
+                {project.isStarter && (
+                  <div className="flex flex-wrap items-center gap-2 mt-4">
+                    <span className="text-xs bg-orange-500 text-white font-medium px-2 py-1 uppercase">
+                      Starter
+                    </span>
+                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-full md:w-fit">
+                  <div className="flex flex-wrap gap-3 md:gap-6 text-sm">
+                    <div>
+                      <span className="text-brown-800">Hours Logged:</span>{' '}
+                      <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
+                    </div>
+                    <div>
+                      <span className="text-brown-800">Hours Approved:</span>{' '}
+                      <span className="text-orange-500">{project.totalHoursApproved.toFixed(1)}h</span>
+                    </div>
+                    {project.bitsAwarded != null && (
+                      <div>
+                        <span className="text-brown-800">Bits Received:</span>{' '}
+                        <span className="text-orange-500">{project.bitsAwarded}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GitHub Repo */}
+                  <div data-tutorial="github" className="mt-3 text-sm">
+                    <span className="text-brown-800">GitHub Repo:</span>{' '}
+                    {editingField === 'githubRepo' ? (
+                      <span className="inline-flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editGithubRepo}
+                          onChange={(e) => setEditGithubRepo(e.target.value)}
+                          className="bg-white border-2 border-orange-500 text-brown-800 px-2 py-0.5 text-sm focus:outline-none w-full md:w-64"
+                          placeholder="github.com/username/repo"
+                          autoFocus
+                        />
+                        <button onClick={() => saveField('githubRepo', { githubRepo: editGithubRepo.trim() || null })} disabled={savingField} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 text-white px-2 py-0.5 text-xs uppercase cursor-pointer">
+                          {savingField ? '...' : 'Save'}
+                        </button>
+                        <button onClick={cancelEditing} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-2 py-0.5 text-xs uppercase cursor-pointer">Cancel</button>
+                      </span>
+                    ) : project.githubRepo ? (
+                      <span className="group">
+                        <a
+                          href={project.githubRepo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-orange-500 hover:text-orange-400 underline"
+                        >
+                          {project.githubRepo}
+                        </a>
+                        {canEdit && (
+                          <button onClick={() => startEditing('githubRepo')} className="ml-1 text-cream-500 hover:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-block align-middle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-brown-800">
+                        Not set.{' '}
+                        {canEdit && (
+                          <button onClick={() => startEditing('githubRepo')} className="text-orange-500 hover:text-orange-400 underline cursor-pointer">
+                            Add one
+                          </button>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              
-              {/* Project Image / Upload */}
-              <label className="w-full sm:w-64 h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 flex flex-col items-center justify-center flex-shrink-0 transition-colors cursor-pointer group relative overflow-hidden">
-                {project.coverImage ? (
-                  <>
-                    <img 
-                      src={project.coverImage} 
-                      alt={project.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white mb-1">
+
+              {/* Project Image / Upload + Tier Card */}
+              <div className="w-full md:w-64 flex-shrink-0">
+                <label className="w-full h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 flex flex-col items-center justify-center transition-colors cursor-pointer group relative overflow-hidden">
+                  {project.coverImage ? (
+                    <>
+                      <img
+                        src={project.coverImage}
+                        alt={project.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white mb-1">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <span className="text-white text-xs uppercase font-medium">Change Image</span>
+                      </div>
+                    </>
+                  ) : uploading ? (
+                    <span className="text-brown-800 text-xs uppercase">Uploading...</span>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brown-800 group-hover:text-orange-500 mb-1">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                         <circle cx="8.5" cy="8.5" r="1.5"/>
                         <polyline points="21 15 16 10 5 21"/>
                       </svg>
-                      <span className="text-white text-xs uppercase font-medium">Change Image</span>
+                      <span className="text-brown-800 group-hover:text-orange-500 text-xs uppercase font-medium">Upload Project Image</span>
+                      <span className="text-cream-600 text-[10px] mt-1">Required for submission</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleScreenshotUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Tier Card */}
+                {(() => {
+                  const currentTier = project.tier ? TIERS.find(t => t.id === project.tier) : null;
+                  const tierLocked = project.designStatus !== 'draft';
+                  const tierEditable = canEdit && !tierLocked;
+                  return (
+                    <div
+                      className={`mt-2 border-2 px-3 py-2 group/tier relative ${
+                        currentTier
+                          ? 'bg-cream-100 border-cream-400'
+                          : 'bg-cream-100 border-dashed border-cream-400'
+                      }`}
+                    >
+                      <p className="text-[10px] text-cream-500 uppercase tracking-wide mb-0.5">Complexity Level</p>
+                      {currentTier ? (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-brown-800 uppercase font-medium">{currentTier.name}</span>
+                            <span className="text-xs text-cream-600">
+                              {currentTier.bits}&nbsp;bits · {currentTier.minHours}{currentTier.maxHours === Infinity ? '+' : `–${currentTier.maxHours}`}h
+                            </span>
+                          </div>
+                          {tierEditable && (
+                            <button
+                              type="button"
+                              onClick={() => setShowTierPicker(true)}
+                              className="absolute inset-0 flex items-center justify-center bg-cream-100/80 opacity-0 group-hover/tier:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-orange-500">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => canEdit && setShowTierPicker(true)}
+                          className="text-sm text-cream-500 hover:text-orange-500 transition-colors cursor-pointer"
+                        >
+                          Set complexity level
+                        </button>
+                      )}
                     </div>
-                  </>
-                ) : uploading ? (
-                  <span className="text-brown-800 text-xs uppercase">Uploading...</span>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brown-800 group-hover:text-orange-500 mb-1">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                      <circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    <span className="text-brown-800 group-hover:text-orange-500 text-xs uppercase font-medium">Upload Project Image</span>
-                    <span className="text-cream-600 text-[10px] mt-1">Required for submission</span>
-                  </>
-                )}
-                <input 
-                  type="file" 
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleScreenshotUpload}
-                  disabled={uploading}
-                  className="hidden"
-                />
-              </label>
+                  );
+                })()}
+              </div>
             </div>
 
-            {project.isStarter && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                <span className="text-xs bg-orange-500 text-white font-medium px-2 py-1 uppercase">
-                  Starter
-                </span>
+            {/* Tier Picker Modal */}
+            {showTierPicker && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/75" onClick={() => setShowTierPicker(false)} />
+                <div className="relative bg-cream-100 border-2 border-cream-400 max-w-md w-full mx-4">
+                  <div className="bg-orange-500 px-4 py-2 flex items-center justify-between">
+                    <h3 className="text-white text-sm uppercase tracking-wide">Complexity Level</h3>
+                    <button
+                      onClick={() => setShowTierPicker(false)}
+                      className="text-white hover:text-cream-100 transition-colors cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="p-4 flex flex-col gap-2">
+                    {TIERS.map((tier) => {
+                      const isSelected = project.tier === tier.id;
+                      return (
+                        <button
+                          key={tier.id}
+                          type="button"
+                          onClick={() => {
+                            saveField('tier', { tier: tier.id });
+                            setShowTierPicker(false);
+                          }}
+                          className={`w-full px-3 py-2 text-sm text-left border flex items-center justify-between transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-orange-500 text-white border-orange-400'
+                              : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
+                          }`}
+                        >
+                          <span className="uppercase font-medium">{tier.name}</span>
+                          <span className="text-xs opacity-80">
+                            {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
-
-            {/* Stats */}
-            <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-full sm:w-fit">
-              <div className="flex flex-wrap gap-3 sm:gap-6 text-sm">
-                <div>
-                  <span className="text-brown-800">Hours Logged:</span>{' '}
-                  <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
-                </div>
-                <div>
-                  <span className="text-brown-800">Hours Approved:</span>{' '}
-                  <span className="text-orange-500">{project.totalHoursApproved.toFixed(1)}h</span>
-                </div>
-                {project.bitsAwarded != null && (
-                  <div>
-                    <span className="text-brown-800">Bits Received:</span>{' '}
-                    <span className="text-orange-500">{project.bitsAwarded}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* GitHub Repo */}
-              <div data-tutorial="github" className="mt-3 text-sm">
-                <span className="text-brown-800">GitHub Repo:</span>{' '}
-                {editingField === 'githubRepo' ? (
-                  <span className="inline-flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={editGithubRepo}
-                      onChange={(e) => setEditGithubRepo(e.target.value)}
-                      className="bg-white border-2 border-orange-500 text-brown-800 px-2 py-0.5 text-sm focus:outline-none w-full sm:w-64"
-                      placeholder="github.com/username/repo"
-                      autoFocus
-                    />
-                    <button onClick={() => saveField('githubRepo', { githubRepo: editGithubRepo.trim() || null })} disabled={savingField} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 text-white px-2 py-0.5 text-xs uppercase cursor-pointer">
-                      {savingField ? '...' : 'Save'}
-                    </button>
-                    <button onClick={cancelEditing} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-2 py-0.5 text-xs uppercase cursor-pointer">Cancel</button>
-                  </span>
-                ) : project.githubRepo ? (
-                  <span className="group">
-                    <a
-                      href={project.githubRepo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-orange-500 hover:text-orange-400 underline"
-                    >
-                      {project.githubRepo}
-                    </a>
-                    {canEdit && (
-                      <button onClick={() => startEditing('githubRepo')} className="ml-1 text-cream-500 hover:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-block align-middle">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-brown-800">
-                    Not set.{' '}
-                    {canEdit && (
-                      <button onClick={() => startEditing('githubRepo')} className="text-orange-500 hover:text-orange-400 underline cursor-pointer">
-                        Add one
-                      </button>
-                    )}
-                  </span>
-                )}
-              </div>
-
-            </div>
 
             {/* Quick Actions */}
             {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
@@ -1210,7 +1330,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* Stage Progress */}
-          <div data-tutorial="stage-progress" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
+          <div data-tutorial="stage-progress" className="mb-6">
             <StageProgress 
               designStatus={project.designStatus} 
               buildStatus={project.buildStatus}
@@ -2019,96 +2139,59 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <div className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
               <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Project Settings</h2>
 
-              {/* Tier - always visible as selectable buttons */}
-              <div className="mb-5">
-                <p className="text-brown-800 text-xs uppercase mb-2">
-                  Complexity Level
-                  {project.designStatus === 'approved' && (
-                    <span className="ml-2 text-cream-500 normal-case">(locked by reviewer)</span>
+              {/* Project Type - always visible as toggle */}
+              {(() => {
+                const typeLocked = project.designStatus !== 'draft';
+                return (
+              <div className="border-t border-cream-400 pt-4 relative">
+                <p className="text-brown-800 text-xs uppercase mb-2 inline-flex items-center gap-1">
+                  Project Type
+                  <span
+                    onMouseEnter={() => { typeHelpTimer.current = setTimeout(() => setShowTypeHelp(true), 500) }}
+                    onMouseLeave={() => { if (typeHelpTimer.current) clearTimeout(typeHelpTimer.current); setShowTypeHelp(false) }}
+                    className="w-3.5 h-3.5 border border-cream-500 text-cream-500 hover:border-orange-500 hover:text-orange-500 text-[10px] flex items-center justify-center cursor-help transition-colors leading-none"
+                  >
+                    ?
+                  </span>
+                  {typeLocked && (
+                    <span className="ml-1 text-cream-500 normal-case">(locked after submission)</span>
                   )}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {TIERS.map((tier) => {
-                    const isSelected = project.tier === tier.id;
-                    const isLocked = project.designStatus === 'approved';
-                    return (
-                      <button
-                        key={tier.id}
-                        type="button"
-                        onClick={() => !isLocked && saveField('tier', { tier: isSelected ? null : tier.id })}
-                        disabled={isLocked}
-                        className={`px-3 py-2 text-sm text-left border transition-colors ${
-                          isSelected
-                            ? isLocked
-                              ? 'bg-green-600/20 border-green-600 text-green-700 cursor-default'
-                              : 'bg-orange-500 text-white border-orange-400 cursor-pointer'
-                            : isLocked
-                              ? 'bg-cream-200 text-cream-400 border-cream-300 cursor-default'
-                              : 'bg-cream-300 text-brown-800 hover:bg-cream-400 border-cream-400 cursor-pointer'
-                        }`}
-                      >
-                        <span className="uppercase font-medium">{tier.name}</span>
-                        <span className="block text-xs mt-0.5 opacity-80">
-                          {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Journal Import/Export */}
-              <div className="border-t border-cream-400 pt-4 mb-5">
-                <p className="text-brown-800 text-xs uppercase mb-2">Journal Import / Export</p>
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={`/api/projects/${project.id}/sessions/export`}
-                    className="inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Export Journal
-                  </a>
-                  <label className={`inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer border border-cream-400 ${importingJournal ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    {importingJournal ? 'Importing...' : 'Import Journal'}
-                    <input
-                      type="file"
-                      accept=".md,.markdown,text/markdown"
-                      onChange={handleImportJournal}
-                      disabled={importingJournal}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                <p className="text-cream-600 text-xs mt-1">Export your journal to put it in your GitHub repo! You can also import from Blueprint.</p>
-              </div>
-
-              {/* Project Type - always visible as toggle */}
-              <div className="border-t border-cream-400 pt-4">
-                <p className="text-brown-800 text-xs uppercase mb-2">Project Type</p>
+                {showTypeHelp && (
+                  <div className="absolute z-10 bottom-full left-0 mb-1 bg-cream-200 border border-cream-400 p-3 text-xs text-brown-800 leading-relaxed shadow-md max-w-xs">
+                    <p><strong>Custom Design:</strong> This project is your own original design.</p>
+                    <p className="mt-1"><strong>Starter Project:</strong> This project is based on one of our starter projects.</p>
+                  </div>
+                )}
                 <div className="flex gap-2 max-w-xs">
                   <button
                     type="button"
-                    onClick={() => !project.isStarter || saveField('projectType', { isStarter: false, starterProjectId: null })}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      !project.isStarter
-                        ? 'bg-orange-500 text-white font-medium'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    onClick={() => !typeLocked && (!project.isStarter || saveField('projectType', { isStarter: false, starterProjectId: null }))}
+                    disabled={typeLocked}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors ${
+                      typeLocked
+                        ? !project.isStarter
+                          ? 'bg-green-600/20 border border-green-600 text-green-700 cursor-default'
+                          : 'bg-cream-200 text-cream-400 border border-cream-300 cursor-default'
+                        : !project.isStarter
+                          ? 'bg-orange-500 text-white font-medium cursor-pointer'
+                          : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
                     }`}
                   >
                     Custom
                   </button>
                   <button
                     type="button"
-                    onClick={() => project.isStarter || startEditing('projectType')}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      project.isStarter
-                        ? 'bg-orange-500 text-white font-medium'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    onClick={() => !typeLocked && (project.isStarter || startEditing('projectType'))}
+                    disabled={typeLocked}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors ${
+                      typeLocked
+                        ? project.isStarter
+                          ? 'bg-green-600/20 border border-green-600 text-green-700 cursor-default'
+                          : 'bg-cream-200 text-cream-400 border border-cream-300 cursor-default'
+                        : project.isStarter
+                          ? 'bg-orange-500 text-white font-medium cursor-pointer'
+                          : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
                     }`}
                   >
                     Starter
@@ -2135,6 +2218,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </div>
                 )}
               </div>
+                );
+              })()}
 
             </div>
           )}
@@ -2143,14 +2228,42 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="flex flex-wrap gap-3 mb-8">
             {/* Design Stage: Submit or Unsubmit */}
             {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-              <button
-                data-tutorial="submit"
-                onClick={() => openSubmitDialog('design')}
-                disabled={submitting || !canSubmitDesign}
-                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                {submitting ? 'Submitting...' : (project.designStatus === "draft" ? 'Submit Design for Review' : 'Resubmit Design')}
-              </button>
+              <div className="flex-1 min-w-[200px]">
+                <button
+                  data-tutorial="submit"
+                  onClick={() => {
+                    if (canSubmitDesign) {
+                      setShowDesignBlockers(false);
+                      openSubmitDialog('design');
+                    } else if (showDesignBlockers) {
+                      setDesignBlockerFlash(f => f + 1);
+                    } else {
+                      setShowDesignBlockers(true);
+                    }
+                  }}
+                  disabled={submitting}
+                  className={`w-full py-3 uppercase tracking-wider transition-colors ${
+                    canSubmitDesign
+                      ? 'bg-green-600 hover:bg-green-500 text-white cursor-pointer'
+                      : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
+                  }`}
+                >
+                  {submitting ? 'Submitting...' : (project.designStatus === "draft" ? 'Submit Design for Review' : 'Resubmit Design')}
+                </button>
+                {showDesignBlockers && !canSubmitDesign && designSubmitBlockers.length > 0 && (
+                  <div key={designBlockerFlash} className="mt-2 animate-[blocker-flash_0.3s_ease-out]">
+                    <p className="text-xs text-brown-800 mb-1">You still need to:</p>
+                  <ul className="text-xs text-cream-600 space-y-0.5">
+                    {designSubmitBlockers.map((b) => (
+                      <li key={b} className="flex items-start gap-1.5">
+                        <span className="text-cream-500 mt-px">&#x2022;</span>
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  </div>
+                )}
+              </div>
             )}
             {project.designStatus === "in_review" && (
               <button
@@ -2164,14 +2277,42 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
             {/* Build Stage: Submit or Unsubmit */}
             {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved" || project.buildStatus === "update_requested") && (
-              <button
-                data-tutorial="submit"
-                onClick={() => openSubmitDialog('build')}
-                disabled={submitting || !canSubmitBuild}
-                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                {submitting ? 'Submitting...' : (project.buildStatus === "draft" ? 'Submit Build for Review' : 'Resubmit Build')}
-              </button>
+              <div className="flex-1 min-w-[200px]">
+                <button
+                  data-tutorial="submit"
+                  onClick={() => {
+                    if (canSubmitBuild) {
+                      setShowBuildBlockers(false);
+                      openSubmitDialog('build');
+                    } else if (showBuildBlockers) {
+                      setBuildBlockerFlash(f => f + 1);
+                    } else {
+                      setShowBuildBlockers(true);
+                    }
+                  }}
+                  disabled={submitting}
+                  className={`w-full py-3 uppercase tracking-wider transition-colors ${
+                    canSubmitBuild
+                      ? 'bg-green-600 hover:bg-green-500 text-white cursor-pointer'
+                      : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
+                  }`}
+                >
+                  {submitting ? 'Submitting...' : (project.buildStatus === "draft" ? 'Submit Build for Review' : 'Resubmit Build')}
+                </button>
+                {showBuildBlockers && !canSubmitBuild && buildSubmitBlockers.length > 0 && (
+                  <div key={buildBlockerFlash} className="mt-2 animate-[blocker-flash_0.3s_ease-out]">
+                    <p className="text-xs text-brown-800 mb-1">You still need to:</p>
+                    <ul className="text-xs text-cream-600 space-y-0.5">
+                      {buildSubmitBlockers.map((b) => (
+                        <li key={b} className="flex items-start gap-1.5">
+                          <span className="text-cream-500 mt-px">&#x2022;</span>
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             )}
             {project.buildStatus === "in_review" && (
               <button
@@ -2443,10 +2584,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </div>
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setSubmitStep('type')}
+                        onClick={() => { setShowBuildSubmitDialog(false); setSubmissionNotes(''); }}
                         className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                       >
-                        Back
+                        Cancel
                       </button>
                       <button
                         onClick={handleSubmitBuild}

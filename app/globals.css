@@ -174,17 +174,22 @@ a:focus-visible {
 /* Tamagotchi Streak Challenge animations */
 @keyframes tamagotchi-hop {
 	0%   { transform: translateY(0); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
-	20%  { transform: translateY(-14px); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
-	45%  { transform: translateY(2px); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
-	62%  { transform: translateY(-5px); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
-	78%  { transform: translateY(1px); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
-	90%  { transform: translateY(-2px); animation-timing-function: ease-out; }
+	20%  { transform: translateY(clamp(-22px, -1.2vw, -14px)); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
+	45%  { transform: translateY(clamp(2px, 0.15vw, 3px)); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	62%  { transform: translateY(clamp(-8px, -0.4vw, -5px)); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
+	78%  { transform: translateY(clamp(1px, 0.08vw, 2px)); animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+	90%  { transform: translateY(clamp(-3px, -0.15vw, -2px)); animation-timing-function: ease-out; }
 	100% { transform: translateY(0); }
 }
 
 @keyframes tamagotchi-fly-up {
 	from { transform: translateY(100%); }
 	to   { transform: translateY(0); }
+}
+
+@keyframes blocker-flash {
+	0%   { opacity: 0.4; }
+	100% { opacity: 1; }
 }
 
 @keyframes tamagotchi-fly-down {

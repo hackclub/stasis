@@ -29,6 +29,8 @@ interface Project {
   starterProjectId: string | null
   coverImage: string | null
   status: "draft" | "in_review" | "approved" | "rejected"
+  designStatus?: "draft" | "in_review" | "approved" | "rejected" | "update_requested"
+  buildStatus?: "draft" | "in_review" | "approved" | "rejected" | "update_requested"
   badges?: ProjectBadge[]
 }
 
@@ -92,9 +94,15 @@ export function ProjectCard({ project }: Readonly<Props>) {
               In Review
             </span>
           ) : project.status === 'approved' ? (
-            <span className="text-[10px] bg-green-600 text-white font-medium px-1.5 py-0.5 uppercase">
-              Approved
-            </span>
+            project.buildStatus === 'approved' ? (
+              <span className="text-[10px] bg-green-600 text-white font-medium px-1.5 py-0.5 uppercase">
+                Build Approved
+              </span>
+            ) : (
+              <span className="text-[10px] bg-blue-600 text-white font-medium px-1.5 py-0.5 uppercase">
+                Design Approved
+              </span>
+            )
           ) : project.status === 'rejected' ? (
             <span className="text-[10px] bg-red-600 text-white font-medium px-1.5 py-0.5 uppercase">
               Rejected
