@@ -1225,7 +1225,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-brown-800 uppercase font-medium">{currentTier.name}</span>
                             <span className="text-xs text-cream-600">
-                              {currentTier.bits}&nbsp;bits · {currentTier.minHours}{currentTier.maxHours === Infinity ? '+' : `–${currentTier.maxHours}`}h
+                              {currentTier.bits}&nbsp;bits · {currentTier.minHours}{currentTier.maxHours === Infinity ? 'h+' : `–${currentTier.maxHours}h`}
                             </span>
                           </div>
                           {tierEditable && (
@@ -1290,7 +1290,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         >
                           <span className="uppercase font-medium">{tier.name}</span>
                           <span className="text-xs opacity-80">
-                            {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                            {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? 'h+' : `–${tier.maxHours}h`}
                           </span>
                         </button>
                       );
