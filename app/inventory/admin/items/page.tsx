@@ -231,7 +231,7 @@ export default function AdminInventoryPage() {
               </div>
               <div>
                 <label className="block text-brown-800/70 text-xs uppercase mb-1">Max Per Team *</label>
-                <input type="number" value={formMaxPerTeam} onChange={(e) => setFormMaxPerTeam(e.target.value)} className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800" min="0" required />
+                <input type="number" value={formMaxPerTeam} onChange={(e) => setFormMaxPerTeam(e.target.value)} className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800" min="1" required />
               </div>
             </div>
             <div>
@@ -295,7 +295,7 @@ export default function AdminInventoryPage() {
                           <datalist id="cat-edit">{categories.map((c) => <option key={c} value={c} />)}</datalist>
                         </td>
                         <td className="px-3 py-2"><input type="number" value={editItemStock} onChange={(e) => setEditItemStock(e.target.value)} className="w-24 border-2 border-brown-800 bg-cream-50 px-2 py-1 text-sm" min="0" /></td>
-                        <td className="px-3 py-2"><input type="number" value={editItemMaxPerTeam} onChange={(e) => setEditItemMaxPerTeam(e.target.value)} className="w-24 border-2 border-brown-800 bg-cream-50 px-2 py-1 text-sm" min="0" /></td>
+                        <td className="px-3 py-2"><input type="number" value={editItemMaxPerTeam} onChange={(e) => setEditItemMaxPerTeam(e.target.value)} className="w-24 border-2 border-brown-800 bg-cream-50 px-2 py-1 text-sm" min="1" /></td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             <input type="text" value={editItemImageUrl} onChange={(e) => setEditItemImageUrl(e.target.value)} className="flex-1 border-2 border-brown-800 bg-cream-50 px-2 py-1 text-sm min-w-0" placeholder="URL" />
