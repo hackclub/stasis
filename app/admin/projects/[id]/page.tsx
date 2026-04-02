@@ -175,6 +175,10 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
   const [savingGrant, setSavingGrant] = useState(false);
   const [showFraudWarning, setShowFraudWarning] = useState(true);
   const [flaggingFraud, setFlaggingFraud] = useState(false);
+  const [ghChecks, setGhChecks] = useState<Array<{ key: string; label: string; passed: boolean; detail?: string }> | null>(null);
+  const [ghChecksLoading, setGhChecksLoading] = useState(false);
+  const [ghChecksError, setGhChecksError] = useState<string | null>(null);
+  const [ghChecksOpen, setGhChecksOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProject() {
@@ -758,14 +762,80 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
             {project.githubRepo && (
               <div className="mt-4">
                 <p className="text-cream-50 text-xs uppercase mb-1">GitHub Repository</p>
-                <a 
-                  href={project.githubRepo} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-orange-500 hover:text-orange-400 text-sm break-all"
-                >
-                  {project.githubRepo}
-                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={project.githubRepo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-500 hover:text-orange-400 text-sm break-all"
+                  >
+                    {project.githubRepo}
+                  </a>
+                  <button
+                    onClick={() => {
+                      if (ghChecksOpen && ghChecks) {
+                        setGhChecksOpen(false);
+                        return;
+                      }
+                      setGhChecksOpen(true);
+                      setGhChecksLoading(true);
+                      setGhChecksError(null);
+                      fetch(`/api/reviews/${projectId}/checks`, { cache: 'no-store' })
+                        .then(async (res) => {
+                          const d = await res.json();
+                          if (res.ok && d.checks) setGhChecks(d.checks);
+                          else setGhChecksError(d.error || d.detail || `HTTP ${res.status}`);
+                        })
+                        .catch((err) => setGhChecksError(String(err)))
+                        .finally(() => setGhChecksLoading(false));
+                    }}
+                    className="shrink-0 px-2 py-1 text-xs uppercase bg-brown-900 border border-cream-500/20 text-cream-50 hover:bg-brown-800 transition-colors"
+                  >
+                    {ghChecksOpen ? (ghChecksLoading ? 'Checking...' : 'Hide Checks') : 'Run Repo Checks'}
+                  </button>
+                </div>
+                {ghChecksOpen && (
+                  <div className="mt-3 p-3 bg-brown-900 border border-cream-500/20 rounded">
+                    {ghChecksLoading ? (
+                      <p className="text-cream-200 text-sm">Running checks...</p>
+                    ) : ghChecks ? (
+                      <div className="space-y-1.5">
+                        {ghChecks.map((check) => (
+                          <div key={check.key} className="flex items-center gap-2 text-sm">
+                            <span className={check.passed ? 'text-green-400' : 'text-red-400'}>
+                              {check.passed ? '✓' : '✗'}
+                            </span>
+                            <span className="text-cream-50">{check.label}</span>
+                            {check.detail && (
+                              <span className="text-cream-200 text-xs">({check.detail})</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : ghChecksError ? (
+                      <div className="text-sm">
+                        <p className="text-red-500">{ghChecksError}</p>
+                        <button
+                          onClick={() => {
+                            setGhChecksLoading(true);
+                            setGhChecksError(null);
+                            fetch(`/api/reviews/${projectId}/checks`, { cache: 'no-store' })
+                              .then(async (res) => {
+                                const d = await res.json();
+                                if (res.ok && d.checks) setGhChecks(d.checks);
+                                else setGhChecksError(d.error || d.detail || `HTTP ${res.status}`);
+                              })
+                              .catch((err) => setGhChecksError(String(err)))
+                              .finally(() => setGhChecksLoading(false));
+                          }}
+                          className="mt-2 text-orange-500 hover:text-orange-400 text-xs uppercase"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
             )}
 
