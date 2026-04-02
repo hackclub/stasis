@@ -16,7 +16,7 @@ export default function HelpLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden">
+    <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-clip">
       <div className="pl-3 pr-6 py-2 flex items-center justify-between border-b border-cream-400">
         <Link href="/" className="hover:opacity-80 transition-opacity">
           <Image src="/stasis-logo.svg" alt="Stasis" width={120} height={40} className="h-10 w-auto" />
