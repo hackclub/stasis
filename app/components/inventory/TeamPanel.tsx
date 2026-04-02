@@ -92,7 +92,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
       }
       setNewTeamName('');
       showSuccess('Team created!');
-      onTeamChanged();
+      window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create team');
     } finally {
@@ -109,7 +109,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
         throw new Error(data.error || 'Failed to join team');
       }
       showSuccess('Joined team!');
-      onTeamChanged();
+      window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join team');
     }
@@ -129,9 +129,10 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
         const data = await res.json();
         throw new Error(data.error || 'Failed to update team name');
       }
+      const updated = await res.json();
       setEditingName(false);
+      setTeam(prev => prev ? { ...prev, name: updated.name } : prev);
       showSuccess('Team name updated!');
-      onTeamChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update team name');
     } finally {
@@ -344,7 +345,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
             <div key={member.id} className="flex items-center gap-3">
               <img src={member.image || '/default_slack.png'} alt="" className="w-8 h-8 border border-cream-400" />
               <div className="flex-1 min-w-0">
-                <span className="text-brown-800 text-sm font-bold truncate block">{member.name}</span>
+                <span className="text-brown-800 text-sm font-bold truncate block">{member.name || member.slackDisplayName || 'Unknown'}</span>
                 {member.slackDisplayName && (
                   <span className="text-brown-800/50 text-xs truncate block">{member.slackDisplayName}</span>
                 )}

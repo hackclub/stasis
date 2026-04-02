@@ -8,7 +8,7 @@ export async function GET() {
 
   const teams = await prisma.team.findMany({
     include: {
-      members: { select: { id: true, name: true } },
+      members: { select: { id: true, name: true, slackDisplayName: true } },
     },
     orderBy: { name: "asc" },
   })

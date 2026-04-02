@@ -137,6 +137,10 @@ export async function DELETE(
     return NextResponse.json({ error: "You are not a member of this team" }, { status: 403 })
   }
 
+  if (team.locked) {
+    return NextResponse.json({ error: "Team is locked" }, { status: 403 })
+  }
+
   if (team.members.length > 1) {
     return NextResponse.json(
       { error: "Cannot delete a team with other members. All other members must leave first." },

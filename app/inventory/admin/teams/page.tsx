@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 interface TeamMember {
   id: string;
-  name: string;
+  name: string | null;
+  slackDisplayName?: string | null;
 }
 
 interface Team {
@@ -154,7 +155,7 @@ export default function AdminTeamsPage() {
                                 key={member.id}
                                 className="text-brown-800/70 text-xs"
                               >
-                                {member.name}
+                                {member.name || member.slackDisplayName || 'Unknown'}
                               </li>
                             ))}
                           </ul>

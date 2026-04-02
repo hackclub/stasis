@@ -40,32 +40,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Team name is required" }, { status: 400 })
   }
 
-  const existing = await prisma.team.findUnique({ where: { name: safeName } })
-  if (existing) {
-    return NextResponse.json({ error: "A team with this name already exists" }, { status: 409 })
-  }
+  let team
+  try {
+    team = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: session.user.id },
+        select: { teamId: true },
+      })
+      if (user?.teamId) throw new Error("ALREADY_ON_TEAM")
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { teamId: true },
-  })
+      const created = await tx.team.create({
+        data: { name: safeName },
+      })
 
-  if (user?.teamId) {
-    return NextResponse.json({ error: "You are already on a team" }, { status: 400 })
-  }
+      await tx.user.update({
+        where: { id: session.user.id },
+        data: { teamId: created.id },
+      })
 
-  const team = await prisma.$transaction(async (tx) => {
-    const created = await tx.team.create({
-      data: { name: safeName },
+      return created
     })
-
-    await tx.user.update({
-      where: { id: session.user.id },
-      data: { teamId: created.id },
-    })
-
-    return created
-  })
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === "ALREADY_ON_TEAM") {
+      return NextResponse.json({ error: "You are already on a team" }, { status: 400 })
+    }
+    // Prisma unique constraint violation (team name taken)
+    if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "P2002") {
+      return NextResponse.json({ error: "A team with this name already exists" }, { status: 409 })
+    }
+    throw err
+  }
 
   logAudit({
     action: AuditAction.INVENTORY_TEAM_CREATE,
