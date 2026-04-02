@@ -109,6 +109,7 @@ interface AdminProject {
   tier: number | null;
   bomTax: number | null;
   bomShipping: number | null;
+  requestedAmount: number | null;
   cartScreenshots: string[];
   createdAt: string;
   submittedAt: string | null;
@@ -1163,6 +1164,12 @@ export default function AdminProjectPage({ params }: { params: Promise<{ id: str
                         <p className="text-cream-50 text-xs uppercase mb-1">Approved</p>
                         <p className="text-green-600 text-lg">${formatPrice(approvedCost)}</p>
                       </div>
+                      {project.requestedAmount !== null && (
+                        <div>
+                          <p className="text-cream-50 text-xs uppercase mb-1">User Requested</p>
+                          <p className="text-orange-500 text-lg">${formatPrice(project.requestedAmount)}</p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-cream-50 text-xs uppercase mb-1">Cost / Hour</p>
                         <p className="text-cream-50 text-lg">

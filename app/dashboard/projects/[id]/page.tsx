@@ -69,6 +69,7 @@ interface Project {
   noBomNeeded: boolean;
   bomTax: number | null;
   bomShipping: number | null;
+  requestedAmount: number | null;
 
   coverImage: string | null;
   githubRepo: string | null;
@@ -152,6 +153,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [submitFirmware, setSubmitFirmware] = useState(false);
   const [submitNone, setSubmitNone] = useState(false);
   
+  const [localRequestedAmount, setLocalRequestedAmount] = useState<number | null>(null);
   const [bomForm, setBomForm] = useState({
     name: '',
     purpose: '',
@@ -161,6 +163,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     distributor: '',
   });
   const [addingBom, setAddingBom] = useState(false);
+  const [showAddBomForm, setShowAddBomForm] = useState(false);
   const [deletingBomId, setDeletingBomId] = useState<string | null>(null);
   const [editingBomItem, setEditingBomItem] = useState<BOMItem | null>(null);
   const [editBomForm, setEditBomForm] = useState({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' });
@@ -742,6 +745,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           setProject(await updatedRes.json());
         }
         setBomForm({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' });
+        setShowAddBomForm(false);
       } else {
         const data = await res.json();
         alert(data.error || 'Failed to add BOM item');
@@ -879,7 +883,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const handleUpdateBomField = async (field: 'bomTax' | 'bomShipping', value: number | null) => {
+  const handleUpdateBomField = async (field: 'bomTax' | 'bomShipping' | 'requestedAmount', value: number | null) => {
     if (!project) return;
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
@@ -1737,352 +1741,303 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {/* Bill of Materials */}
+          {(() => {
+            const bomEditable = project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested";
+            const bomItems = project.bomItems ?? [];
+            const estimatedCost = bomItems.reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0);
+            const tierData = project.tier ? TIERS.find(t => t.id === project.tier) : null;
+            const maxSpend = tierData ? Math.floor(tierData.bits * 0.5) : 0;
+            const effectiveRequestedAmt = localRequestedAmount ?? project.requestedAmount ?? Math.min(estimatedCost, maxSpend);
+            const bitsSpent = Math.min(Math.ceil(effectiveRequestedAmt), maxSpend);
+            const bitsTowardGoal = tierData ? Math.max(0, tierData.bits - bitsSpent) : 0;
+
+            return (<>
           <div data-tutorial="bom" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
             <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
-            
-            <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
-              <p className="text-blue-600 text-sm">
-                Your project&apos;s complexity level determines its <span className="font-medium">bit</span> allocation (<span className="font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials. You can <span className="font-medium">add tax and shipping costs separately</span> below the items table.
-              </p>
-            </div>
 
-            {(project.bomItems ?? []).length > 0 ? (
-              <div className="overflow-x-auto mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-cream-400">
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Name</th>
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Purpose</th>
-                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Qty</th>
-                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Total (USD)</th>
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Link</th>
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Distributor</th>
-                      {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                        <th className="text-center text-brown-800 uppercase text-xs py-2"></th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(project.bomItems ?? []).map((item) => (
-                      <tr key={item.id} className="border-b border-cream-300">
-                        <td className="text-brown-800 py-2 pr-3">{item.name}</td>
-                        <td className="text-brown-800 py-2 pr-3">{item.purpose || '-'}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity ?? '-'}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.totalCost)}</td>
-                        <td className="py-2 pr-3">
-                          {item.link ? (
-                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
-                              Link to Listing
-                            </a>
-                          ) : '-'}
-                        </td>
-                        <td className="text-brown-800 py-2 pr-3">{item.distributor || '-'}</td>
-                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                          <td className="py-2 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => openEditBomItem(item)}
-                                className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer text-xs uppercase tracking-wider"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteBomItem(item.id)}
-                                disabled={deletingBomId === item.id}
-                                className="text-red-500 hover:text-red-400 disabled:text-cream-400 transition-colors cursor-pointer"
-                              >
-                                {deletingBomId === item.id ? '...' : '✕'}
-                              </button>
-                            </div>
-                          </td>
-                        )}
+            {/* No parts needed checkbox */}
+            {bomEditable && (
+              <label className="flex items-center gap-2 mb-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={project.noBomNeeded}
+                  onChange={handleToggleNoBomNeeded}
+                  className="w-4 h-4 accent-orange-500 cursor-pointer"
+                />
+                <span className={`text-sm ${project.noBomNeeded ? 'text-green-600' : 'text-brown-800'}`}>
+                  I don&apos;t need any parts for this project
+                </span>
+              </label>
+            )}
+            {!bomEditable && project.noBomNeeded && (
+              <p className="text-green-600 text-sm mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                No parts needed for this project
+              </p>
+            )}
+
+            <div className={project.noBomNeeded ? 'opacity-40 pointer-events-none' : ''}>
+              <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
+                <p className="text-blue-600 text-sm">
+                  List the parts you need here. Your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials.
+                </p>
+              </div>
+
+              {/* Items table */}
+              {bomItems.length > 0 ? (
+                <div className="overflow-x-auto mb-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-cream-400">
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Name</th>
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Purpose</th>
+                        <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Qty</th>
+                        <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Total (USD)</th>
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Link</th>
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Distributor</th>
+                        {bomEditable && <th className="text-center text-brown-800 uppercase text-xs py-2"></th>}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                
-                {/* Tax & Shipping */}
-                <div className="flex gap-4 mt-3 pt-3 border-t border-cream-300">
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Tax (USD)</label>
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") ? (
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        defaultValue={project.bomTax ?? ''}
-                        onBlur={(e) => {
-                          const val = e.target.value ? parseFloat(e.target.value) : null;
-                          if (val !== (project.bomTax ?? null)) handleUpdateBomField('bomTax', val);
-                        }}
-                        className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                        placeholder="0.00"
-                      />
-                    ) : (
-                      <span className="text-brown-800 text-sm">${formatPrice(project.bomTax ?? 0)}</span>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Shipping (USD)</label>
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") ? (
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        defaultValue={project.bomShipping ?? ''}
-                        onBlur={(e) => {
-                          const val = e.target.value ? parseFloat(e.target.value) : null;
-                          if (val !== (project.bomShipping ?? null)) handleUpdateBomField('bomShipping', val);
-                        }}
-                        className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                        placeholder="0.00"
-                      />
-                    ) : (
-                      <span className="text-brown-800 text-sm">${formatPrice(project.bomShipping ?? 0)}</span>
-                    )}
+                    </thead>
+                    <tbody>
+                      {bomItems.map((item) => (
+                        <tr key={item.id} className="border-b border-cream-300">
+                          <td className="text-brown-800 py-2 pr-3">{item.name}</td>
+                          <td className="text-brown-800 py-2 pr-3">{item.purpose || '-'}</td>
+                          <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity ?? '-'}</td>
+                          <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.totalCost)}</td>
+                          <td className="py-2 pr-3">
+                            {item.link ? (
+                              <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
+                                Link
+                              </a>
+                            ) : '-'}
+                          </td>
+                          <td className="text-brown-800 py-2 pr-3">{item.distributor || '-'}</td>
+                          {bomEditable && (
+                            <td className="py-2 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button onClick={() => openEditBomItem(item)} className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer text-xs uppercase tracking-wider">
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDeleteBomItem(item.id)} disabled={deletingBomId === item.id} className="text-red-500 hover:text-red-400 disabled:text-cream-400 transition-colors cursor-pointer">
+                                  {deletingBomId === item.id ? '...' : '✕'}
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* Tax & Shipping */}
+                  <div className="flex gap-4 mt-3 pt-3 border-t border-cream-300">
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Tax (USD)</label>
+                      {bomEditable ? (
+                        <input type="number" step="any" min="0" defaultValue={project.bomTax ?? ''} onBlur={(e) => { const val = e.target.value ? parseFloat(e.target.value) : null; if (val !== (project.bomTax ?? null)) handleUpdateBomField('bomTax', val); }} className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="0.00" />
+                      ) : (
+                        <span className="text-brown-800 text-sm">${formatPrice(project.bomTax ?? 0)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Shipping (USD)</label>
+                      {bomEditable ? (
+                        <input type="number" step="any" min="0" defaultValue={project.bomShipping ?? ''} onBlur={(e) => { const val = e.target.value ? parseFloat(e.target.value) : null; if (val !== (project.bomShipping ?? null)) handleUpdateBomField('bomShipping', val); }} className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="0.00" />
+                      ) : (
+                        <span className="text-brown-800 text-sm">${formatPrice(project.bomShipping ?? 0)}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <p className="text-cream-600 text-sm mb-4">No items added yet.</p>
+              )}
 
-                <div className="flex flex-col items-end gap-1 mt-3 pt-3 border-t border-cream-400">
-                  <div className="flex items-center">
-                    <span className="text-brown-800 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
-                    <span className="text-brown-800 font-medium">
-                      ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0))}
-                    </span>
+              {/* Add new item button / inline form */}
+              {bomEditable && (
+                showAddBomForm ? (
+                  <form onSubmit={handleAddBomItem} className="border border-cream-400 p-4 mb-4">
+                    <p className="text-brown-800 text-xs uppercase mb-3">New Item</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Name *</label>
+                        <input type="text" value={bomForm.name} onChange={(e) => setBomForm({ ...bomForm, name: e.target.value })} required className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="Component name" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Purpose *</label>
+                        <input type="text" value={bomForm.purpose} onChange={(e) => setBomForm({ ...bomForm, purpose: e.target.value })} required className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="What is it for?" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Quantity</label>
+                        <input type="number" min="1" value={bomForm.quantity} onChange={(e) => setBomForm({ ...bomForm, quantity: e.target.value })} className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="1" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Total Cost (USD) *</label>
+                        <input type="number" step="any" min="0" value={bomForm.totalCost} onChange={(e) => setBomForm({ ...bomForm, totalCost: e.target.value })} className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Link</label>
+                        <input type="url" value={bomForm.link} onChange={(e) => setBomForm({ ...bomForm, link: e.target.value })} className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="https://..." />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Distributor *</label>
+                        <input type="text" value={bomForm.distributor} onChange={(e) => setBomForm({ ...bomForm, distributor: e.target.value })} required className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="e.g. Digikey, Amazon" />
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button type="submit" disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.totalCost || !bomForm.distributor} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer">
+                        {addingBom ? 'Saving...' : 'Save Item'}
+                      </button>
+                      <button type="button" onClick={() => { setShowAddBomForm(false); setBomForm({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' }); }} className="bg-cream-200 hover:bg-cream-300 text-brown-800 px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer">
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <button onClick={() => setShowAddBomForm(true)} className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer">
+                      + Add New Item
+                    </button>
+                    <button onClick={() => setShowBomImport(true)} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer border border-cream-400">
+                      Import CSV
+                    </button>
+                    {bomItems.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => {
+                            const items = project.bomItems ?? [];
+                            const header = "Name,Purpose,Quantity,Total Cost (USD),Link,Distributor";
+                            const rows = items.map((item) => {
+                              const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+                              return [escape(item.name), escape(item.purpose || ""), item.quantity ?? "", item.totalCost.toFixed(2), escape(item.link || ""), escape(item.distributor || "")].join(",");
+                            });
+                            const csv = [header, ...rows].join("\n");
+                            const blob = new Blob([csv], { type: "text/csv" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `${project.title || "project"}-bom.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
+                        >
+                          Export CSV
+                        </button>
+                        <button onClick={() => setShowDeleteAllBomConfirm(true)} className="text-red-500 hover:text-red-400 text-xs uppercase tracking-wider transition-colors cursor-pointer">
+                          Delete All
+                        </button>
+                      </>
+                    )}
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-brown-800 text-xs mr-3">Estimated cost in bits:</span>
-                    <span className="text-brown-800 text-sm">
-                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0))}&nbsp;bits
-                    </span>
-                  </div>
-                  {project.bitsAwarded != null && project.totalHoursApproved > 0 && (
-                    <div className="flex items-center">
-                      <span className="text-brown-800 text-xs mr-3">Bits per hour:</span>
-                      <span className="text-orange-500 text-sm">
-                        {(project.bitsAwarded / project.totalHoursApproved).toFixed(1)}/h
-                      </span>
+                )
+              )}
+
+              {/* Cart Screenshots */}
+              {!project.noBomNeeded && bomItems.length > 0 && (
+                <div className="border-t border-cream-400 pt-4 mb-4">
+                  <p className="text-brown-800 text-xs uppercase mb-3">Cart Screenshots</p>
+                  {project.cartScreenshots.length === 0 ? (
+                    <div className="flex items-center gap-3">
+                      <p className="text-cream-600 text-sm">Upload screenshots of your cart with the items you plan to buy.</p>
+                      {bomEditable && (
+                        <label className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
+                          {uploadingCartScreenshot ? 'Uploading...' : 'Upload'}
+                          <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartScreenshotUpload} disabled={uploadingCartScreenshot} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 flex-wrap">
+                      {project.cartScreenshots.map((url, i) => (
+                        <div key={i} className="relative group w-20 h-20">
+                          <button type="button" onClick={() => setExpandedScreenshot(url)} className="block w-full h-full border border-cream-400 hover:border-orange-500 transition-colors overflow-hidden cursor-pointer">
+                            <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                          </button>
+                          {bomEditable && (
+                            <button type="button" onClick={() => handleDeleteCartScreenshot(url)} className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {bomEditable && (
+                        <label className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
+                          {uploadingCartScreenshot ? (
+                            <span className="text-cream-600 text-[10px] uppercase">Uploading</span>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-500 group-hover:text-orange-500 transition-colors">
+                              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                          )}
+                          <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartScreenshotUpload} disabled={uploadingCartScreenshot} className="hidden" />
+                        </label>
+                      )}
                     </div>
                   )}
                 </div>
-              </div>
-            ) : (
-              <p className="text-brown-800 text-sm mb-4">No items added yet.</p>
-            )}
+              )}
 
-            {/* Cart Screenshots */}
-            {!project.noBomNeeded && (project.bomItems ?? []).length > 0 && (
-              <div className="border-t border-cream-400 pt-4 mb-4">
-                <p className="text-brown-800 text-xs uppercase mb-3">Cart Screenshots</p>
-                {project.cartScreenshots.length === 0 ? (
-                  <div className="flex items-center gap-3">
-                    <p className="text-cream-600 text-sm">Upload screenshots of your cart with the items you plan to buy.</p>
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                      <label className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
-                        {uploadingCartScreenshot ? 'Uploading...' : 'Upload'}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          onChange={handleCartScreenshotUpload}
-                          disabled={uploadingCartScreenshot}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
+              {/* Summary + Funding Request */}
+              {bomItems.length > 0 && (
+                <div className="border-t border-cream-400 pt-4">
+                  {/* Estimated BOM Cost */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-brown-800 text-sm uppercase">Estimated BOM Cost</span>
+                    <span className="text-brown-800 font-medium">${formatPrice(estimatedCost)}</span>
                   </div>
-                ) : (
-                  <div className="flex gap-2 flex-wrap">
-                    {project.cartScreenshots.map((url, i) => (
-                      <div key={i} className="relative group w-20 h-20">
-                        <button type="button" onClick={() => setExpandedScreenshot(url)} className="block w-full h-full border border-cream-400 hover:border-orange-500 transition-colors overflow-hidden cursor-pointer">
-                          <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-full object-cover" />
-                        </button>
-                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCartScreenshot(url)}
-                            className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                      <label className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
-                        {uploadingCartScreenshot ? (
-                          <span className="text-cream-600 text-[10px] uppercase">Uploading</span>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-500 group-hover:text-orange-500 transition-colors">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                          </svg>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          onChange={handleCartScreenshotUpload}
-                          disabled={uploadingCartScreenshot}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
 
-            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-              <form onSubmit={handleAddBomItem} className="border-t border-cream-400 pt-4">
-                <p className="text-brown-800 text-xs uppercase mb-3">Add New Item</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Name *</label>
-                    <input
-                      type="text"
-                      value={bomForm.name}
-                      onChange={(e) => setBomForm({ ...bomForm, name: e.target.value })}
-                      required
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="Component name"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Purpose *</label>
-                    <input
-                      type="text"
-                      value={bomForm.purpose}
-                      onChange={(e) => setBomForm({ ...bomForm, purpose: e.target.value })}
-                      required
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="What is it for?"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={bomForm.quantity}
-                      onChange={(e) => setBomForm({ ...bomForm, quantity: e.target.value })}
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Total Cost (USD)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={bomForm.totalCost}
-                      onChange={(e) => setBomForm({ ...bomForm, totalCost: e.target.value })}
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Link</label>
-                    <input
-                      type="url"
-                      value={bomForm.link}
-                      onChange={(e) => setBomForm({ ...bomForm, link: e.target.value })}
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Distributor *</label>
-                    <input
-                      type="text"
-                      value={bomForm.distributor}
-                      onChange={(e) => setBomForm({ ...bomForm, distributor: e.target.value })}
-                      required
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="e.g. Digikey, Amazon"
-                    />
+                  {/* Funding Request */}
+                  <div className="bg-cream-200/80 border border-cream-300 p-4">
+                    <p className="text-brown-800 text-xs uppercase mb-3">Funding Request</p>
+                    {tierData ? (
+                      <>
+                        <div className="flex items-center gap-3 mb-3">
+                          <label className="text-brown-800 text-sm">Amount requesting (USD):</label>
+                          {bomEditable ? (
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              max={maxSpend}
+                              value={effectiveRequestedAmt || ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? parseFloat(e.target.value) : 0;
+                                setLocalRequestedAmount(Math.min(val, maxSpend));
+                              }}
+                              onBlur={(e) => {
+                                let val = e.target.value ? parseFloat(e.target.value) : null;
+                                if (val !== null && val > maxSpend) val = maxSpend;
+                                handleUpdateBomField('requestedAmount', val);
+                              }}
+                              className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                            />
+                          ) : (
+                            <span className="text-brown-800 font-medium">${formatPrice(effectiveRequestedAmt)}</span>
+                          )}
+                          <span className="text-cream-600 text-xs">(max ${maxSpend})</span>
+                        </div>
+                        <div className="flex flex-col gap-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-brown-800">Bits spent on parts:</span>
+                            <span className="text-brown-800 font-medium">{bitsSpent} bits</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-brown-800">Bits toward your goal:</span>
+                            <span className="text-orange-500 font-medium">{bitsTowardGoal} of {tierData.bits} bits</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-cream-600 text-sm">Set a complexity level to configure your funding request.</p>
+                    )}
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.totalCost || !bomForm.distributor}
-                  className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
-                >
-                  {addingBom ? 'Adding...' : '+ Add Item'}
-                </button>
-              </form>
-            )}
-
-            <div className="border-t border-cream-400 pt-4 mt-4 flex items-center gap-4">
-              {(project.bomItems ?? []).length > 0 && (
-                <button
-                  onClick={() => {
-                    const items = project.bomItems ?? [];
-                    const header = "Name,Purpose,Quantity,Total Cost (USD),Link,Distributor";
-                    const rows = items.map((item) => {
-                      const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-                      return [
-                        escape(item.name),
-                        escape(item.purpose || ""),
-                        item.quantity ?? "",
-                        item.totalCost.toFixed(2),
-                        escape(item.link || ""),
-                        escape(item.distributor || ""),
-                      ].join(",");
-                    });
-                    const csv = [header, ...rows].join("\n");
-                    const blob = new Blob([csv], { type: "text/csv" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${project.title || "project"}-bom.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Export CSV
-                </button>
               )}
-              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                <button
-                  onClick={() => setShowBomImport(true)}
-                  className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Import CSV
-                </button>
-              )}
-              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (project.bomItems ?? []).length > 0 && (
-                <button
-                  onClick={() => setShowDeleteAllBomConfirm(true)}
-                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Delete All Items
-                </button>
-              )}
-              {((project.bomItems ?? []).length > 0 || (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested")) && (
-                <div className="w-px h-4 bg-cream-400" />
-              )}
-              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                <button
-                  onClick={handleToggleNoBomNeeded}
-                  className={`text-sm transition-colors cursor-pointer ${
-                    project.noBomNeeded 
-                      ? 'text-green-600 hover:text-green-500' 
-                      : 'text-cream-600 hover:text-cream-500'
-                  }`}
-                >
-                  {project.noBomNeeded ? (
-                    <span className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      No parts needed for this project
-                    </span>
-                  ) : (
-                    "I don't need to buy any parts for this project"
-                  )}
-                </button>
-              )}
+            </div>
             </div>
             {showBomImport && project && (
               <BomCsvImportModal
@@ -2132,7 +2087,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
             )}
-          </div>
+          </>);
+          })()}
 
           {/* Complexity Level & Project Type */}
           {canEdit && (
@@ -2405,7 +2361,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       disabled={savingBomEdit || !editBomForm.name || !editBomForm.totalCost}
                       className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider text-sm transition-colors cursor-pointer"
                     >
-                      {savingBomEdit ? 'Saving...' : 'Save Changes'}
+                      {savingBomEdit ? 'Saving...' : 'Save Item'}
                     </button>
                   </div>
                 </form>
