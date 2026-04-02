@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from "@/lib/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { ProjectCard } from '../components/projects/ProjectCard';
+import { BlueprintImportCard } from '../components/projects/BlueprintImportCard';
 import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial } from '../components/OnboardingTutorial';
@@ -28,6 +29,25 @@ interface GoalPrize {
   description: string;
 }
 
+interface BlueprintImportItem {
+  id: string;
+  blueprintProjectId: number;
+  blueprintTitle: string;
+  status: string;
+  rawData: {
+    title: string;
+    description: string | null;
+    tier: number | null;
+    repoLink: string | null;
+    demoLink: string | null;
+    projectType: string | null;
+    ysws: string | null;
+    hoursLogged: number | null;
+    createdAt: string | null;
+    journalMarkdown: string | null;
+  };
+}
+
 export default function ProjectsPage() {
   const { data: session, isPending } = useSession();
   const searchParams = useSearchParams();
@@ -36,6 +56,9 @@ export default function ProjectsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [blueprintImports, setBlueprintImports] = useState<BlueprintImportItem[]>([]);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check localStorage for cross-page tutorial replay trigger
@@ -113,6 +136,16 @@ export default function ProjectsPage() {
           setShowPronounsModal(true);
         }
       }
+      // Fetch Blueprint imports
+      try {
+        const bpRes = await fetch('/api/projects/blueprint-import');
+        if (bpRes.ok) {
+          const { imports } = await bpRes.json();
+          setBlueprintImports(imports || []);
+        }
+      } catch {
+        // Blueprint API may not be configured
+      }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -174,6 +207,53 @@ export default function ProjectsPage() {
       console.error('Failed to create project:', error);
       setModalError('Failed to create project');
       return { error: 'Failed to create project' };
+    }
+  };
+
+  const handleBlueprintAccept = async (importId: string) => {
+    setAcceptingId(importId);
+    try {
+      const res = await fetch('/api/projects/blueprint-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importId }),
+      });
+      if (res.ok) {
+        setBlueprintImports(prev => prev.filter(i => i.id !== importId));
+        fetchProjects();
+      }
+    } catch (error) {
+      console.error('Failed to accept Blueprint import:', error);
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
+  const handleBlueprintDecline = async (importId: string) => {
+    setDecliningId(importId);
+    try {
+      const res = await fetch(`/api/projects/blueprint-import?importId=${importId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setBlueprintImports(prev => prev.filter(i => i.id !== importId));
+      }
+    } catch (error) {
+      console.error('Failed to decline Blueprint import:', error);
+    } finally {
+      setDecliningId(null);
+    }
+  };
+
+  const handleBlueprintRefetch = async () => {
+    try {
+      const res = await fetch('/api/projects/blueprint-import');
+      if (res.ok) {
+        const { imports } = await res.json();
+        setBlueprintImports(imports || []);
+      }
+    } catch {
+      // Blueprint API may not be configured
     }
   };
 
@@ -508,6 +588,36 @@ export default function ProjectsPage() {
           </svg>
         </Link>
       </div>
+
+      {/* Blueprint Imports Section */}
+      {blueprintImports.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-orange-500 text-lg uppercase tracking-wide">Unfinished Blueprint Projects</h2>
+              <p className="text-brown-800 text-sm">These projects from Blueprint match your email. Accept to import them here.</p>
+            </div>
+            <button
+              onClick={handleBlueprintRefetch}
+              className="shrink-0 border-2 border-cream-400 bg-cream-200 hover:bg-cream-300 px-3 py-1.5 text-xs uppercase tracking-wide text-brown-800 cursor-pointer transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {blueprintImports.map((bp) => (
+              <BlueprintImportCard
+                key={bp.id}
+                importData={bp}
+                onAccept={handleBlueprintAccept}
+                onDecline={handleBlueprintDecline}
+                accepting={acceptingId === bp.id}
+                declining={decliningId === bp.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Project Cards Grid */}
       {loading ? (

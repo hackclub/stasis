@@ -95,6 +95,7 @@ model User {
   assignedSidekick     SidekickAssignment?   @relation("AssignedSidekick")
   goalPrizes           UserGoalPrize[]
   streakReward         StreakReward?
+  blueprintImports     BlueprintImport[]
 
   // Inventory relations
   teamId       String?
@@ -689,6 +690,24 @@ model StreakReward {
   createdAt   DateTime @default(now())
 
   @@map("streak_reward")
+}
+
+// Blueprint cross-platform import tracking
+model BlueprintImport {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blueprintProjectId  Int
+  blueprintTitle      String
+  status              String   @default("pending") // pending | accepted | declined
+  stasisProjectId     String?
+  rawData             Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, blueprintProjectId])
+  @@index([userId, status])
+  @@map("blueprint_import")
 }
 
 // ── Inventory Models ────────────────────────────────────────────────

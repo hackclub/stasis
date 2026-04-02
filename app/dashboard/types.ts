@@ -45,3 +45,23 @@ export interface Project {
   badges: ProjectBadge[]
   bomItems: BomItem[]
 }
+
+
+export interface BlueprintImport {
+  id: string
+  blueprintProjectId: number
+  blueprintTitle: string
+  status: "pending" | "accepted" | "declined"
+  stasisProjectId: string | null
+  rawData: {
+    title: string
+    description: string | null
+    tier: number | null
+    repoLink: string | null
+    demoLink: string | null
+    projectType: string | null
+    ysws: string | null
+    hoursLogged: number | null
+    createdAt: string | null
+  }
+}
