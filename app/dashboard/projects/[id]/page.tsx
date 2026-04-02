@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use, useRef } from 'react';
+import React, { useState, useEffect, useCallback, use, useRef } from 'react';
 import { useSession, linkOAuth2 } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 
@@ -127,6 +127,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const skipVerification = process.env.NEXT_PUBLIC_SKIP_YSWS_VERIFICATION_CHECK === 'true';
   const sessionVerified = skipVerification || (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
   const [isVerified, setIsVerified] = useState(sessionVerified);
+  const [refreshingVerification, setRefreshingVerification] = useState(false);
   const [hasAddress, setHasAddress] = useState(true); // default true so it doesn't block when PII is disabled
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -422,6 +423,22 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     if (sessionVerified) setIsVerified(true);
   }, [sessionVerified]);
+
+  const handleRefreshVerification = useCallback(async () => {
+    setRefreshingVerification(true);
+    try {
+      const res = await fetch('/api/user/refresh-address', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.piiEnabled) setHasAddress(data.hasAddress);
+        if (data.verificationStatus === 'verified') setIsVerified(true);
+      }
+    } catch (err) {
+      console.error('Failed to refresh verification:', err);
+    } finally {
+      setRefreshingVerification(false);
+    }
+  }, []);
 
   // Listen for project tutorial replay triggers (from UserMenu or floating button)
   useEffect(() => {
@@ -1485,15 +1502,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Verify your YSWS Eligibility
                   {!isVerified && (
-                    <a
-                      href="https://auth.hackclub.com/verifications/document"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      do this now
-                    </a>
+                    <>
+                      <a
+                        href="https://auth.hackclub.com/verifications/document"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        do this now
+                      </a>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRefreshVerification(); }}
+                        disabled={refreshingVerification}
+                        className="px-2 py-0.5 text-brown-600 text-xs uppercase hover:text-brown-800 transition-colors disabled:opacity-50"
+                      >
+                        {refreshingVerification ? 'checking...' : 'refresh'}
+                      </button>
+                    </>
                   )}
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${hasAddress ? 'text-green-500' : 'text-brown-800'}`}>
@@ -1535,15 +1561,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Verify your YSWS Eligibility
                   {!isVerified && (
-                    <a
-                      href="https://auth.hackclub.com/verifications/document"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      do this now
-                    </a>
+                    <>
+                      <a
+                        href="https://auth.hackclub.com/verifications/document"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        do this now
+                      </a>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRefreshVerification(); }}
+                        disabled={refreshingVerification}
+                        className="px-2 py-0.5 text-brown-600 text-xs uppercase hover:text-brown-800 transition-colors disabled:opacity-50"
+                      >
+                        {refreshingVerification ? 'checking...' : 'refresh'}
+                      </button>
+                    </>
                   )}
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${hasAddress ? 'text-green-500' : 'text-brown-800'}`}>
