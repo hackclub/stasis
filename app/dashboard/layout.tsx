@@ -24,6 +24,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const [isFraudSuspended, setIsFraudSuspended] = useState(false);
+  const [inventoryEnabled, setInventoryEnabled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +40,12 @@ export default function DashboardLayout({
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data?.fraudConvicted) setIsFraudSuspended(true);
+        })
+        .catch(() => {});
+      fetch('/api/inventory/access')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.allowed || data?.isAdmin) setInventoryEnabled(true);
         })
         .catch(() => {});
     }
@@ -185,6 +192,11 @@ export default function DashboardLayout({
                   {tab.label}
                 </Link>
               ))}
+              {inventoryEnabled && (
+                <Link href="/inventory" className="ml-auto px-4 md:px-6 py-3 text-sm uppercase tracking-wider transition-colors border-b-2 -mb-[2px] border-transparent text-orange-500 hover:border-orange-500">
+                  Inventory &rarr;
+                </Link>
+              )}
             </div>
           </div>
         </div>

@@ -160,6 +160,9 @@ export default function AdminLayout({
                   Slack
                 </Link>
               )}
+              <Link href="/inventory/admin" className={getTabClass('/inventory/admin')}>
+                Inventory
+              </Link>
             </div>
           </div>
         </div>

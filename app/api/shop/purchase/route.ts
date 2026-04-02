@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Quantity exceeds maximum allowed" }, { status: 400 })
       }
     }
-    throw error
+    console.error("Shop purchase error:", error)
+    return NextResponse.json({ error: "Purchase failed" }, { status: 500 })
   }
 }
