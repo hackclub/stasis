@@ -483,7 +483,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                           {isRecommended && selectedTier === tier.id && <span className="ml-2 text-sm font-normal opacity-80">(recommended)</span>}
                         </span>
                         <span className="text-sm opacity-80">
-                          {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
+                          {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? 'h+' : `–${tier.maxHours}h`}
                         </span>
                       </button>
                     )
