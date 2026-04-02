@@ -19,6 +19,16 @@ export async function PATCH(
   const body = await request.json()
   const { name, description, imageUrl } = body
 
+  if (name !== undefined && typeof name !== "string") {
+    return NextResponse.json({ error: "Name must be a string" }, { status: 400 })
+  }
+  if (description !== undefined && description !== null && typeof description !== "string") {
+    return NextResponse.json({ error: "Description must be a string" }, { status: 400 })
+  }
+  if (imageUrl !== undefined && imageUrl !== null && typeof imageUrl !== "string") {
+    return NextResponse.json({ error: "Image URL must be a string" }, { status: 400 })
+  }
+
   const { sanitizeName, sanitizeDescription, validateImageUrl } = await import("@/lib/inventory/validation")
 
   const tool = await prisma.tool.update({

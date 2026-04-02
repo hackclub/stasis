@@ -95,10 +95,18 @@ export async function PATCH(
     return NextResponse.json({ error: "A team with this name already exists" }, { status: 409 })
   }
 
-  const updated = await prisma.team.update({
-    where: { id },
-    data: { name: safeName },
-  })
+  let updated
+  try {
+    updated = await prisma.team.update({
+      where: { id },
+      data: { name: safeName },
+    })
+  } catch (err: unknown) {
+    if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "P2002") {
+      return NextResponse.json({ error: "A team with this name already exists" }, { status: 409 })
+    }
+    throw err
+  }
 
   logAudit({
     action: AuditAction.INVENTORY_TEAM_RENAME,
