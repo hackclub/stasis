@@ -9,7 +9,7 @@ import { isValidUrl, normalizeUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { TIERS } from "@/lib/tiers"
 
-const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "bomTax", "bomShipping", "cartScreenshots", "tier"] as const
+const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "bomTax", "bomShipping", "requestedAmount", "cartScreenshots", "tier"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
 
@@ -26,6 +26,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   noBomNeeded: boolean
   bomTax: number | null
   bomShipping: number | null
+  requestedAmount: number | null
   cartScreenshots: string[]
   tier: number | null
 }> {
@@ -33,7 +34,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   for (const field of ALLOWED_UPDATE_FIELDS) {
     if (field in body) {
       const value = body[field]
-      if (field === "bomTax" || field === "bomShipping") {
+      if (field === "bomTax" || field === "bomShipping" || field === "requestedAmount") {
         if (value === null) {
           result[field] = null
         } else if (typeof value === "number" && value >= 0) {
