@@ -194,8 +194,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
         throw new Error(data.error || 'Failed to leave team');
       }
       setConfirmLeave(false);
-      showSuccess('You left the team.');
-      onTeamChanged();
+      window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to leave team');
     } finally {

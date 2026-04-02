@@ -49,15 +49,14 @@ export async function POST(
 
   // Cancel and restore stock (re-check status inside transaction to prevent race)
   const cancelled = await prisma.$transaction(async (tx) => {
-    const current = await tx.order.findUnique({ where: { id }, select: { status: true } })
-    if (!current || current.status === "READY" || current.status === "COMPLETED" || current.status === "CANCELLED") {
-      return false
-    }
-
-    await tx.order.update({
-      where: { id },
+    // Conditional update to prevent double-restock under concurrency
+    const updateResult = await tx.order.updateMany({
+      where: { id, status: { notIn: ["READY", "COMPLETED", "CANCELLED"] } },
       data: { status: "CANCELLED" },
     })
+    if (updateResult.count === 0) {
+      return false
+    }
 
     for (const item of order.items) {
       await tx.item.update({

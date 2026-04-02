@@ -40,21 +40,31 @@ export async function PATCH(
         return { error: "Cannot cancel an order that is already ready, completed, or cancelled", status: 400 } as const
       }
 
-      const updated = await tx.order.update({
-        where: { id },
+      // Conditional update to prevent double-restock under concurrency
+      const updateResult = await tx.order.updateMany({
+        where: { id, status: { notIn: ["READY", "COMPLETED", "CANCELLED"] } },
         data: { status },
-        include: {
-          team: { select: { id: true, name: true } },
-          placedBy: { select: { id: true, name: true, email: true } },
-          items: { include: { item: true } },
-        },
       })
+      if (updateResult.count === 0) {
+        return { error: "Cannot cancel an order that is already ready, completed, or cancelled", status: 400 } as const
+      }
+
       for (const item of existing.items) {
         await tx.item.update({
           where: { id: item.itemId },
           data: { stock: { increment: item.quantity } },
         })
       }
+
+      const updated = await tx.order.findUnique({
+        where: { id },
+        include: {
+          team: { select: { id: true, name: true } },
+          placedBy: { select: { id: true, name: true, email: true } },
+          items: { include: { item: true } },
+        },
+      })
+      if (!updated) return { error: "Order not found", status: 404 } as const
       return updated
     })
 
@@ -79,9 +89,26 @@ export async function PATCH(
     return NextResponse.json(order)
   }
 
-  const existing = await prisma.order.findUnique({ where: { id }, select: { id: true } })
+  // Enforce valid state transitions
+  const VALID_TRANSITIONS: Record<string, OrderStatus[]> = {
+    PLACED: ["IN_PROGRESS", "CANCELLED"],
+    IN_PROGRESS: ["READY", "CANCELLED"],
+    READY: ["COMPLETED"],
+    COMPLETED: [],
+    CANCELLED: [],
+  }
+
+  const existing = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } })
   if (!existing) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 })
+  }
+
+  const allowed = VALID_TRANSITIONS[existing.status] ?? []
+  if (!allowed.includes(status)) {
+    return NextResponse.json(
+      { error: `Cannot transition from ${existing.status} to ${status}` },
+      { status: 400 }
+    )
   }
 
   const order = await prisma.order.update({

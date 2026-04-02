@@ -175,6 +175,12 @@ export async function POST(request: Request) {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
   } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") {
+      return NextResponse.json(
+        { error: "Order could not be placed due to a concurrent update. Please retry." },
+        { status: 409 }
+      )
+    }
     const message = err instanceof Error ? err.message : "Failed to place order"
     return NextResponse.json({ error: message }, { status: 400 })
   }
