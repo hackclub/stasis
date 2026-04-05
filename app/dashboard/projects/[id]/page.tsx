@@ -1218,17 +1218,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             
             {/* Design Stage Review Comments */}
             {(project.designStatus === "rejected" || project.designStatus === "update_requested") && project.designReviewComments && (
-              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
-                <p className="text-red-500/80 text-xs uppercase mb-1">Design Feedback</p>
-                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
+              <div className="mt-4 bg-amber-500/15 border border-amber-500 p-3">
+                <p className="text-amber-700 text-xs uppercase mb-1">Design Feedback</p>
+                <p className="text-amber-900 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
               </div>
             )}
-            
+
             {/* Build Stage Review Comments */}
             {(project.buildStatus === "rejected" || project.buildStatus === "update_requested") && project.buildReviewComments && (
-              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
-                <p className="text-red-500/80 text-xs uppercase mb-1">Build Feedback</p>
-                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
+              <div className="mt-4 bg-amber-500/15 border border-amber-500 p-3">
+                <p className="text-amber-700 text-xs uppercase mb-1">Build Feedback</p>
+                <p className="text-amber-900 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
               </div>
             )}
           </div>
