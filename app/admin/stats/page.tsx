@@ -10,6 +10,7 @@ interface Stats {
     pendingDesignReview: number;
     pendingBuildReview: number;
     byTier: Record<string, number>;
+    byTierDetailed: { tier: string; approved: number; pending: number }[];
   };
   users: {
     total: number;
@@ -483,7 +484,6 @@ export default function StatsPage() {
 
   const maxBadgeCount = Math.max(...Object.values(stats.badges.byType), 1);
   const maxCategoryCount = Math.max(...Object.values(stats.time.byCategory), 1);
-  const maxTierCount = Math.max(...Object.values(stats.projects.byTier), 1);
   const maxSignupCount = Math.max(...stats.users.signupsByMonth.map((s) => s.count), 1);
 
   return (
@@ -678,17 +678,30 @@ export default function StatsPage() {
             </div>
             <div>
               <h3 className="text-cream-50 text-xs uppercase tracking-wider mb-2">Tier Distribution</h3>
+              <div className="flex items-center gap-3 mb-2 text-xs">
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-green-600" /> Approved</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-orange-500" /> Pending</span>
+              </div>
               <div className="space-y-1">
                 {['1', '2', '3', '4', '5', 'untiered'].map((tier) => {
-                  const count = stats.projects.byTier[tier] ?? 0;
-                  if (count === 0 && tier === 'untiered') return null;
+                  const detail = stats.projects.byTierDetailed.find((d) => d.tier === tier);
+                  const approved = detail?.approved ?? 0;
+                  const pending = detail?.pending ?? 0;
+                  const total = approved + pending;
+                  if (total === 0 && tier === 'untiered') return null;
+                  const maxCount = Math.max(...stats.projects.byTierDetailed.map((d) => d.approved + d.pending), 1);
+                  const approvedPct = maxCount > 0 ? (approved / maxCount) * 100 : 0;
+                  const pendingPct = maxCount > 0 ? (pending / maxCount) * 100 : 0;
                   return (
                     <div key={tier} className="flex items-center gap-2 text-sm">
                       <span className="text-cream-50 w-28">
                         {tier === 'untiered' ? 'Untiered' : `Tier ${tier} (${TIER_BITS[tier]}b)`}
                       </span>
-                      <span className="text-cream-50 font-mono w-10 text-right">{count}</span>
-                      <Bar value={count} max={maxTierCount} />
+                      <span className="text-cream-50 font-mono w-10 text-right">{total}</span>
+                      <div className="h-4 bg-brown-900 border border-cream-500/20 flex-1 flex">
+                        <div className="h-full bg-green-600" style={{ width: `${approvedPct}%` }} title={`${approved} approved`} />
+                        <div className="h-full bg-orange-500" style={{ width: `${pendingPct}%` }} title={`${pending} pending`} />
+                      </div>
                     </div>
                   );
                 })}
