@@ -66,7 +66,7 @@ export async function POST(
   const bomCostTotal = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
   const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0
     ? grantAmount
-    : (stage === "design" && decision === "approved" ? Math.round(bomCostTotal * 100) / 100 || null : null)
+    : (stage === "design" && decision === "approved" ? Math.ceil(bomCostTotal + 3) || null : null)
 
   // tier: set at design approval to lock in the bit grant for build completion
   let parsedTier: number | null | undefined = undefined

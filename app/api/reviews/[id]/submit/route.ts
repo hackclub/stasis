@@ -171,7 +171,7 @@ export async function POST(
 
   // For design approvals, default grant to BOM cost if not explicitly overridden
   const bomCostTotal = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
-  const effectiveGrant = grantOverride ?? (stageKey === "design" ? Math.round(bomCostTotal * 100) / 100 : null)
+  const effectiveGrant = grantOverride ?? (stageKey === "design" ? Math.ceil(bomCostTotal + 3) : null)
 
   // Map result to the existing decision format
   if (result === "APPROVED") {

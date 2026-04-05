@@ -1733,7 +1733,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <div className="flex items-center">
                     <span className="text-brown-800 text-xs mr-3">Estimated cost in bits:</span>
                     <span className="text-brown-800 text-sm">
-                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0))}&nbsp;bits
+                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0) + 3)}&nbsp;bits
                     </span>
                   </div>
                   {project.bitsAwarded != null && project.totalHoursApproved > 0 && (
