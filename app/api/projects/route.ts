@@ -42,7 +42,14 @@ export async function GET(request: NextRequest) {
 
   const projects = await prisma.project.findMany({
     where: { ...whereClause, deletedAt: null },
-    include: { workSessions: true, badges: true, bomItems: true },
+    include: {
+      workSessions: {
+        orderBy: { createdAt: "desc" },
+        include: { media: true },
+      },
+      badges: true,
+      bomItems: true,
+    },
     orderBy: { createdAt: "desc" },
   })
 
@@ -70,9 +77,15 @@ export async function GET(request: NextRequest) {
       status = "in_review"
     }
     
+    // First image from the most recent work session (sessions already sorted desc)
+    const latestSessionImage = project.workSessions
+      .flatMap(s => s.media)
+      .find(m => m.type === "IMAGE")?.url ?? null
+
     return {
       ...project,
       status,
+      latestSessionImage,
       totalHoursClaimed: project.workSessions.reduce(
         (acc, s) => acc + s.hoursClaimed,
         0

@@ -51,7 +51,7 @@ function formatRelativeTime(dateStr: string): string {
 
 function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
   const router = useRouter();
-  const thumbnail = project.coverImage || project.images[0];
+  const thumbnail = project.images[0] || project.coverImage;
   const isApproved = project.designStatus === 'approved';
 
   return (

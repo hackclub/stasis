@@ -28,6 +28,7 @@ interface Project {
   isStarter: boolean
   starterProjectId: string | null
   coverImage: string | null
+  latestSessionImage: string | null
   status: "draft" | "in_review" | "approved" | "rejected"
   designStatus?: "draft" | "in_review" | "approved" | "rejected" | "update_requested"
   buildStatus?: "draft" | "in_review" | "approved" | "rejected" | "update_requested"
@@ -71,9 +72,9 @@ export function ProjectCard({ project }: Readonly<Props>) {
     >
       {/* Cover Image */}
       <div className="aspect-video bg-cream-100 border-b border-cream-400 flex items-center justify-center relative overflow-hidden">
-        {project.coverImage ? (
-          <Image 
-            src={project.coverImage} 
+        {(project.latestSessionImage || project.coverImage) ? (
+          <Image
+            src={(project.latestSessionImage || project.coverImage)!}
             alt={project.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

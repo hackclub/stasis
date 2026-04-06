@@ -38,6 +38,7 @@ export interface Project {
   isStarter: boolean
   starterProjectId: string | null
   coverImage: string | null
+  latestSessionImage: string | null
   tier: number | null
   status: "draft" | "in_review" | "approved" | "rejected"
   createdAt: string
