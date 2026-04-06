@@ -450,10 +450,23 @@ function HorizontalFunnel({ funnel, title, labels, order, bare }: {
   return <Section title={title}>{content}</Section>;
 }
 
+interface UnsyncedProject {
+  id: string;
+  title: string;
+  tier: number | null;
+  stage: string;
+  reviewedAt: string | null;
+  userName: string | null;
+  userEmail: string;
+}
+
 export default function StatsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unsynced, setUnsynced] = useState<UnsyncedProject[] | null>(null);
+  const [unsyncedLoading, setUnsyncedLoading] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -465,6 +478,32 @@ export default function StatsPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const fetchUnsynced = () => {
+    setUnsyncedLoading(true);
+    fetch('/api/admin/projects/unsynced')
+      .then((res) => res.json())
+      .then((data) => setUnsynced(data.unsynced ?? []))
+      .catch(() => setUnsynced([]))
+      .finally(() => setUnsyncedLoading(false));
+  };
+
+  const syncProject = async (projectId: string) => {
+    setSyncingId(projectId);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/sync-to-airtable`, { method: 'POST' });
+      if (res.ok) {
+        setUnsynced((prev) => prev?.filter((p) => p.id !== projectId) ?? null);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to sync');
+      }
+    } catch {
+      alert('Failed to sync');
+    } finally {
+      setSyncingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -953,6 +992,50 @@ export default function StatsPage() {
               <div className="text-cream-50/60 text-xs">balance &gt; 0</div>
             </div>
           </div>
+        </Section>
+
+        {/* Unsynced Airtable Projects */}
+        <Section title="Airtable Sync">
+          {unsynced === null ? (
+            <button
+              onClick={fetchUnsynced}
+              disabled={unsyncedLoading}
+              className="px-4 py-2 text-sm uppercase tracking-wider border border-orange-500 text-orange-500 hover:bg-orange-500/10 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {unsyncedLoading ? 'Checking...' : 'Check for Unsynced Projects'}
+            </button>
+          ) : unsynced.length === 0 ? (
+            <p className="text-green-400 text-sm">All approved projects are synced to Airtable.</p>
+          ) : (
+            <div>
+              <p className="text-cream-50/60 text-sm mb-3">{unsynced.length} approved project{unsynced.length !== 1 ? 's' : ''} not found in Airtable:</p>
+              <div className="space-y-2">
+                {unsynced.map((p) => (
+                  <div key={`${p.id}-${p.stage}`} className="flex items-center justify-between bg-brown-900 border border-cream-500/20 px-4 py-2">
+                    <div>
+                      <a href={`/admin/projects/${p.id}`} className="text-cream-50 text-sm hover:text-orange-500 transition-colors">
+                        {p.title}
+                      </a>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-cream-50/60 text-xs">{p.userName || p.userEmail}</span>
+                        <span className="text-cream-50/40 text-xs">·</span>
+                        <span className={`text-xs uppercase ${p.stage === 'Design' ? 'text-blue-400' : 'text-green-400'}`}>{p.stage}</span>
+                        {p.tier && <span className="text-cream-50/40 text-xs">· Tier {p.tier}</span>}
+                        {p.reviewedAt && <span className="text-cream-50/40 text-xs">· {new Date(p.reviewedAt).toLocaleDateString()}</span>}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => syncProject(p.id)}
+                      disabled={syncingId === p.id}
+                      className="px-3 py-1 text-xs uppercase tracking-wider border border-blue-500 text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {syncingId === p.id ? 'Syncing...' : 'Sync'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Section>
 
       </div>

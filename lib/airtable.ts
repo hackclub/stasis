@@ -540,7 +540,7 @@ export async function syncProjectToAirtable(
     totalHours,
     grantAmount,
     hoursJustification: hoursJustification ?? null,
-    complexityTier: project.tier != null ? (getTierById(project.tier)?.name ?? null) : null,
+    complexityTier: project.tier != null ? (getTierById(project.tier) ? `Complexity ${getTierById(project.tier)!.name}` : null) : null,
     stasisId: project.id,
     slackId: user.slackId ?? null,
     guide: project.starterProjectId ? (STARTER_PROJECT_NAMES[project.starterProjectId] ?? project.starterProjectId) : null,
