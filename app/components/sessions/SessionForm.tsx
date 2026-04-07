@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { TextAreaCommandOrchestrator } from '@uiw/react-md-editor';
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
 
@@ -117,11 +116,11 @@ export function SessionForm({
         const placeholderUrl = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
         const placeholder = `\n![Uploading ${file.name}...](${placeholderUrl})\n`;
         if (editorRef.current?.querySelector("textarea")) {
-            const cursorPos = editorRef.current?.querySelector("textarea")?.selectionStart
+            const cursorPos = editorRef.current?.querySelector("textarea")?.selectionStart ?? 0;
             setContent(prev => prev.slice(0, cursorPos) + placeholder + prev.slice(cursorPos));
-            } else {
-                setContent(prev => prev + placeholder)
-            }
+        } else {
+            setContent(prev => prev + placeholder);
+        }
 
         try {
             const formData = new FormData();
