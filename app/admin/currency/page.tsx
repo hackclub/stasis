@@ -173,37 +173,65 @@ export default function BitsLedgerPage() {
       <div className="bg-brown-800 border-2 border-cream-500/20 p-6">
         <h2 className="text-cream-50 text-lg uppercase tracking-wide mb-2">Resync Pending Bits</h2>
         <p className="text-cream-200 text-sm mb-4">
-          Backfills DESIGN_APPROVED pending-bits entries for projects that were approved before the feature launched.
+          Backfills DESIGN_APPROVED entries for projects approved before the feature launched,
+          then fixes orphaned pending bits on projects whose builds are already approved.
         </p>
-        {resyncResult && <p className="text-cream-50 text-sm mb-3">{resyncResult}</p>}
+        {resyncResult && <p className="text-cream-50 text-sm mb-3 whitespace-pre-line">{resyncResult}</p>}
         <button
           disabled={resyncing}
           onClick={async () => {
             setResyncing(true);
             setResyncResult(null);
+            const messages: string[] = [];
             try {
-              // Dry run first
+              // Step 1: Backfill missing DESIGN_APPROVED entries
               const dryRes = await fetch('/api/admin/currency/backfill-pending', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: '{}',
               });
               const dryData = await dryRes.json();
-              if (dryData.count === 0) {
-                setResyncResult('All projects already have pending bits entries — nothing to backfill.');
-                return;
+              if (dryData.count > 0) {
+                if (!confirm(`This will backfill pending bits for ${dryData.count} project(s) and fix orphaned entries. Continue?`)) {
+                  setResyncResult('Cancelled.');
+                  return;
+                }
+                const commitRes = await fetch('/api/admin/currency/backfill-pending', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ commit: true }),
+                });
+                const commitData = await commitRes.json();
+                messages.push(`Backfilled ${commitData.backfilled} project(s).`);
+              } else {
+                messages.push('All projects already have pending bits entries.');
               }
-              if (!confirm(`This will backfill pending bits for ${dryData.count} project(s). Continue?`)) {
-                setResyncResult('Cancelled.');
-                return;
-              }
-              const commitRes = await fetch('/api/admin/currency/backfill-pending', {
+
+              // Step 2: Fix orphaned pending bits on build-approved projects
+              const fixDryRes = await fetch('/api/admin/currency/fix-pending', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ commit: true }),
+                body: '{}',
               });
-              const commitData = await commitRes.json();
-              setResyncResult(`Backfilled ${commitData.backfilled} project(s).`);
+              const fixDryData = await fixDryRes.json();
+              if (fixDryData.toFix > 0) {
+                if (dryData.count === 0 && !confirm(`Found ${fixDryData.toFix} project(s) with orphaned pending bits (${fixDryData.totalBitsToReverse} bits total). Fix?`)) {
+                  messages.push('Fix cancelled.');
+                  setResyncResult(messages.join('\n'));
+                  return;
+                }
+                const fixCommitRes = await fetch('/api/admin/currency/fix-pending', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ commit: true }),
+                });
+                const fixCommitData = await fixCommitRes.json();
+                messages.push(`Fixed ${fixCommitData.fixed} project(s), reversed ${fixCommitData.totalBitsReversed} orphaned bits.`);
+              } else {
+                messages.push('No orphaned pending bits found.');
+              }
+
+              setResyncResult(messages.join('\n'));
               fetchEntries();
             } catch {
               setResyncResult('Network error — could not resync.');

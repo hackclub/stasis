@@ -254,6 +254,23 @@ export async function POST(
           data: { status: "approved", reviewedAt: new Date(), reviewedBy: reviewerId },
         })
 
+        // Cancel any existing pending bits before awarding new ones (handles re-approvals)
+        const existingPending = await tx.currencyTransaction.aggregate({
+          where: { userId: project!.userId, projectId: project!.id, type: "DESIGN_APPROVED" },
+          _sum: { amount: true },
+        })
+        const pendingToCancel = existingPending._sum.amount ?? 0
+        if (pendingToCancel !== 0) {
+          await appendLedgerEntry(tx, {
+            userId: project!.userId,
+            projectId: project!.id,
+            amount: -pendingToCancel,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Pending bits reset — design re-approved`,
+            createdBy: reviewerId,
+          })
+        }
+
         // Award pending bits (DESIGN_APPROVED) based on tier minus BOM cost
         const effectiveTierDesign = tierOverride ?? project!.tier
         const tierBitsDesign = effectiveTierDesign ? getTierBits(effectiveTierDesign) : 0
