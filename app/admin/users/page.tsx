@@ -58,6 +58,8 @@ interface AdminUser {
   utmSource: string | null;
   signupPage: string | null;
   hasAddress: boolean;
+  addressState: string | null;
+  addressCountry: string | null;
   totalProjects: number;
   totalHoursClaimed: number;
   totalHoursApproved: number;
@@ -770,6 +772,14 @@ export default function AdminUsersPage() {
                         <div>
                           <p className="text-cream-200 uppercase text-xs mb-1">Pronouns</p>
                           <p className="text-cream-50">{user.pronouns || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">State</p>
+                          <p className="text-cream-50">{user.addressState || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Country</p>
+                          <p className="text-cream-50">{user.addressCountry || '—'}</p>
                         </div>
                         <div>
                           <p className="text-cream-200 uppercase text-xs mb-1">Target Goal</p>

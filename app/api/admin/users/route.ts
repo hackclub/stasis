@@ -3,6 +3,16 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { SHOP_ITEM_IDS } from "@/lib/shop"
+import { decryptPII } from "@/lib/pii"
+
+function safeDecrypt(value: string | null): string | null {
+  if (!value) return null
+  try {
+    return decryptPII(value)
+  } catch {
+    return null
+  }
+}
 
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission(Permission.MANAGE_USERS)
@@ -213,6 +223,8 @@ export async function GET(request: NextRequest) {
       ),
       badges: user.projects.flatMap((p) => p.badges),
       hasAddress: !!(user.encryptedAddressStreet && user.encryptedAddressCity && user.encryptedAddressCountry),
+      addressState: safeDecrypt(user.encryptedAddressState),
+      addressCountry: safeDecrypt(user.encryptedAddressCountry),
       encryptedAddressStreet: undefined,
       encryptedAddressCity: undefined,
       encryptedAddressState: undefined,
