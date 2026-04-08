@@ -64,6 +64,10 @@ const getFaqs = (event: GoalPreference) => [
     answer: "We'll have a <mark>shop</mark> where you can buy alternative prizes!"
   },
   {
+    question: "What is Arena Hall?",
+    answer: "Stasis is taking place at <a href='https://www.arenahall.com/' target='_blank' rel='noopener noreferrer'>Arena Hall</a> in Austin, TX.<br><br>Arena Hall was founded three years ago with a mission to find, convene, and serve purpose-driven individuals in Austin building the future. Since then we've hosted over a thousand public and private events, and created a thriving community of leaders, innovators, and changemakers.<br><br>Our members are creating solutions to some of society's biggest challenges in energy, education, space, and infrastructure. Our gatherings are intentionally structured to resist transaction, spectacle, and anonymity in favor of trust, continuity, and responsibility. We exist to bring aligned leaders into sustained relationships, accelerate meaningful work, and cultivate human flourishing through intentional hospitality."
+  },
+  {
     question: "I have more questions!",
     answer: "Join the <a href='https://hackclub.com/slack'>Hack Club Slack</a> and head to the <a href='https://hackclub.slack.com/archives/C09HSQM550A'>#stasis</a> channel! You can also email us at <a href='mailto:stasis@hackclub.com'>stasis@hackclub.com</a>."
   }
