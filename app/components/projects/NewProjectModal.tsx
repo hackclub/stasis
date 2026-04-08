@@ -457,7 +457,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                       How complex is this project? (You can change this later)
                     </p>
                     <p className="text-xs bg-orange-500/10 border border-orange-500/30 text-orange-600 px-2 py-1.5 mb-1">
-                      You can spend at most <strong>50% of earned bits</strong> on parts. The other 50% goes toward qualification.
+                      You can spend at most <strong>50% of earned bits</strong> on parts. The rest goes toward qualification.
                     </p>
                   </>
                 )}
