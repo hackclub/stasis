@@ -708,6 +708,17 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
                 </MagneticCorners>
               </MagneticCorners>
             </section>
+
+            {/* Sponsors link */}
+            <section className="flex flex-col items-center pt-6 md:pt-12">
+              <a
+                href="/sponsors"
+                className="group inline-flex items-center gap-2 text-[14px] md:text-[18px] uppercase tracking-wider text-orange-500 hover:text-orange-600 no-underline"
+              >
+                <span className="underline decoration-1 underline-offset-4">View our sponsors</span>
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+              </a>
+            </section>
           </div>
         </div>
       </div>
