@@ -93,4 +93,12 @@ export const projects: StarterProject[] = [
     hasTutorial: true,
     image: 'hermes.webp',
   },
+  {
+    id: 'meshtastic-lora',
+    name: 'Meshtastic LoRa Board',
+    hours: 20,
+    short_description: 'Design a LoRa board with an ESP32-S3, SX1262 radio, and U.FL antenna.',
+    badges: ['MCU Integration', 'Other RF'],
+    hasTutorial: true,
+  },
 ];

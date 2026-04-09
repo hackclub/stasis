@@ -1,0 +1,460 @@
+# Meshtastic LoRa Board
+
+Hello! In this guide, you will create a custom Meshtastic-enabled LoRa board with a microcontroller, antenna, radio chip, and other things.
+
+## First things first
+
+To start your project, we need to download KiCad. KiCad is an open-source software for designing circuit boards, or PCBs. We can use the terms interchangably.
+
+Go to [kicad.org/download](https://www.kicad.org/download/) and install the version for your OS. After that finishes, create a new project. Name it anything you want, but I will name mine Loraguide.
+
+After that finishes, you should be on a screen that looks like this:
+
+<img width="1919" height="1144" alt="KiCad project screen" src="https://github.com/user-attachments/assets/536174dc-1196-41cc-aec2-be0c0d904739" />
+
+
+# The Schematic
+
+The first step to designing a circuit board is the schematic. A schematic is essentially a wiring diagram, to show which components connect to what. That means it is very important that we follow a few design rules when creating our schematic:
+
+ - Power symbols always point up
+ - Ground symbols always point down
+ - Net labels can be used instead of wires
+
+These may not make sense right now, but you should keep track of them for later in the guide.
+
+First, click **Schematic Editor** on the main project page. This will open a new window with a sheet of paper, and a lot of buttons. Don't worry! This guide will keep it simple, you won't need to memorize dozens of shortcuts. Optionally you can learn a few.
+
+
+First, hit the **A** key. This will open up a _third_ window, which is the symbol chooser. In the top left, there is a search bar. Type in "esp32-s3", which will have a few options.
+
+<img width="858" height="664" alt="ESP32-S3 symbol chooser" src="https://github.com/user-attachments/assets/7c6b7388-1b3c-4758-83cc-29ade888a8ab" />
+
+Select the **ESP32-S3-WROOM-1**. This is the microcontroller we will use for this project. Next, hit OK. A projection of the microcontroller's pins will appear under your mouse, put it somewhere in the middle of your schematic. You should end up with something like this:
+
+<img width="1324" height="925" alt="ESP32 placed on schematic" src="https://github.com/user-attachments/assets/77bcbd40-a3b2-4a43-acab-a2c9cb5ef784" />
+
+
+Next, we want to place our radio chip. We will use the **SX1262**, which is a low-power long range radio. Search SX1262 in the symbol chooser, and select the first result. Place it to the left of the ESP32. These are the two main components of our board, so now it is time to handle power.
+
+## Power system
+
+Our power system is complex, but don't let that scare you! I will break it into simple parts.
+
+### Organization
+
+To keep our schematic organized and uncluttered, we want to use **Power Symbols** instead of just drawing wires. This also helps KiCad keep track of power systems. To do this, hit **P** and type +3V3, and select the first result. Place it on the 3V3 pin of the ESP32. Hit **P** again and search GND, place it on the GND pin of the ESP32. You should have a product like this:
+
+<img width="556" height="783" alt="Power symbols placed" src="https://github.com/user-attachments/assets/97b8c576-7ba5-4c7e-afdc-ced3a22bb737" />
+
+### Power input
+
+We are going to use USB-C for power input, and firmware flashing. Right now, we only need to focus on the power input side of it. Hit **A** to open the symbol chooser, and search for "USB_C_Receptacle_USB2.0_14P" and place it in the top left. Connect the SHIELD and GND pins both with a GND power symbol. (Hint: **P**) SHIELD pins are how the USB-C connector physically is mounted to the board, and GND is GND obviously. Next, connect VBUS (which stands for voltage bus) to a +5V power symbol. You may notice that USB-C is 5 volts, and our ESP32 is 3.3v, but we will talk about that in a second.
+
+The CC1 and CC2 (configuration channel) pins are used to make sure your charger provides the right voltage, and to make sure we receive +5V we need to put a 5100 ohm resistor on each pin. Hit **A** to enter the symbol placer, and search "R_Small". This is a smaller version of the resistor symbol, so place two near the CC pins. After placing them, click on one and make sure it is highlighted in blue, then press **V**. This will open up a text box, and type "5.1k" to write down the value of the resistor. Repeat for the other one. Connect the other end of both resistors to another GND symbol.
+
+Right now, your schematic should be looking something like this:
+
+<img width="673" height="628" alt="USB-C power input" src="https://github.com/user-attachments/assets/99c1a9f8-6084-4f3c-9005-e5e7b9c8f0ad" />
+
+We can leave USB like this for now, because now we have to work on the power system for the SX1262, our radio chip.
+
+## SX1262 Power
+
+We are about to wire the power to our radio chip, but before we do that I need to explain what power decoupling is.
+
+### What is Power Decoupling?
+
+Imagine your chip is a person drinking from a water pipe. Most of the time the
+flow is steady and calm — but sometimes the person takes a huge gulp all at once.
+If the pipe can't react fast enough, the pressure drops and everyone else on the
+pipe suffers.
+
+**Decoupling capacitors are a tiny local water tank sitting right next to the
+person.** When they take a big gulp, the tank supplies the extra water instantly
+— before the main pipe even notices. Then the pipe slowly refills the tank.
+
+---
+
+**In electronics terms:**
+- Chips draw sudden bursts of current when they switch
+- The power supply (and long PCB traces) are too slow to react
+- This causes brief voltage dips called **"noise"** which can crash or corrupt
+your chip
+- A decoupling cap sits right next to the chip and supplies that burst of current
+instantly
+
+---
+
+**Why two capacitors (100nF and 10uF)?**
+
+They handle different speeds of noise:
+- **100nF** — small and fast, kills high-frequency noise (MHz range)
+- **10uF** — larger and slower, handles bigger low-frequency dips
+
+Think of it like a small sprint tank and a bigger reserve tank working together.
+
+---
+
+**Why place them close to the chip?**
+
+Because PCB traces have resistance and inductance — the longer the path, the
+slower the response. You want that tank **right next door**, not across the room.
+
+Now we can wire the radio chip. For reference, here's what we're starting with:
+
+<img width="515" height="670" alt="SX1262 starting state" src="https://github.com/user-attachments/assets/fce0aeed-de62-4449-8ce8-0d510ea27281" />
+
+The first pins to wire are always GND, because they are the most simple. Just attach a GND power symbol to the pin.
+
+Next, we do our first decoupling. Add a +3V3 symbol a bit far away from the top of the symbol, and draw a wire from 3V3 to VDD_IN. Now, we need to add our decoupling mechanism. Place two symbols (search "C_Small") each with one end on the wire from 3V3 to VDD_IN. On the other end of the capacitors, connect the two ends of the capacitors and add a GND symbol. Press **V** on one capacitor and type "100nF" and for the other, type "10uF". Congratulations, here's what it should look like:
+
+<img width="594" height="666" alt="VDD_IN decoupling" src="https://github.com/user-attachments/assets/c1b2efbd-8e99-4755-b8d6-af66adbeb3f3" />
+
+For the rest of the pins, I made a table:
+
+| Pin | What to do |
+|---|---|
+| VDD_IN | We just did that! |
+| VBAT | Draw a direct wire to VDD_IN |
+| VBAT_IO | Decouple with one 100nF capacitor |
+| VREG | Decouple with one 100nF capacitor |
+| DCC_SW | Refer to instructions below |
+| VR_PA | Place a 100nF capacitor and connect to GND, DO NOT CONNECT TO 3.3V |
+| GND | Connect directly to GND |
+
+### Why Does DCC_SW Need an Inductor?
+
+The SX1262 has a built-in DC-DC converter that powers its internal circuits
+efficiently, and the DCC_SW pin is where it does its work. It needs an external
+**inductor** to function. Think of an inductor like a water wheel — it resists
+sudden changes in current flow, smoothing the converter's rapid switching into a
+clean, steady supply. Without it, the SX1262 won't power up correctly. The
+datasheet specifies a **15uH inductor** — don't substitute a different value.
+
+To place one in KiCad, search for **`L`** in the symbol library browser — inductors
+are listed under the **`Device`** library as `L` or `L_Small`.
+
+Final result:
+
+<img width="513" height="918" alt="SX1262 power complete" src="https://github.com/user-attachments/assets/ef884a0d-0877-48ed-b95a-4287816852e7" />
+
+### 5V to 3.3V conversion
+
+Earlier, we used a USB connector for power which operates at 5V. Our radio chip and ESP32 operate at 3.3V. How do we get from 5V to 3.3V?
+
+The answer is a LDO (Low-Dropout Regulator). The one we will use is a common kind called an AMS1117. Search AMS1117-3.3 (for the output voltage) in the symbol placer and place it anywhere.
+
+| Pin | Connection |
+|-----|-----------|
+| VIN | +5V from VBUS + 10uF cap to GND |
+| VOUT | +3V3 + 10uF cap to GND |
+| GND | GND |
+
+End result:
+
+<img width="631" height="405" alt="LDO regulator wiring" src="https://github.com/user-attachments/assets/08866cec-d3f6-4fff-be0c0d904739" />
+
+
+Next, we will wire the USB data.
+
+## USB Data Lines (D+ and D-)
+
+USB doesn't just carry power — it also carries data. The **D+** and **D-** pins
+are a pair of wires that carry data between your computer and the ESP32, which is
+how firmware gets flashed onto the chip. They always work as a pair, which is why
+you'll always see them together.
+
+You may notice the USB-C connector has two D+ and two D- pins. This is because
+USB-C is reversible, so the connector has the pins on both sides. Simply connect
+both D+ pins together and both D- pins together, then wire them to the ESP32 as
+described below.
+
+On the ESP32-S3-WROOM-1, the native USB data lines are actually named USB Data + and -, so it is very easy to keep track of.
+
+We are now going to learn an advanced feature of KiCad, which is net labels. Net labels are like a virtual wire, connecting two pins without crossing anything. Hit **L** to place our first one, and name it "USB_Data+". Place it on the pair of USB-D+ pins on our USB port, and copy and paste it to the corresponding pin on our ESP32. Do the same for D-.
+
+End result:
+
+<img width="799" height="947" alt="USB data wiring on USB-C" src="https://github.com/user-attachments/assets/df3682dc-972f-4b66-97fc-fcb4dd2fdcb9" />
+
+<img width="1050" height="340" alt="USB data wiring on ESP32" src="https://github.com/user-attachments/assets/fd61cb4d-c878-4157-95df-591e80b706e6" />
+
+Now we will do our interactive buttons.
+
+## Boot and Reset Buttons
+
+The ESP32 has two special pins that control how it starts up:
+
+- **RESET (EN)** — Restarts the chip when pulled low. Useful when you want to
+reboot without unplugging power.
+- **BOOT (GPIO0)** — If held low during startup, the ESP32 enters bootloader
+mode, which allows your computer to flash new firmware onto it. During normal
+operation it should be high.
+
+Without these buttons, you would have to unplug and replug the board to reset it,
+and you may not be able to flash firmware at all.
+
+### Pull-up Resistors
+
+Both pins need a **10k ohm pull-up resistor** connected between the pin and 3.3V.
+This keeps the pin in a known high state during normal operation. When you press
+the button, it pulls the pin low. Without the pull-up, the pin floats somewhere
+between high and low, causing unpredictable behavior.
+
+### Wiring
+
+| Pin | Button | Pull-up | Button other end |
+|-----|--------|---------|-----------------|
+| EN | RESET | 10k to 3.3V | GND |
+| GPIO0 | BOOT | 10k to 3.3V | GND |
+
+In KiCad, search for **SW_Push** in the symbol chooser to place the buttons,
+and **R_Small** for the pull-up resistors. Set both resistor values to **10k**.
+
+End result:
+
+<img width="887" height="442" alt="Boot and reset buttons" src="https://github.com/user-attachments/assets/bf755177-f843-49ba-91a1-bd8a38b4527b" />
+
+Now we will wire the antenna pin.
+
+## Connecting the U.FL Antenna Connector
+
+The U.FL connector is a small RF connector that allows you to attach an external
+antenna to your board. This is how your board will actually transmit and receive
+LoRa signals.
+
+In KiCad, search for **Conn_Coaxial** in the symbol chooser. Place it near the SX1262.
+The connector has two pins:
+
+| Pin | Connection |
+|-----|-----------|
+| Center (RF) | RFO on the SX1262 |
+| GND | GND |
+
+That's it! Draw a wire from **RFO** on the SX1262 to the center pin of the U.FL
+connector, and connect the GND pin to GND.
+
+> **Important:** Never power on your board without an antenna attached. Transmitting
+> without an antenna can damage the SX1262's RF output stage.
+
+Now we will connect the SX1262 to the ESP32.
+
+## SPI Wiring
+
+SPI (Serial Peripheral Interface) is how the ESP32 and SX1262 communicate. It
+uses 4 wires: a clock line, two data lines (one for each direction), and a chip
+select line that tells the SX1262 when the ESP32 is talking to it.
+
+Use net labels (**L**) for all of these connections to keep your schematic clean.
+
+| Signal | ESP32 Pin | SX1262 Pin |
+|--------|-----------|------------|
+| SCK    | GPIO5     | SCK        |
+| MOSI   | GPIO6     | MOSI       |
+| MISO   | GPIO7     | MISO       |
+| NSS    | GPIO8     | NSS        |
+
+## Control Signals
+
+Beyond SPI, the ESP32 needs a few extra pins to control and monitor the SX1262.
+
+| Signal | ESP32 Pin | SX1262 Pin | Purpose |
+|--------|-----------|------------|---------|
+| RESET  | GPIO3     | RESET      | Resets the radio chip |
+| BUSY   | GPIO4     | BUSY       | SX1262 pulls high when busy, ESP32 waits |
+| DIO1   | GPIO9     | DIO1       | Radio signals TX/RX done via interrupt |
+
+DIO2 and 3 can be left unconnected, they are optional. Use NC (no-connect) markers **Q** to mark that they are supposed to be unconnected.
+
+## Unconnected Pins
+
+Any pin that is not connected to anything needs to be marked as intentionally
+unconnected, otherwise KiCad will throw errors when you run the ERC (Electrical
+Rules Check). To do this, hit **Q** and click on any unconnected pin. You will
+see a small X appear on the pin, telling KiCad to ignore it.
+
+Do this for any remaining unconnected pins on the ESP32 and SX1262.
+
+# PCB Section
+
+Now that our schematic is complete, we can move on to the PCB layout. But first,
+we need to assign footprints to all of our components. A footprint is the physical
+shape and pad layout of a component on the PCB — it tells KiCad how big each part
+is and where its pads are.
+
+In the schematic editor, hit **Tools > Assign Footprints** to open the footprint
+assignment window. Here is what to assign for each component:
+
+| Component | Footprint Library | Footprint |
+|-----------|------------------|-----------|
+| ESP32-S3-WROOM-1 | RF_Module | ESP32-S3-WROOM-1 |
+| SX1262 | Package_DFN_QFN | QFN-24_4x4mm_P0.5mm |
+| AMS1117-3.3 | Package_TO_SOT_SMD | SOT-223-3_TabPin2 |
+| USB-C Connector | Connector_USB | USB_C_Receptacle_GCT_USB4085 |
+| U.FL Connector | Connector_Coaxial | U.FL_Hirose_U.FL-R-SMT-1_Vertical |
+| Buttons | Button_Switch_SMD | SW_SPST_B3U-1000P |
+| Resistors | Resistor_SMD | R_0402_1005Metric |
+| Capacitors | Capacitor_SMD | C_0402_1005Metric |
+| Inductor | Inductor_SMD | L_0402_1005Metric |
+
+Once all footprints are assigned, hit **OK** and then open the PCB editor from
+the main project page. Hit **F8** (sometimes **FN+F8**) to import all of your
+components. You should see a pile of components appear in the editor, ready to
+be placed. Pop them anywhere for now, we can deal with them later.
+
+This is what it should look like:
+
+<img width="620" height="602" alt="Components imported to PCB editor" src="https://github.com/user-attachments/assets/57a2a2f2-8ce7-459e-a798-92a0e2feec8a" />
+
+Before we continue, I need to explain layers.
+
+## Layers
+
+If you look on the right in the PCB editor, you will see the layer list. Think of each layer as a sheet of paper, and when you stack them together and put light underneath they combine into one. Most of these you can ignore.
+
+<img width="233" height="486" alt="Layer panel" src="https://github.com/user-attachments/assets/eadc251a-163c-457f-9a2a-75f3be2b87ba" />
+
+The only layers we really need to worry about are **F.Cu**, **B.Cu**, **F.Silkscreen**, and **Edge.Cuts**. The first one we are going to use is **Edge.Cuts**. Click on it in the layer browser, and you can now start drawing. Cuts is the layer which tells the PCB manufacturer how to cut the raw circuit board into the shape we want. You can use the line and curve tools in the bottom left to draw whatever shape you want! Play around with it! I am going to make a simple rectangle for the sake of this tutorial.
+
+<img width="341" height="752" alt="Edge.Cuts outline" src="https://github.com/user-attachments/assets/b3ee273c-9fad-4435-ae68-fce2458fc7a8" />
+
+After you finish Cuts, you need to place your components onto Cuts.
+
+## Placing Components
+
+Start with the ESP32, it is the biggest one. I placed it at the top. You also need to make sure the keep-out zone is outside of Cuts, like this:
+
+<img width="462" height="863" alt="ESP32 placement" src="https://github.com/user-attachments/assets/30075d3d-3b60-4aa0-a033-2f3adb5738c0" />
+
+Next, we will place the USB-C port. Make sure where it says "PCB Edge" it lines up with Cuts.
+
+<img width="654" height="516" alt="USB-C placement" src="https://github.com/user-attachments/assets/d83f8485-b6bd-4081-ad87-da25693f1506" />
+
+Now, we will do the SX1262 and the antenna port. We need to make sure they are close together, otherwise the radio can be erratic.
+
+<img width="583" height="411" alt="SX1262 and antenna placement" src="https://github.com/user-attachments/assets/32fad393-22b1-49ae-9e37-c89c42894b94" />
+
+The power system should be close together, so place the AMS1117 somewhere near the USB-C port. Place the switches near the microcontroller, and you are almost done!
+
+## Placing Decoupling Capacitors
+
+Now that all the major components are placed, we need to place the decoupling
+capacitors close to their chips. Remember from earlier — decoupling caps need
+to be as close as possible to the pins they are decoupling. Zoom in on the
+SX1262 and drag each capacitor to be right next to it. Do the same for the
+AMS1117. The inductor for DCC_SW should also be placed right next to the SX1262. Refer to the schematic to see what capacitors go where.
+
+<img width="728" height="707" alt="Decoupling capacitor placement" src="https://github.com/user-attachments/assets/c32960ea-3d65-4631-b1da-ffa761d6db2a" />
+
+
+## Ratsnest (Airwires)
+
+You may have noticed thin lines connecting your components. These are called
+**ratsnest lines** or **airwires**. They are not real copper traces — they are
+just KiCad showing you which pads need to be connected based on your schematic.
+Your job during routing is to replace every single ratsnest line with a real
+copper trace. When all ratsnest lines are gone, your board is fully routed.
+
+<img width="324" height="422" alt="Ratsnest lines" src="https://github.com/user-attachments/assets/1391f171-89ab-4498-8092-4ddd99aa4ab2" />
+
+
+## Routing Traces
+
+Now it is time to draw the actual copper. Select the **F.Cu** layer in the layer
+panel on the right. Hit **X** to start the route trace tool. Click on a pad to
+start a trace, and click on the destination pad to finish it. KiCad will snap to
+the ratsnest lines to help guide you.
+
+A few important rules to follow:
+
+- **Power traces (3.3V, 5V, GND)** — make these wider, at least 0.5mm. They
+carry more current than signal traces.
+- **Signal traces (SPI, control pins)** — 0.2mm is fine for these.
+- **RF trace (RFO to U.FL)** — keep this as short and straight as possible.
+No sharp 90 degree corners, use 45 degree angles instead.
+- **Never route traces under the ESP32 antenna area** — there is a keepout zone
+on the ESP32 footprint for a reason. Copper under the antenna will detune it and
+reduce your range.
+
+To change trace width, right click while routing and select **Width**.
+
+<img width="187" height="147" alt="Trace width menu" src="https://github.com/user-attachments/assets/b6de7365-bcbc-47ac-9dd3-4f79a194e6d7" />
+
+<img width="398" height="371" alt="Routed traces" src="https://github.com/user-attachments/assets/83cf4143-9507-4b20-8cee-40354eb25d3c" />
+
+### Routing Order
+
+Route in this order to keep things manageable:
+
+1. GND connections first — there will be a lot of them, but most will be handled
+by the ground plane in the next step so do not worry about all of them yet.
+2. Power traces — 3.3V and 5V
+3. SPI and control signals between ESP32 and SX1262
+4. USB data lines (D+ and D-)
+5. RF trace last — it is the most sensitive
+
+## Ground Plane
+
+Instead of routing every single GND connection by hand, we can use a **ground
+plane** — a flood of copper that covers the entire board and automatically
+connects to every GND pad. This is standard practice on almost every PCB, and
+it also helps with RF performance.
+
+To add a ground plane:
+
+1. Select **F.Cu** in the layer panel
+2. Hit **Z** to open the Add Filled Zone tool (or go to **Place > Add Rule Area**)
+3. Click the four corners of your board outline to draw the zone boundary
+4. In the dialog that opens, make sure the net is set to **GND** and hit **OK**
+5. Hit **B** to fill all zones — you will see the copper flood appear
+
+Repeat the same process for **B.Cu** to add a ground plane on the back of the
+board too. Having ground planes on both sides improves RF shielding and gives
+your decoupling caps a short path to ground.
+
+<img width="284" height="621" alt="Ground plane fill" src="https://github.com/user-attachments/assets/7e262055-444a-4be6-adc3-687c9b171d74" />
+
+
+After filling, you may notice some ratsnest lines disappeared — those were GND
+connections that are now handled by the ground plane.
+
+## Design Rule Check (DRC)
+
+Before we export, we need to run the **DRC** (Design Rule Check). This is
+KiCad's automated checker that looks for problems like traces that are too close
+together, unconnected pads, or copper that overlaps where it should not.
+
+Go to **Inspect > Design Rules Checker** and hit **Run DRC**. Ideally you want
+zero errors. Warnings are usually fine to ignore for a first board.
+
+<img width="690" height="545" alt="DRC results" src="https://github.com/user-attachments/assets/e993b386-07d3-463c-9c0e-c2c978e59d06" />
+
+## Exporting Gerbers for JLCPCB
+
+Gerber files are the industry standard format that PCB manufacturers use to
+actually make your board. Here is how to export them for JLCPCB:
+
+1. Go to **File > Fabrication Outputs > Gerbers (.gbr)**
+2. In the dialog, make sure the following layers are checked:
+   - F.Cu
+   - B.Cu
+   - F.Paste
+   - B.Paste
+   - F.Silkscreen
+   - B.Silkscreen
+   - F.Mask
+   - B.Mask
+   - Edge.Cuts
+3. Hit **Plot**
+4. Then hit **Generate Drill Files** and hit **Generate Drill File**
+5. Zip up the entire output folder
+
+<img width="1080" height="701" alt="Gerber export dialog" src="https://github.com/user-attachments/assets/aa81b8cf-5e2a-40ec-a9d3-dea01df45ba0" />
+
+
+Now go to [jlcpcb.com](https://jlcpcb.com), hit **Order Now**, and upload your zip file. The
+default settings are fine for a first board — 2 layers, 1.6mm thickness, and
+green soldermask. The cheapest option will get you 5 boards for a few dollars.
+
+Congratulations — you have designed your first PCB!
