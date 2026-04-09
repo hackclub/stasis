@@ -5,6 +5,8 @@ const BADGE_IMAGE_MAP: Record<string, string> = {
   'CAD': '/badges/CAD.webp',
   'Bluetooth': '/badges/Bluetooth.webp',
   'MCU': '/badges/MCU-Integration.webp',
+  'MCU Integration': '/badges/MCU-Integration.webp',
+  'Other RF': '/badges/Other-RF.webp',
   'Displays': '/badges/Displays.webp',
   'Motors': '/badges/Motors.webp',
   'Analog Sensors': '/badges/Analog-Sensors.webp',
@@ -69,6 +71,14 @@ export const projects: StarterProject[] = [
     badges: ['CAD'],
     hasTutorial: true,
     image: 'squeak.webp',
+  },
+  {
+    id: 'meshtastic-lora',
+    name: 'Meshtastic LoRa Board',
+    hours: 20,
+    short_description: 'Design a LoRa board with an ESP32-S3, SX1262 radio, and U.FL antenna.',
+    badges: ['MCU Integration', 'Other RF'],
+    hasTutorial: true,
   },
   {
     id: 'pathfinder',
