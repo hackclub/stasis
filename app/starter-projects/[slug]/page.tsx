@@ -20,6 +20,7 @@ const projectModules: Record<string, () => Promise<ProjectModule>> = {
   'devboard': () => import('../content/devboard.mdx') as Promise<ProjectModule>,
   'split-keyboard': () => import('../content/split-keyboard.mdx') as Promise<ProjectModule>,
   'squeak': () => import('../content/squeak.mdx') as Promise<ProjectModule>,
+  'meshtastic-lora': () => import('../content/meshtastic-lora.mdx') as Promise<ProjectModule>,
 };
 
 export default function StarterProjectPage({
