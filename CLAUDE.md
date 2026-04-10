@@ -8,20 +8,7 @@ Stasis is a hackathon platform (Hack Club) built with Next.js 16 (App Router) + 
 
 ## Commands
 
-```bash
-yarn dev              # Start dev server (or use ./dev.sh to also start local Postgres via Docker)
-yarn build            # Production build (standalone output for Docker)
-yarn typecheck        # TypeScript type checking (also runs during build)
-yarn lint             # ESLint
-yarn db:studio        # Open Prisma Studio
-yarn db:test          # Test database connection
-npx prisma generate   # Regenerate Prisma client after schema changes
-npx prisma migrate dev # Create/apply migrations
-```
-
-No test framework is configured. When using Playwright for screenshots, save images to `/tmp`.
-
-Always run `yarn build` after completing any code changes to verify there are no build errors before finishing.
+Package manager: **yarn**. Local dev: `./dev.sh` (starts Postgres in Docker + dev server). Always run `yarn build` after code changes to verify no build errors. No test framework configured. Playwright screenshots go in `/tmp`.
 
 ## Architecture
 
@@ -71,7 +58,7 @@ When `NEXT_PUBLIC_PRELAUNCH_MODE=true`, the site shows RSVP-only mode with refer
 
 Copy `.env.example` for required variables. Key ones: `DATABASE_URL`, `BETTER_AUTH_SECRET`, OAuth client IDs/secrets (HCA, Hackatime, GitHub), `AIRTABLE_API_KEY`, S3 credentials, `SLACK_BOT_TOKEN`.
 
-`.env` also contains `READONLY_PRODUCTION_DATABASE_URL` — a read-only connection to the prod Postgres. Use it whenever the user asks about real users, real projects, or real streak/currency state (the local dev DB is usually empty). It is read-only, so it is safe to query freely; never attempt writes through it. Connections can be flaky — if `psql` fails with "Connection refused", retry once before giving up.
+- `READONLY_PRODUCTION_DATABASE_URL` (already exported to Claude's shell via `.claude/settings.local.json`): read-only prod replica. Use it for real user/project/streak/currency questions — local DB is usually empty. Safe to query freely, never write. Retry once on "Connection refused".
 
 ## Looking Up a User by Slack ID
 
@@ -147,16 +134,7 @@ Replace `USER_EMAIL_HERE` with the user's email and `AMOUNT_HERE` with the numbe
 
 Never AI-generate migration files. Always use `npx prisma migrate dev --name <descriptive_name>` to create migrations — this requires a running database. Always include a descriptive `--name` flag (e.g., `--name add_shop_items_table`) so the migration folder is clearly named. If the database is not available, instruct the user to run the migration themselves.
 
-## TypeScript & Code Style
+## Code style
 
-Strict mode enabled. Path alias `@/*` maps to project root.
-
-- Client components must use `'use client'` directive
 - Use `Readonly<>` for component prop types
-- Named exports for components (e.g., `export function Component`)
-- Sanitize all user input in API routes before saving:
-  ```typescript
-  import { sanitize } from "@/lib/sanitize"
-  const safeTitle = sanitize(body.title)       // plain text
-  const safeHtml = sanitizeHtml(body.content)   // if HTML allowed
-  ```
+- Sanitize user input in API routes: `sanitize(body.x)` for plain text, `sanitizeHtml(body.x)` for HTML (both from `@/lib/sanitize`)
