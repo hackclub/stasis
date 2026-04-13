@@ -18,6 +18,7 @@ export function NoiseOverlay() {
     };
 
     const generateNoise = () => {
+      if (!canvas.width || !canvas.height) return;
       const imageData = ctx.createImageData(canvas.width, canvas.height);
       const data = imageData.data;
 
