@@ -66,13 +66,16 @@ Slack profile URLs look like `https://hackclub.enterprise.slack.com/team/U0A2SJ7
 
 ```bash
 psql "$READONLY_PRODUCTION_DATABASE_URL" <<'SQL'
-WITH u AS (SELECT id, email, name FROM "user" WHERE "slackId" = 'U0A2SJ7B739')
+SELECT u.name, u.email, u."slackId"
+FROM "user" u WHERE u."slackId" = 'U0A2SJ7B739';
+
 SELECT ws.id, ws."createdAt", ws."effectiveDate",
        (ws.content IS NOT NULL AND TRIM(ws.content) <> '') AS has_journal
 FROM work_session ws
 JOIN project p ON p.id = ws."projectId"
-JOIN u ON u.id = p."userId"
-WHERE p."deletedAt" IS NULL
+JOIN "user" u ON u.id = p."userId"
+WHERE u."slackId" = 'U0A2SJ7B739'
+  AND p."deletedAt" IS NULL
   AND ws."createdAt" >= '2026-03-26'  -- a day before TAMAGOTCHI_EVENT.START
   AND ws."createdAt" <  '2026-04-15'  -- a day after TAMAGOTCHI_EVENT.END
 ORDER BY ws."createdAt";
