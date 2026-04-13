@@ -176,6 +176,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
+  const [cartUploadModalOpen, setCartUploadModalOpen] = useState(false);
+  const [pendingCartFiles, setPendingCartFiles] = useState<File[]>([]);
+  const [pendingCartPreviews, setPendingCartPreviews] = useState<string[]>([]);
   const [hackatimeLinked, setHackatimeLinked] = useState<boolean | null>(null);
   const [hackatimeProjects, setHackatimeProjects] = useState<{ id: string; hackatimeProject: string; totalSeconds: number; hoursApproved: number | null }[]>([]);
   const [availableHackatimeProjects, setAvailableHackatimeProjects] = useState<{ name: string; total_seconds: number; archived: boolean }[]>([]);
@@ -899,15 +902,51 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const uploadCartScreenshotFiles = async (files: File[]) => {
-    if (files.length === 0 || !project) return;
+  const addPendingCartFiles = (files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+    setPendingCartFiles(prev => [...prev, ...imageFiles]);
+    const newPreviews = imageFiles.map(f => URL.createObjectURL(f));
+    setPendingCartPreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removePendingCartFile = (index: number) => {
+    setPendingCartPreviews(prev => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+    setPendingCartFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openCartUploadModal = (initialFiles?: File[]) => {
+    setPendingCartFiles([]);
+    setPendingCartPreviews([]);
+    cartModalAutoOpenPicker.current = !initialFiles || initialFiles.length === 0;
+    setCartUploadModalOpen(true);
+    if (initialFiles && initialFiles.length > 0) {
+      addPendingCartFiles(initialFiles);
+    }
+  };
+
+  const closeCartUploadModal = () => {
+    pendingCartPreviews.forEach(url => URL.revokeObjectURL(url));
+    setPendingCartFiles([]);
+    setPendingCartPreviews([]);
+    setCartUploadModalOpen(false);
+  };
+
+  const handleCartUploadModalSubmit = async () => {
+    if (pendingCartFiles.length === 0 || !project) {
+      closeCartUploadModal();
+      return;
+    }
 
     setUploadingCartScreenshot(true);
     try {
       const uploadedUrls: string[] = [];
       const errors: string[] = [];
 
-      await Promise.all(files.map(async (file) => {
+      await Promise.all(pendingCartFiles.map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
 
@@ -943,6 +982,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       if (errors.length > 0) {
         alert(`Some uploads failed:\n${errors.join('\n')}`);
       }
+
+      closeCartUploadModal();
     } catch (error) {
       console.error('Failed to upload cart screenshots:', error);
       alert('Failed to upload cart screenshots');
@@ -951,22 +992,39 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const handleCartScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    await uploadCartScreenshotFiles(files);
+  const handleCartModalFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addPendingCartFiles(Array.from(e.target.files || []));
     e.target.value = '';
   };
 
   const [draggingCartScreenshot, setDraggingCartScreenshot] = useState(false);
   const cartScreenshotDragCounter = useRef(0);
 
-  const handleCartScreenshotDrop = async (e: React.DragEvent) => {
+  const handleCartScreenshotDrop = (e: React.DragEvent) => {
     e.preventDefault();
     cartScreenshotDragCounter.current = 0;
     setDraggingCartScreenshot(false);
     const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-    await uploadCartScreenshotFiles(files);
+    if (files.length > 0) openCartUploadModal(files);
   };
+
+  const [draggingCartModal, setDraggingCartModal] = useState(false);
+  const cartModalDragCounter = useRef(0);
+  const cartModalRef = useRef<HTMLDivElement>(null);
+  const cartModalFileInputRef = useRef<HTMLInputElement>(null);
+  const cartModalAutoOpenPicker = useRef(false);
+
+  useEffect(() => {
+    if (cartUploadModalOpen) {
+      requestAnimationFrame(() => {
+        cartModalRef.current?.focus();
+        if (cartModalAutoOpenPicker.current) {
+          cartModalAutoOpenPicker.current = false;
+          cartModalFileInputRef.current?.click();
+        }
+      });
+    }
+  }, [cartUploadModalOpen]);
 
   const handleDeleteCartScreenshot = async (url: string) => {
     if (!project) return;
@@ -1978,10 +2036,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     <div className="flex items-center gap-3">
                       <p className="text-cream-600 text-sm">{draggingCartScreenshot ? 'Drop images here to upload' : 'Upload screenshots of your cart with the items you plan to buy.'}</p>
                       {bomEditable && !draggingCartScreenshot && (
-                        <label className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
-                          {uploadingCartScreenshot ? 'Uploading...' : 'Upload'}
-                          <input type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartScreenshotUpload} disabled={uploadingCartScreenshot} className="hidden" />
-                        </label>
+                        <button type="button" onClick={() => openCartUploadModal()} className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
+                          Upload
+                        </button>
                       )}
                     </div>
                   ) : (
@@ -1999,16 +2056,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         </div>
                       ))}
                       {bomEditable && (
-                        <label className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
-                          {uploadingCartScreenshot ? (
-                            <span className="text-cream-600 text-[10px] uppercase">Uploading</span>
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-500 group-hover:text-orange-500 transition-colors">
-                              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                            </svg>
-                          )}
-                          <input type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartScreenshotUpload} disabled={uploadingCartScreenshot} className="hidden" />
-                        </label>
+                        <button type="button" onClick={() => openCartUploadModal()} className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-500 group-hover:text-orange-500 transition-colors">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                        </button>
                       )}
                     </div>
                   )}
@@ -2645,7 +2697,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
 
-          {/* Cart Screenshots Modal */}
+          {/* Cart Screenshots View Modal */}
           {showCartScreenshots && project && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
@@ -2679,29 +2731,136 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     ))}
                   </div>
                 )}
-                {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                  <div className="flex gap-3">
-                    <label className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-2 text-center uppercase text-sm tracking-wider transition-colors cursor-pointer">
-                      {uploadingCartScreenshot ? 'Uploading...' : '+ Upload Screenshot'}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        onChange={handleCartScreenshotUpload}
-                        disabled={uploadingCartScreenshot}
-                        className="hidden"
-                      />
-                    </label>
-                    {project.cartScreenshots.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowCartScreenshots(false)}
-                        className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
-                      >
-                        Done
-                      </button>
+                <div className="flex gap-3">
+                  {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowCartScreenshots(false); openCartUploadModal(); }}
+                      className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-2 text-center uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                    >
+                      + Add Screenshots
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowCartScreenshots(false)}
+                    className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cart Screenshot Upload Modal */}
+          {cartUploadModalOpen && project && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div
+                ref={cartModalRef}
+                className={`bg-cream-100 border-2 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto transition-colors outline-none ${draggingCartModal ? 'border-orange-500 bg-orange-500/5' : 'border-cream-400'}`}
+                onDragEnter={(e) => { e.preventDefault(); cartModalDragCounter.current++; setDraggingCartModal(true); }}
+                onDragLeave={(e) => { e.preventDefault(); cartModalDragCounter.current--; if (cartModalDragCounter.current <= 0) { cartModalDragCounter.current = 0; setDraggingCartModal(false); } }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  cartModalDragCounter.current = 0;
+                  setDraggingCartModal(false);
+                  addPendingCartFiles(Array.from(e.dataTransfer.files));
+                }}
+                onPaste={(e) => {
+                  const files = Array.from(e.clipboardData.files);
+                  if (files.length > 0) {
+                    e.preventDefault();
+                    addPendingCartFiles(files);
+                  }
+                }}
+                tabIndex={-1}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-brown-800 text-xl uppercase tracking-wide">Add Screenshots</h3>
+                  <button
+                    onClick={closeCartUploadModal}
+                    className="text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
+                    disabled={uploadingCartScreenshot}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Drop / paste zone */}
+                {pendingCartFiles.length === 0 && !draggingCartModal && (
+                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-cream-400 hover:border-orange-500 py-10 px-4 mb-4 cursor-pointer transition-colors group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-cream-500 group-hover:text-orange-500 transition-colors mb-2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p className="text-cream-600 text-sm text-center">Drop images, paste from clipboard, or <span className="text-orange-500 group-hover:text-orange-400">browse files</span></p>
+                    <input ref={cartModalFileInputRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartModalFileInput} className="hidden" />
+                  </label>
+                )}
+
+                {draggingCartModal && pendingCartFiles.length === 0 && (
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-orange-500 py-10 px-4 mb-4 bg-orange-500/10">
+                    <p className="text-orange-500 text-sm uppercase tracking-wider">Drop images here</p>
+                  </div>
+                )}
+
+                {/* Pending file previews */}
+                {pendingCartPreviews.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-brown-800 text-xs uppercase">{pendingCartFiles.length} image{pendingCartFiles.length !== 1 ? 's' : ''} ready to upload</p>
+                      <label className="text-orange-500 hover:text-orange-400 text-xs uppercase tracking-wider cursor-pointer transition-colors">
+                        + Add more
+                        <input type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartModalFileInput} className="hidden" />
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {pendingCartPreviews.map((previewUrl, i) => (
+                        <div key={i} className="relative group">
+                          <img src={previewUrl} alt={`Pending screenshot ${i + 1}`} className="w-full h-28 object-cover border border-cream-400" />
+                          <button
+                            type="button"
+                            onClick={() => removePendingCartFile(i)}
+                            className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                          <p className="text-cream-600 text-[10px] truncate mt-0.5 px-0.5">{pendingCartFiles[i]?.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {draggingCartModal && (
+                      <div className="mt-2 flex items-center justify-center border-2 border-dashed border-orange-500 py-4 bg-orange-500/10">
+                        <p className="text-orange-500 text-xs uppercase tracking-wider">Drop to add more</p>
+                      </div>
                     )}
                   </div>
                 )}
+
+                <p className="text-cream-500 text-xs mb-4 text-center">Tip: You can also paste screenshots with Ctrl+V</p>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={closeCartUploadModal}
+                    disabled={uploadingCartScreenshot}
+                    className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCartUploadModalSubmit}
+                    disabled={pendingCartFiles.length === 0 || uploadingCartScreenshot}
+                    className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:text-cream-600 text-white py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                  >
+                    {uploadingCartScreenshot ? 'Uploading...' : `Upload${pendingCartFiles.length > 0 ? ` (${pendingCartFiles.length})` : ''}`}
+                  </button>
+                </div>
               </div>
             </div>
           )}
