@@ -12,8 +12,9 @@ import DesignResources from '../dashboard/help/content/design-resources.mdx';
 import DesignTips from '../dashboard/help/content/design-tips.mdx';
 import SourcingParts from '../dashboard/help/content/sourcing-parts.mdx';
 import ProjectIdeas from '../dashboard/help/content/project-ideas.mdx';
+import Travel from '../dashboard/help/content/travel.mdx';
 
-export type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents' | 'design-resources' | 'design-tips' | 'sourcing-parts' | 'project-ideas';
+export type GuidePage = 'overview' | 'submission-guidelines' | 'about-cost' | 'faq' | 'parents' | 'travel' | 'design-resources' | 'design-tips' | 'sourcing-parts' | 'project-ideas';
 
 interface GuidesContentProps {
   activePage?: GuidePage;
@@ -29,6 +30,7 @@ export const GUIDE_PAGES: { id: GuidePage; label: string; heading?: string; sect
   { id: 'sourcing-parts', label: 'Sourcing Parts', heading: 'Sourcing Parts', section: 'design' },
   { id: 'project-ideas', label: 'Project Ideas/Inspo', heading: 'Project Ideas/Inspo', section: 'design' },
   { id: 'faq', label: 'General FAQ', heading: 'Frequently Asked Questions', section: 'faq' },
+  { id: 'travel', label: 'Travel', heading: 'Travel Guide', section: 'faq' },
   { id: 'parents', label: 'Parent Guide', heading: 'Guide for Parents', section: 'faq' },
 ];
 
@@ -160,6 +162,7 @@ const PAGE_CONTENT: Record<GuidePage, React.ComponentType<any>> = {
   'sourcing-parts': SourcingParts,
   'project-ideas': ProjectIdeas,
   'faq': FAQ,
+  'travel': Travel,
   'parents': Parents,
 };
 
