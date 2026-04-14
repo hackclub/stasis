@@ -5,7 +5,7 @@ import { headers } from "next/headers"
 import { MediaType, ProjectStage } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { isValidUrl } from "@/lib/url"
-import { getLocalDateStr, validateTimezone } from "@/lib/tamagotchi"
+import { getEffectiveDate, validateTimezone } from "@/lib/tamagotchi"
 
 interface ParsedSession {
   title: string
@@ -169,7 +169,7 @@ export async function POST(
     return NextResponse.json({ count: parsedSessions.length })
   }
 
-  // Compute effectiveDate from the parsed date — for imports, the date in the markdown IS the intended day
+  // Compute effectiveDate from the parsed date — uses getEffectiveDate for 30-min grace period
   const validatedTz = tz ? validateTimezone(tz) : null
 
   const created = await prisma.$transaction(
@@ -183,7 +183,7 @@ export async function POST(
           stage,
           projectId,
           createdAt: entry.createdAt,
-          effectiveDate: validatedTz ? getLocalDateStr(entry.createdAt, validatedTz) : null,
+          effectiveDate: validatedTz ? getEffectiveDate(entry.createdAt, validatedTz) : null,
           media: {
             create: entry.images.map((url) => ({
               type: "IMAGE" as MediaType,

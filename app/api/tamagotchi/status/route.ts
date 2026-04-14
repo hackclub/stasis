@@ -17,6 +17,7 @@ import {
   type TamagotchiDay,
   type TamagotchiStatus,
 } from "@/lib/tamagotchi"
+import { checkAndCreateStreakReward } from "@/lib/tamagotchi-reward"
 
 /**
  * GET /api/tamagotchi/status?tz=America/New_York
@@ -34,6 +35,9 @@ export async function GET(request: NextRequest) {
   const tz = validateTimezone(request.nextUrl.searchParams.get("tz"))
   const now = new Date()
   const today = getLocalDateStr(now, tz)
+
+  // Persist the user's timezone for batch recomputation of NULL-effectiveDate sessions
+  prisma.user.update({ where: { id: userId }, data: { timezone: tz } }).catch(() => {})
 
   if (!isEventVisible(today)) {
     return NextResponse.json({
@@ -61,7 +65,7 @@ export async function GET(request: NextRequest) {
 
   const workSessions = await prisma.workSession.findMany({
     where: {
-      project: { userId, deletedAt: null },
+      project: { userId },  // Include sessions from soft-deleted projects for streak continuity
       createdAt: {
         gte: fetchStart,
         lt: fetchEnd,
@@ -135,30 +139,20 @@ export async function GET(request: NextRequest) {
     complete: todayData?.hasJournal ?? false,
   }
 
-  // Check / create reward
-  let reward: TamagotchiStatus["reward"] = null
-  if (challengeComplete) {
-    let existing = await prisma.streakReward.findUnique({ where: { userId } })
-    if (!existing) {
-      existing = await prisma.streakReward.create({
-        data: { userId, completedAt: new Date() },
-      })
-    }
-    reward = {
-      completedAt: existing.completedAt.toISOString(),
-      claimed: existing.claimed,
-      shipped: existing.shipped,
-    }
-  } else {
-    const existing = await prisma.streakReward.findUnique({ where: { userId } })
-    if (existing) {
-      reward = {
-        completedAt: existing.completedAt.toISOString(),
-        claimed: existing.claimed,
-        shipped: existing.shipped,
+  // Create reward if challenge is complete (also catches users who completed
+  // before the session-creation check was added). Uses stored TZ for NULL
+  // effectiveDate sessions and handles race conditions via upsert.
+  const streakReward = challengeComplete
+    ? await checkAndCreateStreakReward(userId, tz)
+    : await prisma.streakReward.findUnique({ where: { userId } })
+
+  const reward: TamagotchiStatus["reward"] = streakReward
+    ? {
+        completedAt: streakReward.completedAt.toISOString(),
+        claimed: streakReward.claimed,
+        shipped: streakReward.shipped,
       }
-    }
-  }
+    : null
 
   // Get most recent project for CTA
   const recentProject = await prisma.project.findFirst({

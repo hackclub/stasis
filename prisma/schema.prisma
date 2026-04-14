@@ -64,6 +64,7 @@ model User {
   disableGrain       Boolean   @default(false)
   utmSource          String?
   signupPage         String?
+  timezone           String?   // IANA timezone, e.g. "America/New_York" — updated on each authenticated request that sends tz
 
   // Encrypted PII fields (AES-256-GCM) — only populated when PULL_HCA_PII is set
   encryptedAddressStreet  String?
