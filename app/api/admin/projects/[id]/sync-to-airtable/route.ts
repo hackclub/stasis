@@ -140,13 +140,25 @@ export async function POST(
   const grantAmount = designReviewAction?.grantAmount ?? null
 
   try {
-    await syncProjectToAirtable(
-      project.userId,
-      project,
-      justification,
-      grantAmount,
-      isBuildApproved ? { buildOnly: true } : undefined,
-    )
+    // Sync every approved stage so manual re-sync can backfill missing records
+    if (project.designStatus === "approved") {
+      await syncProjectToAirtable(
+        project.userId,
+        project,
+        justification,
+        grantAmount,
+        { approvedHours: designHours },
+      )
+    }
+    if (isBuildApproved) {
+      await syncProjectToAirtable(
+        project.userId,
+        project,
+        justification,
+        grantAmount,
+        { buildOnly: true },
+      )
+    }
     return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
