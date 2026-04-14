@@ -193,6 +193,7 @@ export const auth = betterAuth({
                 if (addr.country) updates.encryptedAddressCountry = encryptPII(addr.country);
               }
               if (profile.birthdate) updates.encryptedBirthday = encryptPII(profile.birthdate);
+              if (profile.verification_status) updates.verificationStatus = profile.verification_status;
               if (Object.keys(updates).length > 0) {
                 await prisma.user.update({ where: { id: userId }, data: updates });
               }

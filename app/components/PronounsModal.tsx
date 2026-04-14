@@ -33,7 +33,7 @@ export function PronounsModal({ onComplete }: Readonly<Props>) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-[#3D3229]/80" />
+      <div className="absolute inset-0 bg-black/75" />
       <div className="relative bg-cream-100 border-2 border-orange-500 p-6 max-w-110 w-full mx-4 shadow-2xl">
         <p className="text-brown-800 text-sm leading-relaxed mb-5">
           What pronouns do you use?

@@ -9,6 +9,7 @@ import { VALID_BADGE_TYPES, MAX_BADGES_PER_PROJECT } from "@/lib/badges"
 import { VALID_TAGS } from "@/lib/tags"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { TIERS } from "@/lib/tiers"
+import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
 function validateTags(tags: unknown): ProjectTag[] {
   if (!Array.isArray(tags)) return []
@@ -42,9 +43,45 @@ export async function GET(request: NextRequest) {
 
   const projects = await prisma.project.findMany({
     where: { ...whereClause, deletedAt: null },
-    include: { workSessions: true, badges: true, bomItems: true },
+    include: {
+      workSessions: {
+        orderBy: { createdAt: "desc" },
+        include: { media: true },
+      },
+      badges: true,
+      bomItems: true,
+      hackatimeProjects: true,
+    },
     orderBy: { createdAt: "desc" },
   })
+
+  // Fetch hackatimeUserId for firmware hour lookups
+  const targetUserId = requestedUserId && isAdmin ? requestedUserId : session.user.id
+  const user = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { hackatimeUserId: true },
+  })
+
+  // Fetch firmware hours for all linked hackatime projects in parallel
+  const firmwareClaimedByProject = new Map<string, number>()
+  const firmwareApprovedByProject = new Map<string, number>()
+  if (user?.hackatimeUserId) {
+    const allHackatimeProjects = projects.flatMap((p) =>
+      p.hackatimeProjects.map((hp) => ({ stasisProjectId: p.id, hp }))
+    )
+    const results = await Promise.all(
+      allHackatimeProjects.map(async ({ stasisProjectId, hp }) => {
+        const totalSeconds = await fetchHackatimeProjectSeconds(user.hackatimeUserId!, hp.hackatimeProject)
+        const claimed = hp.hoursApproved !== null ? hp.hoursApproved : totalSeconds / 3600
+        const approved = hp.hoursApproved ?? 0
+        return { stasisProjectId, claimed, approved }
+      })
+    )
+    for (const { stasisProjectId, claimed, approved } of results) {
+      firmwareClaimedByProject.set(stasisProjectId, (firmwareClaimedByProject.get(stasisProjectId) ?? 0) + claimed)
+      firmwareApprovedByProject.set(stasisProjectId, (firmwareApprovedByProject.get(stasisProjectId) ?? 0) + approved)
+    }
+  }
 
   const projectsWithHours = projects.map((project) => {
     // Derive a single status from designStatus and buildStatus for the card display
@@ -70,17 +107,23 @@ export async function GET(request: NextRequest) {
       status = "in_review"
     }
     
+    // First image from the most recent work session (sessions already sorted desc)
+    const latestSessionImage = project.workSessions
+      .flatMap(s => s.media)
+      .find(m => m.type === "IMAGE")?.url ?? null
+
     return {
       ...project,
       status,
+      latestSessionImage,
       totalHoursClaimed: project.workSessions.reduce(
         (acc, s) => acc + s.hoursClaimed,
         0
-      ),
+      ) + (firmwareClaimedByProject.get(project.id) ?? 0),
       totalHoursApproved: project.workSessions.reduce(
         (acc, s) => acc + (s.hoursApproved ?? 0),
         0
-      ),
+      ) + (firmwareApprovedByProject.get(project.id) ?? 0),
     }
   })
 

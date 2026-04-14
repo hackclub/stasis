@@ -64,6 +64,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
         body: JSON.stringify({
           ...data,
           stage,
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       });
 
@@ -104,15 +105,6 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
         </Link>
         <h1 className="text-orange-500 text-2xl uppercase tracking-wide">New Journal Entry</h1>
         <p className="text-brown-800 text-sm mt-1">Project: {project.title}</p>
-        <div className="mt-3">
-          <span className={`px-3 py-1 text-sm uppercase ${
-            project.designStatus === "approved"
-              ? 'bg-blue-600/30 border border-blue-600 text-blue-600'
-              : 'bg-yellow-500/30 border border-yellow-500 text-yellow-500'
-          }`}>
-            {project.designStatus === "approved" ? 'Build Stage Session' : 'Design Stage Session'}
-          </span>
-        </div>
       </div>
 
       <SessionForm

@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const userFilter = searchParams.get("user")?.trim() || null
   const itemIdFilter = searchParams.get("itemId")?.trim() || null
+  const statusFilter = searchParams.get("status")?.trim() || null
 
   // Build where clause
   const where: Record<string, unknown> = {
@@ -38,6 +39,12 @@ export async function GET(request: NextRequest) {
     where.shopItemId = itemIdFilter
   }
 
+  if (statusFilter === "fulfilled") {
+    where.fulfilledAt = { not: null }
+  } else if (statusFilter === "unfulfilled") {
+    where.fulfilledAt = null
+  }
+
   const transactions = await prisma.currencyTransaction.findMany({
     where,
     select: {
@@ -46,6 +53,7 @@ export async function GET(request: NextRequest) {
       amount: true,
       note: true,
       createdAt: true,
+      fulfilledAt: true,
       user: {
         select: { id: true, email: true, name: true, image: true },
       },
@@ -88,6 +96,7 @@ export async function GET(request: NextRequest) {
       itemImageUrl: dbItem?.imageUrl ?? null,
       amount: Math.abs(t.amount),
       createdAt: t.createdAt.toISOString(),
+      fulfilledAt: t.fulfilledAt?.toISOString() ?? null,
     }
   })
 

@@ -6,6 +6,30 @@ import { cookies, headers } from "next/headers"
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 
+/**
+ * Sign a cookie value the same way better-auth/better-call does:
+ * HMAC-SHA256(value, secret) → base64 → "value.signature"
+ */
+async function signCookieValue(value: string, secret: string): Promise<string> {
+  const key = await globalThis.crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  )
+  const signature = await globalThis.crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(value)
+  )
+  const sigBytes = new Uint8Array(signature)
+  let sigStr = ""
+  for (let i = 0; i < sigBytes.length; i++) sigStr += String.fromCharCode(sigBytes[i])
+  const base64Sig = btoa(sigStr)
+  return `${value}.${base64Sig}`
+}
+
 export async function POST(request: Request) {
   const result = await requireAdmin()
   if (result.error) return result.error
@@ -74,16 +98,22 @@ export async function POST(request: Request) {
     })
   }
 
-  // Set the impersonation session cookie
+  // Set the impersonation session cookie (must be HMAC-signed like better-auth expects)
   const isSecure = process.env.NODE_ENV === "production"
   const cookieName = isSecure ? "__Secure-better-auth.session_token" : "better-auth.session_token"
-  cookieStore.set(cookieName, token, {
+  const secret = process.env.BETTER_AUTH_SECRET!
+  const signedToken = await signCookieValue(token, secret)
+  cookieStore.set(cookieName, signedToken, {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60,
   })
+
+  // Clear the session data cache cookie so better-auth re-fetches from DB
+  const sessionDataCookieName = isSecure ? "__Secure-better-auth.session_data" : "better-auth.session_data"
+  cookieStore.delete(sessionDataCookieName)
 
   // Set a non-httpOnly cookie so the client can show the impersonation banner
   cookieStore.set("stasis-impersonating", JSON.stringify({
@@ -120,9 +150,11 @@ export async function DELETE() {
     maxAge: 60 * 60 * 24 * 7,
   })
 
-  // Clean up impersonation cookies
+  // Clean up impersonation cookies and session data cache
   cookieStore.delete("stasis-admin-token")
   cookieStore.delete("stasis-impersonating")
+  const sessionDataName = isSecure ? "__Secure-better-auth.session_data" : "better-auth.session_data"
+  cookieStore.delete(sessionDataName)
 
   return NextResponse.json({ success: true })
 }

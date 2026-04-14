@@ -18,6 +18,7 @@ export async function GET() {
     projectsByDesignStatus,
     projectsByBuildStatus,
     projectsByTier,
+    projectsByTierDetailed,
 
     // Users
     userCount,
@@ -80,6 +81,18 @@ export async function GET() {
       where: { deletedAt: null },
       _count: { _all: true },
     }),
+
+    // Projects by tier with approved vs pending breakdown
+    prisma.$queryRaw<{ tier: number | null; approved: bigint; pending: bigint }[]>`
+      SELECT
+        tier,
+        COUNT(*) FILTER (WHERE "buildStatus" = 'approved')::bigint AS approved,
+        COUNT(*) FILTER (WHERE "buildStatus" != 'approved')::bigint AS pending
+      FROM project
+      WHERE "deletedAt" IS NULL
+      GROUP BY tier
+      ORDER BY tier NULLS LAST
+    `,
 
     // --- Users ---
     prisma.user.count(),
@@ -426,6 +439,11 @@ export async function GET() {
       pendingDesignReview: designStatusMap["in_review"] ?? 0,
       pendingBuildReview: buildStatusMap["in_review"] ?? 0,
       byTier: tierMap,
+      byTierDetailed: projectsByTierDetailed.map((r) => ({
+        tier: r.tier?.toString() ?? 'untiered',
+        approved: Number(r.approved),
+        pending: Number(r.pending),
+      })),
     },
     users: {
       total: userCount,

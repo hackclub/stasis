@@ -64,6 +64,10 @@ const getFaqs = (event: GoalPreference) => [
     answer: "We'll have a <mark>shop</mark> where you can buy alternative prizes!"
   },
   {
+    question: "What is Arena Hall?",
+    answer: "Stasis is taking place at <a href='https://www.arenahall.com/' target='_blank' rel='noopener noreferrer'>Arena Hall</a> in Austin, TX.<br><br>Arena Hall was founded three years ago with a mission to find, convene, and serve purpose-driven individuals in Austin building the future. Since then we've hosted over a thousand public and private events, and created a thriving community of leaders, innovators, and changemakers.<br><br>Our members are creating solutions to some of society's biggest challenges in energy, education, space, and infrastructure. Our gatherings are intentionally structured to resist transaction, spectacle, and anonymity in favor of trust, continuity, and responsibility. We exist to bring aligned leaders into sustained relationships, accelerate meaningful work, and cultivate human flourishing through intentional hospitality."
+  },
+  {
     question: "I have more questions!",
     answer: "Join the <a href='https://hackclub.com/slack'>Hack Club Slack</a> and head to the <a href='https://hackclub.slack.com/archives/C09HSQM550A'>#stasis</a> channel! You can also email us at <a href='mailto:stasis@hackclub.com'>stasis@hackclub.com</a>."
   }
@@ -258,7 +262,7 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
   return (
     <div ref={pageWrapperRef} className="bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono text-brown-800 bg-container overflow-x-hidden">
       {!skipRedirect && hasLoggedInBefore && !session && (
-        <div className="absolute top-[calc(1rem+1rem)] right-[calc(1rem+1rem)] md:top-[calc(3rem+3rem)] md:right-[calc(3rem+1.5rem)] z-[60]">
+        <div className="hidden md:block absolute top-[calc(1rem+1rem)] right-[calc(1rem+1rem)] md:top-[calc(3rem+3rem)] md:right-[calc(3rem+1.5rem)] z-[60]">
           <MagneticCorners offset={12}>
             <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
               <button
@@ -597,27 +601,6 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
               <DottedLine orientation="horizontal" />
             </div>
 
-            {/* Can't Attend IRL? */}
-            <section className="space-y-3 md:space-y-4 md:px-5 py-1">
-              <h2 className="text-[24px] uppercase text-brown-800">
-                <ScrambleText>{">>: Can't Attend IRL?"}</ScrambleText>
-              </h2>
-              <p className="text-[14px] md:text-[18px] leading-snug text-brown-800">
-                <ScrambleText>No worries! Whether or not you attend, by making hardware projects you can</ScrambleText>{' '}<span className="text-orange-500"><ScrambleText>pick items from our shop</ScrambleText></span><ScrambleText>, like 3d printers, oscilloscopes, dev boards, & more:</ScrambleText>
-              </p>
-              <ImageCarousel />
-            </section>
-
-            <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
-              <DottedLine orientation="horizontal" />
-            </div>
-
-            <ASCIIArt art={asciiArt.fish} horizontalPosition={65} verticalOffset="55rem" />
-            <ASCIIArt art={asciiArt.cat} horizontalPosition={85} verticalOffset="62rem" />
-            <ASCIIArt art={asciiArt.roflcopter} horizontalPosition={35} verticalOffset="85rem" />
-            <ASCIIArt art={asciiArt.duck} horizontalPosition={90} verticalOffset="90rem" />
-            <ASCIIArt art={asciiArt.donut} horizontalPosition={12} verticalOffset="48rem" />
-
             {/* Earn a Certificate */}
             <section className="space-y-3 md:space-y-4 md:px-5 py-1">
               <h2 className="text-[24px] uppercase text-brown-800">
@@ -649,6 +632,27 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
                   </div>
                 </div>
               </div>
+            </section>
+
+            <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
+              <DottedLine orientation="horizontal" />
+            </div>
+
+            <ASCIIArt art={asciiArt.fish} horizontalPosition={65} verticalOffset="55rem" />
+            <ASCIIArt art={asciiArt.cat} horizontalPosition={85} verticalOffset="62rem" />
+            <ASCIIArt art={asciiArt.roflcopter} horizontalPosition={35} verticalOffset="85rem" />
+            <ASCIIArt art={asciiArt.duck} horizontalPosition={90} verticalOffset="90rem" />
+            <ASCIIArt art={asciiArt.donut} horizontalPosition={12} verticalOffset="48rem" />
+
+            {/* Can't Attend IRL? */}
+            <section className="space-y-3 md:space-y-4 md:px-5 py-1">
+              <h2 className="text-[24px] uppercase text-brown-800">
+                <ScrambleText>{">>: Can't Attend IRL?"}</ScrambleText>
+              </h2>
+              <p className="text-[14px] md:text-[18px] leading-snug text-brown-800">
+                <ScrambleText>No worries! Whether or not you attend, by making hardware projects you can</ScrambleText>{' '}<span className="text-orange-500"><ScrambleText>pick items from our shop</ScrambleText></span><ScrambleText>, like 3d printers, oscilloscopes, dev boards, & more:</ScrambleText>
+              </p>
+              <ImageCarousel />
             </section>
 
             <div className="absolute left-1/2 w-screen h-px -translate-x-1/2">
@@ -707,6 +711,17 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
                   </a>
                 </MagneticCorners>
               </MagneticCorners>
+            </section>
+
+            {/* Sponsors link */}
+            <section className="flex flex-col items-center pt-6 md:pt-12">
+              <a
+                href="/sponsors"
+                className="group inline-flex items-center gap-2 text-[14px] md:text-[18px] uppercase tracking-wider text-orange-500 hover:text-orange-600 no-underline"
+              >
+                <span className="underline decoration-1 underline-offset-4">View our sponsors</span>
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+              </a>
             </section>
           </div>
         </div>

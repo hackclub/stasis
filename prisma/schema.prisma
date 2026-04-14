@@ -75,6 +75,9 @@ model User {
   eventPreference    String?
   pronouns           String?
   disableGrain       Boolean   @default(false)
+  utmSource          String?
+  signupPage         String?
+  timezone           String?   // IANA timezone, e.g. "America/New_York" — updated on each authenticated request that sends tz
 
   // Encrypted PII fields (AES-256-GCM) — only populated when PULL_HCA_PII is set
   encryptedAddressStreet  String?
@@ -226,6 +229,7 @@ model Project {
   noBomNeeded       Boolean      @default(false)
   bomTax            Float?
   bomShipping       Float?
+  requestedAmount   Float?       // User's requested funding amount in dollars (capped at tier bits * BIT_SPEND_RATIO)
   cartScreenshots   String[]     @default([])
   tier              Int?
   bitsAwarded       Int? // Set atomically at build approval; null until then
@@ -320,6 +324,7 @@ model WorkSession {
   content        String?
   categories     SessionCategory[]
   stage          ProjectStage       @default(BUILD)
+  effectiveDate  String?            // YYYY-MM-DD in user's local tz at creation time (for tamagotchi streaks)
   reviewComments String?
   reviewedAt     DateTime?
   reviewedBy     String?
@@ -448,7 +453,9 @@ enum AuditAction {
   ADMIN_REJECT_BOM
   ADMIN_DELETE_PROJECT
   ADMIN_UNDELETE_PROJECT
-
+  ADMIN_SET_EFFECTIVE_DATE
+  ADMIN_GRANT_STREAK_GRACE_DAY
+  ADMIN_REVOKE_STREAK_GRACE_DAY
 
   REVIEWER_APPROVE
   REVIEWER_RETURN
@@ -527,6 +534,7 @@ model CurrencyTransaction {
   balanceAfter  Int // Balance after this entry
   createdBy     String? // Admin user ID; null if system-generated
   createdAt     DateTime                @default(now())
+  fulfilledAt   DateTime?               // When a shop purchase was fulfilled by admin
 
   @@index([userId])
   @@index([userId, shopItemId])
@@ -690,6 +698,19 @@ model StreakReward {
   createdAt   DateTime @default(now())
 
   @@map("streak_reward")
+}
+
+// Admin-granted grace days for tamagotchi streaks (bridge missed days without counting toward goal)
+model StreakGraceDay {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   // YYYY-MM-DD
+  grantedBy String
+  grantedAt DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@map("streak_grace_day")
 }
 
 // Blueprint cross-platform import tracking

@@ -255,6 +255,7 @@ export async function GET(
   const navCategory = _request.nextUrl.searchParams.get("category") || ""
   const navGuide = _request.nextUrl.searchParams.get("guide") || ""
   const navNameSearch = _request.nextUrl.searchParams.get("nameSearch") || ""
+  const navPronouns = _request.nextUrl.searchParams.get("pronouns") || ""
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navWhere: any = { deletedAt: null }
@@ -285,6 +286,12 @@ export async function GET(
         ],
       },
     ]
+  }
+  if (navPronouns) {
+    navWhere.user = {
+      ...navWhere.user,
+      pronouns: { contains: navPronouns, mode: "insensitive" },
+    }
   }
 
   const allProjectsRaw = await prisma.project.findMany({

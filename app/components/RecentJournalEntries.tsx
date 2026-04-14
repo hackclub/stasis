@@ -122,13 +122,13 @@ export function RecentJournalEntries() {
                         const cleaned = stripMarkdown(session.content);
                         return cleaned.length > 0
                           ? cleaned.slice(0, 80) + (cleaned.length > 80 ? '...' : '')
-                          : `${session.hoursClaimed}h logged`;
+                          : `${Math.round(session.hoursClaimed * 100) / 100}h logged`;
                       })()
-                    : `${session.hoursClaimed}h logged`}
+                    : `${Math.round(session.hoursClaimed * 100) / 100}h logged`}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`text-xs ${session.hoursApproved !== null ? 'text-orange-500' : 'text-cream-500'}`}>
-                    {session.hoursApproved !== null ? `${session.hoursApproved}h approved` : `${session.hoursClaimed}h pending`}
+                    {session.hoursApproved !== null ? `${Math.round(session.hoursApproved * 100) / 100}h approved` : `${Math.round(session.hoursClaimed * 100) / 100}h pending`}
                   </span>
                 </div>
               </div>

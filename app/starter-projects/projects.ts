@@ -22,6 +22,8 @@ export interface StarterProject {
   short_description: string;
   badges: string[];
   hasTutorial?: boolean;
+  hasKit?: boolean;
+  kitCost?: number;
   image?: string;
 }
 
@@ -33,6 +35,7 @@ export const projects: StarterProject[] = [
     short_description: 'Build a display that shows your currently playing Spotify track with ESP32.',
     badges: ['WiFi', 'SPI', 'CAD'],
     hasTutorial: true,
+    image: 'spotify-display.png',
   },
   {
     id: 'blinky',
@@ -41,6 +44,8 @@ export const projects: StarterProject[] = [
     short_description: 'A 555 LED chaser board — a classic beginner PCB project.',
     badges: ['Analog Sensors'],
     hasTutorial: true,
+    hasKit: true,
+    kitCost: 15,
     image: 'blinky.webp',
   },
   {

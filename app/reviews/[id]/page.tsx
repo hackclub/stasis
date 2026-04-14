@@ -178,7 +178,7 @@ export default function ReviewDetailPage() {
       return;
     }
 
-    if (result === 'APPROVED' && !reason.trim()) {
+    if (result === 'APPROVED' && data?.isAdmin && !reason.trim()) {
       alert('Internal justification is required.');
       return;
     }
@@ -800,7 +800,7 @@ export default function ReviewDetailPage() {
                   type="number"
                   value={grantOverride}
                   onChange={(e) => setGrantOverride(e.target.value)}
-                  placeholder={`Default: BOM cost ($${(data?.submission?.project?.bomCost ?? 0).toFixed(2)})`}
+                  placeholder={`Default: ${(data?.submission?.project?.bomCost ?? 0) > 0 ? `BOM cost + $3 = ${Math.ceil((data?.submission?.project?.bomCost ?? 0) + 3)} bits` : 'No BOM cost'}`}
                   className="w-full px-3 py-1.5 text-sm border border-cream-400 bg-cream-50 text-brown-800 focus:outline-none focus:border-orange-500"
                 />
                 {grantOverride && (
@@ -823,15 +823,17 @@ export default function ReviewDetailPage() {
               )}
             </div>
 
-            <div className="mb-4">
-              <label className="text-cream-600 text-xs uppercase block mb-1">Internal Justification (required for approval)</label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full h-20 px-3 py-2 text-sm border border-cream-400 bg-cream-50 text-brown-800 focus:outline-none focus:border-orange-500 resize-y"
-                placeholder="Internal reason for your decision (not shown to submitter)..."
-              />
-            </div>
+            {isAdmin && (
+              <div className="mb-4">
+                <label className="text-cream-600 text-xs uppercase block mb-1">Internal Justification (required for approval)</label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full h-20 px-3 py-2 text-sm border border-cream-400 bg-cream-50 text-brown-800 focus:outline-none focus:border-orange-500 resize-y"
+                  placeholder="Internal reason for your decision (not shown to submitter)..."
+                />
+              </div>
+            )}
 
             <div className="mb-4">
               <label className="text-cream-600 text-xs uppercase block mb-1">

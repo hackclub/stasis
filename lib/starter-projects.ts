@@ -15,6 +15,8 @@ export const STARTER_PROJECTS = projects.map(p => ({
   id: p.id,
   name: p.name,
   tier: TIER_MAP[p.id] ?? 2,
+  hasKit: p.hasKit ?? false,
+  kitCost: p.kitCost ?? 0,
 }));
 
 export const STARTER_PROJECT_NAMES: Record<string, string> = Object.fromEntries(

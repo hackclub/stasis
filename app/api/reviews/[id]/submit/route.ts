@@ -171,7 +171,7 @@ export async function POST(
 
   // For design approvals, default grant to BOM cost if not explicitly overridden
   const bomCostTotal = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
-  const effectiveGrant = grantOverride ?? (stageKey === "design" ? Math.round(bomCostTotal * 100) / 100 : null)
+  const effectiveGrant = grantOverride ?? (stageKey === "design" ? (bomCostTotal > 0 ? Math.ceil(bomCostTotal + 3) : 0) : null)
 
   // Map result to the existing decision format
   if (result === "APPROVED") {
@@ -200,7 +200,6 @@ export async function POST(
               result: "APPROVED",
               isAdminReview: false,
               feedback: sanitizedFeedback,
-              reason: typeof body.reason === "string" ? body.reason.trim() || null : null,
               workUnitsOverride: workUnitsOverride ?? null,
               tierOverride: tierOverride ?? null,
               grantOverride: effectiveGrant ?? null,
@@ -254,6 +253,23 @@ export async function POST(
           where: { projectId: project!.id, status: "pending" },
           data: { status: "approved", reviewedAt: new Date(), reviewedBy: reviewerId },
         })
+
+        // Cancel any existing pending bits before awarding new ones (handles re-approvals)
+        const existingPending = await tx.currencyTransaction.aggregate({
+          where: { userId: project!.userId, projectId: project!.id, type: "DESIGN_APPROVED" },
+          _sum: { amount: true },
+        })
+        const pendingToCancel = existingPending._sum.amount ?? 0
+        if (pendingToCancel !== 0) {
+          await appendLedgerEntry(tx, {
+            userId: project!.userId,
+            projectId: project!.id,
+            amount: -pendingToCancel,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Pending bits reset — design re-approved`,
+            createdBy: reviewerId,
+          })
+        }
 
         // Award pending bits (DESIGN_APPROVED) based on tier minus BOM cost
         const effectiveTierDesign = tierOverride ?? project!.tier
@@ -445,30 +461,12 @@ export async function POST(
       if (hackatimeHours > 0) hoursParts.push(`${hackatimeHours} hours of hackatime`)
       if (timelapseHours > 0) hoursParts.push(`${timelapseHours} hours of lapse`)
 
-      // Fetch first-pass review (non-admin) justification if it exists
+      // Fetch first-pass reviewer name if one exists
       const latestSubmission = await prisma.projectSubmission.findFirst({
         where: { projectId: project!.id, stage: stage! },
         orderBy: { createdAt: "desc" },
         select: { id: true },
       })
-      let firstPassReason: string | null = null
-      let firstPassReviewerName: string | null = null
-      if (latestSubmission) {
-        const firstPass = await prisma.submissionReview.findFirst({
-          where: { submissionId: latestSubmission.id, isAdminReview: false, result: "APPROVED" },
-          orderBy: { createdAt: "desc" },
-          select: { reason: true, reviewerId: true },
-        })
-        if (firstPass) {
-          firstPassReason = firstPass.reason
-          const fpUser = await prisma.user.findUnique({
-            where: { id: firstPass.reviewerId },
-            select: { name: true, email: true },
-          })
-          firstPassReviewerName = fpUser?.name || fpUser?.email || "Unknown"
-        }
-      }
-
       const lines: string[] = []
 
       lines.push(isBuildApproval ? `**Build Review**` : `**Design Review**`)
@@ -483,19 +481,29 @@ export async function POST(
       lines.push(`Part of the time for this project was tracked via journaling. After making sure the project worked, and was shipped, the second pass reviewer decided the deflation.`)
       lines.push("")
 
-      // First-pass (non-admin) reviewer's internal justification
-      if (firstPassReason) {
-        lines.push(`First-pass reviewer (${firstPassReviewerName}): "${firstPassReason}"`)
-        lines.push("")
+      // First-pass review
+      if (latestSubmission) {
+        const firstPass = await prisma.submissionReview.findFirst({
+          where: { submissionId: latestSubmission.id, isAdminReview: false, result: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          select: { reviewerId: true, feedback: true, createdAt: true },
+        })
+        if (firstPass) {
+          const fpUser = await prisma.user.findUnique({
+            where: { id: firstPass.reviewerId },
+            select: { name: true, email: true },
+          })
+          const fpName = fpUser?.name || fpUser?.email || "Unknown"
+          const fpDate = firstPass.createdAt.toISOString().slice(0, 10)
+          lines.push(`--- First-pass review (${fpDate} by ${fpName}) ---`)
+          if (firstPass.feedback) lines.push(firstPass.feedback)
+          lines.push("")
+        }
       }
 
-      // Second-pass (admin) reviewer's internal justification
-      if (reasonText) {
-        lines.push(`Second-pass reviewer (${reviewerName}): "${reasonText}"`)
-        lines.push("")
-      }
-
-      lines.push(`On ${dateStr}, ${reviewerName} (${reviewerEmail}) decided "approved"${reasonText ? ` with reason: ${reasonText}` : "."}`)
+      // Second-pass (admin) review
+      lines.push(`--- Second-pass review (${dateStr} by ${reviewerName}) ---`)
+      if (reasonText) lines.push(reasonText)
       lines.push("")
       lines.push(`The full journal for this project can be found at ${baseUrl}/dashboard/discover/${project!.id}.`)
 

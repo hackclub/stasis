@@ -43,7 +43,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withMDX = createMDX({});
+const withMDX = createMDX({
+  options: {
+    remarkPlugins: [['remark-gfm', {}]],
+  },
+});
 
 const config = withMDX(nextConfig);
 

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { GOAL_LABELS, type GoalPreference } from '@/lib/tiers';
+import { GOAL_LABELS, type GoalPreference, getTierById } from '@/lib/tiers';
+import { totalBomCost } from '@/lib/format';
 
 interface ProjectBadge {
   id: string;
@@ -17,13 +18,24 @@ interface WorkSession {
   hoursApproved: number | null;
 }
 
+interface BOMItemSummary {
+  totalCost: number;
+  status: string;
+}
+
 interface Project {
   id: string;
   title: string;
+  tier: number | null;
+  bitsAwarded: number | null;
+  bomTax: number | null;
+  bomShipping: number | null;
+  noBomNeeded: boolean;
   designStatus: string;
   buildStatus: string;
   workSessions: WorkSession[];
   badges: ProjectBadge[];
+  bomItems: BOMItemSummary[];
 }
 
 interface UserRole {
@@ -43,10 +55,16 @@ interface AdminUser {
   verificationStatus: string | null;
   pronouns: string | null;
   eventPreference: string | null;
+  utmSource: string | null;
+  signupPage: string | null;
   hasAddress: boolean;
+  addressState: string | null;
+  addressCountry: string | null;
   totalProjects: number;
   totalHoursClaimed: number;
   totalHoursApproved: number;
+  designBits: number;
+  totalBits: number;
   hasEventInvite: boolean;
   flightStipend: number;
   shopPurchaseCount: number;
@@ -95,6 +113,7 @@ export default function AdminUsersPage() {
   const [filterRole, setFilterRole] = useState<'ADMIN' | 'REVIEWER' | 'SIDEKICK' | 'AUDITOR' | 'AUDITOR' | null>(null);
   const [filterAddress, setFilterAddress] = useState<boolean | null>(null);
   const [filterPronouns, setFilterPronouns] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'recent' | 'bits'>('recent');
   const [page, setPage] = useState(1);
   const [pendingRoles, setPendingRoles] = useState<Record<string, string[]>>({});
   const [roleConfirm, setRoleConfirm] = useState<{ user: AdminUser; adding: string[]; removing: string[] } | null>(null);
@@ -131,6 +150,7 @@ export default function AdminUsersPage() {
       if (filterRole) params.set('role', filterRole);
       if (filterAddress !== null) params.set('address', String(filterAddress));
       if (filterPronouns) params.set('pronouns', filterPronouns);
+      if (sortBy === 'bits') params.set('sort', 'bits');
 
       const res = await fetch(`/api/admin/users?${params}`);
       if (res.ok) {
@@ -141,7 +161,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, filterFraud, filterRole, filterAddress, filterPronouns]);
+  }, [page, search, filterFraud, filterRole, filterAddress, filterPronouns, sortBy]);
 
   useEffect(() => {
     fetchUsers();
@@ -426,6 +446,27 @@ export default function AdminUsersPage() {
               ))}
               <span className="text-cream-400">|</span>
               <button
+                onClick={() => { setSortBy('recent'); setPage(1); }}
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                  sortBy === 'recent'
+                    ? 'bg-orange-500 text-cream-50 led-flicker'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
+                }`}
+              >
+                Recent
+              </button>
+              <button
+                onClick={() => { setSortBy('bits'); setPage(1); }}
+                className={`px-3 py-1.5 text-xs uppercase cursor-pointer ${
+                  sortBy === 'bits'
+                    ? 'bg-orange-500 text-cream-50 led-flicker'
+                    : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
+                }`}
+              >
+                Most Bits
+              </button>
+              <span className="text-cream-400">|</span>
+              <button
                 onClick={() => {
                   if (confirm('Backfill address data from Hack Club Auth for all users missing addresses?')) {
                     backfillAddresses();
@@ -466,9 +507,9 @@ export default function AdminUsersPage() {
                   Cleared {avatarResult.cleared} gravatar URLs, fetching {avatarResult.toFetch} avatars — check server logs
                 </span>
               )}
-              {(filterFraud !== null || filterRole !== null || filterAddress !== null || filterPronouns !== null) && (
+              {(filterFraud !== null || filterRole !== null || filterAddress !== null || filterPronouns !== null || sortBy !== 'recent') && (
                 <button
-                  onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); setFilterPronouns(null); setPage(1); }}
+                  onClick={() => { setFilterFraud(null); setFilterRole(null); setFilterAddress(null); setFilterPronouns(null); setSortBy('recent'); setPage(1); }}
                   className="px-3 py-1.5 text-xs uppercase text-cream-50 hover:text-orange-500 transition-colors cursor-pointer"
                 >
                   Clear Filters
@@ -554,6 +595,15 @@ export default function AdminUsersPage() {
                                 IDV {user.verificationStatus || 'Unknown'}
                               </span>
                             )}
+                            {user.eventPreference && (
+                              <span className={`text-xs px-2 py-0.5 uppercase ${
+                                user.eventPreference === 'stasis' ? 'bg-orange-500 text-white' :
+                                user.eventPreference === 'opensauce' ? 'bg-blue-500 text-white' :
+                                'bg-yellow-500 text-white'
+                              }`}>
+                                {GOAL_LABELS[user.eventPreference as GoalPreference] || user.eventPreference}
+                              </span>
+                            )}
                           </div>
                           <p className="text-cream-50 text-sm truncate">
                             {user.email}
@@ -578,6 +628,11 @@ export default function AdminUsersPage() {
                           <p className="text-orange-500">{user.totalProjects} {user.totalProjects === 1 ? 'project' : 'projects'}</p>
                           <p className="text-cream-50 text-xs">
                             {user.totalHoursApproved.toFixed(1)}h approved
+                          </p>
+                          <p className="text-cream-50 text-xs">
+                            <span className="text-yellow-500">{user.designBits}b design</span>
+                            {' / '}
+                            <span className="text-green-500">{user.totalBits}b total</span>
                           </p>
                         </div>
                         <svg
@@ -719,8 +774,24 @@ export default function AdminUsersPage() {
                           <p className="text-cream-50">{user.pronouns || '—'}</p>
                         </div>
                         <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">State</p>
+                          <p className="text-cream-50">{user.addressState || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Country</p>
+                          <p className="text-cream-50">{user.addressCountry || '—'}</p>
+                        </div>
+                        <div>
                           <p className="text-cream-200 uppercase text-xs mb-1">Target Goal</p>
                           <p className="text-cream-50">{user.eventPreference ? GOAL_LABELS[user.eventPreference as GoalPreference] : '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">UTM Source</p>
+                          <p className="text-cream-50">{user.utmSource || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Signup Page</p>
+                          <p className="text-cream-50">{user.signupPage || '—'}</p>
                         </div>
                       </div>
 
@@ -754,6 +825,8 @@ export default function AdminUsersPage() {
                             {user.projects.map((project) => {
                               const hoursClaimed = project.workSessions.reduce((a, s) => a + s.hoursClaimed, 0);
                               const hoursApproved = project.workSessions.reduce((a, s) => a + (s.hoursApproved ?? 0), 0);
+                              const tier = project.tier ? getTierById(project.tier) : null;
+                              const bomCost = totalBomCost(project.bomItems, project.bomTax, project.bomShipping);
                               return (
                                 <Link
                                   key={project.id}
@@ -782,6 +855,30 @@ export default function AdminUsersPage() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-3 text-xs text-cream-50">
+                                    {tier && (
+                                      <>
+                                        <span>T{tier.id} ({tier.bits} bits)</span>
+                                        <span>•</span>
+                                      </>
+                                    )}
+                                    {project.bitsAwarded != null && (
+                                      <>
+                                        <span className="text-green-500">{project.bitsAwarded} bits awarded</span>
+                                        <span>•</span>
+                                      </>
+                                    )}
+                                    {(bomCost > 0 || project.bomItems.length > 0) && !project.noBomNeeded && (
+                                      <>
+                                        <span>${bomCost.toFixed(2)} BOM</span>
+                                        <span>•</span>
+                                      </>
+                                    )}
+                                    {project.noBomNeeded && (
+                                      <>
+                                        <span className="text-cream-200">No BOM</span>
+                                        <span>•</span>
+                                      </>
+                                    )}
                                     <span>{project.workSessions.length} session{project.workSessions.length !== 1 ? 's' : ''}</span>
                                     <span>•</span>
                                     <span>{hoursClaimed.toFixed(1)}h logged</span>

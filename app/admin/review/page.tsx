@@ -35,6 +35,7 @@ interface QueueItem {
   claimedBySelf: boolean;
   claimerName: string | null;
   reviewCount: number;
+  sheHerUS: boolean;
 }
 
 interface QueueResponse {
@@ -92,7 +93,7 @@ export default function ReviewQueuePage() {
   const data = activeTab === 'DESIGN' ? designData : buildData;
 
   // Navigate into the review flow with a filter applied
-  async function startFilteredReview(filterCategory: string, filterGuide: string, filterNameSearch?: string, filterSort?: string) {
+  async function startFilteredReview(filterCategory: string, filterGuide: string, filterNameSearch?: string, filterSort?: string, filterPronouns?: string) {
     setNavigating(true);
     try {
       const params = new URLSearchParams();
@@ -100,6 +101,7 @@ export default function ReviewQueuePage() {
       if (filterGuide) params.set('guide', filterGuide);
       if (filterNameSearch) params.set('nameSearch', filterNameSearch);
       if (filterSort) params.set('sort', filterSort);
+      if (filterPronouns) params.set('pronouns', filterPronouns);
       params.set('limit', '1');
       const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) {
@@ -110,6 +112,7 @@ export default function ReviewQueuePage() {
           if (filterGuide) qp.set('guide', filterGuide);
           if (filterNameSearch) qp.set('nameSearch', filterNameSearch);
           if (filterSort) qp.set('sort', filterSort);
+          if (filterPronouns) qp.set('pronouns', filterPronouns);
           router.push(`/admin/review/${items[0].id}?${qp}`);
           return;
         }
@@ -334,6 +337,16 @@ export default function ReviewQueuePage() {
           >
             Most Hours
           </button>
+
+          <span className="border-l border-cream-500/30 mx-1 hidden sm:inline-block" />
+
+          <button
+            onClick={() => startFilteredReview(activeTab, '', '', '', 'she/her')}
+            disabled={navigating}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-pink-500/50 text-pink-300 hover:border-pink-400 hover:bg-pink-500/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            She/Her Priority
+          </button>
         </div>
 
         <form onSubmit={handleSearch} className="flex gap-2">
@@ -418,6 +431,7 @@ export default function ReviewQueuePage() {
                             <p className={`text-sm font-medium truncate max-w-[200px] ${
                               item.preReviewed && data.isAdmin ? 'text-orange-400' : 'text-cream-50'
                             }`}>
+                              {item.sheHerUS && <span title="She/Her · United States">⭐ </span>}
                               {item.title}
                             </p>
                             {item.preReviewed && data.isAdmin && (

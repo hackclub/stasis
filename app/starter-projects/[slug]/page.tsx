@@ -79,6 +79,21 @@ export default function StarterProjectPage({
             <MDXContent />
           </article>
         </div>
+
+        <footer className="pt-20 pb-24 px-4 bg-gradient-to-b from-transparent to-[#221c14]">
+          <div className="mx-auto max-w-md w-max font-mono">
+            <p className="text-xs md:text-sm text-cream-300 text-center">Made with <span className="bg-orange-600 text-cream-100">&lt;3</span> by teenagers, for teenagers</p>
+            <div className="mt-2 text-cream-300 text-center">
+              <a href="https://hackclub.com" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-600 hover:text-cream-100">Hack Club</a>
+              <span>・</span>
+              <a href="https://hackclub.com/slack" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-600 hover:text-cream-100">Slack</a>
+              <span>・</span>
+              <a href="https://hackclub.com/clubs" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-600 hover:text-cream-100">Clubs</a>
+              <span>・</span>
+              <a href="https://hackclub.com/hackathons" target="_blank" rel="noopener" className="underline text-xs md:text-sm hover:bg-orange-600 hover:text-cream-100">Hackathons</a>
+            </div>
+          </div>
+        </footer>
       </div>
       <PlatformNoiseOverlay />
     </>

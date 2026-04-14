@@ -43,6 +43,7 @@ export async function GET() {
                     select: {
                       id: true,
                       hoursApproved: true,
+                      createdAt: true,
                     },
                   },
                 },
@@ -55,6 +56,10 @@ export async function GET() {
 
       const assignees = assignments.map((a) => {
         const allSessions = a.assignee.projects.flatMap((p) => p.workSessions);
+        const lastSession = allSessions.reduce<Date | null>((latest, s) => {
+          const d = new Date(s.createdAt);
+          return !latest || d > latest ? d : latest;
+        }, null);
         return {
           id: a.assignee.id,
           name: a.assignee.name,
@@ -68,6 +73,7 @@ export async function GET() {
             0
           ),
           projectCount: a.assignee.projects.length,
+          lastActiveAt: lastSession?.toISOString() ?? null,
           projects: a.assignee.projects.map((p) => ({
             id: p.id,
             title: p.title,

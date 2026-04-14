@@ -125,8 +125,8 @@ function PublicTimeline({ items }: Readonly<{ items: PublicTimelineItem[] }>) {
                   </span>
                   <span className="text-brown-800 text-sm">
                     {item.session.hoursApproved !== null
-                      ? `${item.session.hoursApproved}/${item.session.hoursClaimed}h approved`
-                      : `${item.session.hoursClaimed}h logged`}
+                      ? `${Math.round(item.session.hoursApproved * 100) / 100}/${Math.round(item.session.hoursClaimed * 100) / 100}h approved`
+                      : `${Math.round(item.session.hoursClaimed * 100) / 100}h logged`}
                   </span>
                 </div>
                 <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>

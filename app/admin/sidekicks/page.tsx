@@ -20,6 +20,7 @@ interface Assignee {
   journalCount: number;
   totalHours: number;
   projectCount: number;
+  lastActiveAt: string | null;
   projects: AssigneeProject[];
 }
 
@@ -53,6 +54,32 @@ function StatusBadge({ label, status }: { label: string; status: string }) {
     </span>
   );
 }
+
+function daysSince(dateStr: string | null): number | null {
+  if (!dateStr) return null;
+  const diff = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function activityColor(days: number | null): string {
+  if (days === null) return 'border-cream-500/20';
+  if (days <= 3) return 'border-green-500/60';
+  if (days <= 7) return 'border-yellow-500/60';
+  if (days <= 14) return 'border-orange-500/60';
+  return 'border-red-500/60';
+}
+
+function activityBadge(days: number | null): { label: string; className: string } {
+  if (days === null) return { label: 'No activity', className: 'bg-cream-400/20 text-cream-200' };
+  if (days <= 3) return { label: `${days}d ago`, className: 'bg-green-600/20 text-green-500' };
+  if (days <= 7) return { label: `${days}d ago`, className: 'bg-yellow-600/20 text-yellow-500' };
+  if (days <= 14) return { label: `${days}d ago`, className: 'bg-orange-600/20 text-orange-500' };
+  return { label: `${days}d ago`, className: 'bg-red-600/20 text-red-500' };
+}
+
+type ActivityFilter = 'all' | 'lt_3d' | '3_7d' | '7_14d' | '14d_plus' | 'never';
+type ProjectFilter = 'all' | 'has_projects' | 'no_projects';
+type SortOption = 'last_active' | 'name' | 'journals' | 'assigned';
 
 function AssignDialog({
   userName,
@@ -160,6 +187,9 @@ export default function AdminSidekicksPage() {
     currentSidekickId?: string;
   } | null>(null);
   const [assigningAll, setAssigningAll] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
+  const [projectFilter, setProjectFilter] = useState<ProjectFilter>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('last_active');
 
   useEffect(() => {
     fetchSidekicks();
@@ -221,6 +251,70 @@ export default function AdminSidekicksPage() {
     }
   }
 
+  function filterAndSortAssignees(assignees: Assignee[]): Assignee[] {
+    let filtered = assignees;
+
+    if (activityFilter !== 'all') {
+      filtered = filtered.filter((a) => {
+        const days = daysSince(a.lastActiveAt);
+        switch (activityFilter) {
+          case 'lt_3d': return days !== null && days < 3;
+          case '3_7d': return days !== null && days >= 3 && days <= 7;
+          case '7_14d': return days !== null && days > 7 && days <= 14;
+          case '14d_plus': return days !== null && days > 14;
+          case 'never': return days === null;
+        }
+      });
+    }
+
+    if (projectFilter !== 'all') {
+      filtered = filtered.filter((a) => {
+        if (projectFilter === 'has_projects') return a.projectCount > 0;
+        return a.projectCount === 0;
+      });
+    }
+
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'last_active': {
+          const aDays = daysSince(a.lastActiveAt);
+          const bDays = daysSince(b.lastActiveAt);
+          if (aDays === null && bDays === null) return 0;
+          if (aDays === null) return 1;
+          if (bDays === null) return -1;
+          return bDays - aDays;
+        }
+        case 'name':
+          return (a.name ?? '').localeCompare(b.name ?? '');
+        case 'journals':
+          return a.journalCount - b.journalCount;
+        case 'assigned':
+          return new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime();
+      }
+    });
+
+    return filtered;
+  }
+
+  const allAssignees = sidekicks.flatMap((s) => s.assignees);
+  const totalLt3d = allAssignees.filter((a) => {
+    const days = daysSince(a.lastActiveAt);
+    return days !== null && days < 3;
+  }).length;
+  const total3to7d = allAssignees.filter((a) => {
+    const days = daysSince(a.lastActiveAt);
+    return days !== null && days >= 3 && days <= 7;
+  }).length;
+  const total7to14d = allAssignees.filter((a) => {
+    const days = daysSince(a.lastActiveAt);
+    return days !== null && days > 7 && days <= 14;
+  }).length;
+  const total14dPlus = allAssignees.filter((a) => {
+    const days = daysSince(a.lastActiveAt);
+    return days !== null && days > 14;
+  }).length;
+  const totalNeverActive = allAssignees.filter((a) => a.lastActiveAt === null).length;
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -242,10 +336,99 @@ export default function AdminSidekicksPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-cream-50 text-sm uppercase">
-        {sidekicks.length} sidekick{sidekicks.length !== 1 ? 's' : ''} &middot;{' '}
-        {sidekicks.reduce((sum, s) => sum + s.assigneeCount, 0)} total assignees
-      </p>
+      <div className="space-y-3">
+        <p className="text-cream-50 text-sm uppercase">
+          {sidekicks.length} sidekick{sidekicks.length !== 1 ? 's' : ''} &middot;{' '}
+          {allAssignees.length} total assignees
+          {totalLt3d > 0 && (
+            <span className="text-green-500"> &middot; {totalLt3d} active &lt;3d</span>
+          )}
+          {total3to7d > 0 && (
+            <span className="text-yellow-500"> &middot; {total3to7d} inactive 3-7d</span>
+          )}
+          {total7to14d > 0 && (
+            <span className="text-orange-500"> &middot; {total7to14d} inactive 7-14d</span>
+          )}
+          {total14dPlus > 0 && (
+            <span className="text-red-500"> &middot; {total14dPlus} inactive 14d+</span>
+          )}
+          {totalNeverActive > 0 && (
+            <span className="text-cream-200"> &middot; {totalNeverActive} never active</span>
+          )}
+        </p>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-cream-200 text-xs uppercase">Activity:</span>
+          {([
+            ['all', 'All'],
+            ['lt_3d', '<3d'],
+            ['3_7d', '3-7d'],
+            ['7_14d', '7-14d'],
+            ['14d_plus', '14d+'],
+            ['never', 'Never Active'],
+          ] as [ActivityFilter, string][]).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setActivityFilter(activityFilter === value ? 'all' : value)}
+              className={`px-3 py-1.5 text-xs uppercase cursor-pointer transition-colors ${
+                activityFilter === value
+                  ? value === 'lt_3d' ? 'bg-green-600 text-white led-flicker'
+                    : value === '3_7d' ? 'bg-yellow-600 text-white led-flicker'
+                    : value === '7_14d' ? 'bg-orange-600 text-white led-flicker'
+                    : value === '14d_plus' ? 'bg-red-600 text-white led-flicker'
+                    : value === 'never' ? 'bg-cream-400 text-cream-50 led-flicker'
+                    : 'bg-orange-500 text-cream-50 led-flicker'
+                  : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+
+          <span className="text-cream-400">|</span>
+          <span className="text-cream-200 text-xs uppercase">Projects:</span>
+          {([
+            ['all', 'All'],
+            ['has_projects', 'Has Projects'],
+            ['no_projects', 'No Projects'],
+          ] as [ProjectFilter, string][]).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setProjectFilter(projectFilter === value ? 'all' : value)}
+              className={`px-3 py-1.5 text-xs uppercase cursor-pointer transition-colors ${
+                projectFilter === value
+                  ? 'bg-orange-500 text-cream-50 led-flicker'
+                  : 'bg-brown-800 border border-cream-500/20 text-cream-50 hover:border-cream-500'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+
+          <span className="text-cream-400">|</span>
+          <span className="text-cream-200 text-xs uppercase">Sort:</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="bg-brown-800 border border-cream-500/20 text-cream-50 px-3 py-1.5 text-xs uppercase"
+          >
+            <option value="last_active">Last Active (oldest first)</option>
+            <option value="journals">Journals (fewest first)</option>
+            <option value="name">Name</option>
+            <option value="assigned">Recently Assigned</option>
+          </select>
+
+          {(activityFilter !== 'all' || projectFilter !== 'all') && (
+            <button
+              onClick={() => { setActivityFilter('all'); setProjectFilter('all'); }}
+              className="px-3 py-1.5 text-xs uppercase text-cream-50 hover:text-orange-500 transition-colors cursor-pointer"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="space-y-4">
         {sidekicks.map((sidekick) => (
@@ -288,6 +471,15 @@ export default function AdminSidekicksPage() {
                     </div>
                     <p className="text-cream-200 text-sm">
                       {sidekick.assigneeCount} assignee{sidekick.assigneeCount !== 1 ? 's' : ''}
+                      {(() => {
+                        const inactive = sidekick.assignees.filter((a) => {
+                          const days = daysSince(a.lastActiveAt);
+                          return days === null || days > 7;
+                        }).length;
+                        return inactive > 0 ? (
+                          <span className="text-yellow-500"> &middot; {inactive} inactive</span>
+                        ) : null;
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -347,10 +539,20 @@ export default function AdminSidekicksPage() {
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sidekick.assignees.map((assignee) => (
+                    {(() => {
+                      const filtered = filterAndSortAssignees(sidekick.assignees);
+                      if (filtered.length === 0) return (
+                        <p className="text-cream-200 text-sm text-center py-4 col-span-full">
+                          No assignees match current filters
+                        </p>
+                      );
+                      return filtered.map((assignee) => {
+                      const days = daysSince(assignee.lastActiveAt);
+                      const activity = activityBadge(days);
+                      return (
                       <div
                         key={assignee.id}
-                        className="bg-brown-900 border border-cream-500/20 p-3 space-y-2"
+                        className={`bg-brown-900 border-2 ${activityColor(days)} p-3 space-y-2`}
                       >
                         {/* Assignee Header */}
                         <div className="flex items-center gap-3">
@@ -371,13 +573,18 @@ export default function AdminSidekicksPage() {
                             <p className="text-cream-50 text-sm truncate">
                               {assignee.name ?? 'Unknown'}
                             </p>
-                            <p className="text-cream-200 text-xs">
-                              Joined{' '}
-                              {new Date(assignee.createdAt).toLocaleDateString(
-                                'en-US',
-                                { month: 'short', day: 'numeric', year: 'numeric' }
-                              )}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-cream-200 text-xs">
+                                Joined{' '}
+                                {new Date(assignee.createdAt).toLocaleDateString(
+                                  'en-US',
+                                  { month: 'short', day: 'numeric', year: 'numeric' }
+                                )}
+                              </p>
+                              <span className={`text-[10px] px-1.5 py-0.5 uppercase ${activity.className}`}>
+                                {activity.label}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
@@ -467,7 +674,9 @@ export default function AdminSidekicksPage() {
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    });
+                    })()}
                   </div>
                 )}
               </div>

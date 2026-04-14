@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use, useRef } from 'react';
+import React, { useState, useEffect, useCallback, use, useRef } from 'react';
 import { useSession, linkOAuth2 } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 
@@ -69,6 +69,7 @@ interface Project {
   noBomNeeded: boolean;
   bomTax: number | null;
   bomShipping: number | null;
+  requestedAmount: number | null;
 
   coverImage: string | null;
   githubRepo: string | null;
@@ -127,12 +128,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const skipVerification = process.env.NEXT_PUBLIC_SKIP_YSWS_VERIFICATION_CHECK === 'true';
   const sessionVerified = skipVerification || (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
   const [isVerified, setIsVerified] = useState(sessionVerified);
+  const [refreshingVerification, setRefreshingVerification] = useState(false);
   const [hasAddress, setHasAddress] = useState(true); // default true so it doesn't block when PII is disabled
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showDesignSubmitDialog, setShowDesignSubmitDialog] = useState(false);
   const [showBuildSubmitDialog, setShowBuildSubmitDialog] = useState(false);
+  const [showDesignBlockers, setShowDesignBlockers] = useState(false);
+  const [showBuildBlockers, setShowBuildBlockers] = useState(false);
+  const [designBlockerFlash, setDesignBlockerFlash] = useState(0);
+  const [buildBlockerFlash, setBuildBlockerFlash] = useState(0);
   const [submissionNotes, setSubmissionNotes] = useState('');
   const [showDesignUnsubmitDialog, setShowDesignUnsubmitDialog] = useState(false);
   const [showBuildUnsubmitDialog, setShowBuildUnsubmitDialog] = useState(false);
@@ -147,6 +153,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [submitFirmware, setSubmitFirmware] = useState(false);
   const [submitNone, setSubmitNone] = useState(false);
   
+  const [localRequestedAmount, setLocalRequestedAmount] = useState<number | null>(null);
   const [bomForm, setBomForm] = useState({
     name: '',
     purpose: '',
@@ -156,6 +163,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     distributor: '',
   });
   const [addingBom, setAddingBom] = useState(false);
+  const [showAddBomForm, setShowAddBomForm] = useState(false);
   const [deletingBomId, setDeletingBomId] = useState<string | null>(null);
   const [editingBomItem, setEditingBomItem] = useState<BOMItem | null>(null);
   const [editBomForm, setEditBomForm] = useState({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' });
@@ -168,6 +176,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [showCartScreenshots, setShowCartScreenshots] = useState(false);
   const [uploadingCartScreenshot, setUploadingCartScreenshot] = useState(false);
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(null);
+  const [cartUploadModalOpen, setCartUploadModalOpen] = useState(false);
+  const [pendingCartFiles, setPendingCartFiles] = useState<File[]>([]);
+  const [pendingCartPreviews, setPendingCartPreviews] = useState<string[]>([]);
   const [hackatimeLinked, setHackatimeLinked] = useState<boolean | null>(null);
   const [hackatimeProjects, setHackatimeProjects] = useState<{ id: string; hackatimeProject: string; totalSeconds: number; hoursApproved: number | null }[]>([]);
   const [availableHackatimeProjects, setAvailableHackatimeProjects] = useState<{ name: string; total_seconds: number; archived: boolean }[]>([]);
@@ -187,6 +198,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [alreadyClaimedBadges, setAlreadyClaimedBadges] = useState<BadgeType[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showTierHelp, setShowTierHelp] = useState(false);
+  const [showTypeHelp, setShowTypeHelp] = useState(false);
+  const [showTierPicker, setShowTierPicker] = useState(false);
+  const tierHelpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typeHelpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [importingJournal, setImportingJournal] = useState(false);
 
@@ -289,7 +305,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       const previewRes = await fetch(`/api/projects/${project.id}/sessions/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markdown, dryRun: true }),
+        body: JSON.stringify({ markdown, dryRun: true, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
       });
       if (!previewRes.ok) {
         const data = await previewRes.json();
@@ -302,7 +318,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       const res = await fetch(`/api/projects/${project.id}/sessions/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markdown }),
+        body: JSON.stringify({ markdown, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -423,6 +439,22 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (sessionVerified) setIsVerified(true);
   }, [sessionVerified]);
 
+  const handleRefreshVerification = useCallback(async () => {
+    setRefreshingVerification(true);
+    try {
+      const res = await fetch('/api/user/refresh-address', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.piiEnabled) setHasAddress(data.hasAddress);
+        if (data.verificationStatus === 'verified') setIsVerified(true);
+      }
+    } catch (err) {
+      console.error('Failed to refresh verification:', err);
+    } finally {
+      setRefreshingVerification(false);
+    }
+  }, []);
+
   // Listen for project tutorial replay triggers (from UserMenu or floating button)
   useEffect(() => {
     if (localStorage.getItem('stasis_replay_project_tutorial')) {
@@ -487,6 +519,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (stage === "design") {
       setShowDesignSubmitDialog(true);
     } else {
+      setSubmitStep('confirm');
       setShowBuildSubmitDialog(true);
     }
     startBackgroundScan();
@@ -581,12 +614,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   // Computed values for stage requirements
   const designSessions = project?.workSessions.filter(s => s.stage === "DESIGN") ?? [];
   const buildSessions = project?.workSessions.filter(s => s.stage === "BUILD") ?? [];
-  
+  const projectHasKit = project?.isStarter && project?.starterProjectId
+    ? STARTER_PROJECTS.find(sp => sp.id === project.starterProjectId)?.hasKit ?? false
+    : false;
+
   const canSubmitDesign = project &&
     (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") &&
     project.description?.trim() &&
-    (project.bomItems.length > 0 || project.noBomNeeded) &&
-    (project.noBomNeeded || project.bomItems.length === 0 || project.cartScreenshots.length > 0) &&
+    (project.bomItems.length > 0 || project.noBomNeeded || projectHasKit) &&
+    (project.noBomNeeded || projectHasKit || project.bomItems.length === 0 || project.cartScreenshots.length > 0) &&
     designSessions.length > 0 &&
     project.githubRepo &&
     project.coverImage &&
@@ -597,7 +633,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const hasNewBuildSessions = project?.buildStatus === "approved" && project?.buildReviewedAt
     ? buildSessions.some(s => new Date(s.createdAt) > new Date(project.buildReviewedAt!))
     : true;
-    
+
   const canSubmitBuild = project &&
     project.designStatus === "approved" &&
     (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved" || project.buildStatus === "update_requested") &&
@@ -605,6 +641,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     hasNewBuildSessions &&
     isVerified &&
     hasAddress;
+
+  const designSubmitBlockers: string[] = project ? [
+    ...(!project.description?.trim() ? ['Add a project description'] : []),
+    ...(!project.coverImage ? ['Upload a project image'] : []),
+    ...(!project.githubRepo ? ['Link a GitHub repo'] : []),
+    ...(project.bomItems.length === 0 && !project.noBomNeeded && !projectHasKit ? ['Add BOM items or mark as no parts needed'] : []),
+    ...(!project.noBomNeeded && !projectHasKit && project.bomItems.length > 0 && project.cartScreenshots.length === 0 ? ['Upload a cart screenshot'] : []),
+    ...(designSessions.length === 0 ? ['Log at least 1 journal entry'] : []),
+    ...(!isVerified ? ['Verify your email'] : []),
+    ...(!hasAddress ? ['Add your shipping address in settings'] : []),
+  ] : [];
+
+  const buildSubmitBlockers: string[] = project ? [
+    ...(buildSessions.length === 0 ? ['Log at least 1 journal entry'] : []),
+    ...(!hasNewBuildSessions ? ['Log a new journal entry since your last submission'] : []),
+    ...(!isVerified ? ['Verify your email'] : []),
+    ...(!hasAddress ? ['Add your shipping address in settings'] : []),
+  ] : [];
 
   const handleRequestUpdate = async () => {
     if (!project) return;
@@ -697,6 +751,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           setProject(await updatedRes.json());
         }
         setBomForm({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' });
+        setShowAddBomForm(false);
       } else {
         const data = await res.json();
         alert(data.error || 'Failed to add BOM item');
@@ -834,7 +889,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const handleUpdateBomField = async (field: 'bomTax' | 'bomShipping', value: number | null) => {
+  const handleUpdateBomField = async (field: 'bomTax' | 'bomShipping' | 'requestedAmount', value: number | null) => {
     if (!project) return;
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
@@ -850,46 +905,129 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const handleCartScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !project) return;
+  const addPendingCartFiles = (files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+    setPendingCartFiles(prev => [...prev, ...imageFiles]);
+    const newPreviews = imageFiles.map(f => URL.createObjectURL(f));
+    setPendingCartPreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removePendingCartFile = (index: number) => {
+    setPendingCartPreviews(prev => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+    setPendingCartFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openCartUploadModal = (initialFiles?: File[]) => {
+    setPendingCartFiles([]);
+    setPendingCartPreviews([]);
+    cartModalAutoOpenPicker.current = !initialFiles || initialFiles.length === 0;
+    setCartUploadModalOpen(true);
+    if (initialFiles && initialFiles.length > 0) {
+      addPendingCartFiles(initialFiles);
+    }
+  };
+
+  const closeCartUploadModal = () => {
+    pendingCartPreviews.forEach(url => URL.revokeObjectURL(url));
+    setPendingCartFiles([]);
+    setPendingCartPreviews([]);
+    setCartUploadModalOpen(false);
+  };
+
+  const handleCartUploadModalSubmit = async () => {
+    if (pendingCartFiles.length === 0 || !project) {
+      closeCartUploadModal();
+      return;
+    }
 
     setUploadingCartScreenshot(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const uploadedUrls: string[] = [];
+      const errors: string[] = [];
 
-      const uploadRes = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      await Promise.all(pendingCartFiles.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
 
-      if (!uploadRes.ok) {
-        const data = await uploadRes.json();
-        alert(data.error || 'Failed to upload image');
-        return;
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const data = await uploadRes.json();
+          errors.push(data.error || `Failed to upload ${file.name}`);
+          return;
+        }
+
+        const { url } = await uploadRes.json();
+        uploadedUrls.push(url);
+      }));
+
+      if (uploadedUrls.length > 0) {
+        const newScreenshots = [...project.cartScreenshots, ...uploadedUrls];
+
+        const updateRes = await fetch(`/api/projects/${project.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cartScreenshots: newScreenshots }),
+        });
+
+        if (updateRes.ok) {
+          setProject({ ...project, cartScreenshots: newScreenshots });
+        }
       }
 
-      const { url } = await uploadRes.json();
-      const newScreenshots = [...project.cartScreenshots, url];
-
-      const updateRes = await fetch(`/api/projects/${project.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cartScreenshots: newScreenshots }),
-      });
-
-      if (updateRes.ok) {
-        setProject({ ...project, cartScreenshots: newScreenshots });
+      if (errors.length > 0) {
+        alert(`Some uploads failed:\n${errors.join('\n')}`);
       }
+
+      closeCartUploadModal();
     } catch (error) {
-      console.error('Failed to upload cart screenshot:', error);
-      alert('Failed to upload cart screenshot');
+      console.error('Failed to upload cart screenshots:', error);
+      alert('Failed to upload cart screenshots');
     } finally {
       setUploadingCartScreenshot(false);
-      e.target.value = '';
     }
   };
+
+  const handleCartModalFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addPendingCartFiles(Array.from(e.target.files || []));
+    e.target.value = '';
+  };
+
+  const [draggingCartScreenshot, setDraggingCartScreenshot] = useState(false);
+  const cartScreenshotDragCounter = useRef(0);
+
+  const handleCartScreenshotDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    cartScreenshotDragCounter.current = 0;
+    setDraggingCartScreenshot(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (files.length > 0) openCartUploadModal(files);
+  };
+
+  const [draggingCartModal, setDraggingCartModal] = useState(false);
+  const cartModalDragCounter = useRef(0);
+  const cartModalRef = useRef<HTMLDivElement>(null);
+  const cartModalFileInputRef = useRef<HTMLInputElement>(null);
+  const cartModalAutoOpenPicker = useRef(false);
+
+  useEffect(() => {
+    if (cartUploadModalOpen) {
+      requestAnimationFrame(() => {
+        cartModalRef.current?.focus();
+        if (cartModalAutoOpenPicker.current) {
+          cartModalAutoOpenPicker.current = false;
+          cartModalFileInputRef.current?.click();
+        }
+      });
+    }
+  }, [cartUploadModalOpen]);
 
   const handleDeleteCartScreenshot = async (url: string) => {
     if (!project) return;
@@ -987,7 +1125,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       <div>
           {/* Project Header */}
           <div className="mb-8">
-            <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex flex-col-reverse md:flex-row md:items-start md:justify-between gap-4">
               <div className="flex-1">
                 {editingField === 'title' ? (
                   <div className="mb-2">
@@ -1041,123 +1179,215 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     )}
                   </p>
                 )}
+                {project.isStarter && (
+                  <div className="flex flex-wrap items-center gap-2 mt-4">
+                    <span className="text-xs bg-orange-500 text-white font-medium px-2 py-1 uppercase">
+                      Starter
+                    </span>
+                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-full md:w-fit">
+                  <div className="flex flex-wrap gap-3 md:gap-6 text-sm">
+                    <div>
+                      <span className="text-brown-800">Hours Logged:</span>{' '}
+                      <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
+                    </div>
+                    <div>
+                      <span className="text-brown-800">Hours Approved:</span>{' '}
+                      <span className="text-orange-500">{project.totalHoursApproved.toFixed(1)}h</span>
+                    </div>
+                    {project.bitsAwarded != null && (
+                      <div>
+                        <span className="text-brown-800">Bits Received:</span>{' '}
+                        <span className="text-orange-500">{project.bitsAwarded}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GitHub Repo */}
+                  <div data-tutorial="github" className="mt-3 text-sm">
+                    <span className="text-brown-800">GitHub Repo:</span>{' '}
+                    {editingField === 'githubRepo' ? (
+                      <span className="inline-flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editGithubRepo}
+                          onChange={(e) => setEditGithubRepo(e.target.value)}
+                          className="bg-white border-2 border-orange-500 text-brown-800 px-2 py-0.5 text-sm focus:outline-none w-full md:w-64"
+                          placeholder="github.com/username/repo"
+                          autoFocus
+                        />
+                        <button onClick={() => saveField('githubRepo', { githubRepo: editGithubRepo.trim() || null })} disabled={savingField} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 text-white px-2 py-0.5 text-xs uppercase cursor-pointer">
+                          {savingField ? '...' : 'Save'}
+                        </button>
+                        <button onClick={cancelEditing} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-2 py-0.5 text-xs uppercase cursor-pointer">Cancel</button>
+                      </span>
+                    ) : project.githubRepo ? (
+                      <span className="group">
+                        <a
+                          href={project.githubRepo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-orange-500 hover:text-orange-400 underline"
+                        >
+                          {project.githubRepo}
+                        </a>
+                        {canEdit && (
+                          <button onClick={() => startEditing('githubRepo')} className="ml-1 text-cream-500 hover:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-block align-middle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-brown-800">
+                        Not set.{' '}
+                        {canEdit && (
+                          <button onClick={() => startEditing('githubRepo')} className="text-orange-500 hover:text-orange-400 underline cursor-pointer">
+                            Add one
+                          </button>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              
-              {/* Project Image / Upload */}
-              <label className="w-full sm:w-64 h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 flex flex-col items-center justify-center flex-shrink-0 transition-colors cursor-pointer group relative overflow-hidden">
-                {project.coverImage ? (
-                  <>
-                    <img 
-                      src={project.coverImage} 
-                      alt={project.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white mb-1">
+
+              {/* Project Image / Upload + Tier Card */}
+              <div className="w-full md:w-64 flex-shrink-0">
+                <label className="w-full h-44 bg-cream-100 border-2 border-dashed border-cream-400 hover:border-orange-500 hover:bg-cream-200 flex flex-col items-center justify-center transition-colors cursor-pointer group relative overflow-hidden">
+                  {project.coverImage ? (
+                    <>
+                      <img
+                        src={project.coverImage}
+                        alt={project.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white mb-1">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <span className="text-white text-xs uppercase font-medium">Change Image</span>
+                      </div>
+                    </>
+                  ) : uploading ? (
+                    <span className="text-brown-800 text-xs uppercase">Uploading...</span>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brown-800 group-hover:text-orange-500 mb-1">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                         <circle cx="8.5" cy="8.5" r="1.5"/>
                         <polyline points="21 15 16 10 5 21"/>
                       </svg>
-                      <span className="text-white text-xs uppercase font-medium">Change Image</span>
+                      <span className="text-brown-800 group-hover:text-orange-500 text-xs uppercase font-medium">Upload Project Image</span>
+                      <span className="text-cream-600 text-[10px] mt-1">Required for submission</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleScreenshotUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Tier Card */}
+                {(() => {
+                  const currentTier = project.tier ? TIERS.find(t => t.id === project.tier) : null;
+                  const tierLocked = project.designStatus === 'approved';
+                  const tierEditable = canEdit && !tierLocked;
+                  return (
+                    <div
+                      className={`mt-2 border-2 px-3 py-2 group/tier relative ${
+                        currentTier
+                          ? 'bg-cream-100 border-cream-400'
+                          : 'bg-cream-100 border-dashed border-cream-400'
+                      }`}
+                    >
+                      <p className="text-[10px] text-cream-500 uppercase tracking-wide mb-0.5">Complexity Level</p>
+                      {currentTier ? (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-brown-800 uppercase font-medium">{currentTier.name}</span>
+                            <span className="text-xs text-cream-600">
+                              {currentTier.bits}&nbsp;bits · {currentTier.minHours}{currentTier.maxHours === Infinity ? 'h+' : `–${currentTier.maxHours}h`}
+                            </span>
+                          </div>
+                          {tierEditable && (
+                            <button
+                              type="button"
+                              onClick={() => setShowTierPicker(true)}
+                              className="absolute inset-0 flex items-center justify-center bg-cream-100/80 opacity-0 group-hover/tier:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-orange-500">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => canEdit && setShowTierPicker(true)}
+                          className="text-sm text-cream-500 hover:text-orange-500 transition-colors cursor-pointer"
+                        >
+                          Set complexity level
+                        </button>
+                      )}
                     </div>
-                  </>
-                ) : uploading ? (
-                  <span className="text-brown-800 text-xs uppercase">Uploading...</span>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brown-800 group-hover:text-orange-500 mb-1">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                      <circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    <span className="text-brown-800 group-hover:text-orange-500 text-xs uppercase font-medium">Upload Project Image</span>
-                    <span className="text-cream-600 text-[10px] mt-1">Required for submission</span>
-                  </>
-                )}
-                <input 
-                  type="file" 
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleScreenshotUpload}
-                  disabled={uploading}
-                  className="hidden"
-                />
-              </label>
+                  );
+                })()}
+              </div>
             </div>
 
-            {project.isStarter && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                <span className="text-xs bg-orange-500 text-white font-medium px-2 py-1 uppercase">
-                  Starter
-                </span>
+            {/* Tier Picker Modal */}
+            {showTierPicker && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/75" onClick={() => setShowTierPicker(false)} />
+                <div className="relative bg-cream-100 border-2 border-cream-400 max-w-md w-full mx-4">
+                  <div className="bg-orange-500 px-4 py-2 flex items-center justify-between">
+                    <h3 className="text-white text-sm uppercase tracking-wide">Complexity Level</h3>
+                    <button
+                      onClick={() => setShowTierPicker(false)}
+                      className="text-white hover:text-cream-100 transition-colors cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="p-4 flex flex-col gap-2">
+                    {TIERS.map((tier) => {
+                      const isSelected = project.tier === tier.id;
+                      return (
+                        <button
+                          key={tier.id}
+                          type="button"
+                          onClick={() => {
+                            saveField('tier', { tier: tier.id });
+                            setShowTierPicker(false);
+                          }}
+                          className={`w-full px-3 py-2 text-sm text-left border flex items-center justify-between transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-orange-500 text-white border-orange-400'
+                              : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
+                          }`}
+                        >
+                          <span className="uppercase font-medium">{tier.name}</span>
+                          <span className="text-xs opacity-80">
+                            {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? 'h+' : `–${tier.maxHours}h`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
-
-            {/* Stats */}
-            <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-full sm:w-fit">
-              <div className="flex flex-wrap gap-3 sm:gap-6 text-sm">
-                <div>
-                  <span className="text-brown-800">Hours Logged:</span>{' '}
-                  <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
-                </div>
-                <div>
-                  <span className="text-brown-800">Hours Approved:</span>{' '}
-                  <span className="text-orange-500">{project.totalHoursApproved.toFixed(1)}h</span>
-                </div>
-                {project.bitsAwarded != null && (
-                  <div>
-                    <span className="text-brown-800">Bits Received:</span>{' '}
-                    <span className="text-orange-500">{project.bitsAwarded}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* GitHub Repo */}
-              <div data-tutorial="github" className="mt-3 text-sm">
-                <span className="text-brown-800">GitHub Repo:</span>{' '}
-                {editingField === 'githubRepo' ? (
-                  <span className="inline-flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={editGithubRepo}
-                      onChange={(e) => setEditGithubRepo(e.target.value)}
-                      className="bg-white border-2 border-orange-500 text-brown-800 px-2 py-0.5 text-sm focus:outline-none w-full sm:w-64"
-                      placeholder="github.com/username/repo"
-                      autoFocus
-                    />
-                    <button onClick={() => saveField('githubRepo', { githubRepo: editGithubRepo.trim() || null })} disabled={savingField} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 text-white px-2 py-0.5 text-xs uppercase cursor-pointer">
-                      {savingField ? '...' : 'Save'}
-                    </button>
-                    <button onClick={cancelEditing} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-2 py-0.5 text-xs uppercase cursor-pointer">Cancel</button>
-                  </span>
-                ) : project.githubRepo ? (
-                  <span className="group">
-                    <a
-                      href={project.githubRepo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-orange-500 hover:text-orange-400 underline"
-                    >
-                      {project.githubRepo}
-                    </a>
-                    {canEdit && (
-                      <button onClick={() => startEditing('githubRepo')} className="ml-1 text-cream-500 hover:text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer inline-block align-middle">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-brown-800">
-                    Not set.{' '}
-                    {canEdit && (
-                      <button onClick={() => startEditing('githubRepo')} className="text-orange-500 hover:text-orange-400 underline cursor-pointer">
-                        Add one
-                      </button>
-                    )}
-                  </span>
-                )}
-              </div>
-
-            </div>
 
             {/* Quick Actions */}
             {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
@@ -1193,7 +1423,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* Stage Progress */}
-          <div data-tutorial="stage-progress" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
+          <div data-tutorial="stage-progress" className="mb-6">
             <StageProgress 
               designStatus={project.designStatus} 
               buildStatus={project.buildStatus}
@@ -1201,17 +1431,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             
             {/* Design Stage Review Comments */}
             {(project.designStatus === "rejected" || project.designStatus === "update_requested") && project.designReviewComments && (
-              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
-                <p className="text-red-500/80 text-xs uppercase mb-1">Design Feedback</p>
-                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
+              <div className="mt-4 bg-amber-500/15 border border-amber-500 p-3">
+                <p className="text-amber-700 text-xs uppercase mb-1">Design Feedback</p>
+                <p className="text-amber-900 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
               </div>
             )}
-            
+
             {/* Build Stage Review Comments */}
             {(project.buildStatus === "rejected" || project.buildStatus === "update_requested") && project.buildReviewComments && (
-              <div className="mt-4 bg-red-600/20 border border-red-600 p-3">
-                <p className="text-red-500/80 text-xs uppercase mb-1">Build Feedback</p>
-                <p className="text-red-600 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
+              <div className="mt-4 bg-amber-500/15 border border-amber-500 p-3">
+                <p className="text-amber-700 text-xs uppercase mb-1">Build Feedback</p>
+                <p className="text-amber-900 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
               </div>
             )}
           </div>
@@ -1413,17 +1643,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Project description
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${(project.bomItems.length > 0 || project.noBomNeeded) ? 'text-green-500' : 'text-brown-800'}`}>
-                  {(project.bomItems.length > 0 || project.noBomNeeded) ? (
+                <div className={`flex items-center gap-2 text-sm ${(project.bomItems.length > 0 || project.noBomNeeded || projectHasKit) ? 'text-green-500' : 'text-brown-800'}`}>
+                  {(project.bomItems.length > 0 || project.noBomNeeded || projectHasKit) ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   ) : (
                     <span className="w-3.5 h-3.5 border border-cream-500 inline-block" />
                   )}
-                  {project.noBomNeeded ? 'No parts needed' : `At least 1 BOM item (${project.bomItems.length} added)`}
+                  {projectHasKit ? 'Kit included' : project.noBomNeeded ? 'No parts needed' : `At least 1 BOM item (${project.bomItems.length} added)`}
                 </div>
-                {!project.noBomNeeded && project.bomItems.length > 0 && (
+                {!project.noBomNeeded && !projectHasKit && project.bomItems.length > 0 && (
                   <div className={`flex items-center gap-2 text-sm ${project.cartScreenshots.length > 0 ? 'text-green-500' : 'text-brown-800'}`}>
                     {project.cartScreenshots.length > 0 ? (
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -1485,15 +1715,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Verify your YSWS Eligibility
                   {!isVerified && (
-                    <a
-                      href="https://auth.hackclub.com/verifications/document"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      do this now
-                    </a>
+                    <>
+                      <a
+                        href="https://auth.hackclub.com/verifications/document"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        do this now
+                      </a>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRefreshVerification(); }}
+                        disabled={refreshingVerification}
+                        className="px-2 py-0.5 text-brown-600 text-xs uppercase hover:text-brown-800 transition-colors disabled:opacity-50"
+                      >
+                        {refreshingVerification ? 'checking...' : 'refresh'}
+                      </button>
+                    </>
                   )}
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${hasAddress ? 'text-green-500' : 'text-brown-800'}`}>
@@ -1535,15 +1774,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   )}
                   Verify your YSWS Eligibility
                   {!isVerified && (
-                    <a
-                      href="https://auth.hackclub.com/verifications/document"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      do this now
-                    </a>
+                    <>
+                      <a
+                        href="https://auth.hackclub.com/verifications/document"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs uppercase hover:bg-orange-400 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        do this now
+                      </a>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRefreshVerification(); }}
+                        disabled={refreshingVerification}
+                        className="px-2 py-0.5 text-brown-600 text-xs uppercase hover:text-brown-800 transition-colors disabled:opacity-50"
+                      >
+                        {refreshingVerification ? 'checking...' : 'refresh'}
+                      </button>
+                    </>
                   )}
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${hasAddress ? 'text-green-500' : 'text-brown-800'}`}>
@@ -1582,352 +1830,335 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {/* Bill of Materials */}
+          {(() => {
+            const bomEditable = project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested";
+            const bomItems = project.bomItems ?? [];
+            const starterProject = project.isStarter && project.starterProjectId
+              ? STARTER_PROJECTS.find(sp => sp.id === project.starterProjectId)
+              : null;
+            const hasKit = starterProject?.hasKit ?? false;
+            const kitCost = starterProject?.kitCost ?? 0;
+            const estimatedCost = bomItems.reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0) + (hasKit ? kitCost : 0);
+            const tierData = project.tier ? TIERS.find(t => t.id === project.tier) : null;
+            const maxSpend = tierData ? Math.floor(tierData.bits * 0.5) : 0;
+            const effectiveRequestedAmt = localRequestedAmount ?? project.requestedAmount ?? Math.min(estimatedCost, maxSpend);
+            const bitsSpent = Math.min(Math.ceil(effectiveRequestedAmt), maxSpend);
+            const bitsTowardGoal = tierData ? Math.max(0, tierData.bits - bitsSpent) : 0;
+
+            return (<>
           <div data-tutorial="bom" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
             <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Bill of Materials</h2>
-            
-            <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
-              <p className="text-blue-600 text-sm">
-                Your project&apos;s complexity level determines its <span className="font-medium">bit</span> allocation (<span className="font-medium">1 bit</span> = $1). List the parts you need here—your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials. You can <span className="font-medium">add tax and shipping costs separately</span> below the items table.
-              </p>
-            </div>
 
-            {(project.bomItems ?? []).length > 0 ? (
-              <div className="overflow-x-auto mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-cream-400">
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Name</th>
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Purpose</th>
-                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Qty</th>
-                      <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Total (USD)</th>
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Link</th>
-                      <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Distributor</th>
-                      {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                        <th className="text-center text-brown-800 uppercase text-xs py-2"></th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(project.bomItems ?? []).map((item) => (
-                      <tr key={item.id} className="border-b border-cream-300">
-                        <td className="text-brown-800 py-2 pr-3">{item.name}</td>
-                        <td className="text-brown-800 py-2 pr-3">{item.purpose || '-'}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity ?? '-'}</td>
-                        <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.totalCost)}</td>
-                        <td className="py-2 pr-3">
-                          {item.link ? (
-                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
-                              Link to Listing
-                            </a>
-                          ) : '-'}
-                        </td>
-                        <td className="text-brown-800 py-2 pr-3">{item.distributor || '-'}</td>
-                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                          <td className="py-2 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => openEditBomItem(item)}
-                                className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer text-xs uppercase tracking-wider"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteBomItem(item.id)}
-                                disabled={deletingBomId === item.id}
-                                className="text-red-500 hover:text-red-400 disabled:text-cream-400 transition-colors cursor-pointer"
-                              >
-                                {deletingBomId === item.id ? '...' : '✕'}
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                
-                {/* Tax & Shipping */}
-                <div className="flex gap-4 mt-3 pt-3 border-t border-cream-300">
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Tax (USD)</label>
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") ? (
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        defaultValue={project.bomTax ?? ''}
-                        onBlur={(e) => {
-                          const val = e.target.value ? parseFloat(e.target.value) : null;
-                          if (val !== (project.bomTax ?? null)) handleUpdateBomField('bomTax', val);
-                        }}
-                        className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                        placeholder="0.00"
-                      />
-                    ) : (
-                      <span className="text-brown-800 text-sm">${formatPrice(project.bomTax ?? 0)}</span>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Shipping (USD)</label>
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") ? (
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        defaultValue={project.bomShipping ?? ''}
-                        onBlur={(e) => {
-                          const val = e.target.value ? parseFloat(e.target.value) : null;
-                          if (val !== (project.bomShipping ?? null)) handleUpdateBomField('bomShipping', val);
-                        }}
-                        className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                        placeholder="0.00"
-                      />
-                    ) : (
-                      <span className="text-brown-800 text-sm">${formatPrice(project.bomShipping ?? 0)}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-1 mt-3 pt-3 border-t border-cream-400">
-                  <div className="flex items-center">
-                    <span className="text-brown-800 text-sm uppercase mr-3">Total Estimated Cost (USD):</span>
-                    <span className="text-brown-800 font-medium">
-                      ${formatPrice((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0))}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="text-brown-800 text-xs mr-3">Estimated cost in bits:</span>
-                    <span className="text-brown-800 text-sm">
-                      {Math.ceil((project.bomItems ?? []).reduce((sum, item) => sum + bomItemTotal(item), 0) + (project.bomTax ?? 0) + (project.bomShipping ?? 0))}&nbsp;bits
-                    </span>
-                  </div>
-                  {project.bitsAwarded != null && project.totalHoursApproved > 0 && (
-                    <div className="flex items-center">
-                      <span className="text-brown-800 text-xs mr-3">Bits per hour:</span>
-                      <span className="text-orange-500 text-sm">
-                        {(project.bitsAwarded / project.totalHoursApproved).toFixed(1)}/h
-                      </span>
-                    </div>
-                  )}
-                </div>
+            {/* Kit notice for starter projects with kits */}
+            {hasKit && (
+              <div className="bg-green-600/15 border border-green-600 p-3 mb-4">
+                <p className="text-green-700 text-sm">
+                  <span className="font-bold uppercase">Kit project</span> — when your design is approved, we&apos;ll ship you a kit with all the components you need. You don&apos;t need to purchase parts yourself.
+                </p>
               </div>
-            ) : (
-              <p className="text-brown-800 text-sm mb-4">No items added yet.</p>
             )}
 
-            {/* Cart Screenshots */}
-            {!project.noBomNeeded && (project.bomItems ?? []).length > 0 && (
-              <div className="border-t border-cream-400 pt-4 mb-4">
-                <p className="text-brown-800 text-xs uppercase mb-3">Cart Screenshots</p>
-                {project.cartScreenshots.length === 0 ? (
-                  <div className="flex items-center gap-3">
-                    <p className="text-cream-600 text-sm">Upload screenshots of your cart with the items you plan to buy.</p>
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                      <label className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
-                        {uploadingCartScreenshot ? 'Uploading...' : 'Upload'}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          onChange={handleCartScreenshotUpload}
-                          disabled={uploadingCartScreenshot}
-                          className="hidden"
-                        />
-                      </label>
+            {/* No parts needed checkbox */}
+            {bomEditable && !hasKit && (
+              <label className="flex items-center gap-2 mb-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={project.noBomNeeded}
+                  onChange={handleToggleNoBomNeeded}
+                  className="w-4 h-4 accent-orange-500 cursor-pointer"
+                />
+                <span className={`text-sm ${project.noBomNeeded ? 'text-green-600' : 'text-brown-800'}`}>
+                  I don&apos;t need any parts for this project
+                </span>
+              </label>
+            )}
+            {!bomEditable && !hasKit && project.noBomNeeded && (
+              <p className="text-green-600 text-sm mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                No parts needed for this project
+              </p>
+            )}
+
+            <div className={project.noBomNeeded && !hasKit ? 'opacity-40 pointer-events-none' : ''}>
+              {!hasKit && (
+              <div className="bg-blue-600/20 border border-blue-600 p-3 mb-4">
+                <p className="text-blue-600 text-sm">
+                  List the parts you need here. Your BOM will be reviewed when you submit your design, and you&apos;ll receive a grant card to purchase approved materials.
+                </p>
+              </div>
+              )}
+
+              {/* Items table */}
+              {(bomItems.length > 0 || hasKit) ? (
+                <div className="overflow-x-auto mb-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-cream-400">
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Name</th>
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Purpose</th>
+                        <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Qty</th>
+                        <th className="text-right text-brown-800 uppercase text-xs py-2 pr-3">Total (USD)</th>
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Link</th>
+                        <th className="text-left text-brown-800 uppercase text-xs py-2 pr-3">Distributor</th>
+                        {bomEditable && <th className="text-center text-brown-800 uppercase text-xs py-2"></th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hasKit && (
+                        <tr className="border-b border-cream-300 opacity-70">
+                          <td className="text-brown-800 py-2 pr-3 flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0 text-cream-500">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            {starterProject?.name} Kit
+                          </td>
+                          <td className="text-brown-800 py-2 pr-3">Shipped to you - kit project</td>
+                          <td className="text-brown-800 py-2 pr-3 text-right">1</td>
+                          <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(kitCost)}</td>
+                          <td className="py-2 pr-3">-</td>
+                          <td className="text-brown-800 py-2 pr-3">Hack Club</td>
+                          {bomEditable && <td></td>}
+                        </tr>
+                      )}
+                      {bomItems.map((item) => (
+                        <tr key={item.id} className="border-b border-cream-300">
+                          <td className="text-brown-800 py-2 pr-3">{item.name}</td>
+                          <td className="text-brown-800 py-2 pr-3">{item.purpose || '-'}</td>
+                          <td className="text-brown-800 py-2 pr-3 text-right">{item.quantity ?? '-'}</td>
+                          <td className="text-brown-800 py-2 pr-3 text-right">${formatPrice(item.totalCost)}</td>
+                          <td className="py-2 pr-3">
+                            {item.link ? (
+                              <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">
+                                Link
+                              </a>
+                            ) : '-'}
+                          </td>
+                          <td className="text-brown-800 py-2 pr-3">{item.distributor || '-'}</td>
+                          {bomEditable && (
+                            <td className="py-2 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button onClick={() => openEditBomItem(item)} className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer text-xs uppercase tracking-wider">
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDeleteBomItem(item.id)} disabled={deletingBomId === item.id} className="text-red-500 hover:text-red-400 disabled:text-cream-400 transition-colors cursor-pointer">
+                                  {deletingBomId === item.id ? '...' : '✕'}
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* Tax & Shipping */}
+                  <div className="flex gap-4 mt-3 pt-3 border-t border-cream-300">
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Tax (USD)</label>
+                      {bomEditable ? (
+                        <input type="number" step="any" min="0" defaultValue={project.bomTax ?? ''} onBlur={(e) => { const val = e.target.value ? parseFloat(e.target.value) : null; if (val !== (project.bomTax ?? null)) handleUpdateBomField('bomTax', val); }} className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="0.00" />
+                      ) : (
+                        <span className="text-brown-800 text-sm">${formatPrice(project.bomTax ?? 0)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-brown-800 text-xs uppercase block mb-1">Shipping (USD)</label>
+                      {bomEditable ? (
+                        <input type="number" step="any" min="0" defaultValue={project.bomShipping ?? ''} onBlur={(e) => { const val = e.target.value ? parseFloat(e.target.value) : null; if (val !== (project.bomShipping ?? null)) handleUpdateBomField('bomShipping', val); }} className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="0.00" />
+                      ) : (
+                        <span className="text-brown-800 text-sm">${formatPrice(project.bomShipping ?? 0)}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-cream-600 text-sm mb-4">No items added yet.</p>
+              )}
+
+              {/* Add new item button / inline form */}
+              {bomEditable && (
+                showAddBomForm ? (
+                  <form onSubmit={handleAddBomItem} className="border border-cream-400 p-4 mb-4">
+                    <p className="text-brown-800 text-xs uppercase mb-3">New Item</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Name *</label>
+                        <input type="text" value={bomForm.name} onChange={(e) => setBomForm({ ...bomForm, name: e.target.value })} required className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="Component name" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Purpose *</label>
+                        <input type="text" value={bomForm.purpose} onChange={(e) => setBomForm({ ...bomForm, purpose: e.target.value })} required className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="What is it for?" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Quantity</label>
+                        <input type="number" min="1" value={bomForm.quantity} onChange={(e) => setBomForm({ ...bomForm, quantity: e.target.value })} className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="1" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Total Cost (USD) *</label>
+                        <input type="number" step="any" min="0" value={bomForm.totalCost} onChange={(e) => setBomForm({ ...bomForm, totalCost: e.target.value })} className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Link</label>
+                        <input type="url" value={bomForm.link} onChange={(e) => setBomForm({ ...bomForm, link: e.target.value })} className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="https://..." />
+                      </div>
+                      <div>
+                        <label className="text-brown-800 text-xs uppercase block mb-1">Distributor *</label>
+                        <input type="text" value={bomForm.distributor} onChange={(e) => setBomForm({ ...bomForm, distributor: e.target.value })} required className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none" placeholder="e.g. Digikey, Amazon" />
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button type="submit" disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.totalCost || !bomForm.distributor} className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer">
+                        {addingBom ? 'Saving...' : 'Save Item'}
+                      </button>
+                      <button type="button" onClick={() => { setShowAddBomForm(false); setBomForm({ name: '', purpose: '', quantity: '', totalCost: '', link: '', distributor: '' }); }} className="bg-cream-200 hover:bg-cream-300 text-brown-800 px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer">
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <button onClick={() => setShowAddBomForm(true)} className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer">
+                      + Add New Item
+                    </button>
+                    <button onClick={() => setShowBomImport(true)} className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer border border-cream-400">
+                      Import CSV
+                    </button>
+                    {bomItems.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => {
+                            const items = project.bomItems ?? [];
+                            const header = "Name,Purpose,Quantity,Total Cost (USD),Link,Distributor";
+                            const rows = items.map((item) => {
+                              const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+                              return [escape(item.name), escape(item.purpose || ""), item.quantity ?? "", item.totalCost.toFixed(2), escape(item.link || ""), escape(item.distributor || "")].join(",");
+                            });
+                            const csv = [header, ...rows].join("\n");
+                            const blob = new Blob([csv], { type: "text/csv" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `${project.title || "project"}-bom.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
+                        >
+                          Export CSV
+                        </button>
+                        <button onClick={() => setShowDeleteAllBomConfirm(true)} className="text-red-500 hover:text-red-400 text-xs uppercase tracking-wider transition-colors cursor-pointer">
+                          Delete All
+                        </button>
+                      </>
                     )}
                   </div>
-                ) : (
-                  <div className="flex gap-2 flex-wrap">
-                    {project.cartScreenshots.map((url, i) => (
-                      <div key={i} className="relative group w-20 h-20">
-                        <button type="button" onClick={() => setExpandedScreenshot(url)} className="block w-full h-full border border-cream-400 hover:border-orange-500 transition-colors overflow-hidden cursor-pointer">
-                          <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                )
+              )}
+
+              {/* Cart Screenshots */}
+              {!project.noBomNeeded && bomItems.length > 0 && (
+                <div
+                  className={`border-t border-cream-400 pt-4 mb-4 transition-colors ${draggingCartScreenshot && bomEditable ? 'bg-orange-500/10 ring-2 ring-orange-500 ring-inset' : ''}`}
+                  onDragEnter={(e) => { e.preventDefault(); if (bomEditable) { cartScreenshotDragCounter.current++; setDraggingCartScreenshot(true); } }}
+                  onDragLeave={(e) => { e.preventDefault(); cartScreenshotDragCounter.current--; if (cartScreenshotDragCounter.current <= 0) { cartScreenshotDragCounter.current = 0; setDraggingCartScreenshot(false); } }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={bomEditable ? handleCartScreenshotDrop : undefined}
+                >
+                  <p className="text-brown-800 text-xs uppercase mb-3">Cart Screenshots</p>
+                  {project.cartScreenshots.length === 0 ? (
+                    <div className="flex items-center gap-3">
+                      <p className="text-cream-600 text-sm">{draggingCartScreenshot ? 'Drop images here to upload' : 'Upload screenshots of your cart with the items you plan to buy.'}</p>
+                      {bomEditable && !draggingCartScreenshot && (
+                        <button type="button" onClick={() => openCartUploadModal()} className="shrink-0 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer">
+                          Upload
                         </button>
-                        {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCartScreenshot(url)}
-                            className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          >
-                            ✕
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 flex-wrap">
+                      {project.cartScreenshots.map((url, i) => (
+                        <div key={i} className="relative group w-20 h-20">
+                          <button type="button" onClick={() => setExpandedScreenshot(url)} className="block w-full h-full border border-cream-400 hover:border-orange-500 transition-colors overflow-hidden cursor-pointer">
+                            <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-full object-cover" />
                           </button>
-                        )}
-                      </div>
-                    ))}
-                    {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                      <label className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
-                        {uploadingCartScreenshot ? (
-                          <span className="text-cream-600 text-[10px] uppercase">Uploading</span>
-                        ) : (
+                          {bomEditable && (
+                            <button type="button" onClick={() => handleDeleteCartScreenshot(url)} className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {bomEditable && (
+                        <button type="button" onClick={() => openCartUploadModal()} className="w-20 h-20 border-2 border-dashed border-cream-400 hover:border-orange-500 flex items-center justify-center cursor-pointer transition-colors group">
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cream-500 group-hover:text-orange-500 transition-colors">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                           </svg>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          onChange={handleCartScreenshotUpload}
-                          disabled={uploadingCartScreenshot}
-                          className="hidden"
-                        />
-                      </label>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Summary + Funding Request */}
+              {bomItems.length > 0 && (
+                <div className="border-t border-cream-400 pt-4">
+                  {/* Estimated BOM Cost */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-brown-800 text-sm uppercase">Estimated BOM Cost</span>
+                    <span className="text-brown-800 font-medium">${formatPrice(estimatedCost)}</span>
+                  </div>
+
+                  {/* Funding Request */}
+                  <div className="bg-cream-200/80 border border-cream-300 p-4">
+                    <p className="text-brown-800 text-xs uppercase mb-3">Funding Request</p>
+                    {tierData ? (
+                      <>
+                        <div className="flex items-center gap-3 mb-3">
+                          <label className="text-brown-800 text-sm">Amount requesting (USD):</label>
+                          {bomEditable ? (
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              max={maxSpend}
+                              value={effectiveRequestedAmt || ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? parseFloat(e.target.value) : 0;
+                                setLocalRequestedAmount(Math.min(val, maxSpend));
+                              }}
+                              onBlur={(e) => {
+                                let val = e.target.value ? parseFloat(e.target.value) : null;
+                                if (val !== null && val > maxSpend) val = maxSpend;
+                                handleUpdateBomField('requestedAmount', val);
+                              }}
+                              className="w-28 bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                            />
+                          ) : (
+                            <span className="text-brown-800 font-medium">${formatPrice(effectiveRequestedAmt)}</span>
+                          )}
+                          <span className="text-cream-600 text-xs">(max ${maxSpend})</span>
+                        </div>
+                        <div className="flex flex-col gap-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-brown-800">Bits spent on parts:</span>
+                            <span className="text-brown-800 font-medium">{bitsSpent} bits</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-brown-800">Bits toward your goal:</span>
+                            <span className="text-orange-500 font-medium">{bitsTowardGoal} of {tierData.bits} bits</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-cream-600 text-sm">Set a complexity level to configure your funding request.</p>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-
-            {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-              <form onSubmit={handleAddBomItem} className="border-t border-cream-400 pt-4">
-                <p className="text-brown-800 text-xs uppercase mb-3">Add New Item</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Name *</label>
-                    <input
-                      type="text"
-                      value={bomForm.name}
-                      onChange={(e) => setBomForm({ ...bomForm, name: e.target.value })}
-                      required
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="Component name"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Purpose *</label>
-                    <input
-                      type="text"
-                      value={bomForm.purpose}
-                      onChange={(e) => setBomForm({ ...bomForm, purpose: e.target.value })}
-                      required
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="What is it for?"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={bomForm.quantity}
-                      onChange={(e) => setBomForm({ ...bomForm, quantity: e.target.value })}
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Total Cost (USD)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={bomForm.totalCost}
-                      onChange={(e) => setBomForm({ ...bomForm, totalCost: e.target.value })}
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Link</label>
-                    <input
-                      type="url"
-                      value={bomForm.link}
-                      onChange={(e) => setBomForm({ ...bomForm, link: e.target.value })}
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div>
-                    <label className="text-brown-800 text-xs uppercase block mb-1">Distributor *</label>
-                    <input
-                      type="text"
-                      value={bomForm.distributor}
-                      onChange={(e) => setBomForm({ ...bomForm, distributor: e.target.value })}
-                      required
-                      className="w-full bg-white border-2 border-cream-400 text-brown-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
-                      placeholder="e.g. Digikey, Amazon"
-                    />
-                  </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={addingBom || !bomForm.name || !bomForm.purpose || !bomForm.totalCost || !bomForm.distributor}
-                  className="bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white px-4 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
-                >
-                  {addingBom ? 'Adding...' : '+ Add Item'}
-                </button>
-              </form>
-            )}
-
-            <div className="border-t border-cream-400 pt-4 mt-4 flex items-center gap-4">
-              {(project.bomItems ?? []).length > 0 && (
-                <button
-                  onClick={() => {
-                    const items = project.bomItems ?? [];
-                    const header = "Name,Purpose,Quantity,Total Cost (USD),Link,Distributor";
-                    const rows = items.map((item) => {
-                      const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-                      return [
-                        escape(item.name),
-                        escape(item.purpose || ""),
-                        item.quantity ?? "",
-                        item.totalCost.toFixed(2),
-                        escape(item.link || ""),
-                        escape(item.distributor || ""),
-                      ].join(",");
-                    });
-                    const csv = [header, ...rows].join("\n");
-                    const blob = new Blob([csv], { type: "text/csv" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${project.title || "project"}-bom.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Export CSV
-                </button>
               )}
-              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                <button
-                  onClick={() => setShowBomImport(true)}
-                  className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Import CSV
-                </button>
-              )}
-              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (project.bomItems ?? []).length > 0 && (
-                <button
-                  onClick={() => setShowDeleteAllBomConfirm(true)}
-                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Delete All Items
-                </button>
-              )}
-              {((project.bomItems ?? []).length > 0 || (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested")) && (
-                <div className="w-px h-4 bg-cream-400" />
-              )}
-              {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                <button
-                  onClick={handleToggleNoBomNeeded}
-                  className={`text-sm transition-colors cursor-pointer ${
-                    project.noBomNeeded 
-                      ? 'text-green-600 hover:text-green-500' 
-                      : 'text-cream-600 hover:text-cream-500'
-                  }`}
-                >
-                  {project.noBomNeeded ? (
-                    <span className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      No parts needed for this project
-                    </span>
-                  ) : (
-                    "I don't need to buy any parts for this project"
-                  )}
-                </button>
-              )}
+            </div>
             </div>
             {showBomImport && project && (
               <BomCsvImportModal
@@ -1977,103 +2208,67 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
             )}
-          </div>
+          </>);
+          })()}
 
           {/* Complexity Level & Project Type */}
           {canEdit && (
             <div className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
               <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-4">Project Settings</h2>
 
-              {/* Tier - always visible as selectable buttons */}
-              <div className="mb-5">
-                <p className="text-brown-800 text-xs uppercase mb-2">
-                  Complexity Level
-                  {project.designStatus === 'approved' && (
-                    <span className="ml-2 text-cream-500 normal-case">(locked by reviewer)</span>
+              {/* Project Type - always visible as toggle */}
+              {(() => {
+                const typeLocked = project.designStatus !== 'draft';
+                return (
+              <div className="border-t border-cream-400 pt-4 relative">
+                <p className="text-brown-800 text-xs uppercase mb-2 inline-flex items-center gap-1">
+                  Project Type
+                  <span
+                    onMouseEnter={() => { typeHelpTimer.current = setTimeout(() => setShowTypeHelp(true), 500) }}
+                    onMouseLeave={() => { if (typeHelpTimer.current) clearTimeout(typeHelpTimer.current); setShowTypeHelp(false) }}
+                    className="w-3.5 h-3.5 border border-cream-500 text-cream-500 hover:border-orange-500 hover:text-orange-500 text-[10px] flex items-center justify-center cursor-help transition-colors leading-none"
+                  >
+                    ?
+                  </span>
+                  {typeLocked && (
+                    <span className="ml-1 text-cream-500 normal-case">(locked after submission)</span>
                   )}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {TIERS.map((tier) => {
-                    const isSelected = project.tier === tier.id;
-                    const isLocked = project.designStatus === 'approved';
-                    return (
-                      <button
-                        key={tier.id}
-                        type="button"
-                        onClick={() => !isLocked && saveField('tier', { tier: isSelected ? null : tier.id })}
-                        disabled={isLocked}
-                        className={`px-3 py-2 text-sm text-left border transition-colors ${
-                          isSelected
-                            ? isLocked
-                              ? 'bg-green-600/20 border-green-600 text-green-700 cursor-default'
-                              : 'bg-orange-500 text-white border-orange-400 cursor-pointer'
-                            : isLocked
-                              ? 'bg-cream-200 text-cream-400 border-cream-300 cursor-default'
-                              : 'bg-cream-300 text-brown-800 hover:bg-cream-400 border-cream-400 cursor-pointer'
-                        }`}
-                      >
-                        <span className="uppercase font-medium">{tier.name}</span>
-                        <span className="block text-xs mt-0.5 opacity-80">
-                          {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Journal Import/Export */}
-              <div className="border-t border-cream-400 pt-4 mb-5">
-                <p className="text-brown-800 text-xs uppercase mb-2">Journal Import / Export</p>
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={`/api/projects/${project.id}/sessions/export`}
-                    className="inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer border border-cream-400"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Export Journal
-                  </a>
-                  <label className={`inline-flex items-center gap-2 bg-cream-300 hover:bg-cream-400 text-brown-800 px-3 py-2 text-sm uppercase tracking-wider transition-colors cursor-pointer border border-cream-400 ${importingJournal ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    {importingJournal ? 'Importing...' : 'Import Journal'}
-                    <input
-                      type="file"
-                      accept=".md,.markdown,text/markdown"
-                      onChange={handleImportJournal}
-                      disabled={importingJournal}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                <p className="text-cream-600 text-xs mt-1">Export your journal to put it in your GitHub repo! You can also import from Blueprint.</p>
-              </div>
-
-              {/* Project Type - always visible as toggle */}
-              <div className="border-t border-cream-400 pt-4">
-                <p className="text-brown-800 text-xs uppercase mb-2">Project Type</p>
+                {showTypeHelp && (
+                  <div className="absolute z-10 bottom-full left-0 mb-1 bg-cream-200 border border-cream-400 p-3 text-xs text-brown-800 leading-relaxed shadow-md max-w-xs">
+                    <p><strong>Custom Design:</strong> This project is your own original design.</p>
+                    <p className="mt-1"><strong>Starter Project:</strong> This project is based on one of our starter projects.</p>
+                  </div>
+                )}
                 <div className="flex gap-2 max-w-xs">
                   <button
                     type="button"
-                    onClick={() => !project.isStarter || saveField('projectType', { isStarter: false, starterProjectId: null })}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      !project.isStarter
-                        ? 'bg-orange-500 text-white font-medium'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    onClick={() => !typeLocked && (!project.isStarter || saveField('projectType', { isStarter: false, starterProjectId: null }))}
+                    disabled={typeLocked}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors ${
+                      typeLocked
+                        ? !project.isStarter
+                          ? 'bg-green-600/20 border border-green-600 text-green-700 cursor-default'
+                          : 'bg-cream-200 text-cream-400 border border-cream-300 cursor-default'
+                        : !project.isStarter
+                          ? 'bg-orange-500 text-white font-medium cursor-pointer'
+                          : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
                     }`}
                   >
                     Custom
                   </button>
                   <button
                     type="button"
-                    onClick={() => project.isStarter || startEditing('projectType')}
-                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors cursor-pointer ${
-                      project.isStarter
-                        ? 'bg-orange-500 text-white font-medium'
-                        : 'bg-cream-300 text-brown-800 hover:bg-cream-400'
+                    onClick={() => !typeLocked && (project.isStarter || startEditing('projectType'))}
+                    disabled={typeLocked}
+                    className={`flex-1 px-3 py-2 text-sm uppercase transition-colors ${
+                      typeLocked
+                        ? project.isStarter
+                          ? 'bg-green-600/20 border border-green-600 text-green-700 cursor-default'
+                          : 'bg-cream-200 text-cream-400 border border-cream-300 cursor-default'
+                        : project.isStarter
+                          ? 'bg-orange-500 text-white font-medium cursor-pointer'
+                          : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
                     }`}
                   >
                     Starter
@@ -2100,6 +2295,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </div>
                 )}
               </div>
+                );
+              })()}
 
             </div>
           )}
@@ -2108,14 +2305,42 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="flex flex-wrap gap-3 mb-8">
             {/* Design Stage: Submit or Unsubmit */}
             {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-              <button
-                data-tutorial="submit"
-                onClick={() => openSubmitDialog('design')}
-                disabled={submitting || !canSubmitDesign}
-                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                {submitting ? 'Submitting...' : (project.designStatus === "draft" ? 'Submit Design for Review' : 'Resubmit Design')}
-              </button>
+              <div className="flex-1 min-w-[200px]">
+                <button
+                  data-tutorial="submit"
+                  onClick={() => {
+                    if (canSubmitDesign) {
+                      setShowDesignBlockers(false);
+                      openSubmitDialog('design');
+                    } else if (showDesignBlockers) {
+                      setDesignBlockerFlash(f => f + 1);
+                    } else {
+                      setShowDesignBlockers(true);
+                    }
+                  }}
+                  disabled={submitting}
+                  className={`w-full py-3 uppercase tracking-wider transition-colors ${
+                    canSubmitDesign
+                      ? 'bg-green-600 hover:bg-green-500 text-white cursor-pointer'
+                      : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
+                  }`}
+                >
+                  {submitting ? 'Submitting...' : (project.designStatus === "draft" ? 'Submit Design for Review' : 'Resubmit Design')}
+                </button>
+                {showDesignBlockers && !canSubmitDesign && designSubmitBlockers.length > 0 && (
+                  <div key={designBlockerFlash} className="mt-2 animate-[blocker-flash_0.3s_ease-out]">
+                    <p className="text-xs text-brown-800 mb-1">You still need to:</p>
+                  <ul className="text-xs text-cream-600 space-y-0.5">
+                    {designSubmitBlockers.map((b) => (
+                      <li key={b} className="flex items-start gap-1.5">
+                        <span className="text-cream-500 mt-px">&#x2022;</span>
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  </div>
+                )}
+              </div>
             )}
             {project.designStatus === "in_review" && (
               <button
@@ -2129,14 +2354,42 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
             {/* Build Stage: Submit or Unsubmit */}
             {project.designStatus === "approved" && (project.buildStatus === "draft" || project.buildStatus === "rejected" || project.buildStatus === "approved" || project.buildStatus === "update_requested") && (
-              <button
-                data-tutorial="submit"
-                onClick={() => openSubmitDialog('build')}
-                disabled={submitting || !canSubmitBuild}
-                className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-3 uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                {submitting ? 'Submitting...' : (project.buildStatus === "draft" ? 'Submit Build for Review' : 'Resubmit Build')}
-              </button>
+              <div className="flex-1 min-w-[200px]">
+                <button
+                  data-tutorial="submit"
+                  onClick={() => {
+                    if (canSubmitBuild) {
+                      setShowBuildBlockers(false);
+                      openSubmitDialog('build');
+                    } else if (showBuildBlockers) {
+                      setBuildBlockerFlash(f => f + 1);
+                    } else {
+                      setShowBuildBlockers(true);
+                    }
+                  }}
+                  disabled={submitting}
+                  className={`w-full py-3 uppercase tracking-wider transition-colors ${
+                    canSubmitBuild
+                      ? 'bg-green-600 hover:bg-green-500 text-white cursor-pointer'
+                      : 'bg-cream-300 text-brown-800 hover:bg-cream-400 cursor-pointer'
+                  }`}
+                >
+                  {submitting ? 'Submitting...' : (project.buildStatus === "draft" ? 'Submit Build for Review' : 'Resubmit Build')}
+                </button>
+                {showBuildBlockers && !canSubmitBuild && buildSubmitBlockers.length > 0 && (
+                  <div key={buildBlockerFlash} className="mt-2 animate-[blocker-flash_0.3s_ease-out]">
+                    <p className="text-xs text-brown-800 mb-1">You still need to:</p>
+                    <ul className="text-xs text-cream-600 space-y-0.5">
+                      {buildSubmitBlockers.map((b) => (
+                        <li key={b} className="flex items-start gap-1.5">
+                          <span className="text-cream-500 mt-px">&#x2022;</span>
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             )}
             {project.buildStatus === "in_review" && (
               <button
@@ -2229,7 +2482,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       disabled={savingBomEdit || !editBomForm.name || !editBomForm.totalCost}
                       className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider text-sm transition-colors cursor-pointer"
                     >
-                      {savingBomEdit ? 'Saving...' : 'Save Changes'}
+                      {savingBomEdit ? 'Saving...' : 'Save Item'}
                     </button>
                   </div>
                 </form>
@@ -2408,10 +2661,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     </div>
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setSubmitStep('type')}
+                        onClick={() => { setShowBuildSubmitDialog(false); setSubmissionNotes(''); }}
                         className="flex-1 bg-cream-200 hover:bg-cream-300 text-brown-800 py-2 uppercase tracking-wider transition-colors cursor-pointer"
                       >
-                        Back
+                        Cancel
                       </button>
                       <button
                         onClick={handleSubmitBuild}
@@ -2479,7 +2732,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
 
-          {/* Cart Screenshots Modal */}
+          {/* Cart Screenshots View Modal */}
           {showCartScreenshots && project && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
@@ -2513,29 +2766,136 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     ))}
                   </div>
                 )}
-                {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
-                  <div className="flex gap-3">
-                    <label className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-2 text-center uppercase text-sm tracking-wider transition-colors cursor-pointer">
-                      {uploadingCartScreenshot ? 'Uploading...' : '+ Upload Screenshot'}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        onChange={handleCartScreenshotUpload}
-                        disabled={uploadingCartScreenshot}
-                        className="hidden"
-                      />
-                    </label>
-                    {project.cartScreenshots.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowCartScreenshots(false)}
-                        className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
-                      >
-                        Done
-                      </button>
+                <div className="flex gap-3">
+                  {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowCartScreenshots(false); openCartUploadModal(); }}
+                      className="flex-1 bg-orange-500 hover:bg-orange-400 text-white py-2 text-center uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                    >
+                      + Add Screenshots
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowCartScreenshots(false)}
+                    className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cart Screenshot Upload Modal */}
+          {cartUploadModalOpen && project && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div
+                ref={cartModalRef}
+                className={`bg-cream-100 border-2 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto transition-colors outline-none ${draggingCartModal ? 'border-orange-500 bg-orange-500/5' : 'border-cream-400'}`}
+                onDragEnter={(e) => { e.preventDefault(); cartModalDragCounter.current++; setDraggingCartModal(true); }}
+                onDragLeave={(e) => { e.preventDefault(); cartModalDragCounter.current--; if (cartModalDragCounter.current <= 0) { cartModalDragCounter.current = 0; setDraggingCartModal(false); } }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  cartModalDragCounter.current = 0;
+                  setDraggingCartModal(false);
+                  addPendingCartFiles(Array.from(e.dataTransfer.files));
+                }}
+                onPaste={(e) => {
+                  const files = Array.from(e.clipboardData.files);
+                  if (files.length > 0) {
+                    e.preventDefault();
+                    addPendingCartFiles(files);
+                  }
+                }}
+                tabIndex={-1}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-brown-800 text-xl uppercase tracking-wide">Add Screenshots</h3>
+                  <button
+                    onClick={closeCartUploadModal}
+                    className="text-brown-800 hover:text-orange-500 transition-colors cursor-pointer"
+                    disabled={uploadingCartScreenshot}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Drop / paste zone */}
+                {pendingCartFiles.length === 0 && !draggingCartModal && (
+                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-cream-400 hover:border-orange-500 py-10 px-4 mb-4 cursor-pointer transition-colors group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-cream-500 group-hover:text-orange-500 transition-colors mb-2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p className="text-cream-600 text-sm text-center">Drop images, paste from clipboard, or <span className="text-orange-500 group-hover:text-orange-400">browse files</span></p>
+                    <input ref={cartModalFileInputRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartModalFileInput} className="hidden" />
+                  </label>
+                )}
+
+                {draggingCartModal && pendingCartFiles.length === 0 && (
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-orange-500 py-10 px-4 mb-4 bg-orange-500/10">
+                    <p className="text-orange-500 text-sm uppercase tracking-wider">Drop images here</p>
+                  </div>
+                )}
+
+                {/* Pending file previews */}
+                {pendingCartPreviews.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-brown-800 text-xs uppercase">{pendingCartFiles.length} image{pendingCartFiles.length !== 1 ? 's' : ''} ready to upload</p>
+                      <label className="text-orange-500 hover:text-orange-400 text-xs uppercase tracking-wider cursor-pointer transition-colors">
+                        + Add more
+                        <input type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleCartModalFileInput} className="hidden" />
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {pendingCartPreviews.map((previewUrl, i) => (
+                        <div key={i} className="relative group">
+                          <img src={previewUrl} alt={`Pending screenshot ${i + 1}`} className="w-full h-28 object-cover border border-cream-400" />
+                          <button
+                            type="button"
+                            onClick={() => removePendingCartFile(i)}
+                            className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                          <p className="text-cream-600 text-[10px] truncate mt-0.5 px-0.5">{pendingCartFiles[i]?.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {draggingCartModal && (
+                      <div className="mt-2 flex items-center justify-center border-2 border-dashed border-orange-500 py-4 bg-orange-500/10">
+                        <p className="text-orange-500 text-xs uppercase tracking-wider">Drop to add more</p>
+                      </div>
                     )}
                   </div>
                 )}
+
+                <p className="text-cream-500 text-xs mb-4 text-center">Tip: You can also paste screenshots with Ctrl+V</p>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={closeCartUploadModal}
+                    disabled={uploadingCartScreenshot}
+                    className="flex-1 bg-cream-300 hover:bg-cream-400 text-brown-800 py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCartUploadModalSubmit}
+                    disabled={pendingCartFiles.length === 0 || uploadingCartScreenshot}
+                    className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:bg-cream-400 disabled:text-cream-600 text-white py-2 uppercase text-sm tracking-wider transition-colors cursor-pointer"
+                  >
+                    {uploadingCartScreenshot ? 'Uploading...' : `Upload${pendingCartFiles.length > 0 ? ` (${pendingCartFiles.length})` : ''}`}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -2551,6 +2911,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         <div data-tutorial="timeline" className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-brown-800 text-xl uppercase tracking-wide">Timeline</h2>
+            {canEdit && (
+              <label className="text-orange-500 hover:text-orange-400 text-xs uppercase cursor-pointer flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                {importingJournal ? 'Importing...' : 'Import Journals'}
+                <input
+                  type="file"
+                  accept=".md,.txt,.markdown"
+                  className="hidden"
+                  onChange={handleImportJournal}
+                  disabled={importingJournal}
+                />
+              </label>
+            )}
           </div>
           <Timeline items={timelineItems} projectId={projectId} />
         </div>

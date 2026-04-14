@@ -22,7 +22,7 @@ export const BIT_SPEND_RATIO = 0.5
 export const TIERS = [
   {
     id: 1,
-    name: "Complexity Tier 1",
+    name: "Tier 1",
     bits: 50,
     minHours: 5,
     maxHours: 8,
@@ -30,7 +30,7 @@ export const TIERS = [
   },
   {
     id: 2,
-    name: "Complexity Tier 2",
+    name: "Tier 2",
     bits: 100,
     minHours: 8,
     maxHours: 16,
@@ -38,7 +38,7 @@ export const TIERS = [
   },
   {
     id: 3,
-    name: "Complexity Tier 3",
+    name: "Tier 3",
     bits: 200,
     minHours: 17,
     maxHours: 33,
@@ -46,7 +46,7 @@ export const TIERS = [
   },
   {
     id: 4,
-    name: "Complexity Tier 4",
+    name: "Tier 4",
     bits: 400,
     minHours: 34,
     maxHours: 66,
@@ -54,7 +54,7 @@ export const TIERS = [
   },
   {
     id: 5,
-    name: "Complexity Tier 5",
+    name: "Tier 5",
     bits: 600,
     minHours: 67,
     maxHours: Infinity,

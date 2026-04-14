@@ -5,7 +5,5 @@
       "Bash(git stash:*)"
     ]
   },
-  "env": {
-    "CLAUDE_CODE_TASK_LIST_ID": "stasis"
-  }
+  "env": {}
 }

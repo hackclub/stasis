@@ -95,7 +95,7 @@ fi
 echo ""
 echo "Commits to promote:"
 echo "--------------------"
-git log "origin/$PROD".."origin/$MAIN" --format="  %C(yellow)%h%C(reset) %s %C(dim)(%cr)%C(reset)"
+git log "origin/$PROD".."origin/$MAIN" --format="  %C(yellow)%h%C(reset) %s %C(dim)(%cr by %an <%ae>)%C(reset)"
 echo "--------------------"
 echo ""
 

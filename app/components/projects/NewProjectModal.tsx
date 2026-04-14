@@ -39,6 +39,10 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
   const [journalFile, setJournalFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [canScrollDown, setCanScrollDown] = useState(false)
+  const [showTierHelp, setShowTierHelp] = useState(false)
+  const [showTypeHelp, setShowTypeHelp] = useState(false)
+  const tierHelpTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const typeHelpTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const checkScroll = useCallback(() => {
@@ -84,6 +88,10 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
       setSelectedTier(1)
       setJournalFile(null)
       setSubmitting(false)
+      setShowTierHelp(false)
+      setShowTypeHelp(false)
+      if (tierHelpTimer.current) clearTimeout(tierHelpTimer.current)
+      if (typeHelpTimer.current) clearTimeout(typeHelpTimer.current)
     } else {
       fetchClaimedBadges()
     }
@@ -134,7 +142,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
         const res = await fetch(`/api/projects/${result.projectId}/sessions/import`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ markdown }),
+          body: JSON.stringify({ markdown, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
         })
         if (res.ok) {
           const data = await res.json()
@@ -250,9 +258,24 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                 </div>
 
                 <div>
-                  <label className="block text-brown-800 text-sm uppercase mb-2">
-                    Project Type
-                  </label>
+                  <div className="relative">
+                    <label className="inline-flex items-center gap-1 text-brown-800 text-sm uppercase mb-2">
+                      Project Type
+                      <span
+                        onMouseEnter={() => { typeHelpTimer.current = setTimeout(() => setShowTypeHelp(true), 500) }}
+                        onMouseLeave={() => { if (typeHelpTimer.current) clearTimeout(typeHelpTimer.current); setShowTypeHelp(false) }}
+                        className="w-3.5 h-3.5 border border-cream-500 text-cream-500 hover:border-orange-500 hover:text-orange-500 text-[10px] flex items-center justify-center cursor-help transition-colors leading-none"
+                      >
+                        ?
+                      </span>
+                    </label>
+                    {showTypeHelp && (
+                      <div className="absolute z-10 top-full left-0 mt-1 bg-cream-200 border border-cream-400 p-3 text-xs text-brown-800 leading-relaxed shadow-md max-w-xs">
+                        <p><strong>Custom Design:</strong> This project is your own original design.</p>
+                        <p className="mt-1"><strong>Starter Project:</strong> This project is based on one of our starter projects.</p>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -404,12 +427,26 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
               </div>
             )}
 
-            {/* Step 3: Complexity */}
+            {/* Step 3: Complexity Level */}
             {step === 2 && (
               <div>
-                <label className="block text-brown-800 text-sm uppercase mb-2">
-                  Complexity
-                </label>
+                <div className="relative">
+                  <label className="inline-flex items-center gap-1 text-brown-800 text-sm uppercase mb-2">
+                    Complexity Level
+                    <span
+                      onMouseEnter={() => { tierHelpTimer.current = setTimeout(() => setShowTierHelp(true), 500) }}
+                      onMouseLeave={() => { if (tierHelpTimer.current) clearTimeout(tierHelpTimer.current); setShowTierHelp(false) }}
+                      className="w-3.5 h-3.5 border border-cream-500 text-cream-500 hover:border-orange-500 hover:text-orange-500 text-[10px] flex items-center justify-center cursor-help transition-colors leading-none"
+                    >
+                      ?
+                    </span>
+                  </label>
+                  {showTierHelp && (
+                    <div className="absolute z-10 top-full left-0 mt-1 bg-cream-200 border border-cream-400 p-3 text-xs text-brown-800 leading-relaxed shadow-md max-w-xs">
+                      Each tier represents a different level of project complexity. Higher tiers take more hours and earn more bits. You can spend up to 50% of your earned bits on parts (1 bit = $1), and the rest goes toward your qualification total.
+                    </div>
+                  )}
+                </div>
                 {starterProject ? (
                   <p className="text-cream-600 text-sm mb-2">
                     Since you&apos;re using a starter project, the complexity level is predetermined. You can still change it if needed.
@@ -420,7 +457,7 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                       How complex is this project? (You can change this later)
                     </p>
                     <p className="text-xs bg-orange-500/10 border border-orange-500/30 text-orange-600 px-2 py-1.5 mb-1">
-                      You can spend at most <strong>50% of earned bits</strong> on parts. The other 50% goes toward qualification.
+                      You can spend at most <strong>50% of earned bits</strong> on parts. The rest goes toward qualification.
                     </p>
                   </>
                 )}
@@ -428,13 +465,12 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                   {TIERS.map((tier) => {
                     const isRecommended = starterProject && tier.id === starterProject.tier
                     const isGreyed = starterProject && tier.id !== starterProject.tier && selectedTier !== tier.id
-                    const maxSpend = Math.floor(tier.bits * BIT_SPEND_RATIO)
                     return (
                       <button
                         key={tier.id}
                         type="button"
                         onClick={() => setSelectedTier(selectedTier === tier.id ? null : tier.id)}
-                        className={`w-full px-3 py-2 text-sm text-left cursor-pointer border ${
+                        className={`w-full px-3 py-2 text-sm text-left cursor-pointer border flex items-center justify-between ${
                           selectedTier === tier.id
                             ? 'bg-orange-500 text-white border-orange-400 led-flicker'
                             : isGreyed
@@ -442,23 +478,13 @@ export function NewProjectModal({ isOpen, onClose, onSubmit, error }: Readonly<P
                               : 'bg-cream-200 text-brown-800 hover:bg-cream-300 border-cream-400'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="uppercase font-medium">
-                            {tier.name}
-                            {isRecommended && selectedTier === tier.id && <span className="ml-2 text-sm font-normal opacity-80">(recommended)</span>}
-                          </span>
-                          <span className="text-sm opacity-80">
-                            {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? '+' : `–${tier.maxHours}`}h
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className={`text-sm ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
-                            e.g. {tier.examples.join(', ')}
-                          </span>
-                          <span className={`text-xs ${selectedTier === tier.id ? 'text-white/70' : 'text-cream-500'}`}>
-                            max ${maxSpend} on parts
-                          </span>
-                        </div>
+                        <span className="uppercase font-medium">
+                          {tier.name}
+                          {isRecommended && selectedTier === tier.id && <span className="ml-2 text-sm font-normal opacity-80">(recommended)</span>}
+                        </span>
+                        <span className="text-sm opacity-80">
+                          {tier.bits}&nbsp;bits · {tier.minHours}{tier.maxHours === Infinity ? 'h+' : `–${tier.maxHours}h`}
+                        </span>
                       </button>
                     )
                   })}

@@ -8,20 +8,7 @@ Stasis is a hackathon platform (Hack Club) built with Next.js 16 (App Router) + 
 
 ## Commands
 
-```bash
-yarn dev              # Start dev server (or use ./dev.sh to also start local Postgres via Docker)
-yarn build            # Production build (standalone output for Docker)
-yarn typecheck        # TypeScript type checking (also runs during build)
-yarn lint             # ESLint
-yarn db:studio        # Open Prisma Studio
-yarn db:test          # Test database connection
-npx prisma generate   # Regenerate Prisma client after schema changes
-npx prisma migrate dev # Create/apply migrations
-```
-
-No test framework is configured. When using Playwright for screenshots, save images to `/tmp`.
-
-Always run `yarn build` after completing any code changes to verify there are no build errors before finishing.
+Package manager: **yarn**. Local dev: `./dev.sh` (starts Postgres in Docker + dev server). Always run `yarn build` after code changes to verify no build errors. No test framework configured. Playwright screenshots go in `/tmp`.
 
 ## Architecture
 
@@ -71,6 +58,42 @@ When `NEXT_PUBLIC_PRELAUNCH_MODE=true`, the site shows RSVP-only mode with refer
 
 Copy `.env.example` for required variables. Key ones: `DATABASE_URL`, `BETTER_AUTH_SECRET`, OAuth client IDs/secrets (HCA, Hackatime, GitHub), `AIRTABLE_API_KEY`, S3 credentials, `SLACK_BOT_TOKEN`.
 
+- `READONLY_PRODUCTION_DATABASE_URL` (already exported to Claude's shell via `.claude/settings.local.json`): read-only prod replica. Use it for real user/project/streak/currency questions — local DB is usually empty. Safe to query freely, never write. Retry once on "Connection refused".
+
+## Looking Up a User by Slack ID
+
+Slack profile URLs look like `https://hackclub.enterprise.slack.com/team/U0A2SJ7B739` — the `U…` segment is `user.slackId` in our DB. To resolve and inspect a user (including Tamagotchi streak state) in one round trip against the prod read replica:
+
+```bash
+psql "$READONLY_PRODUCTION_DATABASE_URL" <<'SQL'
+SELECT u.name, u.email, u."slackId"
+FROM "user" u WHERE u."slackId" = 'U0A2SJ7B739';
+
+SELECT ws.id, ws."createdAt", ws."effectiveDate",
+       (ws.content IS NOT NULL AND TRIM(ws.content) <> '') AS has_journal
+FROM work_session ws
+JOIN project p ON p.id = ws."projectId"
+JOIN "user" u ON u.id = p."userId"
+WHERE u."slackId" = 'U0A2SJ7B739'
+  AND p."deletedAt" IS NULL
+  AND ws."createdAt" >= '2026-03-26'  -- a day before TAMAGOTCHI_EVENT.START
+  AND ws."createdAt" <  '2026-04-15'  -- a day after TAMAGOTCHI_EVENT.END
+ORDER BY ws."createdAt";
+
+SELECT date, "grantedAt"
+FROM streak_grace_day
+WHERE "userId" IN (SELECT id FROM "user" WHERE "slackId" = 'U0A2SJ7B739')
+ORDER BY date;
+SQL
+```
+
+Notes:
+- A day "counts" toward the Tamagotchi streak when it has at least one work session whose `content` is non-empty (the journal entry — see `app/api/tamagotchi/status/route.ts`).
+- **Do NOT filter on `effectiveDate` directly.** That column was added partway through the event, so older sessions have `effectiveDate IS NULL` and the API falls back to computing the date from `createdAt` + the viewer's TZ (`app/api/tamagotchi/status/route.ts:88`, `lib/tamagotchi.ts` `getEffectiveDate`). Filtering on `effectiveDate BETWEEN ...` will silently drop those sessions and undercount the user's real activity. Always filter on `createdAt` and bucket the rows in your head (or in a CASE) using `effectiveDate` when present, otherwise the user's TZ applied to `createdAt`.
+- The event date range (`2026-03-27`–`2026-04-13`) is hard-coded in `lib/tamagotchi.ts` (`TAMAGOTCHI_EVENT.START` / `END`); update the SQL above if those constants change. Pad the `createdAt` window by ±1 day to catch sessions whose effective date falls in-window after the 30-min post-midnight grace.
+- There is no `timezone` column on `user`. If you need to bucket NULL-`effectiveDate` rows precisely, ask the user what TZ the person is in (or check whether the rows are far enough from midnight UTC that the answer is unambiguous under any plausible TZ).
+- Grace days are stored in `streak_grace_day` and are granted via `POST /api/admin/tamagotchi/grace-day` (`app/api/admin/tamagotchi/grace-day/route.ts`); there is no admin UI for it.
+
 ## Granting Admin Roles Locally
 
 To grant a user the ADMIN role in a local dev database:
@@ -114,16 +137,7 @@ Replace `USER_EMAIL_HERE` with the user's email and `AMOUNT_HERE` with the numbe
 
 Never AI-generate migration files. Always use `npx prisma migrate dev --name <descriptive_name>` to create migrations — this requires a running database. Always include a descriptive `--name` flag (e.g., `--name add_shop_items_table`) so the migration folder is clearly named. If the database is not available, instruct the user to run the migration themselves.
 
-## TypeScript & Code Style
+## Code style
 
-Strict mode enabled. Path alias `@/*` maps to project root.
-
-- Client components must use `'use client'` directive
 - Use `Readonly<>` for component prop types
-- Named exports for components (e.g., `export function Component`)
-- Sanitize all user input in API routes before saving:
-  ```typescript
-  import { sanitize } from "@/lib/sanitize"
-  const safeTitle = sanitize(body.title)       // plain text
-  const safeHtml = sanitizeHtml(body.content)   // if HTML allowed
-  ```
+- Sanitize user input in API routes: `sanitize(body.x)` for plain text, `sanitizeHtml(body.x)` for HTML (both from `@/lib/sanitize`)

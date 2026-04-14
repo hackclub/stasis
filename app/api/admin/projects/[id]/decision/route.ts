@@ -66,7 +66,7 @@ export async function POST(
   const bomCostTotal = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
   const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0
     ? grantAmount
-    : (stage === "design" && decision === "approved" ? Math.round(bomCostTotal * 100) / 100 || null : null)
+    : (stage === "design" && decision === "approved" ? (bomCostTotal > 0 ? Math.ceil(bomCostTotal + 3) : null) : null)
 
   // tier: set at design approval to lock in the bit grant for build completion
   let parsedTier: number | null | undefined = undefined
@@ -109,6 +109,23 @@ export async function POST(
 
       // Award pending bits (DESIGN_APPROVED) based on tier minus BOM cost
       if (decision === "approved") {
+        // Cancel any existing pending bits before awarding new ones (handles re-approvals)
+        const existingPending = await tx.currencyTransaction.aggregate({
+          where: { userId: project.userId, projectId: id, type: "DESIGN_APPROVED" },
+          _sum: { amount: true },
+        })
+        const pendingToCancel = existingPending._sum.amount ?? 0
+        if (pendingToCancel !== 0) {
+          await appendLedgerEntry(tx, {
+            userId: project.userId,
+            projectId: id,
+            amount: -pendingToCancel,
+            type: CurrencyTransactionType.DESIGN_APPROVED,
+            note: `Pending bits reset — design re-approved`,
+            createdBy: adminUserId,
+          })
+        }
+
         const effectiveTierDesign = (parsedTier !== undefined ? parsedTier : project.tier)
         const tierBitsDesign = effectiveTierDesign ? getTierBits(effectiveTierDesign) : 0
         const bomCostDesign = Math.round(parsedGrantAmount ?? 0)
@@ -400,7 +417,12 @@ export async function POST(
         justLines.push(`**Build Review**`)
         justLines.push("")
 
-        // Include design review justification
+        justLines.push(`Project: "${updatedProject.title}" (build approval)`)
+        justLines.push(`User: ${updatedProject.user.name || "Unknown"}`)
+        if (tierInfo) justLines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
+        justLines.push("")
+
+        // Design review context
         const designReviewAction = await prisma.projectReviewAction.findFirst({
           where: { projectId: id, stage: "DESIGN", decision: "APPROVED" },
           orderBy: { createdAt: "desc" },
@@ -415,14 +437,39 @@ export async function POST(
           if (designReviewAction.comments) justLines.push(designReviewAction.comments)
           justLines.push(`  Design hours: ${designHours.toFixed(1)}h across ${designSessions.length} entr${designSessions.length === 1 ? "y" : "ies"}`)
           justLines.push("")
-          justLines.push(`--- Build Review ---`)
         }
 
-        justLines.push(`Project: "${updatedProject.title}" (build approval)`)
-        justLines.push(`User: ${updatedProject.user.name || "Unknown"}`)
-        if (tierInfo) justLines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
+        // First-pass build review (if any)
+        const latestBuildSubmission = await prisma.projectSubmission.findFirst({
+          where: { projectId: id, stage: "BUILD" },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        })
+        if (latestBuildSubmission) {
+          const firstPass = await prisma.submissionReview.findFirst({
+            where: { submissionId: latestBuildSubmission.id, isAdminReview: false, result: "APPROVED" },
+            orderBy: { createdAt: "desc" },
+            select: { reviewerId: true, feedback: true, createdAt: true },
+          })
+          if (firstPass) {
+            const fpUser = await prisma.user.findUnique({
+              where: { id: firstPass.reviewerId },
+              select: { name: true, email: true },
+            })
+            const fpName = fpUser?.name || fpUser?.email || "Unknown"
+            const fpDate = firstPass.createdAt.toISOString().slice(0, 10)
+            justLines.push(`--- First-pass build review (${fpDate} by ${fpName}) ---`)
+            if (firstPass.feedback) justLines.push(firstPass.feedback)
+            justLines.push("")
+          }
+        }
+
+        // Second-pass (admin) build review
+        justLines.push(`--- Second-pass build review (${dateStr} by ${adminName}) ---`)
+        if (sanitizedComments) justLines.push(sanitizedComments)
         justLines.push("")
-        justLines.push(`This user logged ${buildHours.toFixed(1)} build hours across ${buildSessions.length} journal entr${buildSessions.length === 1 ? "y" : "ies"}.`)
+
+        justLines.push(`Build hours: ${buildHours.toFixed(1)}h across ${buildSessions.length} journal entr${buildSessions.length === 1 ? "y" : "ies"}.`)
         const approvedBuildHours = buildSessions.reduce((sum, s) => sum + (s.hoursApproved ?? s.hoursClaimed), 0)
         const buildDeflation = buildHours - approvedBuildHours
         if (buildDeflation !== 0) {
@@ -455,8 +502,6 @@ export async function POST(
         }
         if (project.githubRepo) justLines.push(`GitHub: ${project.githubRepo}`)
         if (project.description) justLines.push(`Description: ${project.description}`)
-        justLines.push("")
-        justLines.push(`On ${dateStr}, ${adminName} (${adminEmail}) decided "approved"${sanitizedComments ? ` with reason: ${sanitizedComments}` : "."}`)
 
         const buildJustification = justLines.join("\n")
 

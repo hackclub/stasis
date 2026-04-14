@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { MDXComponents } from 'mdx/types';
 import Link from 'next/link';
 import FAQ from '../dashboard/help/content/faq.mdx';
@@ -40,13 +40,79 @@ const FAQ_SECTIONS = [
   'Other',
 ];
 
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function getTextContent(children: React.ReactNode): string {
+  if (typeof children === 'string') return children;
+  if (typeof children === 'number') return String(children);
+  if (Array.isArray(children)) return children.map(getTextContent).join('');
+  if (children && typeof children === 'object' && 'props' in children) {
+    return getTextContent((children as React.ReactElement<{ children?: React.ReactNode }>).props.children);
+  }
+  return '';
+}
+
+interface TocEntry { id: string; text: string; level: number }
+
+function useTableOfContents(contentRef: React.RefObject<HTMLDivElement | null>, activeGuidePage: GuidePage) {
+  const [headings, setHeadings] = useState<TocEntry[]>([]);
+  const [activeId, setActiveId] = useState<string>('');
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    // Small delay to let MDX render
+    const timer = setTimeout(() => {
+      const els = el.querySelectorAll('h2[id], h3[id]');
+      const entries: TocEntry[] = [];
+      els.forEach((heading) => {
+        entries.push({
+          id: heading.id,
+          text: heading.textContent || '',
+          level: heading.tagName === 'H2' ? 2 : 3,
+        });
+      });
+      setHeadings(entries);
+      setActiveId('');
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [contentRef, activeGuidePage]);
+
+  useEffect(() => {
+    if (headings.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the first visible heading
+        const visible = entries.filter(e => e.isIntersecting);
+        if (visible.length > 0) {
+          setActiveId(visible[0].target.id);
+        }
+      },
+      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
+    );
+    headings.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [headings]);
+
+  return { headings, activeId };
+}
+
 const mdxComponents: MDXComponents = {
-  h2: ({ children }) => (
-    <h2 className="text-orange-400 text-xl uppercase mt-8 mb-4">{children as React.ReactNode}</h2>
-  ),
-  h3: ({ children }) => (
-    <h3 className="text-brown-800 text-lg mt-6 mb-3">{children as React.ReactNode}</h3>
-  ),
+  h2: ({ children }) => {
+    const text = getTextContent(children);
+    const id = slugify(text);
+    return <h2 id={id} className="text-orange-400 text-xl uppercase mt-8 mb-4">{children as React.ReactNode}</h2>;
+  },
+  h3: ({ children }) => {
+    const text = getTextContent(children);
+    const id = slugify(text);
+    return <h3 id={id} className="text-brown-800 text-lg mt-6 mb-3">{children as React.ReactNode}</h3>;
+  },
   h4: ({ children }) => (
     <h4 className="text-brown-800 font-medium mt-4 mb-2">{children as React.ReactNode}</h4>
   ),
@@ -101,6 +167,7 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
   const [internalPage, setInternalPage] = useState<GuidePage>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faqTab, setFaqTab] = useState(FAQ_SECTIONS[0]);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const activeGuidePage = controlledPage ?? internalPage;
   const setActiveGuidePage = controlledPage ? () => {} : setInternalPage;
@@ -138,12 +205,13 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
   const faqPages = GUIDE_PAGES.filter(p => p.section === 'faq');
   const ActiveContent = PAGE_CONTENT[activeGuidePage];
   const isDesignPage = designPages.some(p => p.id === activeGuidePage);
+  const { headings: tocHeadings, activeId: tocActiveId } = useTableOfContents(contentRef, activeGuidePage);
 
   return (
-    <div className="relative flex flex-col md:block">
-      {/* Sidebar Navigation - dropdown on mobile, absolutely positioned on desktop */}
-      <div className="w-full md:w-56 md:absolute md:right-[calc(50%+(var(--container-3xl))/2+1.5rem)]">
-        <nav className="bg-cream-100 border-2 border-cream-400 p-3 md:p-4 md:sticky md:top-8">
+    <div className="flex flex-col md:grid md:grid-cols-[14rem_1fr_14rem] md:gap-6">
+      {/* Sidebar Navigation */}
+      <div className="w-full md:w-auto">
+        <nav className="bg-cream-100 border-2 border-cream-400 p-3 md:p-4 md:sticky md:top-8 md:max-h-[calc(100vh-4rem)] md:overflow-y-auto">
           {/* Mobile: dropdown menu */}
           <div className="md:hidden relative">
             <button
@@ -273,8 +341,8 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
       </div>
 
       {/* Content Area */}
-      <div className="max-w-3xl mx-auto w-full">
-        <div className="bg-cream-100 border-2 border-cream-400 p-4 md:p-6">
+      <div className="w-full min-w-0">
+        <div ref={contentRef} className="bg-cream-100 border-2 border-cream-400 p-4 md:p-6">
           <h1 className="text-orange-500 text-xl md:text-2xl uppercase tracking-wide mb-1">
             {currentPage?.heading ?? currentPage?.label}
           </h1>
@@ -321,6 +389,32 @@ export default function GuidesContent({ activePage: controlledPage, basePath }: 
             </div>
           )}
         </div>
+      </div>
+
+      {/* Page Outline - desktop only */}
+      <div className="hidden md:block">
+        {tocHeadings.length > 0 && (
+          <nav className="bg-cream-100 border-2 border-cream-400 p-4 sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <p className="text-brown-800 text-xs uppercase mb-3 tracking-wide">On this page</p>
+            <div className="space-y-0.5">
+              {tocHeadings.map((heading) => (
+                <a
+                  key={heading.id}
+                  href={`#${heading.id}`}
+                  className={`block text-sm py-1 transition-colors ${
+                    heading.level === 3 ? 'pl-3' : 'pl-0'
+                  } ${
+                    tocActiveId === heading.id
+                      ? 'text-orange-500'
+                      : 'text-brown-800 hover:text-orange-500'
+                  }`}
+                >
+                  {heading.text}
+                </a>
+              ))}
+            </div>
+          </nav>
+        )}
       </div>
     </div>
   );

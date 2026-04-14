@@ -98,6 +98,7 @@ export default function DashboardLayout({
     { path: '/dashboard/shop', label: 'Shop' },
     { path: '/starter-projects', label: 'Starter Projects' },
     { path: '/docs', label: 'Guidelines & FAQ' },
+    { path: '/dashboard/certificate', label: 'Certificate' },
   ];
 
   const activeTab = tabs.find(t =>

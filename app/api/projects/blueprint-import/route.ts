@@ -7,6 +7,7 @@ import { parseBlueprintMarkdown } from "@/lib/blueprint-parser"
 import { isValidUrl, normalizeUrl } from "@/lib/url"
 import { TIERS } from "@/lib/tiers"
 import { MediaType } from "@/app/generated/prisma/enums"
+import { TAMAGOTCHI_EVENT } from "@/lib/tamagotchi"
 
 const BLUEPRINT_API_URL = process.env.BLUEPRINT_API_URL
 const BLUEPRINT_API_KEY = process.env.BLUEPRINT_API_KEY
@@ -52,6 +53,7 @@ interface ParsedSession {
   content: string
   images: string[]
   createdAt: Date
+  effectiveDate: string // YYYY-MM-DD derived from parsed local-time components
 }
 
 function parseJournalMarkdown(markdown: string): ParsedSession[] {
@@ -117,7 +119,19 @@ function parseJournalMarkdown(markdown: string): ParsedSession[] {
       }
     }
 
-    sessions.push({ title, hoursClaimed, content: fixedContent, images, createdAt })
+    // Compute effectiveDate from the parsed local-time components (not from the Date
+    // object, which would introduce a server-TZ → UTC shift). Apply grace period:
+    // sessions before 00:30 count for the previous calendar day.
+    let effYear = parseInt(year), effMonth = parseInt(month), effDay = parseInt(day)
+    if (hour === 0 && parseInt(minutes || "0") < TAMAGOTCHI_EVENT.GRACE_MINUTES) {
+      const prev = new Date(Date.UTC(effYear, effMonth - 1, effDay - 1, 12, 0))
+      effYear = prev.getUTCFullYear()
+      effMonth = prev.getUTCMonth() + 1
+      effDay = prev.getUTCDate()
+    }
+    const effectiveDate = `${effYear}-${String(effMonth).padStart(2, "0")}-${String(effDay).padStart(2, "0")}`
+
+    sessions.push({ title, hoursClaimed, content: fixedContent, images, createdAt, effectiveDate })
   }
 
   return sessions
@@ -260,6 +274,7 @@ export async function POST(request: NextRequest) {
               stage: "DESIGN",
               projectId: project.id,
               createdAt: entry.createdAt,
+              effectiveDate: entry.effectiveDate,
               media: {
                 create: entry.images.map((url) => ({
                   type: "IMAGE" as MediaType,

@@ -28,14 +28,19 @@ export async function GET() {
       console.error('Airtable update error:', error);
     }
 
-    // Set goal preference from signup source (default to stasis for pre-Open Sauce signups)
+    // Set goal preference and UTM source from signup cookies
     const cookieStore = await cookies();
     const signupPage = cookieStore.get('signup_page')?.value;
+    const utmSource = cookieStore.get('rsvp_utm_source')?.value;
     const goalPreference = signupPage === 'Open Sauce' ? 'opensauce' : 'stasis';
     try {
       await prisma.user.update({
         where: { id: session.user.id },
-        data: { eventPreference: goalPreference },
+        data: {
+          eventPreference: goalPreference,
+          ...(utmSource && { utmSource }),
+          ...(signupPage && { signupPage }),
+        },
       });
       // Sync target goal to Airtable
       updateTargetGoal(session.user.email, goalPreference).catch((err) =>
@@ -50,6 +55,7 @@ export async function GET() {
 
     // Clean up cookies
     cookieStore.delete('rsvp_login_hint');
+    cookieStore.delete('rsvp_utm_source');
 
     return NextResponse.redirect(new URL('/dashboard', baseUrl));
   } catch (error) {

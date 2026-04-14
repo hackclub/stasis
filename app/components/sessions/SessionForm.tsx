@@ -86,6 +86,9 @@ export function SessionForm({
     const [recordingDuration, setRecordingDuration] = useState(0);
     const [uploadingToEditor, setUploadingToEditor] = useState(false);
     const editorRef = useRef<HTMLDivElement>(null);
+    const editorImageInputRef = useRef<HTMLInputElement>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [editorCommands, setEditorCommands] = useState<any[] | null>(null);
 
     const [selectedTimelapseIds, setSelectedTimelapseIds] = useState<string[]>(
         initialData?.selectedTimelapseIds ?? []
@@ -112,7 +115,12 @@ export function SessionForm({
         setUploadingToEditor(true);
         const placeholderUrl = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
         const placeholder = `\n![Uploading ${file.name}...](${placeholderUrl})\n`;
-        setContent(prev => prev + placeholder);
+        if (editorRef.current?.querySelector("textarea")) {
+            const cursorPos = editorRef.current?.querySelector("textarea")?.selectionStart ?? 0;
+            setContent(prev => prev.slice(0, cursorPos) + placeholder + prev.slice(cursorPos));
+        } else {
+            setContent(prev => prev + placeholder);
+        }
 
         try {
             const formData = new FormData();
@@ -140,6 +148,25 @@ export function SessionForm({
             setUploadingToEditor(false);
         }
     }, [setError]);
+
+    // Load MDEditor commands and replace the image command with a file upload version
+    useEffect(() => {
+        import('@uiw/react-md-editor').then((mod) => {
+            const cmds = mod.commands.getCommands();
+            const customCmds = cmds.map((cmd: { name?: string }) => {
+                if (cmd.name === 'image') {
+                    return {
+                        ...cmd,
+                        execute: () => {
+                            editorImageInputRef.current?.click();
+                        },
+                    };
+                }
+                return cmd;
+            });
+            setEditorCommands(customCmds);
+        });
+    }, []);
 
     const handleEditorDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -564,8 +591,13 @@ export function SessionForm({
             return;
         }
 
-        if (imageCount < 2) {
-            setError('At least 2 images are required — drag, drop, or paste images into the editor');
+        if (content.trim().length < 250) {
+            setError(`Journal content must be at least 250 characters (currently ${content.trim().length})`);
+            return;
+        }
+
+        if (imageCount < 1) {
+            setError('At least 1 image is required — drag, drop, or paste an image into the editor');
             return;
         }
 
@@ -605,20 +637,20 @@ export function SessionForm({
             <div className="mb-6 bg-cream-100 border-2 border-cream-400 p-4">
                 <h2 className="text-orange-500 text-sm uppercase tracking-wide mb-3">Journal Entry Guidelines</h2>
                 <ul className="list-disc list-inside text-brown-800 text-sm space-y-1">
-                    <li>Try to keep each entry under 5 hours</li>
                     <li>Include your thoughts, failures, and rabbit holes—not just final steps</li>
                     <li>Be detailed and thorough with your journal entries.</li>
                     <li>100-200~ words is recommended</li>
-                    <li><strong className="text-brown-800">Images are required</strong> for every journal entry</li>
+                    <li><strong className="text-brown-800">At least 1 image is required</strong> for every journal entry</li>
                     <li><strong className="text-brown-800">Sessions over 7 hours: a timelapse is recommended</strong></li>
                 </ul>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="bg-cream-100 border-2 border-cream-400 p-4 space-y-6">
                 {/* Title */}
-                <div className="bg-cream-100 border-2 border-cream-400 p-4">
+                <div>
                     <label htmlFor="session-title" className="block text-brown-800 text-sm uppercase mb-2">
-                        Title
+                        Title <span className="text-red-500">*</span>
                     </label>
                     <input
                         id="session-title"
@@ -632,17 +664,17 @@ export function SessionForm({
                 </div>
 
                 {/* Hours & Minutes */}
-                <div className="bg-cream-100 border-2 border-cream-400 p-4">
-                    <label className="block text-brown-800 text-sm uppercase mb-3">
-                        Time Spent This Session
+                <div>
+                    <label className="block text-brown-800 text-sm uppercase mb-1">
+                        Time Spent This Session <span className="text-red-500">*</span>
                     </label>
+                    <p className="text-cream-600 text-xs mb-3">Hours : Minutes</p>
                     <div className="inline-flex items-baseline bg-cream-200 border-2 border-cream-400 px-1.5 py-1.5">
                         <input
                             type="text"
                             inputMode="numeric"
-                            value={hoursValue || ''}
-                            placeholder="0"
-                            style={{ width: `${Math.max(1, String(hoursValue || '').length)}ch` }}
+                            value={String(hoursValue)}
+                            style={{ width: `${Math.max(1, String(hoursValue).length)}ch` }}
                             onChange={(e) => {
                                 const raw = e.target.value.replace(/\D/g, '');
                                 if (raw === '') {
@@ -702,21 +734,14 @@ export function SessionForm({
                 </div>
 
                 {/* Journal Content */}
-                <div className="bg-cream-100 border-2 border-cream-400 p-4">
+                <div>
                     <label className="block text-brown-800 text-sm uppercase mb-2">
-                        What Did You Work On?
+                        What Did You Work On? <span className="text-red-500">*</span>
                     </label>
-                    <div className="flex items-center justify-between mb-3">
-                        <p className="text-cream-600 text-xs">
-                            Write in Markdown. <span className="text-brown-800">At least 2 images required</span> — drag, drop, or paste directly into the editor.
-                            {uploadingToEditor && <span className="text-orange-500 ml-2">Uploading image...</span>}
-                        </p>
-                        {autosaveKey && lastSaved && (
-                            <span className="text-cream-500 text-xs">
-                                Draft saved {lastSaved.toLocaleTimeString()}
-                            </span>
-                        )}
-                    </div>
+                    <p className="text-cream-600 text-xs mb-3">
+                        Write in Markdown. <span className="text-brown-800">At least 1 image required</span> — drag, drop, or paste directly into the editor.
+                        {uploadingToEditor && <span className="text-orange-500 ml-2">Uploading image...</span>}
+                    </p>
                     <div
                         ref={editorRef}
                         data-color-mode="light"
@@ -733,16 +758,37 @@ export function SessionForm({
                             textareaProps={{
                                 placeholder: "Describe what you did in this session...",
                             }}
+                            {...(editorCommands ? { commands: editorCommands } : {})}
+                        />
+                        <input
+                            ref={editorImageInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            multiple
+                            onChange={(e) => {
+                                const files = e.target.files;
+                                if (files) {
+                                    for (const file of Array.from(files)) {
+                                        uploadImageToEditor(file);
+                                    }
+                                }
+                                e.target.value = '';
+                            }}
+                            className="hidden"
                         />
                     </div>
-                    {imageCount < 2 && (
+                    {imageCount < 1 && (
                         <p className="text-red-500 text-xs mt-2">
-                            {imageCount === 0
-                                ? "At least 2 images required — drag, drop, or paste images into the editor above"
-                                : `${imageCount}/2 images added — add ${2 - imageCount} more`}
+                            At least 1 image required — drag, drop, or paste an image into the editor, or use the image button in the toolbar
+                        </p>
+                    )}
+                    {autosaveKey && lastSaved && (
+                        <p className="text-cream-500 text-xs mt-2">
+                            Draft saved {lastSaved.toLocaleTimeString()}
                         </p>
                     )}
                 </div>
+              </div>
 
                 {/* Videos (conditional) */}
                 {requiredVideos > 0 && (

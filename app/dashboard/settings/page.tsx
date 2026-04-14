@@ -77,7 +77,7 @@ export default function SettingsPage() {
           ) : (
             <button
               onClick={() => linkOAuth2({ providerId: "hackatime", callbackURL: "/dashboard/settings" })}
-              className="bg-cream-800 hover:bg-cream-900 px-6 py-3 text-lg uppercase tracking-wider text-cream-100 transition-colors cursor-pointer"
+              className="bg-orange-500 hover:bg-orange-400 px-4 py-2 text-sm uppercase tracking-wider text-white transition-colors cursor-pointer"
             >
               Link Hackatime Account
             </button>

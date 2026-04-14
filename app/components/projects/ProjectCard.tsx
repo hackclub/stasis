@@ -28,7 +28,10 @@ interface Project {
   isStarter: boolean
   starterProjectId: string | null
   coverImage: string | null
+  latestSessionImage: string | null
   status: "draft" | "in_review" | "approved" | "rejected"
+  designStatus?: "draft" | "in_review" | "approved" | "rejected" | "update_requested"
+  buildStatus?: "draft" | "in_review" | "approved" | "rejected" | "update_requested"
   badges?: ProjectBadge[]
 }
 
@@ -69,9 +72,9 @@ export function ProjectCard({ project }: Readonly<Props>) {
     >
       {/* Cover Image */}
       <div className="aspect-video bg-cream-100 border-b border-cream-400 flex items-center justify-center relative overflow-hidden">
-        {project.coverImage ? (
-          <Image 
-            src={project.coverImage} 
+        {(project.latestSessionImage || project.coverImage) ? (
+          <Image
+            src={(project.latestSessionImage || project.coverImage)!}
             alt={project.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -92,9 +95,15 @@ export function ProjectCard({ project }: Readonly<Props>) {
               In Review
             </span>
           ) : project.status === 'approved' ? (
-            <span className="text-[10px] bg-green-600 text-white font-medium px-1.5 py-0.5 uppercase">
-              Approved
-            </span>
+            project.buildStatus === 'approved' ? (
+              <span className="text-[10px] bg-green-600 text-white font-medium px-1.5 py-0.5 uppercase">
+                Build Approved
+              </span>
+            ) : (
+              <span className="text-[10px] bg-blue-600 text-white font-medium px-1.5 py-0.5 uppercase">
+                Design Approved
+              </span>
+            )
           ) : project.status === 'rejected' ? (
             <span className="text-[10px] bg-red-600 text-white font-medium px-1.5 py-0.5 uppercase">
               Rejected

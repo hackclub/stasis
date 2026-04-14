@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
     }
 
     const safeSignupPage = signupPage ? sanitize(String(signupPage)) : null;
+    const safeReferralType = referralType ? sanitize(String(referralType)) : null;
+    const safeReferredBy = referredBy ? sanitize(String(referredBy)) : null;
 
     const alreadyRSVPed = await findRSVPByEmail(safeEmail);
     if (alreadyRSVPed) {
@@ -49,14 +51,20 @@ export async function POST(request: NextRequest) {
           path: '/',
         });
       }
+      if (safeReferralType) {
+        cookieStore.set('rsvp_utm_source', safeReferralType, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 10,
+          path: '/',
+        });
+      }
       return NextResponse.json(
         { error: 'This email has already been RSVPed' },
         { status: 409 }
       );
     }
-
-    const safeReferralType = referralType ? sanitize(String(referralType)) : null;
-    const safeReferredBy = referredBy ? sanitize(String(referredBy)) : null;
 
     const headersList = await headers();
     const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -112,6 +120,15 @@ export async function POST(request: NextRequest) {
     });
     if (safeSignupPage) {
       cookieStore.set('signup_page', safeSignupPage, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 10,
+        path: '/',
+      });
+    }
+    if (safeReferralType) {
+      cookieStore.set('rsvp_utm_source', safeReferralType, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

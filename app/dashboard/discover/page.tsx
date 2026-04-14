@@ -51,13 +51,21 @@ function formatRelativeTime(dateStr: string): string {
 
 function ProjectCard({ project }: Readonly<{ project: DiscoverProject }>) {
   const router = useRouter();
-  const thumbnail = project.coverImage || project.images[0];
-  
+  const thumbnail = project.images[0] || project.coverImage;
+  const isApproved = project.designStatus === 'approved';
+
   return (
     <Link
       href={`/dashboard/discover/${project.id}`}
-      className="block bg-cream-100 border-2 border-cream-400 hover:border-orange-500 transition-colors"
+      className="block bg-cream-100 border-2 border-cream-400 hover:border-orange-500 transition-colors relative"
     >
+      {isApproved && (
+        <div className="absolute top-2 right-2 z-10 bg-green-500 p-1" title="Design approved">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+      )}
       <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-100">
         {thumbnail ? (
           <img
@@ -156,7 +164,12 @@ export default function DiscoverPage() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setProjects(prev => isInitial ? data.projects : [...prev, ...data.projects]);
+        const sortedProjects = [...data.projects].sort((a: DiscoverProject, b: DiscoverProject) => {
+          const aApproved = a.designStatus === 'approved' ? 0 : 1;
+          const bApproved = b.designStatus === 'approved' ? 0 : 1;
+          return aApproved - bApproved;
+        });
+        setProjects(prev => isInitial ? sortedProjects : [...prev, ...sortedProjects]);
         setNextCursor(data.nextCursor);
       }
     } catch (err) {
@@ -209,7 +222,7 @@ export default function DiscoverPage() {
           Discover
         </h1>
         <p className="text-brown-800 text-sm">
-          Get inspired by seeing what others are building.
+          Get inspired by seeing what others are building. Projects with a green checkmark have been approved. These projects are a good example for the level of quality we expect for Stasis projects.
         </p>
       </div>
 

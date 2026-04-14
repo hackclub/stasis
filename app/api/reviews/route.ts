@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/admin-auth"
 import { Permission, hasRole, Role } from "@/lib/permissions"
 import { getTierById } from "@/lib/tiers"
 import { totalBomCost } from "@/lib/format"
+import { decryptPII } from "@/lib/pii"
 
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
   const guide = url.searchParams.get("guide") || "" // starter project ID filter
   const nameSearch = url.searchParams.get("nameSearch") || "" // text search on title/description
   const sort = url.searchParams.get("sort") || "" // "most_hours" for descending hours sort
+  const pronounsFilter = url.searchParams.get("pronouns") || "" // filter by user pronouns
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"))
   const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get("limit") || "20")))
   const offset = (page - 1) * limit
@@ -31,6 +33,14 @@ export async function GET(request: NextRequest) {
   // Exclude fraud-convicted users by default
   if (!showFraud) {
     projectWhere.user = { fraudConvicted: false }
+  }
+
+  // Filter by user pronouns
+  if (pronounsFilter) {
+    projectWhere.user = {
+      ...projectWhere.user,
+      pronouns: { contains: pronounsFilter, mode: "insensitive" },
+    }
   }
 
   // Filter by stage/status
@@ -98,7 +108,7 @@ export async function GET(request: NextRequest) {
     prisma.project.findMany({
       where: projectWhere,
       include: {
-        user: { select: { id: true, name: true, email: true, image: true } },
+        user: { select: { id: true, name: true, email: true, image: true, pronouns: true, encryptedAddressCountry: true } },
         workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true, createdAt: true } },
         bomItems: { select: { id: true, totalCost: true, status: true } },
         submissions: {
@@ -135,6 +145,18 @@ export async function GET(request: NextRequest) {
 
     const waitingMs = Date.now() - new Date(project.updatedAt).getTime()
 
+    // Check if author is she/her and from the US
+    const isSheHer = !!project.user.pronouns && project.user.pronouns.toLowerCase().includes("she/her")
+    let isUS = false
+    if (isSheHer && project.user.encryptedAddressCountry) {
+      try {
+        const country = decryptPII(project.user.encryptedAddressCountry).toLowerCase().trim()
+        isUS = country === "us" || country === "usa" || country === "united states" || country === "united states of america"
+      } catch {
+        // Decryption may fail if PII_ENCRYPTION_KEY is not set
+      }
+    }
+
     return {
       id: project.id,
       projectId: project.id,
@@ -143,7 +165,7 @@ export async function GET(request: NextRequest) {
       coverImage: project.coverImage,
       category: activeStage,
       tier: project.tier,
-      author: project.user,
+      author: { id: project.user.id, name: project.user.name, email: project.user.email, image: project.user.image },
       workUnits: Math.round(totalWorkUnits * 10) / 10,
       totalWorkUnits: Math.round(allWorkUnits * 10) / 10,
       entryCount,
@@ -164,6 +186,7 @@ export async function GET(request: NextRequest) {
       claimerName: null,
       reviewCount: 0,
       starterProjectId: project.starterProjectId,
+      sheHerUS: isSheHer && isUS,
     }
   })
 

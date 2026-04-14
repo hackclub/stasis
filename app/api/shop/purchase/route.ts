@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { SHOP_ITEMS, SHOP_ITEM_IDS, EVENT_INVITE_IDS } from "@/lib/shop"
+import { SHOP_ITEMS, SHOP_ITEM_IDS, EVENT_INVITE_IDS, REQUIRES_STASIS_INVITE_IDS } from "@/lib/shop"
 import { Prisma } from "@/app/generated/prisma/client"
 
 export async function POST(request: NextRequest) {
@@ -48,6 +48,20 @@ export async function POST(request: NextRequest) {
         })
         if (hasInvite === 0) {
           throw new Error("REQUIRES_EVENT_INVITE")
+        }
+      }
+
+      // Accommodation items require the Stasis Event Invite specifically
+      if ((REQUIRES_STASIS_INVITE_IDS as readonly string[]).includes(itemId)) {
+        const hasStasisInvite = await tx.currencyTransaction.count({
+          where: {
+            userId,
+            type: "SHOP_PURCHASE",
+            shopItemId: SHOP_ITEM_IDS.STASIS_EVENT_INVITE,
+          },
+        })
+        if (hasStasisInvite === 0) {
+          throw new Error("REQUIRES_STASIS_INVITE")
         }
       }
 
@@ -135,6 +149,9 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       if (error.message === "REQUIRES_EVENT_INVITE") {
         return NextResponse.json({ error: "You must purchase an Event Invite before buying Flight Stipends" }, { status: 400 })
+      }
+      if (error.message === "REQUIRES_STASIS_INVITE") {
+        return NextResponse.json({ error: "You must purchase the Stasis Event Invite before buying accommodation" }, { status: 400 })
       }
       if (error.message === "ALREADY_PURCHASED") {
         return NextResponse.json({ error: "You already own this item" }, { status: 400 })

@@ -552,7 +552,9 @@ export default function ShopPage() {
   const confirmedBits = bitsBalance - pendingBits;
   const inviteItems = SHOP_ITEMS.filter(item => item.category === 'invite');
   const flightItem = SHOP_ITEMS.find(item => item.category === 'flight_stipend');
+  const accommodationItems = SHOP_ITEMS.filter(item => item.category === 'accommodation');
   const hasEventInvite = inviteItems.some(item => purchasedItems.has(item.id));
+  const hasStasisInvite = purchasedItems.has(SHOP_ITEM_IDS.STASIS_EVENT_INVITE);
 
   // Only the Stasis ticket can be purchased with pending bits
   const getEffectiveBalance = (itemId: string) =>
@@ -605,7 +607,10 @@ export default function ShopPage() {
                     }`}>
                       <div className="flex-1">
                         <h3 className="text-brown-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
-                        <p className="text-brown-800 text-sm mb-3">{inviteItem.description}</p>
+                        <p className="text-brown-800 text-sm mb-3">
+                          {inviteItem.description}
+                          {inviteItem.disclaimer && <span className="opacity-50"> {inviteItem.disclaimer}</span>}
+                        </p>
                         <p className="text-orange-400 font-bold text-lg">
                           {inviteItem.bitsCost.toLocaleString()}&nbsp;{inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'Pending Bits' : 'Bits'}
                         </p>
@@ -679,6 +684,52 @@ export default function ShopPage() {
                     </div>
                   )}
                 </div>
+              </div>
+              )}
+
+              {/* Accommodation - full width below flight stipend */}
+              {accommodationItems.length > 0 && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {accommodationItems.map((accItem) => (
+                  <div key={accItem.id} className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 ${
+                    !hasStasisInvite ? 'border-cream-300 opacity-60' : purchasedItems.has(accItem.id) || confirmedBits >= accItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
+                  }`}>
+                    <div className="flex-1">
+                      <h3 className="text-brown-800 text-xl font-medium mb-1">{accItem.name}</h3>
+                      <p className="text-brown-800 text-sm mb-3">{accItem.description}</p>
+                      <p className="text-orange-400 font-bold text-lg">{accItem.bitsCost.toLocaleString()}&nbsp;Bits</p>
+                    </div>
+                    <div>
+                      {purchasedItems.has(accItem.id) ? (
+                        <div className="bg-orange-500/20 border border-orange-500/50 px-6 py-3 text-center">
+                          <span className="text-orange-400 uppercase tracking-wide text-sm font-bold">Purchased!</span>
+                        </div>
+                      ) : !hasStasisInvite ? (
+                        <div className="bg-cream-300 px-6 py-3 text-center w-full">
+                          <span className="text-cream-600 uppercase tracking-wide text-sm">
+                            Buy Stasis Event Invite first
+                          </span>
+                        </div>
+                      ) : confirmedBits >= accItem.bitsCost ? (
+                        <button
+                          onClick={() => openConfirmModal(accItem.id)}
+                          disabled={purchasing === accItem.id}
+                          className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
+                        >
+                          <span className="text-cream-100 uppercase tracking-wide text-sm font-bold">
+                            {purchasing === accItem.id ? 'Buying...' : 'Buy'}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="bg-cream-300 px-6 py-3 text-center w-full">
+                          <span className="text-cream-600 uppercase tracking-wide text-sm">
+                            <span className="text-orange-500 font-medium">{(accItem.bitsCost - confirmedBits).toLocaleString()}&nbsp;bits</span> needed
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
               )}
             </div>

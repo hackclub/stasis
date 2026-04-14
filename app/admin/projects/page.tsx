@@ -80,6 +80,75 @@ export default function AdminProjectsPage() {
   const [deletedFilter, setDeletedFilter] = useState('');
   const [page, setPage] = useState(1);
 
+  // Airtable sync
+  const [unsyncedProjects, setUnsyncedProjects] = useState<Array<{
+    id: string; title: string; tier: number | null; stage: string;
+    reviewedAt: string | null; userName: string | null; userEmail: string;
+  }> | null>(null);
+  const [syncedCount, setSyncedCount] = useState<number | null>(null);
+  const [checkingSync, setCheckingSync] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<string | null>(null);
+  const [syncingProject, setSyncingProject] = useState<string | null>(null);
+
+  const checkAirtableSync = useCallback(async () => {
+    setCheckingSync(true);
+    setSyncProgress(null);
+    try {
+      const res = await fetch('/api/admin/projects/unsynced');
+      if (res.ok) {
+        const data = await res.json();
+        setUnsyncedProjects(data.unsynced);
+        setSyncedCount(data.syncedCount);
+      }
+    } catch {
+      setSyncProgress('Failed to check Airtable sync status.');
+    } finally {
+      setCheckingSync(false);
+    }
+  }, []);
+
+  const syncSingleProject = useCallback(async (projectId: string) => {
+    setSyncingProject(projectId);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/sync-to-airtable`, { method: 'POST' });
+      if (res.ok) {
+        setUnsyncedProjects(prev => prev?.filter(p => !(p.id === projectId)) ?? null);
+        setSyncProgress(`Synced project ${projectId}.`);
+      } else {
+        const err = await res.json();
+        setSyncProgress(`Failed to sync ${projectId}: ${err.error}`);
+      }
+    } catch {
+      setSyncProgress(`Network error syncing ${projectId}.`);
+    } finally {
+      setSyncingProject(null);
+    }
+  }, []);
+
+  const syncAllUnsynced = useCallback(async () => {
+    if (!unsyncedProjects?.length) return;
+    setSyncingAll(true);
+    let synced = 0;
+    let failed = 0;
+    for (const p of unsyncedProjects) {
+      setSyncProgress(`Syncing ${synced + failed + 1}/${unsyncedProjects.length}: ${p.title}...`);
+      try {
+        const res = await fetch(`/api/admin/projects/${p.id}/sync-to-airtable`, { method: 'POST' });
+        if (res.ok) synced++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+      // Respect Airtable rate limit
+      await new Promise(r => setTimeout(r, 250));
+    }
+    setSyncProgress(`Done: ${synced} synced, ${failed} failed.`);
+    setSyncingAll(false);
+    // Re-check
+    checkAirtableSync();
+  }, [unsyncedProjects, checkAirtableSync]);
+
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
@@ -140,6 +209,59 @@ export default function AdminProjectsPage() {
           >
             Clear All Filters
           </button>
+        )}
+      </div>
+
+      {/* Airtable Sync */}
+      <div className="mb-6 bg-brown-800 border-2 border-cream-500/20 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-cream-50 text-sm uppercase tracking-wider">Airtable Sync</h2>
+          <div className="flex gap-2">
+            {unsyncedProjects && unsyncedProjects.length > 0 && (
+              <button
+                onClick={syncAllUnsynced}
+                disabled={syncingAll || checkingSync}
+                className="px-3 py-1.5 text-xs uppercase bg-red-600 text-white hover:bg-red-500 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {syncingAll ? 'Syncing...' : `Sync All (${unsyncedProjects.length})`}
+              </button>
+            )}
+            <button
+              onClick={checkAirtableSync}
+              disabled={checkingSync || syncingAll}
+              className="px-3 py-1.5 text-xs uppercase bg-orange-500 text-white hover:bg-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {checkingSync ? 'Checking...' : 'Check Airtable Sync'}
+            </button>
+          </div>
+        </div>
+        {syncProgress && <p className="text-cream-50 text-xs mb-2">{syncProgress}</p>}
+        {unsyncedProjects !== null && (
+          unsyncedProjects.length === 0 ? (
+            <p className="text-green-500 text-xs">All {syncedCount} approved projects are synced to Airtable.</p>
+          ) : (
+            <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
+              {unsyncedProjects.map((p) => (
+                <div key={`${p.id}-${p.stage}`} className="flex items-center justify-between bg-brown-900 px-3 py-2 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`px-1.5 py-0.5 uppercase ${p.stage === 'Build' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
+                      {p.stage}
+                    </span>
+                    {p.tier && <span className="text-cream-200">T{p.tier}</span>}
+                    <span className="text-cream-50 truncate">{p.title}</span>
+                    <span className="text-cream-200 truncate">{p.userName || p.userEmail}</span>
+                  </div>
+                  <button
+                    onClick={() => syncSingleProject(p.id)}
+                    disabled={syncingProject === p.id || syncingAll}
+                    className="px-2 py-1 text-xs uppercase bg-orange-500 text-white hover:bg-orange-400 transition-colors cursor-pointer disabled:opacity-50 flex-shrink-0 ml-2"
+                  >
+                    {syncingProject === p.id ? '...' : 'Sync'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 

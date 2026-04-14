@@ -6,6 +6,8 @@ import { SessionCategory, MediaType, ProjectStage } from "@/app/generated/prisma
 import { sanitize } from "@/lib/sanitize"
 import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
+import { getEffectiveDate, validateTimezone } from "@/lib/tamagotchi"
+import { checkAndCreateStreakReward } from "@/lib/tamagotchi-reward"
 
 const VALID_STAGES: ProjectStage[] = ["DESIGN", "BUILD"]
 
@@ -121,7 +123,7 @@ export async function POST(
   //   )
   // }
 
-  const { title, hoursClaimed, content, categories, media, stage: rawStage, timelapseIds } = body
+  const { title, hoursClaimed, content, categories, media, stage: rawStage, timelapseIds, tz } = body
   
   // Determine stage - default to BUILD if design is approved, otherwise DESIGN
   const stage: ProjectStage = VALID_STAGES.includes(rawStage) 
@@ -230,6 +232,16 @@ export async function POST(
     })
   )
 
+  // Compute effectiveDate from user's timezone at creation time (for tamagotchi streaks)
+  // Uses getEffectiveDate so the 30-min post-midnight grace period is applied
+  const validatedTz = tz ? validateTimezone(tz) : null
+  const effectiveDate = validatedTz ? getEffectiveDate(new Date(), validatedTz) : null
+
+  // Persist the user's timezone for batch recomputation of NULL-effectiveDate sessions
+  if (validatedTz) {
+    prisma.user.update({ where: { id: session.user.id }, data: { timezone: validatedTz } }).catch(() => {})
+  }
+
   const workSession = await prisma.workSession.create({
     data: {
       title: sanitize(title.trim()),
@@ -238,6 +250,7 @@ export async function POST(
       categories: validatedCategories,
       stage,
       projectId,
+      effectiveDate,
       media: {
         create: validatedMedia.map((m) => ({
           type: m.type as MediaType,
@@ -252,6 +265,9 @@ export async function POST(
     },
     include: { media: true, timelapses: true },
   })
+
+  // Check if this session completes the Tamagotchi streak challenge (fire-and-forget)
+  checkAndCreateStreakReward(session.user.id, validatedTz ?? undefined).catch(() => {})
 
   return NextResponse.json(workSession)
 }

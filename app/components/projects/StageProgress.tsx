@@ -79,7 +79,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
                   step.completed
                     ? 'border-green-500 bg-green-500 text-white'
                     : step.rejected
-                    ? 'border-red-500 bg-red-100 text-red-600'
+                    ? 'border-amber-500 bg-amber-100 text-amber-700'
                     : step.active
                     ? 'border-yellow-500 bg-yellow-100 text-yellow-600'
                     : 'border-cream-400 bg-cream-200 text-brown-800'
@@ -104,7 +104,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
                   step.completed
                     ? 'text-green-600'
                     : step.rejected
-                    ? 'text-red-600'
+                    ? 'text-amber-700'
                     : step.active
                     ? 'text-yellow-600'
                     : 'text-brown-800'
@@ -140,7 +140,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
             </p>
           )}
           {designStatus === 'rejected' && (
-            <p className="text-red-600 text-sm">
+            <p className="text-amber-700 text-sm">
               Your design needs changes. Review the feedback and resubmit.
             </p>
           )}
@@ -155,7 +155,7 @@ export function StageProgress({ designStatus, buildStatus, showMessages = true }
             </p>
           )}
           {isDesignComplete && buildStatus === 'rejected' && (
-            <p className="text-red-600 text-sm">
+            <p className="text-amber-700 text-sm">
               Your build needs changes. Review the feedback and resubmit.
             </p>
           )}

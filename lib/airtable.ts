@@ -361,6 +361,38 @@ export async function updateTargetGoal(email: string, goal: string): Promise<boo
   return true;
 }
 
+export async function updateRSVPPronouns(email: string, pronouns: string): Promise<boolean> {
+  if (isPostgresMode()) {
+    // No pronouns field in TempRsvp — will be synced to Airtable later
+    return true;
+  }
+
+  const base = getAirtableBase();
+  if (!base) {
+    console.warn('Airtable credentials not configured, skipping pronouns update');
+    return false;
+  }
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'RSVPs';
+
+  const records = await base(tableName)
+    .select({
+      filterByFormula: `{Email} = '${escapeAirtableValue(email)}'`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  if (records.length === 0) {
+    return false;
+  }
+
+  await base(tableName).update(records[0].id, {
+    'Pronouns': pronouns,
+  });
+
+  return true;
+}
+
 export async function getRSVPCount(): Promise<number> {
   const base = getAirtableBase();
 
@@ -540,7 +572,7 @@ export async function syncProjectToAirtable(
     totalHours,
     grantAmount,
     hoursJustification: hoursJustification ?? null,
-    complexityTier: project.tier != null ? (getTierById(project.tier)?.name ?? null) : null,
+    complexityTier: project.tier != null ? (getTierById(project.tier) ? `Complexity ${getTierById(project.tier)!.name}` : null) : null,
     stasisId: project.id,
     slackId: user.slackId ?? null,
     guide: project.starterProjectId ? (STARTER_PROJECT_NAMES[project.starterProjectId] ?? project.starterProjectId) : null,

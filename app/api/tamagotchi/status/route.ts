@@ -17,6 +17,7 @@ import {
   type TamagotchiDay,
   type TamagotchiStatus,
 } from "@/lib/tamagotchi"
+import { checkAndCreateStreakReward } from "@/lib/tamagotchi-reward"
 
 /**
  * GET /api/tamagotchi/status?tz=America/New_York
@@ -35,6 +36,9 @@ export async function GET(request: NextRequest) {
   const now = new Date()
   const today = getLocalDateStr(now, tz)
 
+  // Persist the user's timezone for batch recomputation of NULL-effectiveDate sessions
+  prisma.user.update({ where: { id: userId }, data: { timezone: tz } }).catch(() => {})
+
   if (!isEventVisible(today)) {
     return NextResponse.json({
       eventActive: false,
@@ -49,6 +53,7 @@ export async function GET(request: NextRequest) {
       todayProgress: { hasJournal: false, complete: false },
       reward: null,
       recentProjectId: null,
+      graceDays: [],
     } satisfies TamagotchiStatus)
   }
 
@@ -60,7 +65,7 @@ export async function GET(request: NextRequest) {
 
   const workSessions = await prisma.workSession.findMany({
     where: {
-      project: { userId, deletedAt: null },
+      project: { userId },  // Include sessions from soft-deleted projects for streak continuity
       createdAt: {
         gte: fetchStart,
         lt: fetchEnd,
@@ -69,13 +74,22 @@ export async function GET(request: NextRequest) {
     select: {
       createdAt: true,
       content: true,
+      effectiveDate: true,
     },
   })
 
-  // Group by effective date (applying grace period + user timezone)
+  // Fetch grace days for this user
+  const graceDayRecords = await prisma.streakGraceDay.findMany({
+    where: { userId },
+    select: { date: true },
+  })
+  const graceDayDates = new Set(graceDayRecords.map(g => g.date))
+
+  // Group by effective date — prefer stored effectiveDate (set at creation time in user's TZ),
+  // fall back to computing from createdAt + current TZ for older sessions without it
   const dayMap = new Map<string, { hasJournal: boolean; sessions: number }>()
   for (const ws of workSessions) {
-    const dateStr = getEffectiveDate(ws.createdAt, tz)
+    const dateStr = ws.effectiveDate ?? getEffectiveDate(ws.createdAt, tz)
     // Clamp to event window
     if (dateStr < TAMAGOTCHI_EVENT.START || dateStr > TAMAGOTCHI_EVENT.END) continue
     const existing = dayMap.get(dateStr) || { hasJournal: false, sessions: 0 }
@@ -86,7 +100,7 @@ export async function GET(request: NextRequest) {
     dayMap.set(dateStr, existing)
   }
 
-  // Build the full 14-day array for streak computation
+  // Build the full 18-day array for streak computation
   const eventDates = getEventDayDates()
   const allDays: TamagotchiDay[] = eventDates.map((date) => {
     const data = dayMap.get(date)
@@ -101,6 +115,7 @@ export async function GET(request: NextRequest) {
       sessions: data?.sessions ?? 0,
       isToday,
       isFuture,
+      isGraceDay: graceDayDates.has(date) && !hasJournal,
     }
   })
 
@@ -110,12 +125,12 @@ export async function GET(request: NextRequest) {
   // Find where the current streak attempt starts
   const streakStart = findStreakStart(allDays, today)
 
-  // Split into window / past / future
-  const windowDateStrs = getWindowDates(streakStart)
+  // Split into window / past / future (grace days excluded from all three — shown as X on lines)
+  const windowDateStrs = getWindowDates(streakStart, graceDayDates)
   const windowDays = allDays.filter(d => windowDateStrs.includes(d.date))
-  const pastDays = allDays.filter(d => d.date < streakStart && d.date >= TAMAGOTCHI_EVENT.START)
+  const pastDays = allDays.filter(d => d.date < streakStart && d.date >= TAMAGOTCHI_EVENT.START && !d.isGraceDay)
   const lastWindowDate = windowDateStrs[windowDateStrs.length - 1] ?? today
-  const futureDays = allDays.filter(d => d.date > lastWindowDate && d.date <= TAMAGOTCHI_EVENT.END)
+  const futureDays = allDays.filter(d => d.date > lastWindowDate && d.date <= TAMAGOTCHI_EVENT.END && !d.isGraceDay)
 
   // Today's progress
   const todayData = dayMap.get(today)
@@ -124,30 +139,20 @@ export async function GET(request: NextRequest) {
     complete: todayData?.hasJournal ?? false,
   }
 
-  // Check / create reward
-  let reward: TamagotchiStatus["reward"] = null
-  if (challengeComplete) {
-    let existing = await prisma.streakReward.findUnique({ where: { userId } })
-    if (!existing) {
-      existing = await prisma.streakReward.create({
-        data: { userId, completedAt: new Date() },
-      })
-    }
-    reward = {
-      completedAt: existing.completedAt.toISOString(),
-      claimed: existing.claimed,
-      shipped: existing.shipped,
-    }
-  } else {
-    const existing = await prisma.streakReward.findUnique({ where: { userId } })
-    if (existing) {
-      reward = {
-        completedAt: existing.completedAt.toISOString(),
-        claimed: existing.claimed,
-        shipped: existing.shipped,
+  // Create reward if challenge is complete (also catches users who completed
+  // before the session-creation check was added). Uses stored TZ for NULL
+  // effectiveDate sessions and handles race conditions via upsert.
+  const streakReward = challengeComplete
+    ? await checkAndCreateStreakReward(userId, tz)
+    : await prisma.streakReward.findUnique({ where: { userId } })
+
+  const reward: TamagotchiStatus["reward"] = streakReward
+    ? {
+        completedAt: streakReward.completedAt.toISOString(),
+        claimed: streakReward.claimed,
+        shipped: streakReward.shipped,
       }
-    }
-  }
+    : null
 
   // Get most recent project for CTA
   const recentProject = await prisma.project.findFirst({
@@ -165,9 +170,12 @@ export async function GET(request: NextRequest) {
     currentStreak,
     bestStreak,
     challengeComplete: challengeComplete || reward !== null,
-    canStillComplete: canStillComplete(today),
+    canStillComplete: canStillComplete(today, currentStreak),
     todayProgress,
     reward,
     recentProjectId: recentProject?.id ?? null,
+    graceDays: graceDayRecords
+      .filter(g => g.date >= TAMAGOTCHI_EVENT.START && g.date <= TAMAGOTCHI_EVENT.END)
+      .map(g => ({ date: g.date })),
   } satisfies TamagotchiStatus)
 }

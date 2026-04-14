@@ -3,8 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { getTierById, TIERS } from '@/lib/tiers';
 import { bomItemTotal } from '@/lib/format';
+import { fixMarkdownImages } from '@/lib/markdown';
+
+const MDPreview = dynamic(
+  () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
+  { ssr: false }
+);
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -144,6 +151,7 @@ export default function ReviewDetailPage() {
   const filterGuide = searchParams.get('guide') || '';
   const filterNameSearch = searchParams.get('nameSearch') || '';
   const filterSort = searchParams.get('sort') || '';
+  const filterPronouns = searchParams.get('pronouns') || '';
 
   // Build query string for filter-aware navigation
   const filterQS = (() => {
@@ -152,6 +160,7 @@ export default function ReviewDetailPage() {
     if (filterGuide) qp.set('guide', filterGuide);
     if (filterNameSearch) qp.set('nameSearch', filterNameSearch);
     if (filterSort) qp.set('sort', filterSort);
+    if (filterPronouns) qp.set('pronouns', filterPronouns);
     const s = qp.toString();
     return s ? `?${s}` : '';
   })();
@@ -400,6 +409,7 @@ export default function ReviewDetailPage() {
       const params = new URLSearchParams();
       if (filterCategory) params.set('category', filterCategory);
       if (filterGuide) params.set('guide', filterGuide);
+      if (filterPronouns) params.set('pronouns', filterPronouns);
       params.set('limit', '10');
       const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) {
@@ -657,7 +667,7 @@ export default function ReviewDetailPage() {
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-4 text-sm">
             <div>
               <p className="text-cream-200 text-xs uppercase">{submission.stage === 'BUILD' ? 'Build Hours' : 'Work Units'}</p>
-              <p className="text-cream-50">{project.totalWorkUnits}h</p>
+              <p className="text-cream-50">{Math.round(project.totalWorkUnits * 100) / 100}h</p>
             </div>
             <div>
               <p className="text-cream-200 text-xs uppercase">Entries</p>
@@ -842,15 +852,15 @@ export default function ReviewDetailPage() {
                   <span className="text-cream-50">
                     {(hp.totalSeconds / 3600).toFixed(1)}h
                     {hp.hoursApproved !== null && (
-                      <span className="text-green-400 ml-2">({hp.hoursApproved}h approved)</span>
+                      <span className="text-green-400 ml-2">({Math.round(hp.hoursApproved * 100) / 100}h approved)</span>
                     )}
                   </span>
                 </div>
               ))}
             </div>
             <p className="text-cream-50 text-sm mt-2">
-              Firmware total: <span className="font-medium">{project.firmwareHours}h</span>
-              <span className="text-cream-200 ml-2">(included in {project.totalWorkUnits}h total)</span>
+              Firmware total: <span className="font-medium">{Math.round(project.firmwareHours * 100) / 100}h</span>
+              <span className="text-cream-200 ml-2">(included in {Math.round(project.totalWorkUnits * 100) / 100}h total)</span>
             </p>
           </div>
         )}
@@ -867,10 +877,10 @@ export default function ReviewDetailPage() {
                     key={session.id}
                     className="flex-1 bg-orange-400 hover:bg-orange-500 transition-colors relative group min-w-[4px]"
                     style={{ height: `${Math.max(heightPct, 4)}%` }}
-                    title={`${session.title}: ${session.hoursClaimed}h`}
+                    title={`${session.title}: ${Math.round(session.hoursClaimed * 100) / 100}h`}
                   >
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-cream-200 text-brown-900 text-xs px-2 py-1 hidden group-hover:block whitespace-nowrap z-10">
-                      {session.hoursClaimed}h - {session.title}
+                      {Math.round(session.hoursClaimed * 100) / 100}h - {session.title}
                     </div>
                   </div>
                 );
@@ -895,8 +905,8 @@ export default function ReviewDetailPage() {
                   <div>
                     <p className="text-cream-50 text-sm font-medium">{session.title}</p>
                     <p className="text-cream-200 text-xs">
-                      {new Date(session.createdAt).toLocaleDateString()} | {session.hoursClaimed}h claimed
-                      {session.hoursApproved !== null && ` | ${session.hoursApproved}h approved`}
+                      {new Date(session.createdAt).toLocaleDateString()} | {Math.round(session.hoursClaimed * 100) / 100}h claimed
+                      {session.hoursApproved !== null && ` | ${Math.round(session.hoursApproved * 100) / 100}h approved`}
                     </p>
                     {session.categories.length > 0 && (
                       <div className="flex gap-1 mt-1">
@@ -908,7 +918,9 @@ export default function ReviewDetailPage() {
                   </div>
                 </div>
                 {session.content && (
-                  <p className="text-cream-50 text-xs mt-2 whitespace-pre-wrap">{session.content}</p>
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-50 [&_.wmde-markdown]:!text-xs [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-500/20 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="light">
+                    <MDPreview source={fixMarkdownImages(session.content)} />
+                  </div>
                 )}
                 {session.media.length > 0 && (
                   <div className="flex gap-2 mt-2 flex-wrap">
@@ -1048,7 +1060,7 @@ export default function ReviewDetailPage() {
                   step="0.1"
                   value={workUnitsOverride}
                   onChange={(e) => setWorkUnitsOverride(e.target.value)}
-                  placeholder={`Current: ${project.totalWorkUnits}h`}
+                  placeholder={`Current: ${Math.round(project.totalWorkUnits * 100) / 100}h`}
                   className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500"
                 />
               </div>
@@ -1071,7 +1083,7 @@ export default function ReviewDetailPage() {
                   type="number"
                   value={grantOverride}
                   onChange={(e) => setGrantOverride(e.target.value)}
-                  placeholder={`Default: BOM cost ($${project.bomCost.toFixed(2)})`}
+                  placeholder={`Default: ${project.bomCost > 0 ? `BOM cost + $3 = ${Math.ceil(project.bomCost + 3)} bits` : 'No BOM cost'}`}
                   className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500"
                 />
                 {grantOverride && (
@@ -1186,9 +1198,9 @@ export default function ReviewDetailPage() {
                         <p className="text-cream-200 text-xs uppercase">Hours</p>
                         <p className="text-cream-50 text-sm font-medium">
                           {firstPassReview.workUnitsOverride !== null ? (
-                            <><span className="text-orange-400">{firstPassReview.workUnitsOverride}h</span> / {project.totalWorkUnits}h</>
+                            <><span className="text-orange-400">{Math.round(firstPassReview.workUnitsOverride * 100) / 100}h</span> / {Math.round(project.totalWorkUnits * 100) / 100}h</>
                           ) : (
-                            <>{project.totalWorkUnits}h</>
+                            <>{Math.round(project.totalWorkUnits * 100) / 100}h</>
                           )}
                         </p>
                       </div>

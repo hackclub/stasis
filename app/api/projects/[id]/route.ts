@@ -8,8 +8,9 @@ import { sanitize } from "@/lib/sanitize"
 import { isValidUrl, normalizeUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { TIERS } from "@/lib/tiers"
+import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
-const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "bomTax", "bomShipping", "cartScreenshots", "tier"] as const
+const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "bomTax", "bomShipping", "requestedAmount", "cartScreenshots", "tier"] as const
 
 type AllowedUpdateField = typeof ALLOWED_UPDATE_FIELDS[number]
 
@@ -26,6 +27,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   noBomNeeded: boolean
   bomTax: number | null
   bomShipping: number | null
+  requestedAmount: number | null
   cartScreenshots: string[]
   tier: number | null
 }> {
@@ -33,7 +35,7 @@ function pickAllowedFields(body: Record<string, unknown>): Partial<{
   for (const field of ALLOWED_UPDATE_FIELDS) {
     if (field in body) {
       const value = body[field]
-      if (field === "bomTax" || field === "bomShipping") {
+      if (field === "bomTax" || field === "bomShipping" || field === "requestedAmount") {
         if (value === null) {
           result[field] = null
         } else if (typeof value === "number" && value >= 0) {
@@ -86,15 +88,16 @@ export async function GET(
 
   const project = await prisma.project.findUnique({
     where: { id },
-    include: { 
+    include: {
       workSessions: {
         include: { media: true },
         orderBy: { createdAt: 'desc' },
-      }, 
+      },
       badges: true,
       bomItems: {
         orderBy: { createdAt: 'desc' },
       },
+      hackatimeProjects: true,
     },
   })
 
@@ -106,14 +109,37 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
+  // Fetch firmware hours from linked hackatime projects
+  const user = await prisma.user.findUnique({
+    where: { id: project.userId },
+    select: { hackatimeUserId: true },
+  })
+  let firmwareHoursClaimed = 0
+  let firmwareHoursApproved = 0
+  if (user?.hackatimeUserId && project.hackatimeProjects.length > 0) {
+    const results = await Promise.all(
+      project.hackatimeProjects.map(async (hp) => {
+        const totalSeconds = await fetchHackatimeProjectSeconds(user.hackatimeUserId!, hp.hackatimeProject)
+        return {
+          claimed: hp.hoursApproved !== null ? hp.hoursApproved : totalSeconds / 3600,
+          approved: hp.hoursApproved ?? 0,
+        }
+      })
+    )
+    for (const { claimed, approved } of results) {
+      firmwareHoursClaimed += claimed
+      firmwareHoursApproved += approved
+    }
+  }
+
   const totalHoursClaimed = project.workSessions.reduce(
     (acc, s) => acc + s.hoursClaimed,
     0
-  )
+  ) + firmwareHoursClaimed
   const totalHoursApproved = project.workSessions.reduce(
     (acc, s) => acc + (s.hoursApproved ?? 0),
     0
-  )
+  ) + firmwareHoursApproved
 
   return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved })
 }

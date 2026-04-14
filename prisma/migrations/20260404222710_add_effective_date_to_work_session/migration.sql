@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AuditAction" ADD VALUE 'ADMIN_SET_EFFECTIVE_DATE';
