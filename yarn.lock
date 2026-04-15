@@ -5614,9 +5614,9 @@ keyv@^4.5.4:
     json-buffer "3.0.1"
 
 kysely@^0.28.5:
-  version "0.28.10"
-  resolved "https://registry.yarnpkg.com/kysely/-/kysely-0.28.10.tgz#d2441080cd6c633a3c6a927c2a364c69bbb829a7"
-  integrity sha512-ksNxfzIW77OcZ+QWSAPC7yDqUSaIVwkTWnTPNiIy//vifNbwsSgQ57OkkncHxxpcBHM3LRfLAZVEh7kjq5twVA==
+  version "0.28.15"
+  resolved "https://registry.yarnpkg.com/kysely/-/kysely-0.28.15.tgz#29c3db0e92fca6115e0846b9e34c2f79ecd317ec"
+  integrity sha512-r2clcf7HLWvDXaVUEvQymXJY4i3bSOIV3xsL/Upy3ZfSv5HeKsk9tsqbBptLvth5qHEIhxeHTA2jNLyQABkLBA==
 
 language-subtag-registry@^0.3.20:
   version "0.3.23"
