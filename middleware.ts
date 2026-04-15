@@ -4,12 +4,12 @@ import type { NextRequest } from "next/server";
 const securityHeaders = {
   "Content-Security-Policy": [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://kicanvas.org",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://avatars.slack-edge.com https://github.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://*.s3.amazonaws.com https://blueprint.hackclub.com https://cdn.hackclub.com https://user-cdn.hackclub-assets.com https://*.airtableusercontent.com https://www.freeiconspng.com https://hc-cdn.hel1.your-objectstorage.com https://mm.digikey.com https://files.catbox.moe data: blob:",
     "media-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com blob:",
-    "connect-src 'self' https://api2.hackclub.com",
-    "font-src 'self'",
+    "connect-src 'self' https://api2.hackclub.com https://kicanvas.org https://raw.githubusercontent.com",
+    "font-src 'self' https://kicanvas.org https://fonts.gstatic.com",
     "worker-src 'self' blob:",
     "frame-src 'self' https://www.youtube.com https://youtube.com",
     "frame-ancestors 'none'",

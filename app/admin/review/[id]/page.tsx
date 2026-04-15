@@ -8,6 +8,23 @@ import { getTierById, TIERS } from '@/lib/tiers';
 import { bomItemTotal } from '@/lib/format';
 import { fixMarkdownImages } from '@/lib/markdown';
 
+const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
+
+interface KiCadProject {
+  name: string;
+  dir: string;
+  projectFile: string | null;
+  schematics: string[];
+  boards: string[];
+}
+
+interface KiCadFilesResponse {
+  owner: string;
+  repo: string;
+  branch: string;
+  projects: KiCadProject[];
+}
+
 const MDPreview = dynamic(
   () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
   { ssr: false }
@@ -178,6 +195,8 @@ export default function ReviewDetailPage() {
   const [ghChecks, setGhChecks] = useState<Array<{ key: string; label: string; passed: boolean; detail?: string }> | null>(null);
   const [ghChecksLoading, setGhChecksLoading] = useState(false);
   const [ghChecksError, setGhChecksError] = useState<string | null>(null);
+  const [kicadFiles, setKicadFiles] = useState<KiCadFilesResponse | null>(null);
+  const [expandedKicad, setExpandedKicad] = useState<Set<number>>(new Set());
 
   // Form state
   const [feedback, setFeedback] = useState('');
@@ -276,6 +295,18 @@ export default function ReviewDetailPage() {
       })
       .catch((err) => setGhChecksError(String(err)))
       .finally(() => setGhChecksLoading(false));
+  }, [data?.submission.id, id]);
+
+  // Look up KiCad files in the linked GitHub repo so we can embed KiCanvas
+  // viewers on the review screen. Silently no-ops if the repo has none.
+  useEffect(() => {
+    if (!data?.submission.id) return;
+    let cancelled = false;
+    fetch(`/api/reviews/${id}/kicad-files`)
+      .then(async (res) => (res.ok ? (res.json() as Promise<KiCadFilesResponse>) : null))
+      .then((d) => { if (!cancelled && d) setKicadFiles(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [data?.submission.id, id]);
 
   // Auto-claim on mount
@@ -782,6 +813,89 @@ export default function ReviewDetailPage() {
           <p className="text-cream-200 text-sm">Could not load checks</p>
         )}
       </div>
+
+      {/* ── KiCanvas Card ── */}
+      {kicadFiles && kicadFiles.projects.length > 0 && (
+        <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+          <h2 className="text-cream-50 text-sm uppercase tracking-wider mb-4">
+            KiCad Files{' '}
+            <span className="text-cream-200 normal-case text-xs">
+              (rendered via{' '}
+              <a
+                href="https://kicanvas.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-cream-50"
+              >
+                KiCanvas
+              </a>
+              )
+            </span>
+          </h2>
+          <div className="space-y-3">
+            {kicadFiles.projects.map((proj, idx) => {
+              const isOpen = expandedKicad.has(idx);
+              const rawBase = `https://raw.githubusercontent.com/${kicadFiles.owner}/${kicadFiles.repo}/${kicadFiles.branch}`;
+              const paths = [
+                ...(proj.projectFile ? [proj.projectFile] : []),
+                ...proj.schematics,
+                ...proj.boards,
+              ];
+              const sources = paths.map((p) => `${rawBase}/${p}`);
+              const fileCount = proj.schematics.length + proj.boards.length;
+              return (
+                <div key={`${proj.dir}/${proj.name}/${idx}`} className="border border-cream-500/10">
+                  <button
+                    onClick={() => {
+                      setExpandedKicad((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(idx)) next.delete(idx);
+                        else next.add(idx);
+                        return next;
+                      });
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-brown-900/40 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-orange-500 text-xs">{isOpen ? '▼' : '▶'}</span>
+                      <span className="text-cream-50 truncate">
+                        {proj.dir ? `${proj.dir}/` : ''}{proj.name}
+                      </span>
+                      <span className="text-cream-200 text-xs">
+                        ({proj.schematics.length} sch, {proj.boards.length} pcb
+                        {proj.projectFile ? ', project' : ''})
+                      </span>
+                    </div>
+                    <div className="flex gap-2 text-xs text-cream-200">
+                      {proj.schematics.slice(0, 1).map((s) => (
+                        <a
+                          key={s}
+                          href={`https://github.com/${kicadFiles.owner}/${kicadFiles.repo}/blob/${kicadFiles.branch}/${s}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-cream-50 underline"
+                        >
+                          view on GitHub
+                        </a>
+                      ))}
+                    </div>
+                  </button>
+                  {isOpen && (
+                    <div className="p-2 border-t border-cream-500/10">
+                      <KiCanvasEmbed sources={sources} controls="full" height={560} />
+                      <p className="text-cream-200 text-[10px] mt-1">
+                        {fileCount} file{fileCount === 1 ? '' : 's'} · branch{' '}
+                        <span className="text-cream-50">{kicadFiles.branch}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Conflict Warning Card ── */}
       {conflicts.length > 0 && (
