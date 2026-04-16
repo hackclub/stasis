@@ -38,12 +38,17 @@ export function TamagotchiCompanion() {
   if (!isEventVisible()) return null;
   if (pathname !== '/dashboard') return null;
 
+  // After 4/17, hide for users who didn't complete the challenge
+  const today = new Date().toISOString().slice(0, 10);
+  if (today > '2026-04-17' && !status.challengeComplete) return null;
+
   return (
     <>
       <TamagotchiPeek
         onClick={() => setOverlayOpen(true)}
         todayComplete={status.todayProgress.complete}
         unreachable={!status.canStillComplete && !status.challengeComplete}
+        challengeComplete={status.challengeComplete}
       />
       {overlayOpen && (
         <TamagotchiOverlay onClose={() => setOverlayOpen(false)} status={status} />
