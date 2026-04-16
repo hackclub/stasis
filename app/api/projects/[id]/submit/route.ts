@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { logAudit, AuditAction } from "@/lib/audit"
 import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
+import { STARTER_PROJECTS } from "@/lib/starter-projects"
 
 // TODO: Add rate limiting - prevent submission spam
 export async function POST(
@@ -75,14 +76,18 @@ export async function POST(
       )
     }
 
-    if (project.bomItems.length === 0 && !project.noBomNeeded) {
+    const projectHasKit = project.isStarter && project.starterProjectId
+      ? STARTER_PROJECTS.find(sp => sp.id === project.starterProjectId)?.hasKit ?? false
+      : false
+
+    if (project.bomItems.length === 0 && !project.noBomNeeded && !projectHasKit) {
       return NextResponse.json(
         { error: "At least one BOM item is required for design review" },
         { status: 400 }
       )
     }
 
-    if (!project.noBomNeeded && project.bomItems.length > 0 && project.cartScreenshots.length === 0) {
+    if (!project.noBomNeeded && !projectHasKit && project.bomItems.length > 0 && project.cartScreenshots.length === 0) {
       return NextResponse.json(
         { error: "At least one cart screenshot is required when you have BOM items" },
         { status: 400 }
