@@ -86,20 +86,6 @@ export async function POST(request: NextRequest) {
   const type = amount > 0 ? CurrencyTransactionType.ADMIN_GRANT : CurrencyTransactionType.ADMIN_DEDUCTION
 
   const entry = await prisma.$transaction(async (tx) => {
-    // Guard against negative balance on deductions
-    if (amount < 0) {
-      const { _sum } = await tx.currencyTransaction.aggregate({
-        where: { userId },
-        _sum: { amount: true },
-      })
-      const currentBalance = _sum.amount ?? 0
-      if (currentBalance + amount < 0) {
-        throw new Error(
-          `Deduction of ${Math.abs(amount)} would exceed current balance of ${currentBalance}`
-        )
-      }
-    }
-
     return appendLedgerEntry(tx, {
       userId,
       amount,
@@ -107,16 +93,7 @@ export async function POST(request: NextRequest) {
       note: typeof note === "string" ? note.trim() || undefined : undefined,
       createdBy: authCheck.session.user.id,
     })
-  }).catch((err) => {
-    if (err instanceof Error && err.message.includes("would exceed current balance")) {
-      return { error: err.message } as const
-    }
-    throw err
   })
-
-  if ("error" in entry) {
-    return NextResponse.json({ error: entry.error }, { status: 400 })
-  }
 
   return NextResponse.json(entry, { status: 201 })
 }

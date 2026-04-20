@@ -39,6 +39,8 @@ export default function BitsLedgerPage() {
   const [adjusting, setAdjusting] = useState(false);
   const [adjustError, setAdjustError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [currentBalance, setCurrentBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
 
   // Resync pending bits
   const [resyncing, setResyncing] = useState(false);
@@ -72,6 +74,48 @@ export default function BitsLedgerPage() {
   useEffect(() => {
     fetchEntries();
   }, [fetchEntries]);
+
+  // Look up the user's current balance for the adjustment preview.
+  useEffect(() => {
+    const trimmed = adjustUserId.trim();
+    if (!trimmed) {
+      setCurrentBalance(null);
+      setBalanceLoading(false);
+      return;
+    }
+    setBalanceLoading(true);
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ userId: trimmed, limit: '1', offset: '0' });
+        const res = await fetch(`/api/admin/currency?${params}`, { signal: ctrl.signal });
+        if (!res.ok) {
+          setCurrentBalance(null);
+        } else {
+          const data = await res.json();
+          // No entries means user not found OR has no transactions — treat as 0 only if total >= 0.
+          // The endpoint returns total: 0 for unknown emails (after the email→userId resolve fails).
+          if (data.entries.length > 0) {
+            setCurrentBalance(data.entries[0].balanceAfter);
+          } else if (data.total === 0) {
+            // Could be a real user with no entries (balance 0) OR an unknown id/email.
+            // Fall back to null when we can't tell.
+            setCurrentBalance(null);
+          } else {
+            setCurrentBalance(0);
+          }
+        }
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') setCurrentBalance(null);
+      } finally {
+        setBalanceLoading(false);
+      }
+    }, 350);
+    return () => {
+      ctrl.abort();
+      clearTimeout(timer);
+    };
+  }, [adjustUserId]);
 
   const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +202,37 @@ export default function BitsLedgerPage() {
               />
             </div>
           </div>
+          {(() => {
+            const parsed = parseInt(adjustAmount, 10);
+            const amount = isNaN(parsed) ? 0 : parsed;
+            if (!adjustUserId.trim()) return null;
+            if (balanceLoading) {
+              return <p className="text-cream-200 text-sm">Looking up balance…</p>;
+            }
+            if (currentBalance === null) {
+              return <p className="text-cream-200 text-sm">Could not find that user.</p>;
+            }
+            const after = currentBalance + amount;
+            return (
+              <p className="text-cream-50 text-sm">
+                User currently has{' '}
+                <span className="text-orange-500 font-mono font-semibold">
+                  {currentBalance.toLocaleString()}
+                </span>{' '}
+                bits
+                {amount !== 0 && (
+                  <>
+                    ; after this adjustment they will have{' '}
+                    <span className="text-orange-500 font-mono font-semibold">
+                      {after.toLocaleString()}
+                    </span>{' '}
+                    bits
+                  </>
+                )}
+                .
+              </p>
+            );
+          })()}
           {adjustError && <p className="text-red-600 text-sm">{adjustError}</p>}
           <button
             type="submit"
