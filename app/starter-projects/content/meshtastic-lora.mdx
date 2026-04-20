@@ -1,0 +1,128 @@
+# Meshtastic LoRa Board
+
+Hello! In this guide, you will create a custom Meshtastic-enabled LORA board with a microcontroller, antenna, radio chip, and other things.
+
+## First things first
+
+To start your project, we need to download KiCad. KiCad is an open-source software for designing circuit boards, or PCBs. We can use the terms interchangably.
+
+Go to https://www.kicad.org/download/ and install the version for your OS. After that finishes, create a new project. Name it anything you want, but I will name mine Loraguide.
+
+After that finishes, you should be on a screen that looks like this: 
+
+<img width="1919" height="1144" alt="image" src="https://github.com/user-attachments/assets/536174dc-1196-41cc-aec2-be0c0d904739" />
+
+# The Schematic
+
+The first step to designing a circuit board is the schematic. A schematic is essentially a wiring diagram, to show which components connect to what. That means it is very important that we follow a few design rules when creating our schematic:
+
+ - Power symbols always point up
+ - Ground symbols always point down
+ - Net labels can be used instead of wires
+
+First, click **Schematic Editor** on the main project page. Hit the **A** key to open the symbol chooser. Search "esp32-s3" and select the **ESP32-S3-WROOM-1**.
+
+<img width="858" height="664" alt="image" src="https://github.com/user-attachments/assets/7c6b7388-1b3c-4758-83cc-29ade888a8ab" />
+
+Place it in the middle. Next, search for the **SX1262** radio chip and place it to the left of the ESP32.
+
+## Power system
+
+### Organization
+To keep things clean, use **Power Symbols** instead of drawing wires everywhere. Hit **P**, type +3V3, and place it on the 3V3 pin of the ESP32. Do the same for GND.
+
+### Power input
+Search for "USB_C_Receptacle_USB2.0_14P". 
+
+Connect the GND pins to a GND power symbol. **Note on the SHIELD pins:** Do not connect these directly to GND. This can feed RF noise back into your host computer. For this project, leave the shield pins isolated or connected to a separate chassis pad if available.
+
+Connect **VBUS** to a **+5V** power symbol. Place two **5.1k ohm** resistors (R_Small) on the **CC1** and **CC2** pins and connect the other ends to GND. This ensures your USB-C charger provides the correct 5V.
+
+<img width="673" height="628" alt="image" src="https://github.com/user-attachments/assets/99c1a9f8-6084-4f3c-9005-e5e7b9c8f0ad" />
+
+## SX1262 Power & RF
+
+### Power Decoupling
+Chips draw sudden bursts of current. Decoupling capacitors (100nF and 10µF) act as local water tanks, sitting right next to the chip to handle these bursts.
+
+Connect **VDD_IN** to **+3V3** and place one **100nF** and one **10µF** capacitor between that line and GND.
+
+### The DCC_SW Inductor
+The SX1262 has an internal DC-DC converter that requires a **15µH inductor** on the **DCC_SW** pin. This inductor needs special care; it is a switching component right next to the radio. On the PCB, it must be placed as close as possible to the pin.
+
+
+
+### RF Output Matching
+Simply running a wire to the antenna is inefficient and can be illegal because it emits harmonics. You need a **matching network** (filtering) on the RF output. This usually involves a series inductor and capacitors to GND between the **RFO** pin and the antenna connector.
+
+
+
+| Pin | What to do: |
+|---|---|
+| VDD_IN | Decouple with 100nF and 10µF |
+| VBAT | Draw a direct wire to VDD_IN |
+| VBAT_IO | Decouple with one 100nF capacitor |
+| VREG | Decouple with one 100nF capacitor |
+| DCC_SW | Connect 15µH inductor |
+| VR_PA | 100nF capacitor to GND (DO NOT connect to 3.3V) |
+| GND | Connect directly to GND |
+
+### 5V to 3.3V conversion
+Use an **AMS1117-3.3** LDO regulator to convert the 5V from USB to the 3.3V our chips need.
+
+| Pin | Connection |
+|-----|-----------|
+| VIN | +5V from VBUS + 10µF cap to GND |
+| VOUT | +3V3 + 10µF cap to GND |
+| GND | GND |
+
+## USB Data, Buttons, and SPI
+
+### USB Data Lines
+Connect the **D+** and **D-** pins of the USB connector to the **USB Data + and -** pins on the ESP32. Use **Net Labels (L)** to keep the wires from crossing.
+
+### Boot and Reset Buttons
+Both the **EN** (Reset) and **GPIO0** (Boot) pins need a **10kΩ pull-up resistor** to 3.3V. Connect push buttons that pull these pins to GND when pressed.
+
+### SPI & Control Wiring
+| Signal | ESP32 Pin | SX1262 Pin |
+|--------|-----------|------------|
+| SCK    | GPIO5     | SCK        |
+| MOSI   | GPIO6     | MOSI       |
+| MISO   | GPIO7     | MISO       |
+| NSS    | GPIO8     | NSS        |
+| RESET  | GPIO3     | RESET      |
+| BUSY   | GPIO4     | BUSY       |
+| DIO1   | GPIO9     | DIO1       |
+
+# PCB Section
+
+## Footprint Assignment
+In **Tools > Assign Footprints**, assign the physical shapes. For resistors and capacitors, **R_0402** or **C_0402** are standard for these boards.
+
+## Placement
+1. **ESP32:** Place at the top. Ensure the antenna "keep-out" area is outside the board edge.
+2. **SX1262 & U.FL Connector:** Place these very close together.
+3. **DCC_SW Inductor:** Place this right against the radio chip pin.
+4. **Decoupling Caps:** Place them right next to their respective power pins.
+
+## Routing Order
+Sensitive signals must be routed first so they have the cleanest, most direct paths.
+
+1. **RF Trace First:** Shortest path from chip to antenna. Use 45-degree angles.
+2. **USB Data Lines:** Route D+ and D- as a pair, keeping them similar in length.
+3. **SPI & Control Signals:** Connect the communication lines.
+4. **Power Traces:** 3.3V and 5V. Use wider traces (0.5mm) for these.
+5. **GND:** Handled by the copper pour.
+
+## Ground Plane and Stitching
+Add a **Filled Zone (Z)** for GND on both the top (**F.Cu**) and bottom (**B.Cu**) layers. 
+
+To prevent "floating" ground islands and interference, add **stitching vias**. These are small holes that connect the top and bottom ground planes. Place them around the perimeter of the board and near the RF trace.
+
+
+
+## Final Steps
+Run the **DRC (Design Rule Check)** to find errors. Export your **Gerbers** and **Drill Files**, zip them up, and upload to a manufacturer like JLCPCB.
+
+You have designed a grounded and RF-safe LoRa board.
