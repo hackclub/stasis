@@ -107,6 +107,27 @@ export async function GET(request: NextRequest) {
   // Build reviewer lookup
   const reviewerMap = new Map(reviewerUsers.map((r) => [r.id, r]))
 
+  // Pull matching SubmissionReviews for the same (project, stage) pairs so we can
+  // surface internal justification, frozen snapshots, and overrides in the list.
+  const projectIds = Array.from(new Set(actions.map((a) => a.projectId)))
+  const submissionReviews = projectIds.length > 0
+    ? await prisma.submissionReview.findMany({
+        where: { submission: { projectId: { in: projectIds } } },
+        include: { submission: { select: { projectId: true, stage: true, notes: true, preReviewed: true } } },
+        orderBy: { createdAt: "desc" },
+      })
+    : []
+
+  // Map: projectId|stage|reviewerId|mappedDecision -> latest SubmissionReview
+  const srKey = (projectId: string, stage: string, reviewerId: string, decision: string) =>
+    `${projectId}|${stage}|${reviewerId}|${decision}`
+  const srMap = new Map<string, (typeof submissionReviews)[number]>()
+  for (const sr of submissionReviews) {
+    const decision = sr.result === "RETURNED" ? "CHANGE_REQUESTED" : sr.result
+    const key = srKey(sr.submission.projectId, sr.submission.stage, sr.reviewerId, decision)
+    if (!srMap.has(key)) srMap.set(key, sr) // findMany is DESC, first write wins = latest
+  }
+
   const formattedReviews = actions.map((action) => {
     const project = action.project
     const totalHours = project.workSessions.reduce(
@@ -129,26 +150,36 @@ export async function GET(request: NextRequest) {
 
     const reviewerUser = action.reviewerId ? reviewerMap.get(action.reviewerId) : null
 
+    const sr = action.reviewerId
+      ? srMap.get(srKey(action.projectId, action.stage, action.reviewerId, action.decision))
+      : undefined
+
     return {
       id: action.id,
       result: resultLabel,
-      feedback: action.comments || "",
-      reason: null as string | null,
+      feedback: action.comments || sr?.feedback || "",
+      reason: sr?.reason ?? null,
       createdAt: action.createdAt,
-      invalidated: false,
-      isAdminReview: true,
+      invalidated: sr?.invalidated ?? false,
+      isAdminReview: sr?.isAdminReview ?? true,
       reviewer: {
         id: action.reviewerId || "",
         name: reviewerUser?.name ?? null,
         image: reviewerUser?.image ?? null,
       },
       stage: action.stage,
-      frozenWorkUnits: null as number | null,
-      frozenTier: action.tierBefore,
-      frozenFundingAmount: null as number | null,
-      tierOverride: action.tier,
-      grantOverride: action.grantAmount ? Math.round(action.grantAmount) : null,
-      workUnitsOverride: null as number | null,
+      frozenWorkUnits: sr?.frozenWorkUnits ?? null,
+      frozenTier: sr?.frozenTier ?? action.tierBefore,
+      frozenFundingAmount: sr?.frozenFundingAmount ?? null,
+      frozenEntryCount: sr?.frozenEntryCount ?? null,
+      frozenReviewerNote: sr?.frozenReviewerNote ?? null,
+      tierOverride: sr?.tierOverride ?? action.tier,
+      grantOverride: sr?.grantOverride ?? (action.grantAmount ? Math.round(action.grantAmount) : null),
+      workUnitsOverride: sr?.workUnitsOverride ?? null,
+      categoryOverride: sr?.categoryOverride ?? null,
+      paidAt: sr?.paidAt ?? null,
+      submissionNotes: sr?.submission.notes ?? null,
+      preReviewed: sr?.submission.preReviewed ?? null,
       project: {
         id: project.id,
         title: project.title,

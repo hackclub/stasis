@@ -42,9 +42,15 @@ interface TimelineEntry {
   frozenWorkUnits: number | null;
   frozenTier: number | null;
   frozenFundingAmount: number | null;
+  frozenEntryCount: number | null;
+  frozenReviewerNote: string | null;
   tierOverride: number | null;
   grantOverride: number | null;
   workUnitsOverride: number | null;
+  categoryOverride: string | null;
+  paidAt: string | null;
+  submissionNotes: string | null;
+  preReviewed: boolean | null;
   grantAmount: number | null;
   tier: number | null;
   tierBefore: number | null;
@@ -333,12 +339,28 @@ export default function ProjectReviewHistoryPage() {
               {entry.reason && (
                 <div className="mb-2">
                   <span className="text-cream-200 text-xs uppercase">Internal: </span>
-                  <span className="text-cream-200 text-sm">{entry.reason}</span>
+                  <span className="text-cream-200 text-sm whitespace-pre-wrap">{entry.reason}</span>
+                </div>
+              )}
+
+              {/* Submission-level notes */}
+              {entry.submissionNotes && (
+                <div className="mb-2">
+                  <span className="text-cream-200 text-xs uppercase">Submission notes: </span>
+                  <span className="text-cream-200 text-sm whitespace-pre-wrap">{entry.submissionNotes}</span>
+                </div>
+              )}
+
+              {/* Frozen reviewer note */}
+              {entry.frozenReviewerNote && (
+                <div className="mb-2">
+                  <span className="text-cream-200 text-xs uppercase">Reviewer note snapshot: </span>
+                  <span className="text-cream-200 text-sm whitespace-pre-wrap">{entry.frozenReviewerNote}</span>
                 </div>
               )}
 
               {/* Frozen snapshots */}
-              {(entry.frozenWorkUnits !== null || entry.frozenTier !== null || entry.frozenFundingAmount !== null) && (
+              {(entry.frozenWorkUnits !== null || entry.frozenTier !== null || entry.frozenFundingAmount !== null || entry.frozenEntryCount !== null) && (
                 <div className="flex gap-2 flex-wrap mb-2">
                   {entry.frozenWorkUnits !== null && (
                     <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
@@ -355,11 +377,16 @@ export default function ProjectReviewHistoryPage() {
                       Frozen funding: ${entry.frozenFundingAmount}
                     </span>
                   )}
+                  {entry.frozenEntryCount !== null && (
+                    <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
+                      Frozen entries: {entry.frozenEntryCount}
+                    </span>
+                  )}
                 </div>
               )}
 
               {/* Overrides */}
-              {(entry.tierOverride !== null || entry.grantOverride !== null || entry.workUnitsOverride !== null) && (
+              {(entry.tierOverride !== null || entry.grantOverride !== null || entry.workUnitsOverride !== null || entry.categoryOverride) && (
                 <div className="flex gap-2 flex-wrap mb-2">
                   {entry.tierOverride !== null && (
                     <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800">
@@ -374,6 +401,25 @@ export default function ProjectReviewHistoryPage() {
                   {entry.workUnitsOverride !== null && (
                     <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800">
                       Hours override: {entry.workUnitsOverride}h
+                    </span>
+                  )}
+                  {entry.categoryOverride && (
+                    <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800">
+                      Category override: {entry.categoryOverride}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Submission/payment flags */}
+              {(entry.preReviewed || entry.paidAt) && (
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {entry.preReviewed && (
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800">Pre-reviewed</span>
+                  )}
+                  {entry.paidAt && (
+                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800">
+                      Paid {new Date(entry.paidAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   )}
                 </div>

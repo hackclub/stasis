@@ -107,9 +107,15 @@ export async function GET(
     frozenWorkUnits: number | null
     frozenTier: number | null
     frozenFundingAmount: number | null
+    frozenEntryCount: number | null
+    frozenReviewerNote: string | null
     tierOverride: number | null
     grantOverride: number | null
     workUnitsOverride: number | null
+    categoryOverride: string | null
+    paidAt: Date | null
+    submissionNotes: string | null
+    preReviewed: boolean | null
     grantAmount: number | null
     tier: number | null
     tierBefore: number | null
@@ -132,9 +138,15 @@ export async function GET(
         frozenWorkUnits: review.frozenWorkUnits,
         frozenTier: review.frozenTier,
         frozenFundingAmount: review.frozenFundingAmount,
+        frozenEntryCount: review.frozenEntryCount,
+        frozenReviewerNote: review.frozenReviewerNote,
         tierOverride: review.tierOverride,
         grantOverride: review.grantOverride,
         workUnitsOverride: review.workUnitsOverride,
+        categoryOverride: review.categoryOverride,
+        paidAt: review.paidAt,
+        submissionNotes: sub.notes,
+        preReviewed: sub.preReviewed,
         grantAmount: null,
         tier: null,
         tierBefore: null,
@@ -160,9 +172,15 @@ export async function GET(
       frozenWorkUnits: null,
       frozenTier: null,
       frozenFundingAmount: null,
+      frozenEntryCount: null,
+      frozenReviewerNote: null,
       tierOverride: null,
       grantOverride: null,
       workUnitsOverride: null,
+      categoryOverride: null,
+      paidAt: null,
+      submissionNotes: null,
+      preReviewed: null,
       grantAmount: action.grantAmount,
       tier: action.tier,
       tierBefore: action.tierBefore,
@@ -198,9 +216,15 @@ export async function GET(
       frozenWorkUnits: null,
       frozenTier: null,
       frozenFundingAmount: null,
+      frozenEntryCount: null,
+      frozenReviewerNote: null,
       tierOverride: null,
       grantOverride: null,
       workUnitsOverride: null,
+      categoryOverride: null,
+      paidAt: null,
+      submissionNotes: null,
+      preReviewed: null,
       grantAmount: typeof meta?.newGrantAmount === "number" ? meta.newGrantAmount : null,
       tier: null,
       tierBefore: null,

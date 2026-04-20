@@ -37,9 +37,15 @@ interface ReviewItem {
   frozenWorkUnits: number | null;
   frozenTier: number | null;
   frozenFundingAmount: number | null;
+  frozenEntryCount: number | null;
+  frozenReviewerNote: string | null;
   tierOverride: number | null;
   grantOverride: number | null;
   workUnitsOverride: number | null;
+  categoryOverride: string | null;
+  paidAt: string | null;
+  submissionNotes: string | null;
+  preReviewed: boolean | null;
   project: {
     id: string;
     title: string;
@@ -332,12 +338,51 @@ export default function AuditReviewsPage() {
                   {review.reason && (
                     <div className="mb-2">
                       <span className="text-cream-200 text-xs uppercase">Internal: </span>
-                      <span className="text-cream-200 text-sm">{review.reason}</span>
+                      <span className="text-cream-200 text-sm whitespace-pre-wrap">{review.reason}</span>
+                    </div>
+                  )}
+
+                  {/* Submission-level notes */}
+                  {review.submissionNotes && (
+                    <div className="mb-2">
+                      <span className="text-cream-200 text-xs uppercase">Submission notes: </span>
+                      <span className="text-cream-200 text-sm whitespace-pre-wrap">{review.submissionNotes}</span>
+                    </div>
+                  )}
+
+                  {/* Frozen snapshot at review time */}
+                  {(review.frozenWorkUnits !== null || review.frozenTier !== null || review.frozenFundingAmount !== null || review.frozenEntryCount !== null || review.frozenReviewerNote) && (
+                    <div className="flex gap-2 flex-wrap mb-2">
+                      {review.frozenWorkUnits !== null && (
+                        <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
+                          Frozen hours: {review.frozenWorkUnits}h
+                        </span>
+                      )}
+                      {review.frozenTier !== null && (
+                        <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
+                          Frozen tier: {review.frozenTier}
+                        </span>
+                      )}
+                      {review.frozenFundingAmount !== null && (
+                        <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
+                          Frozen funding: ${review.frozenFundingAmount}
+                        </span>
+                      )}
+                      {review.frozenEntryCount !== null && (
+                        <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200">
+                          Frozen entries: {review.frozenEntryCount}
+                        </span>
+                      )}
+                      {review.frozenReviewerNote && (
+                        <span className="text-xs px-2 py-0.5 bg-brown-900 text-cream-200" title={review.frozenReviewerNote}>
+                          Reviewer note snapshot
+                        </span>
+                      )}
                     </div>
                   )}
 
                   {/* Overrides */}
-                  {(review.tierOverride !== null || review.grantOverride !== null || review.workUnitsOverride !== null) && (
+                  {(review.tierOverride !== null || review.grantOverride !== null || review.workUnitsOverride !== null || review.categoryOverride) && (
                     <div className="flex gap-2 flex-wrap">
                       {review.tierOverride !== null && (
                         <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800">
@@ -352,6 +397,24 @@ export default function AuditReviewsPage() {
                       {review.workUnitsOverride !== null && (
                         <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800">
                           Hours override: {review.workUnitsOverride}h
+                        </span>
+                      )}
+                      {review.categoryOverride && (
+                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800">
+                          Category override: {review.categoryOverride}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {(review.preReviewed || review.paidAt) && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {review.preReviewed && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800">Pre-reviewed</span>
+                      )}
+                      {review.paidAt && (
+                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800">
+                          Paid {new Date(review.paidAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       )}
                     </div>
