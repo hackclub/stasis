@@ -128,7 +128,6 @@ interface ReviewData {
 // ─── Shortcut Data ──────────────────────────────────────────────────
 
 const HOURS_BY_GUIDE: Record<string, number> = {
-  'devboard': 15,
   'squeak': 5,
   'blinky': 5,
 };
