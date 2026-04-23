@@ -75,11 +75,14 @@ export async function GET(
   const reviewerUsers = reviewerIds.size > 0
     ? await prisma.user.findMany({
         where: { id: { in: Array.from(reviewerIds) } },
-        select: { id: true, name: true, image: true },
+        select: { id: true, name: true, slackDisplayName: true, image: true },
       })
     : []
 
-  const reviewerMap = new Map(reviewerUsers.map((r) => [r.id, r]))
+  // Prefer Slack display name on this reviewer-accessible page.
+  const reviewerMap = new Map(
+    reviewerUsers.map((r) => [r.id, { id: r.id, name: r.slackDisplayName || r.name, image: r.image }])
+  )
 
   const totalHours = project.workSessions.reduce(
     (sum, ws) => sum + (ws.hoursApproved ?? ws.hoursClaimed),

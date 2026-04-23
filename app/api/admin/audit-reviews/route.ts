@@ -116,17 +116,24 @@ export async function GET(request: NextRequest) {
           },
         }),
     // Reviewer dropdown: union reviewers across both tables
-    prisma.$queryRaw<Array<{ id: string; name: string | null; image: string | null }>>`
-      SELECT u.id, u.name, u.image
+    prisma.$queryRaw<Array<{ id: string; name: string | null; slackDisplayName: string | null; image: string | null }>>`
+      SELECT u.id, u.name, u."slackDisplayName", u.image
       FROM "user" u
       WHERE u.id IN (
         SELECT "reviewerId" FROM "project_review_action" WHERE "reviewerId" IS NOT NULL
         UNION
         SELECT "reviewerId" FROM "submission_review"
       )
-      ORDER BY u.name ASC
+      ORDER BY COALESCE(u."slackDisplayName", u.name) ASC
     `,
   ])
+
+  // Prefer Slack display name for reviewer labels (this page is reviewer-accessible).
+  const reviewerOptions = reviewerUsers.map((r) => ({
+    id: r.id,
+    name: r.slackDisplayName || r.name,
+    image: r.image,
+  }))
 
   const projectIds = new Set<string>()
   for (const r of praRows) projectIds.add(r.projectId)
@@ -143,7 +150,7 @@ export async function GET(request: NextRequest) {
       })
     : []
   const projectMap = new Map(projects.map((p) => [p.id, p]))
-  const reviewerMap = new Map(reviewerUsers.map((r) => [r.id, r]))
+  const reviewerMap = new Map(reviewerOptions.map((r) => [r.id, r]))
 
   function formatProjectFields(project: (typeof projects)[number], effectiveTier: number | null) {
     const totalHours = project.workSessions.reduce(
@@ -290,6 +297,6 @@ export async function GET(request: NextRequest) {
       total,
       totalPages: Math.max(1, Math.ceil(total / limit)),
     },
-    reviewers: reviewerUsers,
+    reviewers: reviewerOptions,
   })
 }

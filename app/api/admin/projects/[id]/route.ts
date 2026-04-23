@@ -29,7 +29,7 @@ export async function GET(
         },
       },
       deletedBy: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, slackDisplayName: true },
       },
       workSessions: {
         include: { media: true },
@@ -97,7 +97,15 @@ export async function GET(
     })
   )
 
-  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved, hackatimeProjects: hackatimeProjectsWithHours, hackatimeTrustLevel, user: { ...project.user, fraudConvicted: user?.fraudConvicted ?? false } })
+  return NextResponse.json({
+    ...project,
+    totalHoursClaimed,
+    totalHoursApproved,
+    hackatimeProjects: hackatimeProjectsWithHours,
+    hackatimeTrustLevel,
+    user: { ...project.user, fraudConvicted: user?.fraudConvicted ?? false },
+    deletedBy: project.deletedBy ? { id: project.deletedBy.id, name: project.deletedBy.slackDisplayName || project.deletedBy.name } : null,
+  })
 }
 
 // PATCH: admin-only actions — hide/unhide and unapprove design/build
