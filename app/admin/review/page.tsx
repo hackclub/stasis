@@ -80,6 +80,22 @@ const TIER_COLORS: Record<number, string> = {
 
 type ReviewTab = 'DESIGN' | 'BUILD';
 
+interface RewardEntry {
+  reviewer: { id: string; name: string | null; image: string | null };
+  count: number;
+  tier: 'none' | 'fudge' | 'hoodie';
+}
+
+interface RewardResponse {
+  start: string;
+  end: string;
+  fudgeThreshold: number;
+  hoodieThreshold: number;
+  entries: RewardEntry[];
+}
+
+type StatsTab = 'weekly' | 'allTime' | 'fudgeHoodie';
+
 export default function ReviewQueuePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ReviewTab>('DESIGN');
@@ -89,10 +105,12 @@ export default function ReviewQueuePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [statsTab, setStatsTab] = useState<'weekly' | 'allTime'>('weekly');
+  const [statsTab, setStatsTab] = useState<StatsTab>('weekly');
   const [navigating, setNavigating] = useState(false);
   const [prioritizeAttending, setPrioritizeAttending] = useState(false);
   const [region, setRegion] = useState<'' | 'na' | 'eu'>('');
+  const [rewards, setRewards] = useState<RewardResponse | null>(null);
+  const [rewardsLoading, setRewardsLoading] = useState(false);
 
   const data = activeTab === 'DESIGN' ? designData : buildData;
 
@@ -170,8 +188,23 @@ export default function ReviewQueuePage() {
     }
   }, []);
 
+  const fetchRewards = useCallback(async () => {
+    setRewardsLoading(true);
+    try {
+      const res = await fetch('/api/reviews/reviewer-rewards');
+      if (res.ok) setRewards(await res.json());
+    } catch (err) {
+      console.error('Failed to fetch reviewer rewards:', err);
+    } finally {
+      setRewardsLoading(false);
+    }
+  }, []);
+
   useEffect(() => { fetchQueues(); }, [fetchQueues]);
   useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => {
+    if (statsTab === 'fudgeHoodie') fetchRewards();
+  }, [statsTab, fetchRewards]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,8 +261,21 @@ export default function ReviewQueuePage() {
               >
                 All Time
               </button>
+              <button
+                onClick={() => setStatsTab('fudgeHoodie')}
+                className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
+                  statsTab === 'fudgeHoodie'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
+                }`}
+              >
+                Fudge & Hoodie
+              </button>
             </div>
           </div>
+          {statsTab === 'fudgeHoodie' ? (
+            <FudgeHoodieStats rewards={rewards} loading={rewardsLoading} />
+          ) : (
           <div className="flex gap-4 flex-wrap">
             {(statsTab === 'weekly' ? stats?.topReviewersWeekly : stats?.topReviewersAllTime)?.map(
               (s, i) => (
@@ -244,6 +290,7 @@ export default function ReviewQueuePage() {
               )
             ) || <span className="text-cream-200 text-sm">No reviews yet</span>}
           </div>
+          )}
         </div>
       </div>
 
@@ -556,5 +603,48 @@ export default function ReviewQueuePage() {
         </>
       )}
     </>
+  );
+}
+
+function FudgeHoodieStats({ rewards, loading }: Readonly<{ rewards: RewardResponse | null; loading: boolean }>) {
+  if (loading && !rewards) {
+    return <span className="text-cream-200 text-sm">Loading...</span>;
+  }
+  if (!rewards || rewards.entries.length === 0) {
+    return <span className="text-cream-200 text-sm">No reviews in window yet</span>;
+  }
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return (
+    <div>
+      <p className="text-cream-300 text-[11px] mb-2">
+        {fmtDate(rewards.start)} → {fmtDate(rewards.end)} · Fudge: {rewards.fudgeThreshold}+ · Hoodie: {rewards.hoodieThreshold}+
+      </p>
+      <div className="flex gap-3 gap-y-1 flex-wrap">
+        {rewards.entries.map((entry, i) => (
+          <div key={entry.reviewer.id} className="flex items-center gap-2">
+            <span className="text-cream-200 text-xs">{i + 1}.</span>
+            {entry.reviewer.image && (
+              <img src={entry.reviewer.image} alt="" className="w-5 h-5 rounded-full" />
+            )}
+            <Link
+              href={`/admin/users?search=${encodeURIComponent(entry.reviewer.id)}`}
+              className="text-cream-50 text-sm hover:text-orange-400 transition-colors"
+            >
+              {entry.reviewer.name || 'Unknown'}
+            </Link>
+            <span className="text-orange-500 text-sm font-bold">{entry.count}</span>
+            {entry.tier === 'hoodie' && (
+              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-orange-500 text-white">Hoodie</span>
+            )}
+            {entry.tier === 'fudge' && (
+              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-orange-400/20 text-orange-300 border border-orange-400/40">Fudge</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
