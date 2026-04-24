@@ -750,7 +750,7 @@ export default function ReviewDetailPage() {
       {/* ── Internal Notes Card ── */}
       <div className="bg-cream-100 border-2 border-cream-400 p-6">
         <h2 className="text-brown-800 text-sm uppercase tracking-wider mb-2">
-          Internal Notes <span className="text-cream-600 normal-case">(about this author, shared across reviewers)</span>
+          Internal Notes <span className="text-cream-600 normal-case">(about this author, shared across reviewers and projects)</span>
         </h2>
         <textarea
           value={internalNote}

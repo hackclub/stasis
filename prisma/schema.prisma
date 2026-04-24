@@ -712,7 +712,7 @@ model ReviewClaim {
   @@map("review_claim")
 }
 
-// Internal notes about a user, shared across reviewers
+// Internal notes about a user, shared across reviewers and projects
 model ReviewerNote {
   id          String   @id @default(cuid())
   aboutUserId String   @unique
