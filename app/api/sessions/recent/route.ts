@@ -16,6 +16,7 @@ export async function GET() {
     where: {
       project: {
         userId: session.user.id,
+        deletedAt: null,
       },
     },
     orderBy: {

@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
 
   const projects = projectIds.size > 0
     ? await prisma.project.findMany({
-        where: { id: { in: Array.from(projectIds) } },
+        where: { id: { in: Array.from(projectIds) }, deletedAt: null },
         include: {
           user: { select: { id: true, name: true, image: true } },
           workSessions: { select: { hoursClaimed: true, hoursApproved: true } },

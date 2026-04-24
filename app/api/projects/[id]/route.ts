@@ -7,7 +7,8 @@ import { ProjectTag } from "@/app/generated/prisma/enums"
 import { sanitize } from "@/lib/sanitize"
 import { isValidUrl, normalizeUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
-import { TIERS } from "@/lib/tiers"
+import { TIERS, getTierBits } from "@/lib/tiers"
+import { totalBomCost } from "@/lib/format"
 import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
 
 const ALLOWED_UPDATE_FIELDS = ["title", "description", "tags", "isStarter", "starterProjectId", "githubRepo", "coverImage", "noBomNeeded", "bomTax", "bomShipping", "requestedAmount", "cartScreenshots", "tier"] as const
@@ -188,6 +189,23 @@ export async function PATCH(
     delete (allowedData as Record<string, unknown>).tier
   }
 
+  // Clamp requestedAmount server-side: a user who bypasses the UI can't request
+  // more than (a) their BOM total or (b) 50% of their tier's bit allocation.
+  // Admins can set any value (e.g. to unstick a stale request after tier changes).
+  if ("requestedAmount" in allowedData && allowedData.requestedAmount != null && !isAdmin) {
+    const effectiveTier = (allowedData.tier as number | null | undefined) ?? existingProject.tier
+    const tierMax = effectiveTier ? Math.floor(getTierBits(effectiveTier) * 0.5) : Infinity
+    const bomItems = await prisma.bOMItem.findMany({
+      where: { projectId: id },
+      select: { totalCost: true, status: true },
+    })
+    const effectiveBomTax = (allowedData.bomTax as number | null | undefined) ?? existingProject.bomTax
+    const effectiveBomShipping = (allowedData.bomShipping as number | null | undefined) ?? existingProject.bomShipping
+    const bomCost = totalBomCost(bomItems, effectiveBomTax, effectiveBomShipping)
+    const clamped = Math.min(allowedData.requestedAmount, bomCost, tierMax)
+    allowedData.requestedAmount = Math.max(0, Math.round(clamped * 100) / 100)
+  }
+
   if (Object.keys(allowedData).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
   }
@@ -236,7 +254,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Cannot delete project with approved sessions" }, { status: 403 })
   }
 
-  await prisma.project.delete({ where: { id } })
+  await prisma.project.update({
+    where: { id },
+    data: { deletedAt: new Date(), deletedById: session.user.id },
+  })
 
   await logAudit({
     action: AuditAction.USER_DELETE_PROJECT,
