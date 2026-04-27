@@ -345,6 +345,7 @@ export async function GET(
         maxWorkUnits: Math.round(maxWorkUnits * 10) / 10,
         minWorkUnits: Math.round(minWorkUnits * 10) / 10,
         bomCost: Math.round(bomCost * 100) / 100,
+        requestedAmount: project.requestedAmount != null ? Math.round(project.requestedAmount * 100) / 100 : null,
         costPerHour: totalWorkUnits > 0 ? Math.round((bomCost / totalWorkUnits) * 100) / 100 : null,
         bitsPerHour: (() => {
           if (totalWorkUnits <= 0 || !project.tier) return null

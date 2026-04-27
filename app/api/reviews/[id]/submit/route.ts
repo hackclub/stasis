@@ -183,14 +183,26 @@ export async function POST(
   const sanitizedFeedback = sanitize(feedback.trim())
   const stageKey = stage.toLowerCase() as "design" | "build"
 
-  // For design approvals, default grant to BOM cost if not explicitly overridden.
-  // `effectiveGrant` drives ledger math and is stored on ProjectReviewAction.grantAmount.
-  // `explicitGrantOverride` is what the reviewer actually chose, and is what we store on
+  // For design approvals, default grant to the user's requestedAmount (what they
+  // saw promised in the "Funding Request" card on their dashboard), falling back
+  // to full BOM cost for legacy projects that predate requestedAmount.
+  // Always clamp at both the actual BOM total and the tier's 50% spend ceiling so
+  // a stale or over-set requestedAmount can't exceed what the user could legitimately
+  // request. Reviewer can still override up or down via `grantOverride`.
+  // `explicitGrantOverride` is what the reviewer actually chose and is what we store on
   // SubmissionReview.grantOverride — so the UI only shows an override badge when the
-  // reviewer really set one, not when the code auto-filled BOM cost.
+  // reviewer really set one, not when the code auto-filled the default.
   const bomCostTotal = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
+  const effectiveTierForCap = (tierOverride ?? project.tier) ?? null
+  const tierMaxSpend = effectiveTierForCap ? Math.floor(getTierBits(effectiveTierForCap) * 0.5) : Infinity
   const explicitGrantOverride = (typeof grantOverride === "number") ? grantOverride : null
-  const effectiveGrant = explicitGrantOverride ?? (stageKey === "design" ? (bomCostTotal > 0 ? Math.ceil(bomCostTotal) : 0) : null)
+  let defaultGrant = 0
+  if (stageKey === "design") {
+    const base = project.requestedAmount ?? bomCostTotal
+    const capped = Math.min(base, bomCostTotal, tierMaxSpend)
+    defaultGrant = capped > 0 ? Math.ceil(capped) : 0
+  }
+  const effectiveGrant = explicitGrantOverride ?? (stageKey === "design" ? defaultGrant : null)
 
   // Map result to the existing decision format
   if (result === "APPROVED") {
