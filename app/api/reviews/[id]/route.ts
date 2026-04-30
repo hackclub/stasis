@@ -154,7 +154,7 @@ export async function GET(
   const latestSubmission = await prisma.projectSubmission.findFirst({
     where: { projectId: project.id, stage: activeStage },
     orderBy: { createdAt: "desc" },
-    select: { id: true, notes: true, createdAt: true, preReviewed: true },
+    select: { id: true, notes: true, createdAt: true, preReviewed: true, githubChecks: true, githubChecksAt: true },
   }).catch(() => null)
 
   // Fetch SubmissionReview records for the latest submission (has isAdminReview flag)
@@ -294,35 +294,37 @@ export async function GET(
     }
   }
 
-  const allProjectsRaw = await prisma.project.findMany({
-    where: navWhere,
-    select: {
-      id: true,
-      createdAt: true,
-      submissions: {
-        select: { preReviewed: true, stage: true },
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
+  // Cursor-based next/prev: avoids fetching the entire queue.
+  // Pre-reviewed items always float to top; if any exists *other than* the
+  // current project, that's the next one. Otherwise use a strict createdAt cursor.
+  const preReviewedWhere = {
+    ...navWhere,
+    id: { not: project!.id },
+    submissions: {
+      some: { preReviewed: true, stage: activeStage },
     },
-    orderBy: { createdAt: "asc" },
-  })
+  }
 
-  // Sort pre-reviewed projects first, then by createdAt
-  const allProjects = allProjectsRaw.sort((a, b) => {
-    const aPre = a.submissions[0]?.preReviewed ? 1 : 0
-    const bPre = b.submissions[0]?.preReviewed ? 1 : 0
-    if (aPre !== bPre) return bPre - aPre
-    return 0 // preserve createdAt order from DB
-  })
+  const [preReviewedNext, cursorNext, cursorPrev] = await Promise.all([
+    prisma.project.findFirst({
+      where: preReviewedWhere,
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    }),
+    prisma.project.findFirst({
+      where: { ...navWhere, createdAt: { gt: project!.createdAt } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    }),
+    prisma.project.findFirst({
+      where: { ...navWhere, createdAt: { lt: project!.createdAt } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    }),
+  ])
 
-  const currentIdx = allProjects.findIndex((p) => p.id === project!.id)
-  const nextId = currentIdx >= 0 && currentIdx < allProjects.length - 1
-    ? allProjects[currentIdx + 1].id
-    : null
-  const prevId = currentIdx > 0
-    ? allProjects[currentIdx - 1].id
-    : null
+  const nextId = preReviewedNext?.id ?? cursorNext?.id ?? null
+  const prevId = cursorPrev?.id ?? null
 
   return NextResponse.json({
     submission: {
@@ -331,6 +333,8 @@ export async function GET(
       notes: latestSubmission?.notes || (activeStage === "DESIGN" ? project.designSubmissionNotes : project.buildSubmissionNotes),
       preReviewed: latestSubmission?.preReviewed ?? false,
       createdAt: latestSubmission?.createdAt || project.updatedAt,
+      githubChecks: latestSubmission?.githubChecks ?? null,
+      githubChecksAt: latestSubmission?.githubChecksAt ?? null,
       project: {
         ...project,
         reviewActions: undefined,

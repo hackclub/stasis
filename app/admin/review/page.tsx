@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTierById } from '@/lib/tiers';
 import { projects as starterProjects } from '@/app/starter-projects/projects';
+import { useHotkeys, type HotkeyBinding } from '@/lib/hotkeys';
+import HotkeyOverlay from '@/app/components/HotkeyOverlay';
 
 interface ReviewAuthor {
   id: string;
@@ -46,6 +48,7 @@ interface QueueResponse {
   page: number;
   limit: number;
   totalPages: number;
+  nextCursor: string | null;
   isAdmin: boolean;
 }
 
@@ -111,6 +114,8 @@ export default function ReviewQueuePage() {
   const [region, setRegion] = useState<'' | 'na' | 'eu'>('');
   const [rewards, setRewards] = useState<RewardResponse | null>(null);
   const [rewardsLoading, setRewardsLoading] = useState(false);
+  const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const data = activeTab === 'DESIGN' ? designData : buildData;
 
@@ -159,7 +164,7 @@ export default function ReviewQueuePage() {
       if (search) baseParams.set('search', search);
       if (prioritizeAttending) baseParams.set('prioritizeAttending', 'true');
       if (region) baseParams.set('region', region);
-      baseParams.set('limit', '500');
+      baseParams.set('limit', '50');
 
       const designParams = new URLSearchParams(baseParams);
       designParams.set('category', 'DESIGN');
@@ -178,6 +183,30 @@ export default function ReviewQueuePage() {
       setLoading(false);
     }
   }, [search, prioritizeAttending, region]);
+
+  const loadMore = useCallback(async (tab: ReviewTab) => {
+    const current = tab === 'DESIGN' ? designData : buildData;
+    if (!current?.nextCursor) return;
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (prioritizeAttending) params.set('prioritizeAttending', 'true');
+    if (region) params.set('region', region);
+    params.set('limit', '50');
+    params.set('category', tab);
+    params.set('cursor', current.nextCursor);
+    try {
+      const res = await fetch(`/api/reviews?${params}`);
+      if (!res.ok) return;
+      const next: QueueResponse = await res.json();
+      const seen = new Set(current.items.map((i) => i.id));
+      const merged = [...current.items, ...next.items.filter((i) => !seen.has(i.id))];
+      const updated = { ...next, items: merged };
+      if (tab === 'DESIGN') setDesignData(updated);
+      else setBuildData(updated);
+    } catch (err) {
+      console.error('Failed to load more:', err);
+    }
+  }, [designData, buildData, search, prioritizeAttending, region]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -214,8 +243,39 @@ export default function ReviewQueuePage() {
   const designCount = designData?.total ?? 0;
   const buildCount = buildData?.total ?? 0;
 
+  const hotkeys = useMemo<HotkeyBinding[]>(() => [
+    {
+      key: 'Shift+?',
+      description: 'Show keyboard shortcuts',
+      group: 'General',
+      handler: () => setHotkeyOverlayOpen((v) => !v),
+    },
+    {
+      key: '$mod+k',
+      description: 'Focus search',
+      group: 'Queue',
+      runInInputs: true,
+      handler: () => searchInputRef.current?.focus(),
+    },
+    {
+      key: '[',
+      description: 'Switch to Design tab',
+      group: 'Queue',
+      handler: () => setActiveTab('DESIGN'),
+    },
+    {
+      key: ']',
+      description: 'Switch to Build tab',
+      group: 'Queue',
+      handler: () => setActiveTab('BUILD'),
+    },
+  ], []);
+
+  useHotkeys(hotkeys, hotkeyOverlayOpen);
+
   return (
     <>
+      <HotkeyOverlay open={hotkeyOverlayOpen} bindings={hotkeys} onClose={() => setHotkeyOverlayOpen(false)} />
       {/* Stats Header */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Pending Count */}
@@ -437,6 +497,7 @@ export default function ReviewQueuePage() {
         <form onSubmit={handleSearch} className="flex gap-2">
           <input
             type="text"
+            ref={searchInputRef}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by ID, title, or author..."
@@ -599,6 +660,17 @@ export default function ReviewQueuePage() {
               </tbody>
             </table>
           </div>
+
+          {data?.nextCursor && (
+            <div className="flex justify-center py-4">
+              <button
+                onClick={() => loadMore(activeTab)}
+                className="px-4 py-2 text-xs uppercase tracking-wider bg-brown-800 border border-cream-500/20 text-cream-100 hover:bg-cream-500/10 cursor-pointer"
+              >
+                Load more
+              </button>
+            </div>
+          )}
 
         </>
       )}

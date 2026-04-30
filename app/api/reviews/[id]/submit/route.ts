@@ -10,6 +10,41 @@ import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 import { sendSlackDM } from "@/lib/slack"
 import { syncProjectToAirtable } from "@/lib/airtable"
 import { totalBomCost } from "@/lib/format"
+import { logAudit } from "@/lib/audit"
+
+// Wrap a post-decision side effect so failures emit an audit log row instead
+// of disappearing into stderr. The reviewer never sees these errors —
+// the audit log is the operational signal an admin queries to spot regressions.
+async function trackSideEffect(
+  kind: "slack" | "airtable",
+  ctx: { projectId: string; reviewerId: string; reviewerEmail: string | null | undefined; decision: string; stage: string },
+  fn: () => Promise<unknown>
+): Promise<void> {
+  try {
+    await fn()
+    if (kind === "airtable") {
+      await logAudit({
+        action: AuditAction.AIRTABLE_SYNC_SUCCESS,
+        actorId: ctx.reviewerId,
+        actorEmail: ctx.reviewerEmail,
+        targetType: "Project",
+        targetId: ctx.projectId,
+        metadata: { decision: ctx.decision, stage: ctx.stage },
+      })
+    }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    console.error(`Failed ${kind} side-effect for project ${ctx.projectId}:`, err)
+    await logAudit({
+      action: kind === "airtable" ? AuditAction.AIRTABLE_SYNC_FAILURE : AuditAction.NOTIFICATION_FAILURE,
+      actorId: ctx.reviewerId,
+      actorEmail: ctx.reviewerEmail,
+      targetType: "Project",
+      targetId: ctx.projectId,
+      metadata: { kind, decision: ctx.decision, stage: ctx.stage, error: errorMessage },
+    })
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -431,14 +466,18 @@ export async function POST(
       { result, isAdmin, feedback: sanitizedFeedback }
     )
 
-    // Slack notification
+    // Slack notification — wrapped so failures land in the audit log,
+    // not just stderr.
     if (project.user.slackId) {
       const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${project.id}`
       const lines = [`Your *${project.title}* ${stageKey} has been approved! :tada:`]
       if (sanitizedFeedback) lines.push(`\`\`\`${sanitizedFeedback}\`\`\``)
       lines.push(`<${projectUrl}|View project>`)
-      sendSlackDM(project.user.slackId, lines.join("\n")).catch((err) =>
-        console.error("Failed to send Slack DM:", err)
+      const slackId = project.user.slackId
+      await trackSideEffect(
+        "slack",
+        { projectId: project.id, reviewerId, reviewerEmail: authCheck.session.user.email, decision: result, stage: stageKey },
+        () => sendSlackDM(slackId, lines.join("\n"))
       )
     }
 
@@ -545,20 +584,20 @@ export async function POST(
 
       const hoursJustification = lines.join("\n")
 
-      try {
-        const approvedBom = project!.bomItems.filter((b) => b.status === "approved" || b.status === "pending")
-        const bomItemsCost = approvedBom.reduce((sum, b) => sum + b.totalCost, 0)
-        const bomTax = project!.bomTax ?? 0
-        const bomShip = project!.bomShipping ?? 0
-        const bomCost = bomItemsCost + bomTax + bomShip
+      const approvedBom = project!.bomItems.filter((b) => b.status === "approved" || b.status === "pending")
+      const bomItemsCost = approvedBom.reduce((sum, b) => sum + b.totalCost, 0)
+      const bomTax = project!.bomTax ?? 0
+      const bomShip = project!.bomShipping ?? 0
+      const bomCost = bomItemsCost + bomTax + bomShip
 
-        const syncOptions: { buildOnly?: boolean; approvedHours?: number } = {}
-        if (isBuildApproval) syncOptions.buildOnly = true
-        if (workUnitsOverride != null) syncOptions.approvedHours = workUnitsOverride
-        await syncProjectToAirtable(project!.userId, project!, hoursJustification, effectiveGrant ?? bomCost, syncOptions)
-      } catch (err) {
-        console.error(`Failed to sync project to Airtable on ${stageKey} approval:`, err)
-      }
+      const syncOptions: { buildOnly?: boolean; approvedHours?: number } = {}
+      if (isBuildApproval) syncOptions.buildOnly = true
+      if (workUnitsOverride != null) syncOptions.approvedHours = workUnitsOverride
+      await trackSideEffect(
+        "airtable",
+        { projectId: project!.id, reviewerId, reviewerEmail: authCheck.session.user.email, decision: result, stage: stageKey },
+        () => syncProjectToAirtable(project!.userId, project!, hoursJustification, effectiveGrant ?? bomCost, syncOptions)
+      )
     }
 
     return NextResponse.json(updatedProject)
@@ -626,7 +665,7 @@ export async function POST(
       { result, isAdmin, feedback: sanitizedFeedback }
     )
 
-    // Slack notification
+    // Slack notification — wrapped for audit-log visibility.
     if (project.user.slackId) {
       const projectUrl = `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/dashboard/projects/${project.id}`
       const msg = result === "REJECTED"
@@ -635,8 +674,11 @@ export async function POST(
       const lines = [msg]
       if (sanitizedFeedback) lines.push(`\`\`\`${sanitizedFeedback}\`\`\``)
       lines.push(`<${projectUrl}|View project>`)
-      sendSlackDM(project.user.slackId, lines.join("\n")).catch((err) =>
-        console.error("Failed to send Slack DM:", err)
+      const slackId = project.user.slackId
+      await trackSideEffect(
+        "slack",
+        { projectId: project.id, reviewerId, reviewerEmail: authCheck.session.user.email, decision: result, stage: stageKey },
+        () => sendSlackDM(slackId, lines.join("\n"))
       )
     }
 

@@ -312,6 +312,7 @@ model ProjectSubmission {
   claim          ReviewClaim?
 
   @@index([projectId])
+  @@index([projectId, stage, createdAt(sort: Desc)])
   @@map("project_submission")
 }
 
@@ -480,6 +481,11 @@ enum AuditAction {
   REVIEWER_REJECT
   ADMIN_MOVE_QUEUE
   ADMIN_PAY_REVIEWER
+
+  // Post-decision side-effect outcomes (so silent failures become observable)
+  AIRTABLE_SYNC_SUCCESS
+  AIRTABLE_SYNC_FAILURE
+  NOTIFICATION_FAILURE
 
   // Security events
   ADMIN_IMPERSONATE
@@ -712,6 +718,7 @@ model ReviewClaim {
   createdAt    DateTime          @default(now())
 
   @@index([reviewerId])
+  @@index([expiresAt])
   @@map("review_claim")
 }
 

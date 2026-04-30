@@ -23,8 +23,20 @@ export async function GET(request: NextRequest) {
   const prioritizeAttending = url.searchParams.get("prioritizeAttending") === "true"
   const regionFilter = url.searchParams.get("region") || "" // "na" or "eu"
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"))
-  const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get("limit") || "20")))
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "50")))
   const offset = (page - 1) * limit
+  // Cursor pagination: "<isoDate>_<id>" of the last row from the previous page.
+  // Used by the queue page's "Load more" button so we don't drag the whole queue.
+  const cursorParam = url.searchParams.get("cursor") || ""
+  const cursor = cursorParam.includes("_")
+    ? (() => {
+        const sep = cursorParam.indexOf("_")
+        const ts = cursorParam.slice(0, sep)
+        const cid = cursorParam.slice(sep + 1)
+        const d = new Date(ts)
+        return Number.isNaN(d.getTime()) || !cid ? null : { id: cid, updatedAt: d }
+      })()
+    : null
 
   // Query projects directly — works whether or not ProjectSubmission rows exist
   const showFraud = url.searchParams.get("showFraud") === "true"
@@ -127,10 +139,23 @@ export async function GET(request: NextRequest) {
   }
 
   // Region filter requires decrypting the country PII, which must happen in JS.
-  // When active, fetch all matching projects and paginate in memory; otherwise keep DB-level pagination.
+  // When active, fetch a capped batch and paginate in memory; otherwise keep DB-level pagination.
+  // The 200-row cap keeps the queue snappy — if a region routinely overflows it we should add a regionCode column.
   const regionActive = regionFilter === "na" || regionFilter === "eu"
+  const REGION_INMEMORY_CAP = 200
+  if (regionActive) {
+    console.warn(`[reviews] region filter active (${regionFilter}); fetching up to ${REGION_INMEMORY_CAP} rows in memory`)
+  }
+  // Cursor pagination only works with the simple updatedAt-asc ordering;
+  // prioritizeAttending and region paths fall back to the legacy offset/in-memory paths.
+  const useCursor = !!cursor && !regionActive && !prioritizeAttending
   const [projects, total] = regionActive
-    ? [await prisma.project.findMany(findArgs), 0] // total recomputed after region filter
+    ? [await prisma.project.findMany({ ...findArgs, take: REGION_INMEMORY_CAP }), 0] // total recomputed after region filter
+    : useCursor
+    ? await Promise.all([
+        prisma.project.findMany({ ...findArgs, cursor: { id: cursor!.id }, skip: 1, take: limit }),
+        prisma.project.count({ where: projectWhere }),
+      ])
     : await Promise.all([
         prisma.project.findMany({ ...findArgs, skip: offset, take: limit }),
         prisma.project.count({ where: projectWhere }),
@@ -238,12 +263,22 @@ export async function GET(request: NextRequest) {
 
   const items = regionActive ? filtered.slice(offset, offset + limit) : filtered
 
+  // Build a cursor token from the last item so the client can request the next page.
+  // Only emit on the simple path — region filter and prioritizeAttending re-sort in-memory
+  // so a cursor wouldn't be a stable boundary.
+  const lastItem = items[items.length - 1]
+  const nextCursor =
+    !regionActive && !prioritizeAttending && lastItem && items.length === limit
+      ? `${new Date(lastItem.createdAt).toISOString()}_${lastItem.id}`
+      : null
+
   return NextResponse.json({
     items,
     total: filteredTotal,
     page,
     limit,
     totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
+    nextCursor,
     isAdmin,
   })
 }

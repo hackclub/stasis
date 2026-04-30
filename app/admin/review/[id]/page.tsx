@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getTierById, TIERS } from '@/lib/tiers';
 import { bomItemTotal } from '@/lib/format';
 import { fixMarkdownImages } from '@/lib/markdown';
+import { useHotkeys, type HotkeyBinding } from '@/lib/hotkeys';
+import HotkeyOverlay from '@/app/components/HotkeyOverlay';
 
 const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
 
@@ -39,6 +41,8 @@ interface ReviewData {
     notes: string | null;
     preReviewed: boolean;
     createdAt: string;
+    githubChecks: Array<{ key: string; label: string; passed: boolean; detail?: string }> | null;
+    githubChecksAt: string | null;
     project: {
       id: string;
       title: string;
@@ -161,6 +165,31 @@ const FEEDBACK_SHORTCUTS = [
   { label: 'Journal', text: 'Your journal needs to show the step-by-step process you took in making this project. Please break your larger journal entires into multiple smaller ones, show the steps you took, and explain it better.' },
 ];
 
+// ─── Module-level review-data cache ──────────────────────────────────
+// Keyed on the full request path (id + query string). The prefetch effect
+// populates it; fetchData reads from it for instant paint and then revalidates
+// in the background (stale-while-revalidate). Browsers don't HTTP-cache
+// auth-bound JSON without explicit Cache-Control headers, so we DIY this.
+// Module-level means it survives client-side route transitions.
+//
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const REVIEW_DATA_CACHE: Map<string, { data: any; at: number }> = new Map();
+const REVIEW_CACHE_TTL_MS = 60_000; // serve stale-up-to-60s, revalidate after
+
+// Auxiliary caches for slow third-party-backed reads (GitHub, Airtable).
+// Both are idempotent and don't depend on filterQS.
+const KICAD_FILES_CACHE: Map<string, KiCadFilesResponse | null> = new Map();
+const AIRTABLE_CHECK_CACHE: Map<string, boolean> = new Map();
+
+// Dedupe claim POSTs per submission id. When the user mashes j/k, repeat
+// mounts of the same id were firing concurrent claim POSTs that hit the
+// unique-(submissionId) constraint and 500'd. Track which ids we've claimed
+// in this session and skip the POST if it's already done.
+const CLAIMED_IDS: Set<string> = new Set();
+// Pending DELETEs: a quick j-then-k re-mount cancels a pending DELETE
+// instead of letting it race the new POST.
+const PENDING_RELEASE: Map<string, ReturnType<typeof setTimeout>> = new Map();
+
 // ─── Component ───────────────────────────────────────────────────────
 
 export default function ReviewDetailPage() {
@@ -186,9 +215,23 @@ export default function ReviewDetailPage() {
     return s ? `?${s}` : '';
   })();
 
-  const [data, setData] = useState<ReviewData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [claiming, setClaiming] = useState(false);
+  // Initialize data + loading from cache on first render so we never flash a
+  // spinner when the prefetch already populated it.
+  const initialCacheKey = `${id}${(() => {
+    const qp = new URLSearchParams();
+    if (filterCategory) qp.set('category', filterCategory);
+    if (filterGuide) qp.set('guide', filterGuide);
+    if (filterNameSearch) qp.set('nameSearch', filterNameSearch);
+    if (filterSort) qp.set('sort', filterSort);
+    if (filterPronouns) qp.set('pronouns', filterPronouns);
+    const s = qp.toString();
+    return s ? `?${s}` : '';
+  })()}`;
+  const [data, setData] = useState<ReviewData | null>(
+    () => (REVIEW_DATA_CACHE.get(initialCacheKey)?.data as ReviewData | undefined) ?? null
+  );
+  const [loading, setLoading] = useState(() => !REVIEW_DATA_CACHE.has(initialCacheKey));
+  const [renderedId, setRenderedId] = useState(id);
   const [submitting, setSubmitting] = useState(false);
   const [showWorkLog, setShowWorkLog] = useState(false);
   const [moveConfirm, setMoveConfirm] = useState(false);
@@ -216,13 +259,64 @@ export default function ReviewDetailPage() {
   const [modifyingPreReview, setModifyingPreReview] = useState(false);
   const [checkedJustifications, setCheckedJustifications] = useState<Set<number>>(new Set());
   const [checkedFeedback, setCheckedFeedback] = useState<Set<number>>(new Set());
+  // Optimistic navigation: track in-flight decision + the most-recent successful one
+  // (drives a brief toast on the next page) + the error from a failed decision
+  // restored from sessionStorage when we route back.
+  const [pendingDecision, setPendingDecision] = useState<{ result: string } | null>(null);
+  const [recentDecision, setRecentDecision] = useState<{ result: string; at: number } | null>(null);
+  const [failedDecisionError, setFailedDecisionError] = useState<string | null>(null);
+  const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
+  const [rejectArmed, setRejectArmed] = useState(false);
+  const feedbackRef = useRef<HTMLTextAreaElement | null>(null);
+  const reasonRef = useRef<HTMLTextAreaElement | null>(null);
+  const internalNoteRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // When the URL id changes (j/k), reset state SYNCHRONOUSLY during render
+  // to whatever's in cache — otherwise React would render one frame with the
+  // new id but old data, which manifests as a stale-data flash.
+  if (renderedId !== id) {
+    setRenderedId(id);
+    const cached = REVIEW_DATA_CACHE.get(initialCacheKey);
+    const cachedData = (cached?.data as ReviewData | undefined) ?? null;
+    setData(cachedData);
+    setLoading(!cached);
+    setInternalNote(cachedData?.reviewerNote ?? '');
+    setKicadFiles(KICAD_FILES_CACHE.get(id) ?? null);
+    setAirtableDuplicate(AIRTABLE_CHECK_CACHE.get(id) ?? false);
+    if (cachedData?.submission?.githubChecks) {
+      setGhChecks(cachedData.submission.githubChecks);
+      setGhChecksAt(cachedData.submission.githubChecksAt);
+      setGhChecksCached(true);
+    } else {
+      setGhChecks(null);
+      setGhChecksAt(null);
+      setGhChecksCached(false);
+    }
+    setFailedDecisionError(null);
+  }
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    const cacheKey = `${id}${filterQS}`;
+    const cached = REVIEW_DATA_CACHE.get(cacheKey);
+    const fresh = cached && Date.now() - cached.at < REVIEW_CACHE_TTL_MS;
+
+    // If we have a cached payload, paint it immediately — no spinner, no wait.
+    if (cached) {
+      setData(cached.data);
+      setInternalNote(cached.data.reviewerNote || '');
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // Skip the network entirely when we have a *fresh* hit.
+    if (fresh) return;
+
     try {
       const res = await fetch(`/api/reviews/${id}${filterQS}`);
       if (res.ok) {
         const d = await res.json();
+        REVIEW_DATA_CACHE.set(cacheKey, { data: d, at: Date.now() });
         setData(d);
         setInternalNote(d.reviewerNote || '');
       } else if (res.status === 404 || res.status === 400) {
@@ -237,12 +331,21 @@ export default function ReviewDetailPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Check if project already exists in Airtable Unified DB
+  // Check if project already exists in Airtable Unified DB. Cached because
+  // it's idempotent and Airtable API calls are slow (200-500ms typical).
   useEffect(() => {
     if (!id) return;
+    if (AIRTABLE_CHECK_CACHE.has(id)) {
+      setAirtableDuplicate(AIRTABLE_CHECK_CACHE.get(id)!);
+      return;
+    }
     fetch(`/api/reviews/${id}/airtable-check`)
       .then((res) => res.ok ? res.json() : null)
-      .then((d) => { if (d?.found) setAirtableDuplicate(true); })
+      .then((d) => {
+        const found = !!d?.found;
+        AIRTABLE_CHECK_CACHE.set(id, found);
+        if (found) setAirtableDuplicate(true);
+      })
       .catch(() => {});
   }, [id]);
 
@@ -266,22 +369,9 @@ export default function ReviewDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.submission.project.starterProjectId]);
 
-  // Ctrl+Enter keyboard shortcut to approve
-  useEffect(() => {
-    function handleKeydown(e: KeyboardEvent) {
-      if (e.ctrlKey && e.key === 'Enter') {
-        e.preventDefault();
-        if (!submitting && data && !data.submission.claimedByOther) {
-          submitReview('APPROVED');
-        }
-      }
-    }
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitting, data, feedback, reason, workUnitsOverride, tierOverride, grantOverride, additionalBitsDeduction, categoryOverride]);
 
-  // Fetch GitHub checks when submission loads
+  // Fetch GitHub checks. On mount we seed from the cached values in the
+  // initial payload; the Refresh button calls this with refresh=true.
   const loadGhChecks = useCallback((opts?: { refresh?: boolean }) => {
     setGhChecksLoading(true);
     setGhChecksError(null);
@@ -301,44 +391,176 @@ export default function ReviewDetailPage() {
       .finally(() => setGhChecksLoading(false));
   }, [id]);
 
+  // Prefetch the next/prev review payloads into the module-level cache so
+  // j/k and post-approve navigation are instant. Browsers don't HTTP-cache
+  // auth-bound JSON, so we cache the parsed payload ourselves.
   useEffect(() => {
-    if (!data?.submission.id) return;
-    loadGhChecks();
-  }, [data?.submission.id, loadGhChecks]);
+    if (!data?.navigation) return;
+    const { nextId, prevId } = data.navigation;
 
-  // Look up KiCad files in the linked GitHub repo so we can embed KiCanvas
-  // viewers on the review screen. Silently no-ops if the repo has none.
-  useEffect(() => {
-    if (!data?.submission.id) return;
-    let cancelled = false;
-    fetch(`/api/reviews/${id}/kicad-files`)
-      .then(async (res) => (res.ok ? (res.json() as Promise<KiCadFilesResponse>) : null))
-      .then((d) => { if (!cancelled && d) setKicadFiles(d); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [data?.submission.id, id]);
-
-  // Auto-claim on mount
-  useEffect(() => {
-    if (data && !data.submission.claimedByOther && !data.submission.claim) {
-      claimSubmission();
+    function lowFetch(url: string) {
+      try {
+        // priority hint isn't yet in lib.dom.d.ts
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return fetch(url, { priority: 'low' } as any);
+      } catch {
+        return fetch(url);
+      }
     }
-    // Release claim on unmount (navigate away)
+
+    function prime(targetId: string) {
+      const cacheKey = `${targetId}${filterQS}`;
+      const existing = REVIEW_DATA_CACHE.get(cacheKey);
+      if (!existing || Date.now() - existing.at >= REVIEW_CACHE_TTL_MS) {
+        lowFetch(`/api/reviews/${targetId}${filterQS}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => { if (d) REVIEW_DATA_CACHE.set(cacheKey, { data: d, at: Date.now() }); })
+          .catch(() => {});
+      }
+      if (!KICAD_FILES_CACHE.has(targetId)) {
+        lowFetch(`/api/reviews/${targetId}/kicad-files`)
+          .then(async (r) => (r.ok ? (r.json() as Promise<KiCadFilesResponse>) : null))
+          .then((d) => KICAD_FILES_CACHE.set(targetId, d))
+          .catch(() => {});
+      }
+      if (!AIRTABLE_CHECK_CACHE.has(targetId)) {
+        lowFetch(`/api/reviews/${targetId}/airtable-check`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => AIRTABLE_CHECK_CACHE.set(targetId, !!d?.found))
+          .catch(() => {});
+      }
+      // Warm the RSC layout shell too.
+      router.prefetch(`/admin/review/${targetId}${filterQS}`);
+    }
+
+    if (nextId) prime(nextId);
+
+    if (prevId) {
+      const win = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+      const schedule = win.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200));
+      schedule(() => prime(prevId));
+    }
+  }, [data?.navigation, router, filterQS]);
+
+
+  // Restore form state if the previous decision failed and routed us back here.
+  // Snapshot lives in sessionStorage keyed on submission id.
+  useEffect(() => {
+    if (!id) return;
+    const key = `failedDecision:${id}`;
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return;
+    try {
+      const snap = JSON.parse(raw) as {
+        feedback?: string; reason?: string;
+        workUnitsOverride?: string; tierOverride?: string; grantOverride?: string;
+        additionalBitsDeduction?: string; categoryOverride?: string;
+        error?: string;
+      };
+      if (snap.feedback != null) setFeedback(snap.feedback);
+      if (snap.reason != null) setReason(snap.reason);
+      if (snap.workUnitsOverride != null) setWorkUnitsOverride(snap.workUnitsOverride);
+      if (snap.tierOverride != null) setTierOverride(snap.tierOverride);
+      if (snap.grantOverride != null) setGrantOverride(snap.grantOverride);
+      if (snap.additionalBitsDeduction != null) setAdditionalBitsDeduction(snap.additionalBitsDeduction);
+      if (snap.categoryOverride != null) setCategoryOverride(snap.categoryOverride);
+      setFailedDecisionError(snap.error ?? 'Decision did not save');
+    } catch {
+      /* ignore corrupt snapshot */
+    }
+    sessionStorage.removeItem(key);
+  }, [id]);
+
+  // Auto-clear the "✓ approved" toast after 3s
+  useEffect(() => {
+    if (!recentDecision) return;
+    const t = setTimeout(() => setRecentDecision(null), 3000);
+    return () => clearTimeout(t);
+  }, [recentDecision]);
+
+  // Block tab close while a decision is in flight (server is still committing).
+  useEffect(() => {
+    if (!pendingDecision) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [pendingDecision]);
+
+  // Seed GH checks from the initial payload — no extra fetch on mount.
+  // If the submission has no cached checks, leave the panel empty until
+  // the reviewer clicks Refresh (avoids a slow GitHub API call we don't need).
+  useEffect(() => {
+    if (!data?.submission.id) return;
+    if (data.submission.githubChecks) {
+      setGhChecks(data.submission.githubChecks);
+      setGhChecksAt(data.submission.githubChecksAt);
+      setGhChecksCached(true);
+    } else {
+      setGhChecks(null);
+      setGhChecksAt(null);
+      setGhChecksCached(false);
+    }
+  }, [data?.submission.id, data?.submission.githubChecks, data?.submission.githubChecksAt]);
+
+  // Fire KiCad-file lookup and claim POST as soon as we have the URL id —
+  // do NOT wait for fetchData() to round-trip first. Each request races
+  // against the others and races against fetchData() so the page becomes
+  // interactive faster.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    if (KICAD_FILES_CACHE.has(id)) {
+      const cached = KICAD_FILES_CACHE.get(id);
+      if (cached) setKicadFiles(cached);
+    } else {
+      fetch(`/api/reviews/${id}/kicad-files`)
+        .then(async (res) => (res.ok ? (res.json() as Promise<KiCadFilesResponse>) : null))
+        .then((d) => {
+          KICAD_FILES_CACHE.set(id, d);
+          if (!cancelled && d) setKicadFiles(d);
+        })
+        .catch(() => {});
+    }
+
+    // If we had a pending DELETE for this id (user pressed k after j), cancel
+    // it — we're back on the page and want to keep the claim.
+    const pending = PENDING_RELEASE.get(id);
+    if (pending) {
+      clearTimeout(pending);
+      PENDING_RELEASE.delete(id);
+    }
+
+    if (!CLAIMED_IDS.has(id)) {
+      CLAIMED_IDS.add(id);
+      fetch(`/api/reviews/${id}/claim`, { method: 'POST' })
+        .then((res) => {
+          // 409 = claimed by another reviewer; fetchData will surface it on
+          // the next natural refresh. 401/403/5xx = ignore; the lock is
+          // best-effort and the page works without it.
+          if (!res.ok) CLAIMED_IDS.delete(id);
+        })
+        .catch(() => { CLAIMED_IDS.delete(id); });
+    }
+
     return () => {
-      fetch(`/api/reviews/${id}/claim`, { method: 'DELETE' }).catch(() => {});
+      cancelled = true;
+      // Schedule the DELETE; a rapid re-mount of the same id will cancel it.
+      const idToRelease = id;
+      const handle = setTimeout(() => {
+        PENDING_RELEASE.delete(idToRelease);
+        if (CLAIMED_IDS.has(idToRelease)) {
+          CLAIMED_IDS.delete(idToRelease);
+          fetch(`/api/reviews/${idToRelease}/claim`, { method: 'DELETE' }).catch(() => {});
+        }
+      }, 200);
+      PENDING_RELEASE.set(idToRelease, handle);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.submission.id]);
-
-  async function claimSubmission() {
-    setClaiming(true);
-    try {
-      await fetch(`/api/reviews/${id}/claim`, { method: 'POST' });
-      await fetchData();
-    } finally {
-      setClaiming(false);
-    }
-  }
+  }, [id]);
 
   async function saveNote(content: string) {
     try {
@@ -384,30 +606,54 @@ export default function ReviewDetailPage() {
     workUnitsOverride?: number;
     tierOverride?: number;
     grantOverride?: number;
+    skipConfirm?: boolean;
   }) {
     const effectiveFeedback = (overrides?.feedback ?? feedback.trim()) || 'Awesome project!';
 
-    if (result === 'REJECTED' && !confirm('Are you sure you want to permanently reject this submission?')) {
+    if (result === 'REJECTED' && !overrides?.skipConfirm && !confirm('Are you sure you want to permanently reject this submission?')) {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const body: Record<string, unknown> = {
-        result,
-        feedback: effectiveFeedback,
-        reason: overrides?.reason ?? (reason.trim() || undefined),
-        submissionId: data?.submission.id,
-      };
-      if (overrides?.workUnitsOverride != null) body.workUnitsOverride = overrides.workUnitsOverride;
-      else if (workUnitsOverride) body.workUnitsOverride = parseFloat(workUnitsOverride);
-      if (overrides?.tierOverride != null) body.tierOverride = overrides.tierOverride;
-      else if (tierOverride) body.tierOverride = parseInt(tierOverride);
-      if (overrides?.grantOverride != null) body.grantOverride = overrides.grantOverride;
-      else if (grantOverride) body.grantOverride = parseInt(grantOverride);
-      if (additionalBitsDeduction) body.additionalBitsDeduction = parseInt(additionalBitsDeduction);
-      if (categoryOverride && data?.isAdmin) body.categoryOverride = categoryOverride;
+    if (!data) return;
 
+    const body: Record<string, unknown> = {
+      result,
+      feedback: effectiveFeedback,
+      reason: overrides?.reason ?? (reason.trim() || undefined),
+      submissionId: data.submission.id,
+    };
+    if (overrides?.workUnitsOverride != null) body.workUnitsOverride = overrides.workUnitsOverride;
+    else if (workUnitsOverride) body.workUnitsOverride = parseFloat(workUnitsOverride);
+    if (overrides?.tierOverride != null) body.tierOverride = overrides.tierOverride;
+    else if (tierOverride) body.tierOverride = parseInt(tierOverride);
+    if (overrides?.grantOverride != null) body.grantOverride = overrides.grantOverride;
+    else if (grantOverride) body.grantOverride = parseInt(grantOverride);
+    if (additionalBitsDeduction) body.additionalBitsDeduction = parseInt(additionalBitsDeduction);
+    if (categoryOverride && data?.isAdmin) body.categoryOverride = categoryOverride;
+
+    // Snapshot form state so we can restore it if the submit fails.
+    const snapshot = {
+      result,
+      feedback,
+      reason,
+      workUnitsOverride,
+      tierOverride,
+      grantOverride,
+      additionalBitsDeduction,
+      categoryOverride,
+    };
+    const originalId = id;
+
+    // Optimistic navigation: flip the URL immediately. The POST fires in the background.
+    setSubmitting(true);
+    setPendingDecision({ result });
+    if (data.navigation.nextId) {
+      router.push(`/admin/review/${data.navigation.nextId}${filterQS}`);
+    } else {
+      router.push('/admin/review');
+    }
+
+    try {
       const res = await fetch(`/api/reviews/${id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -415,18 +661,38 @@ export default function ReviewDetailPage() {
       });
 
       if (res.ok) {
-        // Navigate to next or back to queue
-        if (data?.navigation.nextId) {
-          router.push(`/admin/review/${data.navigation.nextId}${filterQS}`);
-        } else {
-          router.push('/admin/review');
-        }
+        // The reviewed project is no longer in_review; drop its cache entry
+        // so a back-nav refetches (and gets a 400 / redirect to queue).
+        REVIEW_DATA_CACHE.delete(`${originalId}${filterQS}`);
+        // Successful — show a brief toast on the new page.
+        setRecentDecision({ result, at: Date.now() });
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to submit review');
+        let errorMsg = 'Failed to submit review';
+        try {
+          const err = await res.json();
+          errorMsg = err.error || errorMsg;
+        } catch {
+          /* non-JSON response */
+        }
+        // Save the failed snapshot in sessionStorage and route back to the original page.
+        // The destination page checks sessionStorage on mount and restores the form
+        // values + shows the error banner.
+        sessionStorage.setItem(
+          `failedDecision:${originalId}`,
+          JSON.stringify({ ...snapshot, error: errorMsg, at: Date.now() })
+        );
+        router.push(`/admin/review/${originalId}${filterQS}`);
       }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Network error';
+      sessionStorage.setItem(
+        `failedDecision:${originalId}`,
+        JSON.stringify({ ...snapshot, error: errorMsg, at: Date.now() })
+      );
+      router.push(`/admin/review/${originalId}${filterQS}`);
     } finally {
       setSubmitting(false);
+      setPendingDecision(null);
     }
   }
 
@@ -499,10 +765,43 @@ export default function ReviewDetailPage() {
     }
   }
 
+  // Detail-page hotkeys. Re-built each render — cheap relative to typing-driven
+  // re-renders, and avoids stale closure pitfalls with submitReview/data.
+  const detailHotkeys: HotkeyBinding[] = [
+    { key: 'Shift+?', description: 'Show keyboard shortcuts', group: 'General', handler: () => setHotkeyOverlayOpen((v) => !v) },
+    { key: '$mod+Enter', description: 'Approve', group: 'Decision', runInInputs: true, handler: () => { if (!submitting && data && !data.submission.claimedByOther) submitReview('APPROVED'); } },
+    { key: '$mod+Shift+Enter', description: 'Approve and advance', group: 'Decision', runInInputs: true, handler: () => { if (!submitting && data && !data.submission.claimedByOther) submitReview('APPROVED'); } },
+    { key: 'Shift+R', description: 'Return / request changes', group: 'Decision', handler: () => { if (!submitting && data && !data.submission.claimedByOther) submitReview('RETURNED'); } },
+    {
+      key: 'Shift+X',
+      description: 'Reject (press twice within 5s)',
+      group: 'Decision',
+      handler: () => {
+        if (submitting || !data || data.submission.claimedByOther) return;
+        if (rejectArmed) {
+          setRejectArmed(false);
+          submitReview('REJECTED', { skipConfirm: true });
+        } else {
+          setRejectArmed(true);
+          setTimeout(() => setRejectArmed(false), 5000);
+        }
+      },
+    },
+    { key: 'j', description: 'Next submission', group: 'Navigation', handler: () => { if (data?.navigation.nextId) router.push(`/admin/review/${data.navigation.nextId}${filterQS}`); } },
+    { key: 'k', description: 'Previous submission', group: 'Navigation', handler: () => { if (data?.navigation.prevId) router.push(`/admin/review/${data.navigation.prevId}${filterQS}`); } },
+    { key: 's', description: 'Skip to next', group: 'Navigation', handler: () => { skipToNext(); } },
+    { key: 'f', description: 'Focus feedback textarea', group: 'Form', handler: () => feedbackRef.current?.focus() },
+    { key: 'r', description: 'Focus reason textarea', group: 'Form', handler: () => reasonRef.current?.focus() },
+    { key: 'n', description: 'Focus internal note', group: 'Form', handler: () => internalNoteRef.current?.focus() },
+  ];
+
+  useHotkeys(detailHotkeys, hotkeyOverlayOpen);
+
   if (loading || !data) {
     return (
       <div className="text-center py-12">
         <p className="text-cream-50">Loading submission...</p>
+        <HotkeyOverlay open={hotkeyOverlayOpen} bindings={detailHotkeys} onClose={() => setHotkeyOverlayOpen(false)} />
       </div>
     );
   }
@@ -515,6 +814,37 @@ export default function ReviewDetailPage() {
 
   return (
     <div className="space-y-6">
+      <HotkeyOverlay open={hotkeyOverlayOpen} bindings={detailHotkeys} onClose={() => setHotkeyOverlayOpen(false)} />
+      {rejectArmed && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-500 border-2 border-red-300 px-5 py-3 shadow-lg">
+          <p className="text-white text-xs uppercase tracking-wider font-bold">⚠ Press Shift+X again within 5 seconds to confirm rejection</p>
+        </div>
+      )}
+      {/* ── Failed-decision banner (decision did not save) ── */}
+      {failedDecisionError && (
+        <div className="bg-red-500/15 border-2 border-red-500 p-4 flex items-center justify-between">
+          <div>
+            <p className="text-red-400 font-medium text-sm uppercase">Decision did not save</p>
+            <p className="text-red-400/80 text-xs mt-1">{failedDecisionError}</p>
+          </div>
+          <button
+            onClick={() => setFailedDecisionError(null)}
+            className="px-3 py-1.5 text-xs uppercase border border-red-500 text-red-400 hover:bg-red-500/10 cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* ── Recent-decision toast (last successful approve/return/reject) ── */}
+      {recentDecision && (
+        <div className="bg-green-500/10 border border-green-500/40 px-3 py-2">
+          <p className="text-green-400 text-xs uppercase tracking-wider">
+            ✓ Last decision committed: {recentDecision.result.toLowerCase()}
+          </p>
+        </div>
+      )}
+
       {/* ── Claim Warning Banner ── */}
       {claimedByOther && (
         <div className="bg-red-500/10 border-2 border-red-500/40 p-4 flex items-center justify-between">
@@ -1186,6 +1516,7 @@ export default function ReviewDetailPage() {
           Internal Notes <span className="text-cream-200 normal-case">(about this author, shared across reviewers)</span>
         </h2>
         <textarea
+          ref={internalNoteRef}
           value={internalNote}
           onChange={(e) => handleNoteChange(e.target.value)}
           className="w-full h-24 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 resize-y"
@@ -1311,6 +1642,7 @@ export default function ReviewDetailPage() {
                 </div>
               )}
               <textarea
+                ref={reasonRef}
                 value={reason}
                 onChange={(e) => { setReason(e.target.value); setCheckedJustifications(new Set()); }}
                 className="w-full h-20 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 resize-y"
@@ -1343,6 +1675,7 @@ export default function ReviewDetailPage() {
                 </div>
               )}
               <textarea
+                ref={feedbackRef}
                 value={feedback}
                 onChange={(e) => { setFeedback(e.target.value); setCheckedFeedback(new Set()); }}
                 className="w-full h-24 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 resize-y"
