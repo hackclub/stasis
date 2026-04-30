@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         { user: { name: { contains: search, mode: "insensitive" } } },
         { user: { email: { contains: search, mode: "insensitive" } } },
         { id: { contains: search, mode: "insensitive" } },
+        { githubRepo: { contains: search, mode: "insensitive" } },
       ],
     })
   }

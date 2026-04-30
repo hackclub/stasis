@@ -273,7 +273,7 @@ export default function AdminProjectsPage() {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by title, author, email, or ID..."
+            placeholder="Search by title, author, email, ID, or GitHub URL..."
             className="px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-800 text-cream-50 placeholder:text-cream-300 focus:outline-none focus:border-orange-500 flex-1 max-w-md"
           />
           <button
