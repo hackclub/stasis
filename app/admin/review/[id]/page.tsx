@@ -9,6 +9,7 @@ import { bomItemTotal } from '@/lib/format';
 import { fixMarkdownImages } from '@/lib/markdown';
 import { useHotkeys, type HotkeyBinding } from '@/lib/hotkeys';
 import HotkeyOverlay from '@/app/components/HotkeyOverlay';
+import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
 
@@ -267,6 +268,7 @@ export default function ReviewDetailPage() {
   const [failedDecisionError, setFailedDecisionError] = useState<string | null>(null);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [rejectArmed, setRejectArmed] = useState(false);
+  const [blankFeedbackPending, setBlankFeedbackPending] = useState<{ result: string } | null>(null);
   const feedbackRef = useRef<HTMLTextAreaElement | null>(null);
   const reasonRef = useRef<HTMLTextAreaElement | null>(null);
   const internalNoteRef = useRef<HTMLTextAreaElement | null>(null);
@@ -608,9 +610,15 @@ export default function ReviewDetailPage() {
     grantOverride?: number;
     skipConfirm?: boolean;
   }) {
-    const effectiveFeedback = (overrides?.feedback ?? feedback.trim()) || 'Awesome project!';
+    const rawFeedback = (overrides?.feedback ?? feedback).trim();
+    const effectiveFeedback = rawFeedback || 'Awesome project!';
 
     if (result === 'REJECTED' && !overrides?.skipConfirm && !confirm('Are you sure you want to permanently reject this submission?')) {
+      return;
+    }
+
+    if (!rawFeedback && result !== 'REJECTED' && !overrides?.skipConfirm) {
+      setBlankFeedbackPending({ result });
       return;
     }
 
@@ -815,6 +823,22 @@ export default function ReviewDetailPage() {
   return (
     <div className="space-y-6">
       <HotkeyOverlay open={hotkeyOverlayOpen} bindings={detailHotkeys} onClose={() => setHotkeyOverlayOpen(false)} />
+      <ConfirmModal
+        isOpen={blankFeedbackPending !== null}
+        title="No Feedback to Submitter"
+        message={"The 'Feedback to Submitter' field is empty. The submitter will see a generic 'Awesome project!' message."}
+        confirmLabel="Submit anyway"
+        cancelLabel="Go back"
+        onConfirm={() => {
+          const pending = blankFeedbackPending;
+          setBlankFeedbackPending(null);
+          if (pending) submitReview(pending.result, { skipConfirm: true });
+        }}
+        onCancel={() => {
+          setBlankFeedbackPending(null);
+          feedbackRef.current?.focus();
+        }}
+      />
       {rejectArmed && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-500 border-2 border-red-300 px-5 py-3 shadow-lg">
           <p className="text-white text-xs uppercase tracking-wider font-bold">⚠ Press Shift+X again within 5 seconds to confirm rejection</p>
