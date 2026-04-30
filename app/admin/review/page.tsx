@@ -110,12 +110,17 @@ export default function ReviewQueuePage() {
   const [searchInput, setSearchInput] = useState('');
   const [statsTab, setStatsTab] = useState<StatsTab>('weekly');
   const [navigating, setNavigating] = useState(false);
-  const [prioritizeAttending, setPrioritizeAttending] = useState(false);
+  const [prioritizeAttending, setPrioritizeAttendingState] = useState(JSON.parse(sessionStorage.getItem("prioritizeAttending") || "false") as boolean); //get saved state or set to false if not saved yet
   const [region, setRegion] = useState<'' | 'na' | 'eu'>('');
   const [rewards, setRewards] = useState<RewardResponse | null>(null);
   const [rewardsLoading, setRewardsLoading] = useState(false);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const setPrioritizeAttending = (value: boolean) => {
+    setPrioritizeAttendingState(value);
+    sessionStorage.setItem("prioritizeAttending", JSON.stringify(value))
+  };
 
   const data = activeTab === 'DESIGN' ? designData : buildData;
 
