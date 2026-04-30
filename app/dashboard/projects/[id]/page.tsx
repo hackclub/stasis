@@ -2491,7 +2491,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {/* Design Submit Dialog (2-step) */}
-          {showDesignSubmitDialog && (
+          {showDesignSubmitDialog && (() => {
+            const isDesignResubmit = project.designStatus === "rejected" || project.designStatus === "update_requested"
+            const designNotesTooShort = isDesignResubmit && submissionNotes.trim().length < 10
+            return (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
                 {submitStep === 'type' ? (
@@ -2553,9 +2556,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       error={preflightError}
                       onRetry={async () => { await startBackgroundScan(); applyTypeFilter(submitPcb, submitCad, submitFirmware); }}
                     />
+                    {isDesignResubmit && project.designReviewComments && (
+                      <div className="mb-4 border border-cream-400 bg-cream-200 p-3">
+                        <div className="text-brown-600 text-xs uppercase tracking-wide mb-1">Reviewer feedback</div>
+                        <p className="text-brown-800 text-sm whitespace-pre-wrap">{project.designReviewComments}</p>
+                      </div>
+                    )}
                     <div className="mb-4">
-                      <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
-                      <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
+                      <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">
+                        {isDesignResubmit ? 'What you changed (required)' : 'Note to reviewer (optional)'}
+                      </label>
+                      <p className="text-brown-600 text-xs mb-2">
+                        {isDesignResubmit
+                          ? 'Briefly describe what you changed in response to the feedback.'
+                          : "Anything you'd like the reviewer to know about your project?"}
+                      </p>
                       <textarea
                         value={submissionNotes}
                         onChange={(e) => setSubmissionNotes(e.target.value)}
@@ -2573,7 +2588,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       </button>
                       <button
                         onClick={handleSubmitDesign}
-                        disabled={preflightLoading || (!preflightCanSubmit && !preflightError)}
+                        disabled={preflightLoading || (!preflightCanSubmit && !preflightError) || designNotesTooShort}
                         className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
                       >
                         Submit Design
@@ -2583,10 +2598,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 )}
               </div>
             </div>
-          )}
+            )
+          })()}
 
           {/* Build Submit Dialog (2-step) */}
-          {showBuildSubmitDialog && (
+          {showBuildSubmitDialog && (() => {
+            const isBuildResubmit = project.buildStatus === "rejected" || project.buildStatus === "update_requested"
+            const buildNotesTooShort = isBuildResubmit && submissionNotes.trim().length < 10
+            return (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-cream-100 border-2 border-cream-400 max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto">
                 {submitStep === 'type' ? (
@@ -2648,9 +2667,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       error={preflightError}
                       onRetry={async () => { await startBackgroundScan(); applyTypeFilter(submitPcb, submitCad, submitFirmware); }}
                     />
+                    {isBuildResubmit && project.buildReviewComments && (
+                      <div className="mb-4 border border-cream-400 bg-cream-200 p-3">
+                        <div className="text-brown-600 text-xs uppercase tracking-wide mb-1">Reviewer feedback</div>
+                        <p className="text-brown-800 text-sm whitespace-pre-wrap">{project.buildReviewComments}</p>
+                      </div>
+                    )}
                     <div className="mb-4">
-                      <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">Note to reviewer (optional)</label>
-                      <p className="text-brown-600 text-xs mb-2">Anything you&apos;d like the reviewer to know about your project?</p>
+                      <label className="block text-brown-800 text-sm font-medium uppercase tracking-wide mb-1">
+                        {isBuildResubmit ? 'What you changed (required)' : 'Note to reviewer (optional)'}
+                      </label>
+                      <p className="text-brown-600 text-xs mb-2">
+                        {isBuildResubmit
+                          ? 'Briefly describe what you changed in response to the feedback.'
+                          : "Anything you'd like the reviewer to know about your project?"}
+                      </p>
                       <textarea
                         value={submissionNotes}
                         onChange={(e) => setSubmissionNotes(e.target.value)}
@@ -2668,7 +2699,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       </button>
                       <button
                         onClick={handleSubmitBuild}
-                        disabled={preflightLoading || (!preflightCanSubmit && !preflightError)}
+                        disabled={preflightLoading || (!preflightCanSubmit && !preflightError) || buildNotesTooShort}
                         className="flex-1 bg-green-600 hover:bg-green-500 disabled:bg-cream-300 disabled:text-cream-500 disabled:cursor-not-allowed text-white py-2 uppercase tracking-wider transition-colors cursor-pointer"
                       >
                         Submit Build
@@ -2678,7 +2709,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 )}
               </div>
             </div>
-          )}
+            )
+          })()}
 
           {/* Design Unsubmit Confirmation Dialog */}
           {showDesignUnsubmitDialog && (

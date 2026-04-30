@@ -74,6 +74,14 @@ export async function POST(
       )
     }
 
+    const isDesignResubmit = project.designStatus === "rejected" || project.designStatus === "update_requested"
+    if (isDesignResubmit && (submissionNotes?.trim().length ?? 0) < 10) {
+      return NextResponse.json(
+        { error: "Please briefly describe what you changed since the last review (at least 10 characters)." },
+        { status: 400 }
+      )
+    }
+
     // Design requirements: title, description, at least one BOM item
     if (!project.title.trim()) {
       return NextResponse.json(
@@ -171,6 +179,14 @@ export async function POST(
     if (project.buildStatus !== "draft" && project.buildStatus !== "rejected" && project.buildStatus !== "update_requested" && project.buildStatus !== "approved") {
       return NextResponse.json(
         { error: "Build already submitted for review" },
+        { status: 400 }
+      )
+    }
+
+    const isBuildResubmit = project.buildStatus === "rejected" || project.buildStatus === "update_requested"
+    if (isBuildResubmit && (submissionNotes?.trim().length ?? 0) < 10) {
+      return NextResponse.json(
+        { error: "Please briefly describe what you changed since the last review (at least 10 characters)." },
         { status: 400 }
       )
     }
