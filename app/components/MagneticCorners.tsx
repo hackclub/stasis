@@ -79,9 +79,9 @@ export function MagneticCorners({
   }, [isActive, activationDistance, deactivationDistance, magnetStrength, getDistanceToElement]);
 
   const handleHitboxClick = useCallback(() => {
-    const buttonRef = containerRef.current?.querySelector('button');
-    if (buttonRef) {
-      buttonRef.click();
+    const target = containerRef.current?.querySelector<HTMLElement>('button, a');
+    if (target) {
+      target.click();
     }
   }, []);
 

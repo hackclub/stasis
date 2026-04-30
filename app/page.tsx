@@ -695,6 +695,24 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
               </div>
             </section>
 
+            {/* Not a hacker CTA */}
+            <section className="flex flex-col items-center py-1 md:px-5 mb-8 md:mb-12 gap-3">
+              <p className="text-[14px] md:text-[18px] text-brown-800 uppercase mb-2 md:mb-4">
+                <ScrambleText>Not a hacker but want to come?</ScrambleText>
+              </p>
+              <MagneticCorners offset={12}>
+                <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
+                  <a
+                    href="mailto:stasis@hackclub.com"
+                    className="relative bg-orange-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-8 h-[45px] flex items-center justify-center cursor-pointer transition-colors box-border no-underline"
+                  >
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
+                    <span className="text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap">Email Us</span>
+                  </a>
+                </MagneticCorners>
+              </MagneticCorners>
+            </section>
+
             {/* Sponsors link */}
             <section className="flex flex-col items-center pt-6 md:pt-12">
               <a
