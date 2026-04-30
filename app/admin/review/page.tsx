@@ -117,7 +117,9 @@ export default function ReviewQueuePage() {
   const [rewards, setRewards] = useState<RewardResponse | null>(null);
   const [rewardsLoading, setRewardsLoading] = useState(false);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const data = activeTab === 'DESIGN' ? designData : buildData;
 
@@ -189,6 +191,7 @@ export default function ReviewQueuePage() {
   const loadMore = useCallback(async (tab: ReviewTab) => {
     const current = tab === 'DESIGN' ? designData : buildData;
     if (!current?.nextCursor) return;
+    setLoadingMore(true);
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (prioritizeAttending) params.set('prioritizeAttending', 'true');
@@ -207,6 +210,8 @@ export default function ReviewQueuePage() {
       else setBuildData(updated);
     } catch (err) {
       console.error('Failed to load more:', err);
+    } finally {
+      setLoadingMore(false);
     }
   }, [designData, buildData, search, prioritizeAttending, region]);
 
@@ -236,6 +241,18 @@ export default function ReviewQueuePage() {
   useEffect(() => {
     if (statsTab === 'fudgeHoodie') fetchRewards();
   }, [statsTab, fetchRewards]);
+
+  // Auto-load the next page when the sentinel scrolls into view.
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+    if (!data?.nextCursor) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMore(activeTab);
+    }, { rootMargin: '400px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [activeTab, data?.nextCursor, loadMore]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -668,13 +685,8 @@ export default function ReviewQueuePage() {
           </div>
 
           {data?.nextCursor && (
-            <div className="flex justify-center py-4">
-              <button
-                onClick={() => loadMore(activeTab)}
-                className="px-4 py-2 text-xs uppercase tracking-wider bg-brown-800 border border-cream-500/20 text-cream-100 hover:bg-cream-500/10 cursor-pointer"
-              >
-                Load more
-              </button>
+            <div ref={sentinelRef} className="flex justify-center py-4 text-xs uppercase tracking-wider text-cream-200">
+              {loadingMore ? 'Loading more...' : 'Scroll for more'}
             </div>
           )}
 
