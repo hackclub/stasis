@@ -15,10 +15,18 @@ interface ParsedSession {
   createdAt: Date
 }
 
-function parseMarkdown(markdown: string): ParsedSession[] {
+interface ParseResult {
+  sessions: ParsedSession[]
+  headingsFound: number
+  missingTimeCount: number
+}
+
+function parseMarkdown(markdown: string): ParseResult {
   const sections = markdown.split(/^# /m).filter((s) => s.trim().length > 0)
 
   const sessions: ParsedSession[] = []
+  let headingsFound = 0
+  let missingTimeCount = 0
 
   for (const section of sections) {
     if (section.startsWith("<!--") || section.trim().startsWith("<!--")) {
@@ -55,6 +63,8 @@ function parseMarkdown(markdown: string): ParsedSession[] {
     )
     if (isNaN(createdAt.getTime())) continue
 
+    headingsFound++
+
     // Parse hours from "_Time spent: Xh_"
     let hoursClaimed = 0
     const contentLines: string[] = []
@@ -69,7 +79,10 @@ function parseMarkdown(markdown: string): ParsedSession[] {
       }
     }
 
-    if (hoursClaimed <= 0) continue
+    if (hoursClaimed <= 0) {
+      missingTimeCount++
+      continue
+    }
 
     const content = contentLines.join("\n").trim()
 
@@ -93,7 +106,7 @@ function parseMarkdown(markdown: string): ParsedSession[] {
     })
   }
 
-  return sessions
+  return { sessions, headingsFound, missingTimeCount }
 }
 
 export async function POST(
@@ -146,9 +159,20 @@ export async function POST(
     )
   }
 
-  const parsedSessions = parseMarkdown(markdown)
+  const { sessions: parsedSessions, headingsFound, missingTimeCount } = parseMarkdown(markdown)
 
   if (parsedSessions.length === 0) {
+    // Common case: user uploaded the GitHub-synced JOURNAL.md, which Blueprint
+    // generates without `_Time spent: Xh_` markers. Detect it and tell them.
+    if (headingsFound > 0 && missingTimeCount === headingsFound) {
+      return NextResponse.json(
+        {
+          error:
+            "Journal entries are missing time markers. If you exported this from Blueprint, use the \"Export Journal\" button on the project page (not the JOURNAL.md synced to GitHub) — that version includes the time spent on each session.",
+        },
+        { status: 400 }
+      )
+    }
     return NextResponse.json(
       { error: "No valid sessions found in markdown" },
       { status: 400 }
