@@ -460,7 +460,7 @@ export async function submitYSWSProjectSubmission(data: {
     'State / Province': data.state || '',
     'Country': data.country || '',
     'ZIP / Postal Code': data.zip || '',
-    'Birthday': data.birthday || '',
+    ...(data.birthday ? { 'Birthday': data.birthday } : {}),
     'Optional - Override Hours Spent': data.totalHours,
     ...(data.hoursJustification != null ? { 'Optional - Override Hours Spent Justification': data.hoursJustification } : {}),
     'Requested Grant Amount': data.grantAmount ?? 0,
