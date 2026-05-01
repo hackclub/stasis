@@ -86,6 +86,28 @@ interface ReviewData {
   reviewerId: string;
 }
 
+// Skip-set: track project IDs the reviewer has explicitly skipped this session
+// so the Skip button advances through the queue instead of cycling between the
+// same two in_review projects.
+const SKIP_STORAGE_KEY = 'reviewSkippedIds';
+function getSkippedIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = sessionStorage.getItem(SKIP_STORAGE_KEY);
+    return new Set<string>(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+function saveSkippedIds(s: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.setItem(SKIP_STORAGE_KEY, JSON.stringify([...s])); } catch {}
+}
+function clearSkippedIds() {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.removeItem(SKIP_STORAGE_KEY); } catch {}
+}
+
 // ─── Component ───────────────────────────────────────────────────────
 
 export default function ReviewDetailPage() {
@@ -247,11 +269,21 @@ export default function ReviewDetailPage() {
 
   async function skipToNext() {
     fetch(`/api/reviews/${id}/claim`, { method: 'DELETE' }).catch(() => {});
+    const skipped = getSkippedIds();
+    skipped.add(id);
+    saveSkippedIds(skipped);
     try {
-      const res = await fetch('/api/reviews?limit=10');
+      const res = await fetch('/api/reviews?limit=50');
       if (res.ok) {
         const { items } = await res.json();
-        const next = items.find((p: { id: string }) => p.id !== id);
+        let next = items.find((p: { id: string }) => p.id !== id && !skipped.has(p.id));
+        if (!next) {
+          // Exhausted the queue — reset so the user can cycle again.
+          clearSkippedIds();
+          const fresh = new Set<string>([id]);
+          saveSkippedIds(fresh);
+          next = items.find((p: { id: string }) => p.id !== id);
+        }
         if (next) {
           router.push(`/reviews/${next.id}`);
           return;

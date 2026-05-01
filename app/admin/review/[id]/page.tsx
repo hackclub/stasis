@@ -191,6 +191,28 @@ const CLAIMED_IDS: Set<string> = new Set();
 // instead of letting it race the new POST.
 const PENDING_RELEASE: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
+// Skip-set: track project IDs the reviewer has explicitly skipped this session
+// so the Skip button advances through the queue instead of cycling between the
+// same two in_review projects.
+const SKIP_STORAGE_KEY = 'reviewSkippedIds';
+function getSkippedIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = sessionStorage.getItem(SKIP_STORAGE_KEY);
+    return new Set<string>(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+function saveSkippedIds(s: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.setItem(SKIP_STORAGE_KEY, JSON.stringify([...s])); } catch {}
+}
+function clearSkippedIds() {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.removeItem(SKIP_STORAGE_KEY); } catch {}
+}
+
 // ─── Component ───────────────────────────────────────────────────────
 
 export default function ReviewDetailPage() {
@@ -727,22 +749,28 @@ export default function ReviewDetailPage() {
 
   async function skipToNext() {
     fetch(`/api/reviews/${id}/claim`, { method: 'DELETE' }).catch(() => {});
-    // Use navigation.nextId if available (respects current filter)
-    if (data?.navigation.nextId) {
-      router.push(`/admin/review/${data.navigation.nextId}${filterQS}`);
-      return;
-    }
-    // Fallback: fetch from queue with same filters
+    // Track skipped IDs so repeated Skip clicks actually advance instead of
+    // ping-ponging between the same handful of in_review projects.
+    const skipped = getSkippedIds();
+    skipped.add(id);
+    saveSkippedIds(skipped);
     try {
       const params = new URLSearchParams();
       if (filterCategory) params.set('category', filterCategory);
       if (filterGuide) params.set('guide', filterGuide);
       if (filterPronouns) params.set('pronouns', filterPronouns);
-      params.set('limit', '10');
+      params.set('limit', '50');
       const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) {
         const { items } = await res.json();
-        const next = items.find((p: { id: string }) => p.id !== id);
+        let next = items.find((p: { id: string }) => p.id !== id && !skipped.has(p.id));
+        if (!next) {
+          // Exhausted the queue — reset so the user can cycle again.
+          clearSkippedIds();
+          const fresh = new Set<string>([id]);
+          saveSkippedIds(fresh);
+          next = items.find((p: { id: string }) => p.id !== id);
+        }
         if (next) {
           router.push(`/admin/review/${next.id}${filterQS}`);
           return;
