@@ -256,6 +256,7 @@ export async function GET(
   const navGuide = _request.nextUrl.searchParams.get("guide") || ""
   const navNameSearch = _request.nextUrl.searchParams.get("nameSearch") || ""
   const navPronouns = _request.nextUrl.searchParams.get("pronouns") || ""
+  const navAttendees = _request.nextUrl.searchParams.get("prioritizeAttending") === "true"
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navWhere: any = { deletedAt: null }
@@ -291,6 +292,12 @@ export async function GET(
     navWhere.user = {
       ...navWhere.user,
       pronouns: { contains: navPronouns, mode: "insensitive" },
+    }
+  }
+  if (navAttendees) {
+    navWhere.user = {
+      ...navWhere.user,
+      eventPreference: "stasis",
     }
   }
 
