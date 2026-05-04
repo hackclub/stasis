@@ -489,14 +489,14 @@ export default function ReviewQueuePage() {
 
           <button
             onClick={() => setPrioritizeAttending(!prioritizeAttending)}
-            title="Float projects from users attending the in-person event to the top"
+            title="Only show projects from users attending the in-person event"
             className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
               prioritizeAttending
                 ? 'border-orange-500 text-orange-400 bg-orange-500/10'
                 : 'border-cream-500/30 text-cream-100 hover:border-orange-500'
             }`}
           >
-            Prioritize Attendees
+            Filter Attendees
           </button>
           <select
             value={region}
