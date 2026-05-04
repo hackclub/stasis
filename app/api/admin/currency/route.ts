@@ -49,20 +49,28 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ entries, total, limit, offset })
 }
 
+const ALLOWED_TYPES = [
+  CurrencyTransactionType.ADMIN_GRANT,
+  CurrencyTransactionType.ADMIN_DEDUCTION,
+  CurrencyTransactionType.DESIGN_APPROVED,
+] as const
+
 /**
  * POST /api/admin/currency
  *
  * Creates a manual credit or debit ledger entry for a user.
- * Body: { userId, amount, note }
- *   amount > 0  → ADMIN_GRANT
- *   amount < 0  → ADMIN_DEDUCTION
+ * Body: { userId, amount, note, type? }
+ *   amount > 0  → defaults to ADMIN_GRANT
+ *   amount < 0  → defaults to ADMIN_DEDUCTION
+ *   type        → optional override; must be ADMIN_GRANT, ADMIN_DEDUCTION, or DESIGN_APPROVED
+ *                 (DESIGN_APPROVED with no projectId = pending bits not tied to a project)
  */
 export async function POST(request: NextRequest) {
   const authCheck = await requirePermission(Permission.MANAGE_CURRENCY)
   if (authCheck.error) return authCheck.error
 
   const body = await request.json()
-  const { userId: userIdOrEmail, amount, note } = body
+  const { userId: userIdOrEmail, amount, note, type: typeOverride } = body
 
   if (typeof userIdOrEmail !== "string" || !userIdOrEmail) {
     return NextResponse.json({ error: "userId or email is required" }, { status: 400 })
@@ -72,6 +80,12 @@ export async function POST(request: NextRequest) {
   }
   if (note !== undefined && typeof note !== "string") {
     return NextResponse.json({ error: "note must be a string" }, { status: 400 })
+  }
+  if (typeOverride !== undefined && !ALLOWED_TYPES.includes(typeOverride)) {
+    return NextResponse.json(
+      { error: `type must be one of: ${ALLOWED_TYPES.join(", ")}` },
+      { status: 400 }
+    )
   }
 
   // Resolve email to user ID if input contains @
@@ -83,7 +97,9 @@ export async function POST(request: NextRequest) {
   }
   const userId = user.id
 
-  const type = amount > 0 ? CurrencyTransactionType.ADMIN_GRANT : CurrencyTransactionType.ADMIN_DEDUCTION
+  const type =
+    typeOverride ??
+    (amount > 0 ? CurrencyTransactionType.ADMIN_GRANT : CurrencyTransactionType.ADMIN_DEDUCTION)
 
   const entry = await prisma.$transaction(async (tx) => {
     return appendLedgerEntry(tx, {
