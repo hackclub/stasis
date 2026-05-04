@@ -94,7 +94,7 @@ export async function sendInviteConfirmationEmail({
 
   try {
     await client.sendTransactionalEmail({
-      transactionalId: "cmnwfonft3vtg0i2tkdyc6g5o",
+      transactionalId: "cmorpusuw006s0iwwb6zwlr3m",
       email,
       dataVariables: {
         name: firstName,
