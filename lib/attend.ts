@@ -1,4 +1,5 @@
 import { sendInviteConfirmationEmail } from "@/lib/loops"
+import prisma from "@/lib/prisma"
 
 export function splitName(fullName: string | null | undefined): {
   firstName: string
@@ -13,6 +14,25 @@ export function splitName(fullName: string | null | undefined): {
   }
 }
 
+export type AttendRegisterResult =
+  | { ok: true; alreadyRegistered: boolean }
+  | { ok: false; status: number; body: string }
+  | { ok: false; skipped: true }
+
+const DUPLICATE_MARKERS = [
+  "already exists",
+  "already registered",
+  "already a participant",
+  "duplicate",
+  "has already been taken",
+]
+
+function looksLikeDuplicate(status: number, body: string): boolean {
+  if (status === 409) return true
+  const lower = body.toLowerCase()
+  return DUPLICATE_MARKERS.some((m) => lower.includes(m))
+}
+
 export async function registerAttendParticipant({
   firstName,
   lastName,
@@ -21,11 +41,11 @@ export async function registerAttendParticipant({
   firstName: string
   lastName: string
   email: string
-}): Promise<void> {
+}): Promise<AttendRegisterResult> {
   const apiKey = process.env.ATTEND_API_KEY
   if (!apiKey) {
     console.warn("ATTEND_API_KEY not configured, skipping Attend registration")
-    return
+    return { ok: false, skipped: true }
   }
 
   const resp = await fetch(
@@ -44,31 +64,84 @@ export async function registerAttendParticipant({
     }
   )
 
-  if (!resp.ok) {
-    const body = await resp.text().catch(() => "<no body>")
-    throw new Error(`Attend registration failed (${resp.status}): ${body}`)
+  if (resp.ok) return { ok: true, alreadyRegistered: false }
+
+  const body = await resp.text().catch(() => "<no body>")
+
+  if (looksLikeDuplicate(resp.status, body)) {
+    return { ok: true, alreadyRegistered: true }
   }
+
+  return { ok: false, status: resp.status, body }
 }
 
 /**
- * Fire-and-forget side effects when a user purchases the Stasis Event Invite.
- * Logs errors but never throws.
+ * TODO: Attend's GET endpoint is currently down. When it returns, implement this
+ * to fetch the participant list for periodic reconciliation.
+ *
+ * export async function listAttendParticipants(): Promise<Array<{ email: string }>>
+ */
+
+/**
+ * Side effects after a Stasis Event Invite is granted or purchased.
+ * Persists Attend registration outcome to User. Best-effort on Loops email.
+ * Never throws — caller doesn't need to wrap.
  */
 export async function runInvitePurchaseSideEffects({
+  userId,
   email,
   name,
 }: {
+  userId: string
   email: string
   name: string | null
 }): Promise<void> {
   const { firstName, lastName } = splitName(name)
 
-  await Promise.allSettled([
-    sendInviteConfirmationEmail({ email, firstName }).catch((err) =>
+  const [, attendResult] = await Promise.all([
+    sendInviteConfirmationEmail({ email, firstName }).catch((err) => {
       console.error("[invite-side-effects] Loops email failed:", err)
-    ),
-    registerAttendParticipant({ firstName, lastName, email }).catch((err) =>
-      console.error("[invite-side-effects] Attend registration failed:", err)
+    }),
+    registerAttendParticipant({ firstName, lastName, email }).catch(
+      (err): AttendRegisterResult => ({
+        ok: false,
+        status: 0,
+        body: err instanceof Error ? err.message : String(err),
+      })
     ),
   ])
+
+  if (attendResult.ok) {
+    await prisma.user
+      .update({
+        where: { id: userId },
+        data: {
+          attendRegisteredAt: new Date(),
+          attendLastError: null,
+        },
+      })
+      .catch((err) =>
+        console.error(
+          "[invite-side-effects] Failed to write attend success status:",
+          err
+        )
+      )
+  } else if ("skipped" in attendResult) {
+    // ATTEND_API_KEY not configured — already warned, no DB write
+  } else {
+    const errMsg =
+      `[${attendResult.status}] ${attendResult.body}`.slice(0, 500)
+    console.error("[invite-side-effects] Attend registration failed:", errMsg)
+    await prisma.user
+      .update({
+        where: { id: userId },
+        data: { attendLastError: errMsg },
+      })
+      .catch((err) =>
+        console.error(
+          "[invite-side-effects] Failed to write attend error status:",
+          err
+        )
+      )
+  }
 }

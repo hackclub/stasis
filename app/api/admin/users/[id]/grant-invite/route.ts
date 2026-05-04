@@ -2,9 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
-import { SHOP_ITEM_IDS } from "@/lib/shop"
 import { runInvitePurchaseSideEffects } from "@/lib/attend"
-import { Prisma } from "@/app/generated/prisma/client"
 
 export async function POST(
   _request: Request,
@@ -17,53 +15,40 @@ export async function POST(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, attendRegisteredAt: true },
   })
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      const existing = await tx.currencyTransaction.count({
-        where: {
-          userId,
-          type: "SHOP_PURCHASE",
-          shopItemId: SHOP_ITEM_IDS.STASIS_EVENT_INVITE,
-        },
-      })
-      if (existing > 0) throw new Error("ALREADY_INVITED")
-
-      const sumRow = await tx.currencyTransaction.aggregate({
-        where: { userId },
-        _sum: { amount: true },
-      })
-      const balance = sumRow._sum.amount ?? 0
-
-      await tx.currencyTransaction.create({
-        data: {
-          userId,
-          amount: 0,
-          type: "SHOP_PURCHASE",
-          shopItemId: SHOP_ITEM_IDS.STASIS_EVENT_INVITE,
-          note: `Admin grant by ${authCheck.session.user.email}`,
-          balanceBefore: balance,
-          balanceAfter: balance,
-          createdBy: authCheck.session.user.id,
-        },
-      })
-    }, {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    })
-  } catch (err) {
-    if (err instanceof Error && err.message === "ALREADY_INVITED") {
-      return NextResponse.json({ error: "User already has an invite" }, { status: 409 })
-    }
-    console.error("[admin/grant-invite] Failed to create invite row:", err)
-    return NextResponse.json({ error: "Failed to grant invite" }, { status: 500 })
+  if (user.attendRegisteredAt) {
+    return NextResponse.json(
+      { error: "User is already registered on Attend" },
+      { status: 409 }
+    )
   }
 
-  await runInvitePurchaseSideEffects({ email: user.email, name: user.name })
+  await runInvitePurchaseSideEffects({
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+  })
+
+  // Re-read to learn whether registration actually succeeded
+  const after = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { attendRegisteredAt: true, attendLastError: true },
+  })
+
+  if (!after?.attendRegisteredAt) {
+    return NextResponse.json(
+      {
+        error: "Attend registration failed",
+        detail: after?.attendLastError ?? null,
+      },
+      { status: 502 }
+    )
+  }
 
   await prisma.auditLog.create({
     data: {

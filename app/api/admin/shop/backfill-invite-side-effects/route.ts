@@ -3,64 +3,44 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { runInvitePurchaseSideEffects } from "@/lib/attend"
+import { SHOP_ITEM_IDS } from "@/lib/shop"
 
 export async function POST() {
   const authCheck = await requirePermission(Permission.MANAGE_USERS)
   if (authCheck.error) return authCheck.error
 
-  // Find all users who purchased the Stasis Event Invite
-  const purchases = await prisma.currencyTransaction.findMany({
+  // Find users who paid for a Stasis Event Invite but aren't yet on Attend.
+  // Granted users go through the GRANT route directly, so this is strictly
+  // the "paid but registration failed" retry path.
+  const candidates = await prisma.user.findMany({
     where: {
-      type: "SHOP_PURCHASE",
-      shopItemId: "stasis-event-invite",
-    },
-    select: {
-      userId: true,
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
+      attendRegisteredAt: null,
+      currencyTransactions: {
+        some: {
+          type: "SHOP_PURCHASE",
+          shopItemId: SHOP_ITEM_IDS.STASIS_EVENT_INVITE,
+          amount: { lt: 0 },
         },
       },
     },
-    distinct: ["userId"],
+    select: { id: true, email: true, name: true },
   })
-
-  // Find users already processed (idempotency guard)
-  const alreadyProcessed = await prisma.auditLog.findMany({
-    where: {
-      action: "ADMIN_BACKFILL_INVITE",
-      targetType: "user",
-      targetId: { in: purchases.map((p) => p.userId) },
-    },
-    select: { targetId: true },
-  })
-
-  const processedIds = new Set(alreadyProcessed.map((a) => a.targetId))
-  const toProcess = purchases.filter((p) => !processedIds.has(p.userId))
 
   // Respond immediately, run in background
-  runBackfill(
-    toProcess.map((p) => p.user),
-    authCheck.session.user.id,
-    authCheck.session.user.email
-  ).catch((err) =>
+  runBackfill(candidates).catch((err) =>
     console.error("[backfill-invite-side-effects] Unexpected error:", err)
   )
 
   return NextResponse.json({
     message: "Backfill started",
-    total: purchases.length,
-    skipped: processedIds.size,
-    processing: toProcess.length,
+    processing: candidates.length,
+    skipped: 0,
+    total: candidates.length,
   })
 }
 
 async function runBackfill(
-  users: Array<{ id: string; email: string; name: string | null }>,
-  adminId: string,
-  adminEmail: string
+  users: Array<{ id: string; email: string; name: string | null }>
 ) {
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -82,22 +62,17 @@ async function runBackfill(
       )
 
       await runInvitePurchaseSideEffects({
+        userId: user.id,
         email: user.email,
         name: user.name,
       })
 
-      // Mark as processed so re-runs skip this user
-      await prisma.auditLog.create({
-        data: {
-          action: "ADMIN_BACKFILL_INVITE",
-          actorId: adminId,
-          actorEmail: adminEmail,
-          targetType: "user",
-          targetId: user.id,
-        },
+      const after = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { attendRegisteredAt: true },
       })
-
-      succeeded++
+      if (after?.attendRegisteredAt) succeeded++
+      else failed++
     } catch (err) {
       console.error(
         `[backfill-invite-side-effects] Error for user ${user.id}:`,

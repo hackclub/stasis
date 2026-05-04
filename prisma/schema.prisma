@@ -91,6 +91,11 @@ model User {
   signupPage         String?
   timezone           String?   // IANA timezone, e.g. "America/New_York" — updated on each authenticated request that sends tz
 
+  // Attend platform registration status — independent from shop ticket purchase
+  attendRegisteredAt DateTime?
+  attendLastSyncedAt DateTime?
+  attendLastError    String?
+
   // Encrypted PII fields (AES-256-GCM) — only populated when PULL_HCA_PII is set
   encryptedAddressStreet  String?
   encryptedAddressCity    String?

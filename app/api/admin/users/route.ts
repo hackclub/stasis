@@ -160,6 +160,7 @@ export async function GET(request: NextRequest) {
         encryptedAddressState: true,
         encryptedAddressZip: true,
         encryptedAddressCountry: true,
+        attendRegisteredAt: true,
         projects: {
           select: {
             id: true,
@@ -232,7 +233,8 @@ export async function GET(request: NextRequest) {
       encryptedAddressCountry: undefined,
       designBits,
       totalBits,
-      hasEventInvite: shopTxns.some(
+      attendRegistered: !!user.attendRegisteredAt,
+      shopTicketPurchased: shopTxns.some(
         (t) => t.shopItemId === SHOP_ITEM_IDS.STASIS_EVENT_INVITE
       ),
       flightStipend: shopTxns

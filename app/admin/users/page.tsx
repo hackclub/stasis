@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { GOAL_LABELS, type GoalPreference, getTierById } from '@/lib/tiers';
 import { totalBomCost } from '@/lib/format';
+import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface ProjectBadge {
   id: string;
@@ -65,7 +66,8 @@ interface AdminUser {
   totalHoursApproved: number;
   designBits: number;
   totalBits: number;
-  hasEventInvite: boolean;
+  attendRegistered: boolean;
+  shopTicketPurchased: boolean;
   flightStipend: number;
   shopPurchaseCount: number;
   projects: Project[];
@@ -125,6 +127,8 @@ export default function AdminUsersPage() {
   const [inviteBackfillResult, setInviteBackfillResult] = useState<{ message: string; total: number; skipped: number; processing: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [purchasesModal, setPurchasesModal] = useState<{ user: AdminUser; purchases: UserPurchase[] } | null>(null);
+  const [grantConfirm, setGrantConfirm] = useState<AdminUser | null>(null);
+  const [grantError, setGrantError] = useState<string | null>(null);
   const [loadingPurchases, setLoadingPurchases] = useState<string | null>(null);
   const [grantingInvite, setGrantingInvite] = useState<string | null>(null);
 
@@ -218,25 +222,23 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function grantInvite(user: AdminUser) {
-    if (!confirm(`Grant a Stasis Event Invite to ${user.name || user.email}? This will register them on Attend and send the confirmation email.`)) {
-      return;
-    }
+  async function performGrant(user: AdminUser) {
     setGrantingInvite(user.id);
     try {
       const res = await fetch(`/api/admin/users/${user.id}/grant-invite`, { method: 'POST' });
       if (res.ok) {
         setData(prev => prev ? {
           ...prev,
-          items: prev.items.map(u => u.id === user.id ? { ...u, hasEventInvite: true } : u),
+          items: prev.items.map(u => u.id === user.id ? { ...u, attendRegistered: true } : u),
         } : prev);
       } else {
         const body = await res.json().catch(() => ({}));
-        alert(`Failed to grant invite: ${body.error || res.statusText}`);
+        const detail = body.detail ? `\n\nDetail: ${body.detail}` : '';
+        setGrantError(`${body.error || res.statusText}${detail}`);
       }
     } catch (error) {
       console.error('Failed to grant invite:', error);
-      alert('Failed to grant invite');
+      setGrantError('Network error while granting invite.');
     } finally {
       setGrantingInvite(null);
     }
@@ -553,7 +555,7 @@ export default function AdminUsersPage() {
               <span className="text-cream-400">|</span>
               <button
                 onClick={() => {
-                  if (confirm('Send Loops invite email and register on Attend for all Stasis Event Invite purchasers? Already-processed users will be skipped.')) {
+                  if (confirm('Retry Attend registration for all paid Stasis ticket purchasers who are not yet on Attend (also resends Loops email). Users already on Attend are skipped.')) {
                     backfillInviteSideEffects();
                   }
                 }}
@@ -757,16 +759,16 @@ export default function AdminUsersPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-cream-200 uppercase text-xs mb-1">Event Invite</p>
-                          {user.hasEventInvite ? (
-                            <p className="text-green-600">Purchased ✓</p>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Attend</p>
+                          {user.attendRegistered ? (
+                            <p className="text-green-600">Yes ✓</p>
                           ) : (
                             <div className="flex items-center gap-2">
                               <p className="text-cream-50">No</p>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  grantInvite(user);
+                                  setGrantConfirm(user);
                                 }}
                                 disabled={grantingInvite === user.id}
                                 className="px-2 py-1 text-[10px] uppercase bg-orange-500 text-cream-50 hover:bg-orange-400 transition-colors cursor-pointer disabled:opacity-50"
@@ -774,6 +776,14 @@ export default function AdminUsersPage() {
                                 {grantingInvite === user.id ? 'Granting...' : 'Grant'}
                               </button>
                             </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-cream-200 uppercase text-xs mb-1">Shop Ticket</p>
+                          {user.shopTicketPurchased ? (
+                            <p className="text-green-600">Bought ✓</p>
+                          ) : (
+                            <p className="text-cream-50">No</p>
                           )}
                         </div>
                         <div>
@@ -1146,6 +1156,32 @@ export default function AdminUsersPage() {
               </div>
             </div>
           )}
+
+          <ConfirmModal
+            isOpen={grantConfirm !== null}
+            title="Register on Attend?"
+            message={grantConfirm ? `Register ${grantConfirm.name || grantConfirm.email} on Attend and send the Stasis confirmation email. This does not write a shop purchase row — they can still buy the ticket separately.` : ''}
+            confirmLabel="Register"
+            cancelLabel="Cancel"
+            variant="info"
+            onConfirm={() => {
+              const user = grantConfirm;
+              setGrantConfirm(null);
+              if (user) performGrant(user);
+            }}
+            onCancel={() => setGrantConfirm(null)}
+          />
+
+          <ConfirmModal
+            isOpen={grantError !== null}
+            title="Grant failed"
+            message={grantError ?? ''}
+            variant="error"
+            singleButton
+            confirmLabel="OK"
+            onConfirm={() => setGrantError(null)}
+            onCancel={() => setGrantError(null)}
+          />
 
           {/* Purchases Modal */}
           {purchasesModal && (

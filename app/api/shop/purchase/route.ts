@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { SHOP_ITEMS, SHOP_ITEM_IDS, EVENT_INVITE_IDS, REQUIRES_STASIS_INVITE_IDS, PENDING_BITS_ELIGIBLE_IDS } from "@/lib/shop"
+import { SHOP_ITEMS, SHOP_ITEM_IDS, REQUIRES_STASIS_INVITE_IDS, PENDING_BITS_ELIGIBLE_IDS } from "@/lib/shop"
 import { Prisma } from "@/app/generated/prisma/client"
 import { runInvitePurchaseSideEffects } from "@/lib/attend"
 
@@ -33,30 +33,37 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Flight stipend requires owning any event invite first
+      // Flight stipend requires being on Attend (Stasis attendees)
+      // OR an Open Sauce ticket purchase (separate event, not on Attend).
       if (itemId === SHOP_ITEM_IDS.FLIGHT_STIPEND) {
-        const hasInvite = await tx.currencyTransaction.count({
-          where: {
-            userId,
-            type: "SHOP_PURCHASE",
-            shopItemId: { in: EVENT_INVITE_IDS as unknown as string[] },
-          },
+        const userRow = await tx.user.findUnique({
+          where: { id: userId },
+          select: { attendRegisteredAt: true },
         })
-        if (hasInvite === 0) {
+        const onAttend = !!userRow?.attendRegisteredAt
+        let eligible = onAttend
+        if (!eligible) {
+          const hasOpenSauce = await tx.currencyTransaction.count({
+            where: {
+              userId,
+              type: "SHOP_PURCHASE",
+              shopItemId: SHOP_ITEM_IDS.OPEN_SAUCE_TICKET,
+            },
+          })
+          eligible = hasOpenSauce > 0
+        }
+        if (!eligible) {
           throw new Error("REQUIRES_EVENT_INVITE")
         }
       }
 
-      // Accommodation items require the Stasis Event Invite specifically
+      // Accommodation items require Attend membership (Stasis-specific).
       if ((REQUIRES_STASIS_INVITE_IDS as readonly string[]).includes(itemId)) {
-        const hasStasisInvite = await tx.currencyTransaction.count({
-          where: {
-            userId,
-            type: "SHOP_PURCHASE",
-            shopItemId: SHOP_ITEM_IDS.STASIS_EVENT_INVITE,
-          },
+        const userRow = await tx.user.findUnique({
+          where: { id: userId },
+          select: { attendRegisteredAt: true },
         })
-        if (hasStasisInvite === 0) {
+        if (!userRow?.attendRegisteredAt) {
           throw new Error("REQUIRES_STASIS_INVITE")
         }
       }
@@ -143,6 +150,7 @@ export async function POST(request: NextRequest) {
     // Fire-and-forget side effects for Stasis Event Invite purchases
     if (itemId === SHOP_ITEM_IDS.STASIS_EVENT_INVITE) {
       runInvitePurchaseSideEffects({
+        userId,
         email: session.user.email,
         name: session.user.name,
       }).catch((err) =>
@@ -154,10 +162,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "REQUIRES_EVENT_INVITE") {
-        return NextResponse.json({ error: "You must purchase an Event Invite before buying Flight Stipends" }, { status: 400 })
+        return NextResponse.json({ error: "You must be invited to an event before buying Flight Stipends" }, { status: 400 })
       }
       if (error.message === "REQUIRES_STASIS_INVITE") {
-        return NextResponse.json({ error: "You must purchase the Stasis Event Invite before buying accommodation" }, { status: 400 })
+        return NextResponse.json({ error: "You must be invited to Stasis before buying accommodation" }, { status: 400 })
       }
       if (error.message === "ALREADY_PURCHASED") {
         return NextResponse.json({ error: "You already own this item" }, { status: 400 })
