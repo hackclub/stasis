@@ -1160,7 +1160,7 @@ export default function AdminUsersPage() {
           <ConfirmModal
             isOpen={grantConfirm !== null}
             title="Register on Attend?"
-            message={grantConfirm ? `Register ${grantConfirm.name || grantConfirm.email} on Attend and send the Stasis confirmation email. This does not write a shop purchase row — they can still buy the ticket separately.` : ''}
+            message={grantConfirm ? `Register ${grantConfirm.name || grantConfirm.email} on Attend and send the Stasis confirmation email. This deducts 350 bits from their balance — they will go into debt if they haven't earned that yet.` : ''}
             confirmLabel="Register"
             cancelLabel="Cancel"
             variant="info"
