@@ -249,7 +249,7 @@ function ModalBody({
             ) : null}
             {c.isExternal ? <FlagPill label="External" /> : null}
           </div>
-          <div className="text-xs text-cream-300 mt-1 flex items-center gap-3 flex-wrap font-mono">
+          <div className="text-xs text-cream-300 mt-1 flex items-center gap-3 flex-wrap">
             {c.email ? <span>{c.email}</span> : null}
             {c.slackId ? (
               <a
@@ -334,7 +334,7 @@ function ModalBody({
         </Section>
 
         {/* Comms log */}
-        <Section title="Communications log" right={<span className="text-[10px] uppercase tracking-wider text-cream-400 font-mono">{data.commsEntries.length} entries</span>}>
+        <Section title="Communications log" right={<span className="text-[10px] uppercase tracking-wider text-cream-400">{data.commsEntries.length} entries</span>}>
           <CommsLog
             candidateId={c.id}
             entries={data.commsEntries}
@@ -373,9 +373,9 @@ function ModalBody({
                     rel="noreferrer"
                     className="flex items-center gap-3 px-3 py-2 hover:bg-brown-800/40 group"
                   >
-                    <span className="text-xs font-mono text-cream-300 w-12">T{p.tier ?? '–'}</span>
+                    <span className="text-xs text-cream-300 w-12">T{p.tier ?? '–'}</span>
                     <span className="text-sm text-cream-50 group-hover:text-orange-400 flex-1 truncate">{p.title}</span>
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-cream-300">{statusShort(p.designStatus, p.buildStatus)}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-cream-300">{statusShort(p.designStatus, p.buildStatus)}</span>
                     <span className="text-xs text-cream-300 w-14 text-right">{p.hoursClaimed.toFixed(1)}h</span>
                   </a>
                 ))}
@@ -391,7 +391,7 @@ function ModalBody({
             <button
               onClick={syncAttend}
               disabled={savingField === 'attend'}
-              className="text-[10px] uppercase tracking-wider text-orange-400 hover:text-orange-300 disabled:opacity-40 font-mono cursor-pointer"
+              className="text-[10px] uppercase tracking-wider text-orange-400 hover:text-orange-300 disabled:opacity-40 cursor-pointer"
             >{savingField === 'attend' ? 'Syncing…' : 'Sync now'}</button>
           }
         >
@@ -418,8 +418,8 @@ function ModalBody({
               </div>
               {data.attend.travel?.inbound ? (
                 <div className="text-xs border-t border-brown-700/60 pt-2">
-                  <div className="text-cream-400 uppercase tracking-wider text-[10px] font-mono mb-1">Inbound flight</div>
-                  <div className="text-cream-100 font-mono">
+                  <div className="text-cream-400 uppercase tracking-wider text-[10px] mb-1">Inbound flight</div>
+                  <div className="text-cream-100">
                     {data.attend.travel.inbound.flightCode ?? '—'} · {data.attend.travel.inbound.departureAirport ?? '?'} → {data.attend.travel.inbound.arrivalAirport ?? '?'}
                     {data.attend.travel.inbound.confirmationCode ? <> · conf <span className="text-orange-400">{data.attend.travel.inbound.confirmationCode}</span></> : null}
                   </div>
@@ -430,8 +430,8 @@ function ModalBody({
               ) : null}
               {data.attend.travel?.outbound ? (
                 <div className="text-xs border-t border-brown-700/60 pt-2">
-                  <div className="text-cream-400 uppercase tracking-wider text-[10px] font-mono mb-1">Outbound flight</div>
-                  <div className="text-cream-100 font-mono">
+                  <div className="text-cream-400 uppercase tracking-wider text-[10px] mb-1">Outbound flight</div>
+                  <div className="text-cream-100">
                     {data.attend.travel.outbound.flightCode ?? '—'} · {data.attend.travel.outbound.departureAirport ?? '?'} → {data.attend.travel.outbound.arrivalAirport ?? '?'}
                     {data.attend.travel.outbound.confirmationCode ? <> · conf <span className="text-orange-400">{data.attend.travel.outbound.confirmationCode}</span></> : null}
                   </div>
@@ -440,7 +440,7 @@ function ModalBody({
             </div>
           )}
           {data.candidate.attendCachedAt ? (
-            <div className="text-[10px] text-cream-400 mt-2 font-mono">Cached badge updated {relativeTime(data.candidate.attendCachedAt)}</div>
+            <div className="text-[10px] text-cream-400 mt-2">Cached badge updated {relativeTime(data.candidate.attendCachedAt)}</div>
           ) : null}
         </Section>
 
@@ -448,7 +448,7 @@ function ModalBody({
         <div>
           <button
             onClick={() => setShowAudit(!showAudit)}
-            className="text-[10px] uppercase tracking-wider text-cream-400 hover:text-cream-200 font-mono cursor-pointer"
+            className="text-[10px] uppercase tracking-wider text-cream-400 hover:text-cream-200 cursor-pointer"
           >
             {showAudit ? '▾' : '▸'} Audit log ({data.auditEntries.length})
           </button>
@@ -459,10 +459,10 @@ function ModalBody({
               ) : data.auditEntries.map((a) => (
                 <div key={a.id} className="px-3 py-1.5 flex items-center gap-2 text-cream-200">
                   <span className="text-cream-400 w-20 truncate">{a.actor?.name ?? a.actor?.email ?? 'system'}</span>
-                  <span className="font-mono text-cream-300">{a.field}</span>
+                  <span className="text-cream-300">{a.field}</span>
                   <span className="text-cream-400">→</span>
-                  <span className="font-mono text-cream-100 truncate flex-1">{a.newValue ?? '∅'}</span>
-                  <span className="text-cream-400 text-[10px] font-mono">{relativeTime(a.createdAt)}</span>
+                  <span className="text-cream-100 truncate flex-1">{a.newValue ?? '∅'}</span>
+                  <span className="text-cream-400 text-[10px]">{relativeTime(a.createdAt)}</span>
                 </div>
               ))}
             </div>
@@ -484,7 +484,7 @@ function Section({ title, right, children }: Readonly<{ title: string; right?: R
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-orange-500 text-xs uppercase tracking-widest font-mono">{title}</h3>
+        <h3 className="text-orange-500 text-xs uppercase tracking-widest">{title}</h3>
         {right}
       </div>
       {children}
@@ -495,7 +495,7 @@ function Section({ title, right, children }: Readonly<{ title: string; right?: R
 function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <div>
-      <label className="block text-[10px] uppercase tracking-wider text-cream-400 font-mono mb-1">{label}</label>
+      <label className="block text-[10px] uppercase tracking-wider text-cream-400 mb-1">{label}</label>
       {children}
     </div>
   );
@@ -504,8 +504,8 @@ function Field({ label, children }: Readonly<{ label: string; children: React.Re
 function Stat({ label, value, hint, muted }: Readonly<{ label: string; value: string | number; hint?: string; muted?: boolean }>) {
   return (
     <div className={`border border-brown-700 px-2.5 py-1.5 ${muted ? 'opacity-70' : ''}`}>
-      <div className="text-[10px] uppercase tracking-wider text-cream-400 font-mono">{label}</div>
-      <div className="text-cream-50 font-mono text-sm mt-0.5">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider text-cream-400">{label}</div>
+      <div className="text-cream-50 text-sm mt-0.5">{value}</div>
       {hint ? <div className="text-[9px] text-cream-400 mt-0.5">{hint}</div> : null}
     </div>
   );

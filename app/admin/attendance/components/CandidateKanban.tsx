@@ -37,19 +37,19 @@ export function CandidateKanban({
               {/* Column header — instrumented bracket, no nested card */}
               <div className="flex items-baseline justify-between gap-2 pb-2 mb-3 border-b border-dashed border-brown-700">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <span className="text-[10px] font-mono text-cream-500 tabular-nums">{rank}</span>
-                  <span className="text-[10px] uppercase tracking-widest font-mono text-cream-100 truncate">
+                  <span className="text-[10px] text-cream-500 tabular-nums">{rank}</span>
+                  <span className="text-[10px] uppercase tracking-widest text-cream-100 truncate">
                     {KANBAN_LABEL[col]}
                   </span>
                 </div>
-                <span className="text-[11px] font-mono text-cream-200 tabular-nums">{items.length}</span>
+                <span className="text-[11px] text-cream-200 tabular-nums">{items.length}</span>
               </div>
               <div className="flex-1 space-y-3 min-h-[120px] max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
                 {items.map((r) => (
                   <KanbanCard key={r.id} row={r} onOpen={onOpen} />
                 ))}
                 {items.length === 0 ? (
-                  <div className="text-[10px] text-cream-500 font-mono uppercase tracking-wider px-0.5 py-3 border border-dashed border-brown-800">
+                  <div className="text-[10px] text-cream-500 uppercase tracking-wider px-0.5 py-3 border border-dashed border-brown-800">
                     · empty ·
                   </div>
                 ) : null}
@@ -78,13 +78,13 @@ function KanbanCard({ row, onOpen }: Readonly<{ row: CandidateRow; onOpen: (id: 
         <div className="flex-1 min-w-0">
           <div className="text-cream-50 text-xs truncate leading-tight">{row.name ?? row.email ?? '?'}</div>
           {row.owner ? (
-            <div className="text-[10px] text-cream-400 font-mono truncate mt-0.5">→ {row.owner.name?.split(' ')[0] ?? row.owner.email}</div>
+            <div className="text-[10px] text-cream-400 truncate mt-0.5">→ {row.owner.name?.split(' ')[0] ?? row.owner.email}</div>
           ) : null}
         </div>
       </div>
 
       {/* Meta zone — separated by hairline rule for rhythm */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 mt-2.5 border-t border-brown-700/50 text-[10px] font-mono">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 mt-2.5 border-t border-brown-700/50 text-[10px]">
         <div className="flex items-center gap-1.5 text-cream-300 tabular-nums">
           {row.realBits > 0 ? <span className="text-cream-100">{row.realBits}b</span> : <span className="text-cream-500">·</span>}
           {row.projectCount > 0 ? <span className="text-cream-500">/{row.projectCount}p</span> : null}

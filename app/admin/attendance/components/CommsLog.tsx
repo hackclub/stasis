@@ -93,13 +93,13 @@ export function CommsLog({
           disabled={submitting}
         />
         <div className="flex items-center justify-between border-t border-brown-700/60 px-3 py-1.5">
-          <span className="text-[10px] uppercase tracking-wider text-cream-400 font-mono">
+          <span className="text-[10px] uppercase tracking-wider text-cream-400">
             Enter sends · Shift+Enter newline
           </span>
           <button
             onClick={submit}
             disabled={!draft.trim() || submitting}
-            className="text-[10px] uppercase tracking-wider text-orange-400 hover:text-orange-300 disabled:opacity-40 disabled:cursor-not-allowed font-mono px-2 py-0.5 cursor-pointer"
+            className="text-[10px] uppercase tracking-wider text-orange-400 hover:text-orange-300 disabled:opacity-40 disabled:cursor-not-allowed px-2 py-0.5 cursor-pointer"
           >
             {submitting ? 'Logging…' : 'Log'}
           </button>
@@ -119,7 +119,7 @@ export function CommsLog({
                   <span className="text-xs text-cream-100 font-medium">
                     {e.author.name ?? e.author.email}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-cream-400 font-mono" title={new Date(e.createdAt).toLocaleString()}>
+                  <span className="text-[10px] uppercase tracking-wider text-cream-400" title={new Date(e.createdAt).toLocaleString()}>
                     {relativeTime(e.createdAt)}
                   </span>
                   <button

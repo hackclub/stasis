@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Avatar } from './Avatar';
 import { StatusPill, FlagPill } from './StatusPill';
 import { CandidateRow, relativeTime, touchHealth } from '../lib/types';
@@ -15,11 +15,23 @@ const TOUCH_DOT: Record<ReturnType<typeof touchHealth>, string> = {
 export function CandidateTable({
   rows,
   onOpen,
+  highlightedId,
+  onHighlight,
 }: Readonly<{
   rows: CandidateRow[];
   onOpen: (id: string) => void;
+  highlightedId?: string | null;
+  onHighlight?: (id: string | null) => void;
 }>) {
   const sorted = useMemo(() => rows, [rows]);
+  const highlightedRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    if (highlightedId && highlightedRef.current) {
+      highlightedRef.current.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightedId]);
+
   if (sorted.length === 0) {
     return <EmptyState />;
   }
@@ -27,11 +39,11 @@ export function CandidateTable({
     <div className="border border-brown-700 overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead className="bg-brown-800/60 border-b border-brown-700">
-          <tr className="text-left text-[10px] uppercase tracking-wider text-cream-400 font-mono">
+          <tr className="text-left text-[10px] uppercase tracking-wider text-cream-400">
             <th className="px-4 py-2.5 font-normal">Person</th>
             <th className="px-4 py-2.5 font-normal">Status</th>
             <th className="px-4 py-2.5 font-normal">Owner</th>
-            <th className="px-4 py-2.5 font-normal text-right">Effort</th>
+            <th className="px-4 py-2.5 font-normal text-right" title="Real bits earned (project approvals only) / project count">Engagement</th>
             <th className="px-4 py-2.5 font-normal">Last touch</th>
             <th className="px-4 py-2.5 font-normal">Notes</th>
             <th className="px-4 py-2.5 font-normal">Flags</th>
@@ -42,18 +54,21 @@ export function CandidateTable({
             const lastIso = r.lastComms?.createdAt ?? null;
             const health = touchHealth(lastIso);
             const isSnoozed = !!r.snoozedUntil && new Date(r.snoozedUntil) > new Date();
+            const isHighlighted = highlightedId === r.id;
             return (
               <tr
                 key={r.id}
+                ref={isHighlighted ? highlightedRef : null}
                 onClick={() => onOpen(r.id)}
-                className={`hover:bg-brown-800/40 cursor-pointer transition-colors ${isSnoozed ? 'opacity-60' : ''}`}
+                onMouseEnter={() => onHighlight?.(r.id)}
+                className={`cursor-pointer transition-colors ${isHighlighted ? 'bg-orange-500/10 outline outline-1 outline-orange-500/40 -outline-offset-1' : 'hover:bg-brown-800/40'} ${isSnoozed ? 'opacity-60' : ''}`}
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Avatar name={r.name} email={r.email} image={r.image} size={28} />
                     <div className="min-w-0">
                       <div className="text-cream-50 truncate">{r.name ?? r.email ?? '?'}</div>
-                      <div className="text-[10px] text-cream-400 font-mono truncate">
+                      <div className="text-[10px] text-cream-400 truncate tabular-nums">
                         {r.email}{r.slackId ? ` · ${r.slackId}` : ''}
                       </div>
                     </div>
@@ -67,10 +82,10 @@ export function CandidateTable({
                       <span className="text-cream-200 text-xs">{r.owner.name?.split(' ')[0] ?? r.owner.email}</span>
                     </div>
                   ) : (
-                    <span className="text-[10px] uppercase tracking-wider text-cream-400 font-mono">—</span>
+                    <span className="text-[10px] uppercase tracking-wider text-cream-400">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-cream-100">
+                <td className="px-4 py-3 text-right text-cream-100 tabular-nums">
                   {r.realBits > 0 ? (
                     <span title="Real bits (project approvals only, no admin grants)">{r.realBits}b</span>
                   ) : (
@@ -83,11 +98,11 @@ export function CandidateTable({
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]}`} aria-hidden />
-                    <span className="text-xs text-cream-200 font-mono whitespace-nowrap">
+                    <span className="text-xs text-cream-200 whitespace-nowrap tabular-nums">
                       {lastIso ? relativeTime(lastIso) : '—'}
                     </span>
                     {r.commsCount > 1 ? (
-                      <span className="text-[10px] text-cream-400 font-mono">·{r.commsCount}</span>
+                      <span className="text-[10px] text-cream-400 tabular-nums">·{r.commsCount}</span>
                     ) : null}
                   </div>
                 </td>
@@ -98,11 +113,11 @@ export function CandidateTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 flex-wrap">
-                    {r.attendInvited ? <FlagPill label="A" tone="positive" /> : null}
-                    {r.attendFlightBooked ? <FlagPill label="✈" tone="positive" /> : null}
-                    {isSnoozed ? <FlagPill label="zz" tone="snooze" /> : null}
-                    {!r.userId ? <FlagPill label="ext" /> : null}
-                    {r.remindersCount > 0 ? <FlagPill label={`${r.remindersCount}r`} tone="caution" /> : null}
+                    {r.attendInvited ? <FlagPill label="A" tone="positive" title="Attend invited" /> : null}
+                    {r.attendFlightBooked ? <FlagPill label="✈" tone="positive" title="Flight booked" /> : null}
+                    {isSnoozed ? <FlagPill label="zz" tone="snooze" title={`Snoozed until ${new Date(r.snoozedUntil!).toLocaleDateString()}`} /> : null}
+                    {!r.userId ? <FlagPill label="ext" title="External — no Stasis account" /> : null}
+                    {r.remindersCount > 0 ? <FlagPill label={`${r.remindersCount}r`} tone="caution" title={`${r.remindersCount} reminder${r.remindersCount === 1 ? '' : 's'} set`} /> : null}
                   </div>
                 </td>
               </tr>
@@ -118,7 +133,7 @@ function EmptyState() {
   return (
     <div className="border border-dashed border-brown-700 p-12 text-center">
       <div className="text-cream-200 text-sm">No candidates yet.</div>
-      <div className="text-cream-400 text-xs mt-1">Click <span className="font-mono text-orange-400">+ Add candidate</span> to start tracking someone.</div>
+      <div className="text-cream-400 text-xs mt-1">Click <span className="text-orange-400">+ Add candidate</span> to start tracking someone.</div>
     </div>
   );
 }
