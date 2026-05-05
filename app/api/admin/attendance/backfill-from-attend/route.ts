@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
       if (sample.length < 20) sample.push({ email: r.email, outcome: "skip (linked exists)", status: r.status })
       continue
     }
-    if (!userId && existingByExternalEmail.has(r.email)) {
+    if (existingByExternalEmail.has(r.email)) {
       skippedExisting += 1
       if (sample.length < 20) sample.push({ email: r.email, outcome: "skip (external exists)", status: r.status })
       continue
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       if (sample.length < 20) sample.push({ email: p.email, outcome: "skip (linked exists)", status: "pending" })
       continue
     }
-    if (!userId && existingByExternalEmail.has(p.email)) {
+    if (existingByExternalEmail.has(p.email)) {
       skippedExisting += 1
       if (sample.length < 20) sample.push({ email: p.email, outcome: "skip (external exists)", status: "pending" })
       continue
