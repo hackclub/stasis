@@ -93,13 +93,13 @@ export function CommsLog({
           disabled={submitting}
         />
         <div className="flex items-center justify-between border-t border-brown-700/60 px-3 py-1.5">
-          <span className="text-[10px] uppercase tracking-wider text-cream-400">
+          <span className="text-xs uppercase tracking-widest font-medium text-cream-300">
             Enter sends · Shift+Enter newline
           </span>
           <button
             onClick={submit}
             disabled={!draft.trim() || submitting}
-            className="text-[10px] uppercase tracking-wider text-orange-400 hover:text-orange-300 disabled:opacity-40 disabled:cursor-not-allowed px-2 py-0.5 cursor-pointer"
+            className="text-xs uppercase tracking-widest font-medium text-orange-400 hover:text-orange-300 disabled:opacity-40 disabled:cursor-not-allowed px-2 py-0.5 cursor-pointer"
           >
             {submitting ? 'Logging…' : 'Log'}
           </button>
@@ -109,22 +109,22 @@ export function CommsLog({
 
       <div className="space-y-2">
         {entries.length === 0 ? (
-          <div className="text-xs text-cream-400 italic">No comms yet.</div>
+          <div className="text-xs text-cream-300 italic">No comms yet.</div>
         ) : (
           entries.map((e) => (
             <div key={e.id} className="flex gap-3 border-l border-brown-700 pl-3 py-1 group">
               <Avatar name={e.author.name} email={e.author.email} image={e.author.image} size={24} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xs text-cream-100 font-medium">
+                  <span className="text-sm text-cream-50 font-medium">
                     {e.author.name ?? e.author.email}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-cream-400" title={new Date(e.createdAt).toLocaleString()}>
+                  <span className="text-xs uppercase tracking-widest font-medium text-cream-300 tabular-nums" title={new Date(e.createdAt).toLocaleString()}>
                     {relativeTime(e.createdAt)}
                   </span>
                   <button
                     onClick={() => handleDelete(e.id)}
-                    className="opacity-0 group-hover:opacity-100 text-[10px] text-red-400 hover:text-red-300 ml-auto cursor-pointer"
+                    className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 ml-auto cursor-pointer"
                     aria-label="Delete entry"
                   >
                     ×

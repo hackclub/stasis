@@ -39,14 +39,14 @@ export function CandidateTable({
     <div className="border border-brown-700 overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead className="bg-brown-800/60 border-b border-brown-700">
-          <tr className="text-left text-[10px] uppercase tracking-wider text-cream-400">
-            <th className="px-4 py-2.5 font-normal">Person</th>
-            <th className="px-4 py-2.5 font-normal">Status</th>
-            <th className="px-4 py-2.5 font-normal">Owner</th>
-            <th className="px-4 py-2.5 font-normal text-right" title="Real bits earned (project approvals only) / project count">Engagement</th>
-            <th className="px-4 py-2.5 font-normal">Last touch</th>
-            <th className="px-4 py-2.5 font-normal">Notes</th>
-            <th className="px-4 py-2.5 font-normal">Flags</th>
+          <tr className="text-left text-xs uppercase tracking-widest text-cream-200">
+            <th className="px-4 py-2.5 font-medium">Person</th>
+            <th className="px-4 py-2.5 font-medium">Status</th>
+            <th className="px-4 py-2.5 font-medium">Owner</th>
+            <th className="px-4 py-2.5 font-medium text-right" title="Real bits earned (project approvals only) / project count">Engagement</th>
+            <th className="px-4 py-2.5 font-medium">Last touch</th>
+            <th className="px-4 py-2.5 font-medium">Notes</th>
+            <th className="px-4 py-2.5 font-medium">Flags</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-brown-700/60">
@@ -67,8 +67,8 @@ export function CandidateTable({
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Avatar name={r.name} email={r.email} image={r.image} size={28} />
                     <div className="min-w-0">
-                      <div className="text-cream-50 truncate">{r.name ?? r.email ?? '?'}</div>
-                      <div className="text-[10px] text-cream-400 truncate tabular-nums">
+                      <div className="text-cream-50 font-medium truncate">{r.name ?? r.email ?? '?'}</div>
+                      <div className="text-xs text-cream-300 truncate tabular-nums">
                         {r.email}{r.slackId ? ` · ${r.slackId}` : ''}
                       </div>
                     </div>
@@ -82,33 +82,33 @@ export function CandidateTable({
                       <span className="text-cream-200 text-xs">{r.owner.name?.split(' ')[0] ?? r.owner.email}</span>
                     </div>
                   ) : (
-                    <span className="text-[10px] uppercase tracking-wider text-cream-400">—</span>
+                    <span className="text-xs uppercase tracking-widest text-cream-300 font-medium">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right text-cream-100 tabular-nums">
+                <td className="px-4 py-3 text-right tabular-nums">
                   {r.realBits > 0 ? (
-                    <span title="Real bits (project approvals only, no admin grants)">{r.realBits}b</span>
+                    <span className="text-orange-400 font-medium" title="Real bits (project approvals only, no admin grants)">{r.realBits}<span className="text-orange-400/60">b</span></span>
                   ) : (
-                    <span className="text-cream-400">0</span>
+                    <span className="text-cream-300">0</span>
                   )}
                   {r.projectCount > 0 ? (
-                    <span className="text-cream-400 text-[10px] ml-1">/{r.projectCount}p</span>
+                    <span className="text-cream-300 text-xs ml-1">/{r.projectCount}p</span>
                   ) : null}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]}`} aria-hidden />
-                    <span className="text-xs text-cream-200 whitespace-nowrap tabular-nums">
+                    <span className="text-xs text-cream-100 whitespace-nowrap tabular-nums">
                       {lastIso ? relativeTime(lastIso) : '—'}
                     </span>
                     {r.commsCount > 1 ? (
-                      <span className="text-[10px] text-cream-400 tabular-nums">·{r.commsCount}</span>
+                      <span className="text-xs text-cream-300 tabular-nums">·{r.commsCount}</span>
                     ) : null}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-xs text-cream-200 max-w-xs">
                   <div className="truncate">
-                    {r.lastComms?.text ? r.lastComms.text : (r.flakeNote ? <span className="italic text-cream-400">{r.flakeNote}</span> : '—')}
+                    {r.lastComms?.text ? r.lastComms.text : (r.flakeNote ? <span className="italic text-cream-300">{r.flakeNote}</span> : '—')}
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -132,8 +132,8 @@ export function CandidateTable({
 function EmptyState() {
   return (
     <div className="border border-dashed border-brown-700 p-12 text-center">
-      <div className="text-cream-200 text-sm">No candidates yet.</div>
-      <div className="text-cream-400 text-xs mt-1">Click <span className="text-orange-400">+ Add candidate</span> to start tracking someone.</div>
+      <div className="text-cream-100 text-sm font-medium">No candidates yet.</div>
+      <div className="text-cream-300 text-xs mt-1">Click <span className="text-orange-400">+ Add candidate</span> to start tracking someone.</div>
     </div>
   );
 }

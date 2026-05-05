@@ -334,7 +334,7 @@ function ModalBody({
         </Section>
 
         {/* Comms log */}
-        <Section title="Communications log" right={<span className="text-[10px] uppercase tracking-wider text-cream-400">{data.commsEntries.length} entries</span>}>
+        <Section title="Communications log" right={<span className="text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums">{data.commsEntries.length} entries</span>}>
           <CommsLog
             candidateId={c.id}
             entries={data.commsEntries}
@@ -362,7 +362,7 @@ function ModalBody({
               <Stat label="Admin grants" value={data.stasis.adminGrants} muted />
             </div>
             {data.stasis.projects.length === 0 ? (
-              <div className="text-xs text-cream-400 italic">No projects yet.</div>
+              <div className="text-xs text-cream-300 italic">No projects yet.</div>
             ) : (
               <div className="border border-brown-700 divide-y divide-brown-700">
                 {data.stasis.projects.map((p) => (
@@ -373,10 +373,10 @@ function ModalBody({
                     rel="noreferrer"
                     className="flex items-center gap-3 px-3 py-2 hover:bg-brown-800/40 group"
                   >
-                    <span className="text-xs text-cream-300 w-12">T{p.tier ?? '–'}</span>
+                    <span className="text-xs text-cream-200 font-medium w-12 tabular-nums">T{p.tier ?? '–'}</span>
                     <span className="text-sm text-cream-50 group-hover:text-orange-400 flex-1 truncate">{p.title}</span>
-                    <span className="text-[10px] uppercase tracking-wider text-cream-300">{statusShort(p.designStatus, p.buildStatus)}</span>
-                    <span className="text-xs text-cream-300 w-14 text-right">{p.hoursClaimed.toFixed(1)}h</span>
+                    <span className="text-xs uppercase tracking-widest text-cream-300 font-medium">{statusShort(p.designStatus, p.buildStatus)}</span>
+                    <span className="text-xs text-cream-200 w-14 text-right tabular-nums">{p.hoursClaimed.toFixed(1)}h</span>
                   </a>
                 ))}
               </div>
@@ -391,18 +391,18 @@ function ModalBody({
             <button
               onClick={syncAttend}
               disabled={savingField === 'attend'}
-              className="text-[10px] uppercase tracking-wider text-orange-400 hover:text-orange-300 disabled:opacity-40 cursor-pointer"
+              className="text-xs uppercase tracking-widest font-medium text-orange-400 hover:text-orange-300 disabled:opacity-40 cursor-pointer"
             >{savingField === 'attend' ? 'Syncing…' : 'Sync now'}</button>
           }
         >
           {!data.attend ? (
-            <div className="text-xs text-cream-400 italic">
+            <div className="text-xs text-cream-300 italic">
               {process.env.NEXT_PUBLIC_ATTEND_ENABLED === 'false'
                 ? 'Attend integration disabled.'
                 : 'No record found in Attend for this email.'}
             </div>
           ) : !data.attend.found ? (
-            <div className="text-xs text-cream-400 italic">Not in Attend yet — invite still needed.</div>
+            <div className="text-xs text-cream-300 italic">Not in Attend yet — invite still needed.</div>
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
@@ -412,25 +412,25 @@ function ModalBody({
                 <Stat label="Checked in" value={data.attend.checkedInAt ? new Date(data.attend.checkedInAt).toLocaleDateString() : '—'} muted />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-cream-200">
-                {data.attend.city ? <span><span className="text-cream-400">From:</span> {[data.attend.city, data.attend.state, data.attend.country].filter(Boolean).join(', ')}</span> : null}
-                {data.attend.tshirtSize ? <span><span className="text-cream-400">Shirt:</span> {data.attend.tshirtSize}</span> : null}
-                {data.attend.travel?.visaRequired ? <span><span className="text-cream-400">Visa:</span> {data.attend.travel.visaStatus ?? 'required'}</span> : null}
+                {data.attend.city ? <span><span className="text-cream-300">From:</span> {[data.attend.city, data.attend.state, data.attend.country].filter(Boolean).join(', ')}</span> : null}
+                {data.attend.tshirtSize ? <span><span className="text-cream-300">Shirt:</span> {data.attend.tshirtSize}</span> : null}
+                {data.attend.travel?.visaRequired ? <span><span className="text-cream-300">Visa:</span> {data.attend.travel.visaStatus ?? 'required'}</span> : null}
               </div>
               {data.attend.travel?.inbound ? (
                 <div className="text-xs border-t border-brown-700/60 pt-2">
-                  <div className="text-cream-400 uppercase tracking-wider text-[10px] mb-1">Inbound flight</div>
+                  <div className="text-cream-300 uppercase tracking-widest text-xs font-medium mb-1">Inbound flight</div>
                   <div className="text-cream-100">
                     {data.attend.travel.inbound.flightCode ?? '—'} · {data.attend.travel.inbound.departureAirport ?? '?'} → {data.attend.travel.inbound.arrivalAirport ?? '?'}
                     {data.attend.travel.inbound.confirmationCode ? <> · conf <span className="text-orange-400">{data.attend.travel.inbound.confirmationCode}</span></> : null}
                   </div>
                   {data.attend.travel.inbound.departureTime ? (
-                    <div className="text-cream-400 mt-0.5">{new Date(data.attend.travel.inbound.departureTime).toLocaleString()}</div>
+                    <div className="text-cream-300 mt-0.5 tabular-nums">{new Date(data.attend.travel.inbound.departureTime).toLocaleString()}</div>
                   ) : null}
                 </div>
               ) : null}
               {data.attend.travel?.outbound ? (
                 <div className="text-xs border-t border-brown-700/60 pt-2">
-                  <div className="text-cream-400 uppercase tracking-wider text-[10px] mb-1">Outbound flight</div>
+                  <div className="text-cream-300 uppercase tracking-widest text-xs font-medium mb-1">Outbound flight</div>
                   <div className="text-cream-100">
                     {data.attend.travel.outbound.flightCode ?? '—'} · {data.attend.travel.outbound.departureAirport ?? '?'} → {data.attend.travel.outbound.arrivalAirport ?? '?'}
                     {data.attend.travel.outbound.confirmationCode ? <> · conf <span className="text-orange-400">{data.attend.travel.outbound.confirmationCode}</span></> : null}
@@ -440,7 +440,7 @@ function ModalBody({
             </div>
           )}
           {data.candidate.attendCachedAt ? (
-            <div className="text-[10px] text-cream-400 mt-2">Cached badge updated {relativeTime(data.candidate.attendCachedAt)}</div>
+            <div className="text-[11px] text-cream-300 mt-2">Cached badge updated {relativeTime(data.candidate.attendCachedAt)}</div>
           ) : null}
         </Section>
 
@@ -448,21 +448,21 @@ function ModalBody({
         <div>
           <button
             onClick={() => setShowAudit(!showAudit)}
-            className="text-[10px] uppercase tracking-wider text-cream-400 hover:text-cream-200 cursor-pointer"
+            className="text-xs uppercase tracking-widest font-medium text-cream-300 hover:text-cream-100 cursor-pointer tabular-nums"
           >
             {showAudit ? '▾' : '▸'} Audit log ({data.auditEntries.length})
           </button>
           {showAudit ? (
             <div className="mt-2 border border-brown-700 divide-y divide-brown-700 text-xs">
               {data.auditEntries.length === 0 ? (
-                <div className="p-2 text-cream-400 italic">No changes recorded.</div>
+                <div className="p-2 text-cream-300 italic">No changes recorded.</div>
               ) : data.auditEntries.map((a) => (
                 <div key={a.id} className="px-3 py-1.5 flex items-center gap-2 text-cream-200">
-                  <span className="text-cream-400 w-20 truncate">{a.actor?.name ?? a.actor?.email ?? 'system'}</span>
-                  <span className="text-cream-300">{a.field}</span>
+                  <span className="text-cream-300 w-20 truncate">{a.actor?.name ?? a.actor?.email ?? 'system'}</span>
+                  <span className="text-cream-100">{a.field}</span>
                   <span className="text-cream-400">→</span>
-                  <span className="text-cream-100 truncate flex-1">{a.newValue ?? '∅'}</span>
-                  <span className="text-cream-400 text-[10px]">{relativeTime(a.createdAt)}</span>
+                  <span className="text-cream-50 truncate flex-1">{a.newValue ?? '∅'}</span>
+                  <span className="text-cream-300 text-[11px] tabular-nums">{relativeTime(a.createdAt)}</span>
                 </div>
               ))}
             </div>
@@ -484,7 +484,7 @@ function Section({ title, right, children }: Readonly<{ title: string; right?: R
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-orange-500 text-xs uppercase tracking-widest">{title}</h3>
+        <h3 className="text-orange-500 text-xs uppercase tracking-widest font-medium">{title}</h3>
         {right}
       </div>
       {children}
@@ -495,7 +495,7 @@ function Section({ title, right, children }: Readonly<{ title: string; right?: R
 function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <div>
-      <label className="block text-[10px] uppercase tracking-wider text-cream-400 mb-1">{label}</label>
+      <label className="block text-xs uppercase tracking-widest text-cream-300 font-medium mb-1">{label}</label>
       {children}
     </div>
   );
@@ -504,9 +504,9 @@ function Field({ label, children }: Readonly<{ label: string; children: React.Re
 function Stat({ label, value, hint, muted }: Readonly<{ label: string; value: string | number; hint?: string; muted?: boolean }>) {
   return (
     <div className={`border border-brown-700 px-2.5 py-1.5 ${muted ? 'opacity-70' : ''}`}>
-      <div className="text-[10px] uppercase tracking-wider text-cream-400">{label}</div>
-      <div className="text-cream-50 text-sm mt-0.5">{value}</div>
-      {hint ? <div className="text-[9px] text-cream-400 mt-0.5">{hint}</div> : null}
+      <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">{label}</div>
+      <div className="text-cream-50 text-sm font-medium mt-0.5 tabular-nums">{value}</div>
+      {hint ? <div className="text-[11px] text-cream-300 mt-0.5">{hint}</div> : null}
     </div>
   );
 }

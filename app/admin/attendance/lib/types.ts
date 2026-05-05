@@ -82,6 +82,31 @@ export function statusTone(status: AttendanceStatus): string {
   }
 }
 
+// Stage progression tone — used to colorize the pipeline so the funnel is
+// scannable at a glance. BOOKED_FLIGHT is emerald-300 (one step brighter than
+// CONFIRMED_YES) since it represents an additional commitment.
+export function kanbanColumnTone(col: KanbanColumn): string {
+  switch (col) {
+    case "DECLINED":      return "text-red-400"
+    case "BOOKED_FLIGHT": return "text-emerald-300"
+    case "CONFIRMED_YES": return "text-green-500"
+    case "SOFT_YES":      return "text-yellow-500"
+    case "CONTACTED":     return "text-orange-400"
+    case "IDENTIFIED":    return "text-cream-300"
+  }
+}
+
+export function kanbanColumnAccent(col: KanbanColumn): string {
+  switch (col) {
+    case "DECLINED":      return "bg-red-500/60"
+    case "BOOKED_FLIGHT": return "bg-emerald-400/70"
+    case "CONFIRMED_YES": return "bg-green-500/60"
+    case "SOFT_YES":      return "bg-yellow-500/60"
+    case "CONTACTED":     return "bg-orange-500/60"
+    case "IDENTIFIED":    return "bg-cream-300/30"
+  }
+}
+
 export function statusBg(status: AttendanceStatus): string {
   switch (status) {
     case "DECLINED":      return "bg-red-500/10 border-red-500/40 text-red-400"

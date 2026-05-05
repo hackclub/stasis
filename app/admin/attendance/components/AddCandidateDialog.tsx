@@ -103,7 +103,7 @@ export function AddCandidateDialog({
       <div className="absolute inset-0 bg-black/60" />
       <div className="relative w-full max-w-lg bg-brown-900 border border-brown-700 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-brown-700">
-          <h3 className="text-orange-500 text-xs uppercase tracking-widest">Add candidate</h3>
+          <h3 className="text-orange-500 text-xs uppercase tracking-widest font-medium">Add candidate</h3>
           <button onClick={onClose} className="text-cream-300 hover:text-cream-50 text-2xl leading-none cursor-pointer">×</button>
         </div>
 
@@ -120,11 +120,11 @@ export function AddCandidateDialog({
               />
               <div className="min-h-[120px] max-h-[40vh] overflow-y-auto border border-brown-700 divide-y divide-brown-700">
                 {searching ? (
-                  <div className="p-3 text-xs text-cream-400">Searching…</div>
+                  <div className="p-3 text-xs text-cream-300">Searching…</div>
                 ) : matches.length === 0 && q.trim().length >= 2 ? (
-                  <div className="p-3 text-xs text-cream-400 italic">No matches.</div>
+                  <div className="p-3 text-xs text-cream-300 italic">No matches.</div>
                 ) : matches.length === 0 ? (
-                  <div className="p-3 text-xs text-cream-400 italic">Type at least 2 characters.</div>
+                  <div className="p-3 text-xs text-cream-300 italic">Type at least 2 characters.</div>
                 ) : matches.map((m) => (
                   <button
                     key={m.id}
@@ -134,13 +134,13 @@ export function AddCandidateDialog({
                   >
                     <Avatar name={m.name} email={m.email} image={m.image} size={32} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm text-cream-50 truncate">{m.name ?? m.email}</div>
-                      <div className="text-[10px] text-cream-400 truncate">{m.email}{m.slackId ? ` · ${m.slackId}` : ''}</div>
+                      <div className="text-sm text-cream-50 font-medium truncate">{m.name ?? m.email}</div>
+                      <div className="text-xs text-cream-300 truncate tabular-nums">{m.email}{m.slackId ? ` · ${m.slackId}` : ''}</div>
                     </div>
                     {m.existingCandidateId ? (
-                      <span className="text-[10px] uppercase tracking-wider text-cream-400">already added</span>
+                      <span className="text-xs uppercase tracking-widest font-medium text-cream-300">already added</span>
                     ) : (
-                      <span className="text-[10px] uppercase tracking-wider text-orange-400">+ add</span>
+                      <span className="text-xs uppercase tracking-widest font-medium text-orange-400">+ add</span>
                     )}
                   </button>
                 ))}
@@ -181,7 +181,7 @@ export function AddCandidateDialog({
                 <button
                   onClick={addExternal}
                   disabled={submitting || !external.name.trim()}
-                  className="text-xs uppercase tracking-wider text-orange-400 hover:text-orange-300 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 border border-orange-500/40 cursor-pointer"
+                  className="text-xs uppercase tracking-widest font-medium text-orange-400 hover:text-orange-300 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 border border-orange-500/40 cursor-pointer"
                 >Add external</button>
               </div>
             </>
