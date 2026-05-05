@@ -236,7 +236,7 @@ export function CandidateModal({
       {confirmingDelete ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setConfirmingDelete(false)}>
           <div className="attendance-modal-backdrop absolute inset-0 bg-black/70" />
-          <div className="attendance-modal-drawer relative bg-brown-900 border-2 border-cream-200/10 p-5 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="attendance-modal-drawer relative bg-brown-900 outline outline-1 outline-cream-200/15 shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-5 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="text-cream-50 text-sm font-medium mb-1">Remove this candidate?</div>
             <div className="text-cream-300 text-xs mb-4">Notes and comms log will be permanently deleted.</div>
             <div className="flex justify-end gap-2">
@@ -281,7 +281,7 @@ function ModalBody({
   return (
     <>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-brown-800 px-6 py-4 flex items-start gap-4">
+      <div className="sticky top-0 z-10 bg-brown-800 border-b border-cream-200/10 px-6 py-4 flex items-start gap-4">
         <Avatar name={c.name} email={c.email} image={c.image} size={48} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -314,7 +314,7 @@ function ModalBody({
         </div>
         <button
           onClick={onClose}
-          className="text-cream-300 hover:text-cream-50 text-2xl leading-none cursor-pointer px-2 py-1"
+          className="shrink-0 text-cream-300 hover:text-cream-50 hover:bg-black/20 transition-[color,background-color] duration-150 text-2xl leading-none cursor-pointer w-8 h-8 inline-flex items-center justify-center"
           aria-label="Close"
         >×</button>
       </div>
@@ -411,7 +411,7 @@ function ModalBody({
               <Stat label="Real bits" value={data.stasis.realBits} hint="design + build approvals only" />
               <Stat label="Hours claimed" value={data.stasis.totalHoursClaimed.toFixed(1)} hint="pre-deflation" />
               <Stat label="Projects" value={data.stasis.projects.length} />
-              <Stat label="Admin grants" value={data.stasis.adminGrants} muted />
+              <Stat label="Admin grants" value={data.stasis.adminGrants} hint="manual bit grants" muted />
             </div>
             {data.stasis.projects.length === 0 ? (
               <div className="text-xs text-cream-300 italic">No projects yet.</div>
@@ -427,7 +427,7 @@ function ModalBody({
                   >
                     <span className="text-xs text-cream-200 font-medium w-12 tabular-nums">T{p.tier ?? '–'}</span>
                     <span className="text-sm text-cream-50 group-hover:text-orange-400 flex-1 truncate">{p.title}</span>
-                    <span className="text-xs uppercase tracking-widest text-cream-300 font-medium">{statusShort(p.designStatus, p.buildStatus)}</span>
+                    <span className="text-xs text-cream-300 font-medium">{statusShort(p.designStatus, p.buildStatus)}</span>
                     <span className="text-xs text-cream-200 w-14 text-right tabular-nums">{p.hoursClaimed.toFixed(1)}h</span>
                   </a>
                 ))}
@@ -492,7 +492,7 @@ function ModalBody({
             </div>
           )}
           {data.candidate.attendCachedAt ? (
-            <div className="text-xs text-cream-300 mt-2">Cached badge updated {relativeTime(data.candidate.attendCachedAt)}</div>
+            <div className="text-xs text-cream-300 mt-2">Last synced from Attend {relativeTime(data.candidate.attendCachedAt)}</div>
           ) : null}
         </Section>
 
@@ -500,9 +500,13 @@ function ModalBody({
         <div>
           <button
             onClick={() => setShowAudit(!showAudit)}
-            className="text-xs uppercase tracking-widest font-medium text-cream-300 hover:text-cream-100 cursor-pointer tabular-nums px-2 py-1"
+            className="text-xs uppercase tracking-widest font-medium text-cream-300 hover:text-cream-100 cursor-pointer tabular-nums px-2 py-1 inline-flex items-center gap-1.5"
           >
-            {showAudit ? '▾' : '▸'} Audit log ({data.auditEntries.length})
+            <span
+              aria-hidden
+              className={`text-[9px] leading-none transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${showAudit ? 'rotate-90' : ''}`}
+            >▶</span>
+            Audit log ({data.auditEntries.length})
           </button>
           {showAudit ? (
             <div className="mt-2 flex flex-col gap-px bg-brown-900 text-xs">
@@ -511,9 +515,9 @@ function ModalBody({
               ) : data.auditEntries.map((a) => (
                 <div key={a.id} className="px-3 py-1.5 bg-brown-800 flex items-center gap-2 text-cream-200">
                   <span className="text-cream-300 w-20 truncate">{a.actor?.name ?? a.actor?.email ?? 'system'}</span>
-                  <span className="text-cream-100">{a.field}</span>
+                  <span className="text-cream-100" title={a.field}>{auditFieldLabel(a.field)}</span>
                   <span className="text-cream-400">→</span>
-                  <span className="text-cream-50 truncate flex-1">{a.newValue ?? '∅'}</span>
+                  <span className="text-cream-50 truncate flex-1">{auditValueLabel(a.field, a.newValue)}</span>
                   <span className="text-cream-300 text-xs tabular-nums">{relativeTime(a.createdAt)}</span>
                 </div>
               ))}
@@ -601,10 +605,34 @@ function NotesField({ value, onSave, saving }: Readonly<{ value: string | null; 
   );
 }
 
+const AUDIT_FIELD_LABEL: Record<string, string> = {
+  outreachStatus: 'Status',
+  ownerId: 'Owner',
+  snoozedUntil: 'Snoozed until',
+  flakeNote: 'Flake note',
+  notes: 'Notes',
+  attendInvited: 'Invited in Attend',
+  attendFlightBooked: 'Flight booked',
+  pronouns: 'Pronouns',
+  eventPreference: 'Goal',
+};
+function auditFieldLabel(field: string): string {
+  return AUDIT_FIELD_LABEL[field] ?? field;
+}
+function auditValueLabel(field: string, value: string | null): string {
+  if (value === null || value === '') return '∅';
+  if (field === 'outreachStatus' && value in STATUS_LABEL) {
+    return STATUS_LABEL[value as AttendanceStatus];
+  }
+  return value;
+}
+
 function statusShort(design: string, build: string): string {
-  if (build === 'approved') return 'BUILT';
-  if (build === 'in_review') return 'BUILD REV';
-  if (design === 'approved') return 'DSGN ✓';
-  if (design === 'in_review') return 'DSGN REV';
-  return design.toUpperCase();
+  if (build === 'approved') return 'Built';
+  if (build === 'in_review') return 'Build review';
+  if (design === 'approved') return 'Design ✓';
+  if (design === 'in_review') return 'Design review';
+  if (design === 'rejected') return 'Design rejected';
+  if (design === 'draft' || design === 'not_submitted') return 'Design draft';
+  return design;
 }

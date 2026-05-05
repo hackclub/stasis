@@ -6,7 +6,7 @@ import { CandidateTable } from './components/CandidateTable';
 import { CandidateKanban } from './components/CandidateKanban';
 import { CandidateModal } from './components/CandidateModal';
 import { AddCandidateDialog } from './components/AddCandidateDialog';
-import { CandidateRow, AdminUser, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent } from './lib/types';
+import { CandidateRow, AdminUser, AttendanceStatus, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent } from './lib/types';
 import { ColorSelect } from './components/ColorSelect';
 
 type ViewMode = 'table' | 'kanban';
@@ -15,7 +15,7 @@ interface FilterState {
   q: string;
   status: string;        // '' = all
   ownerId: string;       // '' = all, 'unassigned'
-  showSnoozed: boolean;
+  hideSnoozed: boolean;
   goal: string;          // '' = all, 'stasis', 'opensauce', 'prizes', 'null'
   pronouns: string;      // '' = all, 'he/him', 'she/her', 'they/them', 'other', 'none'
 }
@@ -24,7 +24,7 @@ const DEFAULT_FILTERS: FilterState = {
   q: '',
   status: '',
   ownerId: '',
-  showSnoozed: false,
+  hideSnoozed: false,
   goal: '',
   pronouns: '',
 };
@@ -34,7 +34,7 @@ function readFiltersFromUrl(sp: URLSearchParams): FilterState {
     q: sp.get('q') ?? '',
     status: sp.get('status') ?? '',
     ownerId: sp.get('owner') ?? '',
-    showSnoozed: sp.get('snoozed') === '1',
+    hideSnoozed: sp.get('hidesnoozed') === '1',
     goal: sp.get('goal') ?? '',
     pronouns: sp.get('pronouns') ?? '',
   };
@@ -74,7 +74,7 @@ export default function AttendancePage() {
       if (filters.q) sp.set('q', filters.q);
       if (filters.status) sp.set('status', filters.status);
       if (filters.ownerId) sp.set('owner', filters.ownerId);
-      if (filters.showSnoozed) sp.set('snoozed', '1');
+      if (filters.hideSnoozed) sp.set('hidesnoozed', '1');
       if (filters.goal) sp.set('goal', filters.goal);
       if (filters.pronouns) sp.set('pronouns', filters.pronouns);
       if (view !== 'table') sp.set('view', view);
@@ -107,6 +107,30 @@ export default function AttendancePage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const moveCandidate = useCallback(async (id: string, nextStatus: AttendanceStatus) => {
+    let prevStatus: AttendanceStatus | null = null;
+    setRows((rs) => rs.map((r) => {
+      if (r.id !== id) return r;
+      prevStatus = r.outreachStatus;
+      return { ...r, outreachStatus: nextStatus };
+    }));
+    try {
+      const res = await fetch(`/api/admin/attendance/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outreachStatus: nextStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+    } catch (err) {
+      // Revert on failure
+      if (prevStatus) {
+        const reverted = prevStatus;
+        setRows((rs) => rs.map((r) => r.id === id ? { ...r, outreachStatus: reverted } : r));
+      }
+      setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
+  }, []);
+
   const filtered = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     return rows.filter((r) => {
@@ -118,7 +142,7 @@ export default function AttendancePage() {
       if (filters.status && r.outreachStatus !== filters.status) return false;
       if (filters.ownerId === 'unassigned' && r.ownerId) return false;
       if (filters.ownerId && filters.ownerId !== 'unassigned' && r.ownerId !== filters.ownerId) return false;
-      if (!filters.showSnoozed && r.snoozedUntil && new Date(r.snoozedUntil) > new Date()) return false;
+      if (filters.hideSnoozed && r.snoozedUntil && new Date(r.snoozedUntil) > new Date()) return false;
       if (filters.goal === 'null' && r.eventPreference) return false;
       if (filters.goal && filters.goal !== 'null' && r.eventPreference !== filters.goal) return false;
       if (filters.pronouns === 'none' && r.pronouns) return false;
@@ -264,20 +288,24 @@ export default function AttendancePage() {
       {/* Toolbar — filter cluster | spacer | action cluster */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-6 shrink-0">
         <div className="relative w-72">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-cream-300 pointer-events-none">›</span>
           <input
             ref={searchRef}
             value={filters.q}
             onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-            placeholder="Search name, email, slack, notes…  ( / )"
-            className="bg-brown-800 text-cream-50 text-xs pl-7 pr-2.5 py-2 outline-none focus:bg-brown-800 focus:ring-2 focus:ring-orange-500/60 focus:ring-inset w-full"
+            placeholder="Search name, email, Slack, notes…"
+            className="bg-brown-800 text-cream-50 text-xs font-medium px-2.5 py-2 pr-8 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset w-full placeholder:text-cream-400 placeholder:font-normal"
           />
+          {!filters.q ? (
+            <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center px-1.5 py-px bg-brown-900 text-cream-300 text-[10px] tabular-nums">
+              /
+            </kbd>
+          ) : null}
         </div>
         <ColorSelect
           value={filters.status}
           onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
           options={[
-            { value: '', label: 'All statuses' },
+            { value: '', label: 'Any status' },
             { value: 'IDENTIFIED', label: 'Identified', color: 'cream' },
             { value: 'CONTACTED', label: 'Contacted', color: 'orange' },
             { value: 'SOFT_YES', label: 'Soft yes', color: 'yellow' },
@@ -306,7 +334,7 @@ export default function AttendancePage() {
             { value: 'stasis', label: 'Goal: Stasis', color: 'orange' },
             { value: 'opensauce', label: 'Goal: Open Sauce', color: 'red' },
             { value: 'prizes', label: 'Goal: Prizes', color: 'yellow' },
-            { value: 'null', label: 'Goal: not set', color: 'brown' },
+            { value: 'null', label: 'Goal: none set', color: 'brown' },
           ]}
         />
         <ColorSelect
@@ -317,18 +345,34 @@ export default function AttendancePage() {
             { value: 'she/her', label: 'she/her', color: 'pink' },
             { value: 'he/him', label: 'he/him', color: 'blue' },
             { value: 'they/them', label: 'they/them', color: 'purple' },
-            { value: 'none', label: 'no pronouns set', color: 'brown' },
+            { value: 'none', label: 'Pronouns: none set', color: 'brown' },
           ]}
         />
-        <label className="text-xs uppercase tracking-widest text-cream-200 font-medium inline-flex items-center gap-1.5 cursor-pointer bg-brown-800 px-2.5 py-2">
-          <input
-            type="checkbox"
-            checked={filters.showSnoozed}
-            onChange={(e) => setFilters((f) => ({ ...f, showSnoozed: e.target.checked }))}
-            className="accent-orange-500"
-          />
-          show snoozed
-        </label>
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={filters.hideSnoozed}
+          onClick={() => setFilters((f) => ({ ...f, hideSnoozed: !f.hideSnoozed }))}
+          className={`group/snooze text-xs font-medium px-2.5 py-2 cursor-pointer outline-none transition-[background-color,color] duration-150 active:scale-[0.97] inline-flex items-center gap-2 bg-brown-800 ${
+            filters.hideSnoozed ? 'text-cream-50' : 'text-cream-300 hover:text-cream-50'
+          }`}
+        >
+          <span
+            aria-hidden
+            className={`relative inline-flex items-center justify-center size-3.5 transition-[background-color,box-shadow] duration-150 ${
+              filters.hideSnoozed
+                ? 'bg-orange-500 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)]'
+                : 'bg-brown-950 shadow-[inset_0_0_0_1px] shadow-cream-200/20 group-hover/snooze:shadow-cream-200/35'
+            }`}
+          >
+            {filters.hideSnoozed ? (
+              <svg viewBox="0 0 10 10" className="size-2.5 text-brown-950" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M2 5.5 L4 7.5 L8 3" strokeLinecap="square" />
+              </svg>
+            ) : null}
+          </span>
+          Hide snoozed
+        </button>
 
         <div className="ml-auto flex items-center gap-2">
           <div className="flex gap-px bg-brown-900">
@@ -360,7 +404,7 @@ export default function AttendancePage() {
         ) : view === 'table' ? (
           <CandidateTable rows={filtered} onOpen={setSelectedId} highlightedId={highlightedId} onHighlight={setHighlightedId} />
         ) : (
-          <CandidateKanban rows={filtered} onOpen={setSelectedId} />
+          <CandidateKanban rows={filtered} onOpen={setSelectedId} onMove={moveCandidate} />
         )}
       </div>
 

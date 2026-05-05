@@ -100,11 +100,11 @@ export function AddCandidateDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60" />
-      <div className="relative w-full max-w-lg bg-brown-900 border-2 border-cream-200/10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="attendance-modal-backdrop absolute inset-0 bg-black/60" />
+      <div className="attendance-modal-drawer relative w-full max-w-lg bg-brown-900 outline outline-1 outline-cream-200/15 shadow-[0_8px_24px_rgba(0,0,0,0.5)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between bg-brown-800 px-4 py-3">
           <h3 className="text-orange-500 text-xs uppercase tracking-widest font-medium">Add candidate</h3>
-          <button onClick={onClose} className="text-cream-300 hover:text-cream-50 text-2xl leading-none cursor-pointer">×</button>
+          <button onClick={onClose} aria-label="Close" className="shrink-0 text-cream-300 hover:text-cream-50 hover:bg-black/20 transition-[color,background-color] duration-150 text-2xl leading-none cursor-pointer w-8 h-8 inline-flex items-center justify-center">×</button>
         </div>
 
         <div className="p-4 space-y-3">

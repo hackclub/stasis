@@ -45,7 +45,7 @@ export function CandidateTable({
             <th className="px-4 py-3 font-medium">Owner</th>
             <th className="px-4 py-3 font-medium text-right" title="Real bits earned (project approvals only) / project count">Engagement</th>
             <th className="px-4 py-3 font-medium">Last touch</th>
-            <th className="px-4 py-3 font-medium">Notes</th>
+            <th className="px-4 py-3 font-medium">Last note</th>
             <th className="px-4 py-3 font-medium">Flags</th>
           </tr>
         </thead>
