@@ -311,8 +311,7 @@ export default function AttendancePage() {
             <span className="block w-px self-stretch bg-cream-200/10 mx-1" aria-hidden />
             <GirlTargetChip
               confirmedGirls={funnelCounts.confirmedGirls}
-              confirmedTotal={funnelCounts.confirmed}
-              targetPct={40}
+              girlTarget={40}
             />
             <StipendChip cents={funnelCounts.stipendCommitted} />
           </div>
@@ -450,16 +449,13 @@ function SegmentedView<T extends string>({
 }
 
 /**
- * Per-stage funnel chip. Hierarchy via *size*, not tiny copy:
- *   - count is the hero (text-base, semibold, color-toned)
- *   - label sits above in 12px caps
- *   - girl signal is a thin pink progress bar plus a 12px ♀ count
+ * Per-stage funnel chip. Bare counts only — no per-stage percentages, since
+ * the 40% girl target applies to the *whole event*, not each stage.
  */
 function FunnelChip({
   label, total, girls, accent, tone,
 }: Readonly<{ label: string; total: number; girls: number; accent: string; tone: string }>) {
   const active = total > 0;
-  const girlPct = total > 0 ? (girls / total) * 100 : 0;
   return (
     <div className={`flex-1 min-w-[140px] flex items-stretch gap-2.5 ${active ? 'bg-brown-800' : 'bg-brown-800/40'}`}>
       <span className={`block w-1.5 shrink-0 ${active ? accent : 'bg-brown-900'}`} aria-hidden />
@@ -468,15 +464,11 @@ function FunnelChip({
           <span className="text-xs uppercase tracking-widest text-cream-200 font-medium truncate">{label}</span>
           <span className={`text-base font-semibold tabular-nums leading-none ${active ? tone : 'text-cream-400'}`}>{total}</span>
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          <div className="flex-1 h-1 bg-brown-900 relative overflow-hidden">
-            <div
-              className="absolute inset-y-0 left-0 bg-pink-400/70"
-              style={{ width: active ? `${Math.min(100, girlPct)}%` : 0 }}
-              aria-hidden
-            />
-          </div>
-          <span className="text-xs tabular-nums text-pink-300 font-medium shrink-0" title={active ? `${girls} of ${total} girls (${Math.round(girlPct)}%)` : 'no candidates'}>
+        <div className="mt-1.5 flex items-baseline justify-end">
+          <span
+            className={`text-xs tabular-nums font-medium ${active && girls > 0 ? 'text-pink-300' : 'text-cream-400'}`}
+            title={active ? `${girls} girl${girls === 1 ? '' : 's'} in this stage` : 'no candidates'}
+          >
             ♀ {active ? girls : 0}
           </span>
         </div>
@@ -485,20 +477,23 @@ function FunnelChip({
   );
 }
 
-/** Hero readout for the 40% goal — big % number, color-banded. */
-function GirlTargetChip({ confirmedGirls, confirmedTotal, targetPct }: Readonly<{ confirmedGirls: number; confirmedTotal: number; targetPct: number }>) {
-  const pct = confirmedTotal > 0 ? Math.round((confirmedGirls / confirmedTotal) * 100) : 0;
-  const cls = girlPctClass(pct);
+/** Hero readout for the girl target. Denominator is the *event target* (e.g. 40),
+ * not the current confirmed count — keeps the metric meaningful when N is small. */
+function GirlTargetChip({ confirmedGirls, girlTarget }: Readonly<{ confirmedGirls: number; girlTarget: number }>) {
+  const pctOfTarget = girlTarget > 0 ? Math.min(100, Math.round((confirmedGirls / girlTarget) * 100)) : 0;
+  const cls = girlPctClass(pctOfTarget);
   return (
-    <div className="bg-brown-800 px-4 py-2 flex flex-col justify-between min-w-[170px]">
-      <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Girls (confirmed)</div>
-      <div className={`text-2xl font-semibold tabular-nums leading-none mt-1 ${cls}`}>{pct}%</div>
-      <div className="text-xs text-cream-400 mt-1.5 tabular-nums">
-        <span className="text-cream-200 font-medium">{confirmedGirls}</span>
-        <span className="text-cream-400">/</span>
-        <span className="text-cream-300">{confirmedTotal}</span>
-        <span className="mx-2 text-cream-400/60">·</span>
-        <span>target {targetPct}%</span>
+    <div className="bg-brown-800 px-4 py-2 flex flex-col justify-between min-w-[180px]">
+      <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Girls confirmed</div>
+      <div className="flex items-baseline gap-1 mt-1">
+        <span className={`text-2xl font-semibold tabular-nums leading-none ${cls}`}>{confirmedGirls}</span>
+        <span className="text-base text-cream-400 font-medium tabular-nums leading-none">/ {girlTarget}</span>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <div className="flex-1 h-1 bg-brown-900 relative overflow-hidden" aria-hidden>
+          <div className="absolute inset-y-0 left-0 bg-pink-400/70" style={{ width: `${pctOfTarget}%` }} />
+        </div>
+        <span className="text-xs tabular-nums text-cream-300 font-medium shrink-0">{pctOfTarget}%</span>
       </div>
     </div>
   );
