@@ -1624,6 +1624,7 @@ export default function ReviewDetailPage() {
                   value={grantOverride}
                   onChange={(e) => setGrantOverride(e.target.value)}
                   placeholder={(() => {
+                    if (project.noBomNeeded) return 'Default: No grant (user opted out of parts)'
                     if (project.bomCost <= 0) return 'Default: No BOM cost'
                     const effectiveTier = tierOverride ? parseInt(tierOverride) : project.tier
                     const tierMax = effectiveTier ? Math.floor((TIERS.find(t => t.id === effectiveTier)?.bits ?? 0) * 0.5) : Infinity

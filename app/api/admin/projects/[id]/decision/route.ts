@@ -62,8 +62,12 @@ export async function POST(
       )
     }
   }
-  // For design approvals, default grant to BOM cost if not explicitly provided
-  const bomCostTotal = totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
+  // For design approvals, default grant to BOM cost if not explicitly provided.
+  // When the user opted out of parts (noBomNeeded), ignore any lingering BOM
+  // items so neither a grant is issued nor bits are deducted.
+  const bomCostTotal = project.noBomNeeded
+    ? 0
+    : totalBomCost(project.bomItems, project.bomTax, project.bomShipping)
   const parsedGrantAmount = typeof grantAmount === "number" && grantAmount > 0
     ? grantAmount
     : (stage === "design" && decision === "approved" ? (bomCostTotal > 0 ? Math.ceil(bomCostTotal) : null) : null)
@@ -95,8 +99,10 @@ export async function POST(
     const reviewDecision = decision === "approved" ? "APPROVED" : "REJECTED"
     
     const updatedProject = await prisma.$transaction(async (tx) => {
-      // If approving design, also approve pending BOM items
-      if (decision === "approved") {
+      // If approving design, also approve pending BOM items — unless the user
+      // opted out of parts, in which case leave the items as-is so they don't
+      // appear approved on a no-grant project.
+      if (decision === "approved" && !project.noBomNeeded) {
         await tx.bOMItem.updateMany({
           where: { projectId: id, status: "pending" },
           data: {
