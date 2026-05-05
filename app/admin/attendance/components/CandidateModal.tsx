@@ -196,9 +196,9 @@ export function CandidateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60" />
+      <div className="attendance-modal-backdrop absolute inset-0 bg-black/60" />
       <div
-        className="relative w-full max-w-3xl h-full bg-brown-900 overflow-y-auto"
+        className="attendance-modal-drawer relative w-full max-w-3xl h-full bg-brown-900 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {loading && !data ? (
@@ -235,8 +235,8 @@ export function CandidateModal({
       </div>
       {confirmingDelete ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setConfirmingDelete(false)}>
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="relative bg-brown-900 border-2 border-cream-200/10 p-5 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="attendance-modal-backdrop absolute inset-0 bg-black/70" />
+          <div className="attendance-modal-drawer relative bg-brown-900 border-2 border-cream-200/10 p-5 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="text-cream-50 text-sm font-medium mb-1">Remove this candidate?</div>
             <div className="text-cream-300 text-xs mb-4">Notes and comms log will be permanently deleted.</div>
             <div className="flex justify-end gap-2">

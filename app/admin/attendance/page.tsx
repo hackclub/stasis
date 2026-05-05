@@ -334,16 +334,16 @@ export default function AttendancePage() {
           <div className="flex gap-px bg-brown-900">
             <button
               onClick={() => setView('table')}
-              className={`text-xs uppercase tracking-widest font-medium px-3 py-2 cursor-pointer ${view === 'table' ? 'bg-orange-500/20 text-orange-400' : 'bg-brown-800 text-cream-200 hover:text-cream-50'}`}
+              className={`text-xs uppercase tracking-widest font-medium px-3 py-2 cursor-pointer transition-[background-color,color] duration-150 active:scale-[0.97] ${view === 'table' ? 'bg-orange-500/20 text-orange-400' : 'bg-brown-800 text-cream-200 hover:text-cream-50'}`}
             >Table</button>
             <button
               onClick={() => setView('kanban')}
-              className={`text-xs uppercase tracking-widest font-medium px-3 py-2 cursor-pointer ${view === 'kanban' ? 'bg-orange-500/20 text-orange-400' : 'bg-brown-800 text-cream-200 hover:text-cream-50'}`}
+              className={`text-xs uppercase tracking-widest font-medium px-3 py-2 cursor-pointer transition-[background-color,color] duration-150 active:scale-[0.97] ${view === 'kanban' ? 'bg-orange-500/20 text-orange-400' : 'bg-brown-800 text-cream-200 hover:text-cream-50'}`}
             >Kanban</button>
           </div>
           <button
             onClick={() => setAdding(true)}
-            className="text-xs uppercase tracking-widest font-medium px-3 py-2 bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 cursor-pointer"
+            className="text-xs uppercase tracking-widest font-medium px-3 py-2 bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 cursor-pointer transition-[background-color] duration-150 active:scale-[0.97]"
           >+ Add candidate</button>
         </div>
       </div>

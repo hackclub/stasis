@@ -47,8 +47,8 @@ export function CandidateKanban({
                 <span className={`text-xs font-medium tabular-nums px-3 py-2 ${hasItems ? tone : 'text-cream-400'}`}>{items.length}</span>
               </div>
               <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-y-auto pr-1 pb-2">
-                {items.map((r) => (
-                  <KanbanCard key={r.id} row={r} onOpen={onOpen} />
+                {items.map((r, i) => (
+                  <KanbanCard key={r.id} row={r} index={i} onOpen={onOpen} />
                 ))}
                 {items.length === 0 ? (
                   <div className="text-xs text-cream-400 uppercase tracking-widest py-6 border-2 border-dashed border-cream-200/10 text-center">
@@ -64,7 +64,7 @@ export function CandidateKanban({
   );
 }
 
-function KanbanCard({ row, onOpen }: Readonly<{ row: CandidateRow; onOpen: (id: string) => void }>) {
+function KanbanCard({ row, index, onOpen }: Readonly<{ row: CandidateRow; index: number; onOpen: (id: string) => void }>) {
   const lastIso = row.lastComms?.createdAt ?? null;
   const health = touchHealth(lastIso);
   const isSnoozed = !!row.snoozedUntil && new Date(row.snoozedUntil) > new Date();
@@ -72,7 +72,8 @@ function KanbanCard({ row, onOpen }: Readonly<{ row: CandidateRow; onOpen: (id: 
   return (
     <button
       onClick={() => onOpen(row.id)}
-      className={`group relative w-full text-left bg-brown-800 border-2 border-cream-200/10 hover:border-orange-500/60 hover:bg-orange-500/10 transition-colors cursor-pointer ${isSnoozed ? 'opacity-60' : ''}`}
+      style={{ ['--row-i' as keyof React.CSSProperties as string]: Math.min(index, 12) } as React.CSSProperties}
+      className={`attendance-card group relative w-full text-left bg-brown-800 border-2 border-cream-200/10 hover:border-orange-500/60 hover:bg-orange-500/10 hover:-translate-y-px transition-[transform,border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:translate-y-0 active:scale-[0.99] cursor-pointer ${isSnoozed ? 'opacity-60' : ''}`}
     >
       {/* Identity zone */}
       <div className="flex items-center gap-2.5 min-w-0 px-3 pt-3">
@@ -92,7 +93,7 @@ function KanbanCard({ row, onOpen }: Readonly<{ row: CandidateRow; onOpen: (id: 
           {row.projectCount > 0 ? <span className="text-cream-400">/{row.projectCount}p</span> : null}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]}`} aria-hidden />
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]} ${health === 'fresh' ? 'attendance-dot-fresh' : ''}`} aria-hidden />
           <span className="text-cream-300 tabular-nums">{lastIso ? relativeTime(lastIso) : '—'}</span>
         </div>
       </div>

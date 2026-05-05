@@ -65,7 +65,8 @@ export function CandidateTable({
                   onHighlight?.(r.id);
                   onOpen(r.id);
                 }}
-                className={`cursor-pointer transition-[background-color] outline outline-2 -outline-offset-2 ${isHighlighted ? 'bg-orange-500/15 outline-orange-500/60' : `${zebra} outline-transparent hover:bg-orange-500/5`} ${isSnoozed ? 'opacity-60' : ''}`}
+                style={{ ['--row-i' as keyof React.CSSProperties as string]: Math.min(idx, 14) } as React.CSSProperties}
+                className={`attendance-row cursor-pointer transition-[background-color,outline-color] duration-150 outline outline-2 -outline-offset-2 ${isHighlighted ? 'bg-orange-500/15 outline-orange-500/60' : `${zebra} outline-transparent hover:bg-orange-500/5`} ${isSnoozed ? 'opacity-60' : ''}`}
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -101,7 +102,7 @@ export function CandidateTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
-                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]}`} aria-hidden />
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]} ${health === 'fresh' ? 'attendance-dot-fresh' : ''}`} aria-hidden />
                     <span className="text-xs text-cream-100 whitespace-nowrap tabular-nums">
                       {lastIso ? relativeTime(lastIso) : '—'}
                     </span>
