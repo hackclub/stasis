@@ -3,12 +3,15 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
-import { AttendanceStatus, CurrencyTransactionType } from "@/app/generated/prisma/enums"
+import { AttendanceStatus, AttendanceCandidateSource } from "@/app/generated/prisma/enums"
+import { getDerivedStatsBatch } from "@/lib/attendance"
+
+const VALID_SOURCES: AttendanceCandidateSource[] = ["STASIS_USER", "REVIEWER_INCENTIVE", "EXTERNAL_HC", "DISCRETION"]
 
 /**
  * GET /api/admin/attendance
  * Returns the full curated attendance list (denormalized for the dashboard).
- * Includes a per-row effort summary computed from the currency ledger.
+ * Includes per-row derivedStats (effort signals + reviewer progress).
  */
 export async function GET() {
   const authCheck = await requirePermission(Permission.MANAGE_ATTENDANCE)
@@ -25,7 +28,6 @@ export async function GET() {
           image: true,
           slackId: true,
           pronouns: true,
-          eventPreference: true,
         },
       },
       owner: { select: { id: true, name: true, email: true, image: true } },
@@ -33,27 +35,10 @@ export async function GET() {
     },
   })
 
-  // Resolve "real bits" + project counts + last-touch in batch.
-  const userIds = candidates.map((c) => c.userId).filter((u): u is string => !!u)
-
-  const [bits, projectCounts, lastComms] = await Promise.all([
-    userIds.length === 0
-      ? Promise.resolve([])
-      : prisma.currencyTransaction.groupBy({
-          by: ["userId"],
-          where: {
-            userId: { in: userIds },
-            type: { in: [CurrencyTransactionType.PROJECT_APPROVED, CurrencyTransactionType.DESIGN_APPROVED, CurrencyTransactionType.PROJECT_APPROVED_REVERSED, CurrencyTransactionType.DESIGN_APPROVED_REVERSED] },
-          },
-          _sum: { amount: true },
-        }),
-    userIds.length === 0
-      ? Promise.resolve([])
-      : prisma.project.groupBy({
-          by: ["userId"],
-          where: { userId: { in: userIds }, deletedAt: null },
-          _count: true,
-        }),
+  const [statsByCandidate, lastComms] = await Promise.all([
+    getDerivedStatsBatch(
+      candidates.map((c) => ({ id: c.id, userId: c.userId, source: c.source }))
+    ),
     prisma.attendanceCommsEntry.findMany({
       where: { candidateId: { in: candidates.map((c) => c.id) } },
       orderBy: { createdAt: "desc" },
@@ -62,13 +47,10 @@ export async function GET() {
     }),
   ])
 
-  const bitsByUser = new Map(bits.map((b) => [b.userId, b._sum.amount ?? 0]))
-  const projectCountByUser = new Map(projectCounts.map((p) => [p.userId, p._count]))
   const lastCommsByCandidate = new Map(lastComms.map((c) => [c.candidateId, c]))
 
   const items = candidates.map((c) => {
-    const realBits = c.userId ? bitsByUser.get(c.userId) ?? 0 : 0
-    const projectCount = c.userId ? projectCountByUser.get(c.userId) ?? 0 : 0
+    const stats = statsByCandidate.get(c.id)!
     const last = lastCommsByCandidate.get(c.id) ?? null
     return {
       id: c.id,
@@ -79,30 +61,38 @@ export async function GET() {
       slackId: c.user?.slackId ?? c.externalSlackId ?? null,
       image: c.user?.image ?? c.externalImage ?? null,
       pronouns: c.user?.pronouns ?? null,
-      eventPreference: c.user?.eventPreference ?? null,
       // pipeline
       outreachStatus: c.outreachStatus,
+      source: c.source,
       ownerId: c.ownerId,
       owner: c.owner,
-      snoozedUntil: c.snoozedUntil,
+      invitedAt: c.invitedAt,
+      // demographics
+      isGirl: c.isGirl,
+      // logistics
+      homeAirport: c.homeAirport,
+      homeCity: c.homeCity,
+      flightCostEstimateCents: c.flightCostEstimateCents,
+      flightCostUpdatedAt: c.flightCostUpdatedAt,
+      flightStipendCents: c.flightStipendCents,
       // attend
       attendInvited: c.attendInvited,
       attendFlightBooked: c.attendFlightBooked,
+      attendCity: c.attendCity,
+      attendState: c.attendState,
+      attendCountry: c.attendCountry,
       attendCachedAt: c.attendCachedAt,
-      // effort
-      realBits,
-      projectCount,
+      // derived stats
+      derivedStats: stats,
       // notes / comms summary
+      caseForThem: c.caseForThem,
+      statusNote: c.statusNote,
       flakeNote: c.flakeNote,
       hasNotes: !!c.notes && c.notes.trim().length > 0,
       commsCount: c._count.commsEntries,
       remindersCount: c._count.reminders,
       lastComms: last
-        ? {
-            createdAt: last.createdAt,
-            text: last.text.slice(0, 140),
-            authorId: last.authorId,
-          }
+        ? { createdAt: last.createdAt, text: last.text.slice(0, 140), authorId: last.authorId }
         : null,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
@@ -115,8 +105,13 @@ export async function GET() {
 /**
  * POST /api/admin/attendance
  * Create a new candidate. Either:
- *   { userId }                                   – link to existing Stasis user
- *   { externalName, externalEmail?, externalSlackId? } – external candidate
+ *   { userId, source?, ... }                 – link to existing Stasis user
+ *   { externalName, externalEmail?, externalSlackId?, source?, ... } – external
+ *
+ * Optional fields at creation: caseForThem, outreachStatus, isGirl,
+ * flightStipendCents, flightCostEstimateCents, homeAirport, homeCity.
+ *
+ * isGirl is auto-derived from she/her pronouns if not provided.
  */
 export async function POST(request: NextRequest) {
   const authCheck = await requirePermission(Permission.MANAGE_ATTENDANCE)
@@ -132,16 +127,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Must supply userId or externalName" }, { status: 400 })
   }
 
+  const source: AttendanceCandidateSource =
+    typeof body.source === "string" && VALID_SOURCES.includes(body.source)
+      ? (body.source as AttendanceCandidateSource)
+      : (userId ? "STASIS_USER" : "DISCRETION")
+
+  const status: AttendanceStatus =
+    typeof body.outreachStatus === "string" && body.outreachStatus in AttendanceStatus
+      ? (body.outreachStatus as AttendanceStatus)
+      : "IDENTIFIED"
+
+  let isGirl: boolean | null = null
+  if (typeof body.isGirl === "boolean") isGirl = body.isGirl
+
+  let userPronouns: string | null = null
   if (userId) {
     const existing = await prisma.attendanceCandidate.findUnique({ where: { userId } })
     if (existing) {
       return NextResponse.json({ error: "Candidate already exists for this user", candidateId: existing.id }, { status: 409 })
     }
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, pronouns: true } })
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+    userPronouns = user.pronouns ?? null
   }
+
+  // Auto-derive isGirl when caller didn't specify and pronouns indicate she/her
+  if (isGirl === null && userPronouns && userPronouns.toLowerCase() === "she/her") {
+    isGirl = true
+  }
+
+  const invitedAt = status === "IDENTIFIED" ? null : new Date()
 
   const candidate = await prisma.attendanceCandidate.create({
     data: {
@@ -150,7 +165,15 @@ export async function POST(request: NextRequest) {
       externalEmail: userId ? null : externalEmail,
       externalSlackId: userId ? null : externalSlackId,
       createdById: authCheck.session!.user.id,
-      outreachStatus: AttendanceStatus.IDENTIFIED,
+      outreachStatus: status,
+      source,
+      isGirl,
+      invitedAt,
+      caseForThem: typeof body.caseForThem === "string" ? sanitize(body.caseForThem).slice(0, 1000) : null,
+      flightStipendCents: typeof body.flightStipendCents === "number" ? Math.round(body.flightStipendCents) : null,
+      flightCostEstimateCents: typeof body.flightCostEstimateCents === "number" ? Math.round(body.flightCostEstimateCents) : null,
+      homeAirport: typeof body.homeAirport === "string" ? sanitize(body.homeAirport).slice(0, 8).toUpperCase() : null,
+      homeCity: typeof body.homeCity === "string" ? sanitize(body.homeCity).slice(0, 200) : null,
     },
   })
 

@@ -17,10 +17,23 @@ export enum Permission {
 }
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  [Role.ADMIN]: Object.values(Permission),
+  // ADMIN gets everything *except* MANAGE_ATTENDANCE — that's locked to the
+  // small attendance-admin circle (see Role.ATTENDANCE_ADMIN below).
+  [Role.ADMIN]: [
+    Permission.MANAGE_ROLES,
+    Permission.REVIEW_PROJECTS,
+    Permission.REVIEW_SESSIONS,
+    Permission.MANAGE_USERS,
+    Permission.VIEW_AUDIT_LOG,
+    Permission.VIEW_AUDIT_REVIEWS,
+    Permission.FLAG_FRAUD,
+    Permission.MANAGE_CURRENCY,
+    Permission.VIEW_SIDEKICK_DASHBOARD,
+  ],
   [Role.REVIEWER]: [Permission.REVIEW_PROJECTS, Permission.REVIEW_SESSIONS],
   [Role.SIDEKICK]: [Permission.VIEW_SIDEKICK_DASHBOARD],
   [Role.AUDITOR]: [Permission.VIEW_AUDIT_LOG, Permission.VIEW_AUDIT_REVIEWS],
+  [Role.ATTENDANCE_ADMIN]: [Permission.MANAGE_ATTENDANCE],
 }
 
 export function hasPermission(userRoles: Role[], permission: Permission): boolean {

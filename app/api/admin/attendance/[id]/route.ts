@@ -3,14 +3,15 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
-import { AttendanceStatus, CurrencyTransactionType } from "@/app/generated/prisma/enums"
+import { AttendanceStatus, AttendanceCandidateSource, CurrencyTransactionType } from "@/app/generated/prisma/enums"
 import { lookupAttendByEmail } from "@/lib/attend-db"
+import { getDerivedStatsBatch } from "@/lib/attendance"
+
+const VALID_SOURCES: AttendanceCandidateSource[] = ["STASIS_USER", "REVIEWER_INCENTIVE", "EXTERNAL_HC", "DISCRETION"]
 
 /**
  * GET /api/admin/attendance/[id]
- * Returns the full denormalized profile for one candidate, with all sub-panels:
- * stasis projects, bits ledger summary, attend status, comms log, notes,
- * audit log, reminders.
+ * Returns the full denormalized profile for one candidate.
  */
 export async function GET(
   _request: NextRequest,
@@ -32,7 +33,6 @@ export async function GET(
           slackId: true,
           slackDisplayName: true,
           pronouns: true,
-          eventPreference: true,
           attendRegisteredAt: true,
           createdAt: true,
         },
@@ -57,7 +57,13 @@ export async function GET(
 
   if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  // Stasis-side data (only if linked to a user)
+  // Derived stats — batch helper, single-element call
+  const statsMap = await getDerivedStatsBatch([
+    { id: candidate.id, userId: candidate.userId, source: candidate.source },
+  ])
+  const derivedStats = statsMap.get(candidate.id)!
+
+  // Stasis-side data (only if linked to a user) — full project list for the modal
   let stasis: {
     projects: Array<{
       id: string
@@ -139,20 +145,32 @@ export async function GET(
       slackDisplayName: candidate.user?.slackDisplayName ?? null,
       image: candidate.user?.image ?? candidate.externalImage ?? null,
       pronouns: candidate.user?.pronouns ?? null,
-      eventPreference: candidate.user?.eventPreference ?? null,
       outreachStatus: candidate.outreachStatus,
+      source: candidate.source,
       ownerId: candidate.ownerId,
       owner: candidate.owner,
-      snoozedUntil: candidate.snoozedUntil,
+      invitedAt: candidate.invitedAt,
+      isGirl: candidate.isGirl,
+      homeAirport: candidate.homeAirport,
+      homeCity: candidate.homeCity,
+      flightCostEstimateCents: candidate.flightCostEstimateCents,
+      flightCostUpdatedAt: candidate.flightCostUpdatedAt,
+      flightStipendCents: candidate.flightStipendCents,
+      caseForThem: candidate.caseForThem,
+      statusNote: candidate.statusNote,
       notes: candidate.notes,
       flakeNote: candidate.flakeNote,
       attendInvited: candidate.attendInvited,
       attendFlightBooked: candidate.attendFlightBooked,
+      attendCity: candidate.attendCity,
+      attendState: candidate.attendState,
+      attendCountry: candidate.attendCountry,
       attendCachedAt: candidate.attendCachedAt,
       createdAt: candidate.createdAt,
       updatedAt: candidate.updatedAt,
       isExternal: !candidate.userId,
     },
+    derivedStats,
     stasis,
     attend,
     commsEntries: candidate.commsEntries,
@@ -164,8 +182,6 @@ export async function GET(
 /**
  * PATCH /api/admin/attendance/[id]
  * Updates a subset of fields and writes audit entries for any changes.
- * Updatable: outreachStatus, ownerId, snoozedUntil, notes, flakeNote,
- *            externalName, externalEmail, externalSlackId, externalImage.
  */
 export async function PATCH(
   request: NextRequest,
@@ -205,6 +221,25 @@ export async function PATCH(
     (v) => (typeof v === "string" && v in AttendanceStatus ? (v as AttendanceStatus) : null),
     (v) => v
   )
+  // First transition out of IDENTIFIED stamps invitedAt (unless already set).
+  if (
+    "outreachStatus" in data &&
+    data.outreachStatus !== "IDENTIFIED" &&
+    !existing.invitedAt &&
+    existing.outreachStatus === "IDENTIFIED"
+  ) {
+    const now = new Date()
+    data.invitedAt = now
+    audit.push({ field: "invitedAt", oldValue: null, newValue: now.toISOString() })
+  }
+
+  maybeSet(
+    "source",
+    body.source,
+    existing.source,
+    (v) => (typeof v === "string" && VALID_SOURCES.includes(v as AttendanceCandidateSource) ? (v as AttendanceCandidateSource) : null),
+    (v) => v
+  )
   maybeSet(
     "ownerId",
     body.ownerId,
@@ -213,16 +248,57 @@ export async function PATCH(
     (v) => v
   )
   maybeSet(
-    "snoozedUntil",
-    body.snoozedUntil,
-    existing.snoozedUntil,
-    (v) => {
-      if (v === null) return null
-      if (typeof v !== "string") return null
-      const d = new Date(v)
-      return isNaN(d.getTime()) ? null : d
-    },
-    (v) => (v ? v.toISOString() : null)
+    "isGirl",
+    body.isGirl,
+    existing.isGirl,
+    (v) => (typeof v === "boolean" ? v : v === null ? null : null),
+    (v) => (v === null ? null : v ? "true" : "false")
+  )
+  maybeSet(
+    "homeAirport",
+    body.homeAirport,
+    existing.homeAirport,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 8).toUpperCase() || null : v === null ? null : null),
+    (v) => v
+  )
+  maybeSet(
+    "homeCity",
+    body.homeCity,
+    existing.homeCity,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 200) || null : v === null ? null : null),
+    (v) => v
+  )
+  maybeSet(
+    "flightStipendCents",
+    body.flightStipendCents,
+    existing.flightStipendCents,
+    (v) => (typeof v === "number" && isFinite(v) ? Math.round(v) : v === null ? null : null),
+    (v) => (v === null ? null : String(v))
+  )
+  maybeSet(
+    "flightCostEstimateCents",
+    body.flightCostEstimateCents,
+    existing.flightCostEstimateCents,
+    (v) => (typeof v === "number" && isFinite(v) ? Math.round(v) : v === null ? null : null),
+    (v) => (v === null ? null : String(v))
+  )
+  // Stamp flightCostUpdatedAt whenever the estimate is changed
+  if ("flightCostEstimateCents" in data) {
+    data.flightCostUpdatedAt = new Date()
+  }
+  maybeSet(
+    "caseForThem",
+    body.caseForThem,
+    existing.caseForThem,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 1000) || null : v === null ? null : null),
+    (v) => (v ? v.slice(0, 200) : null)
+  )
+  maybeSet(
+    "statusNote",
+    body.statusNote,
+    existing.statusNote,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 500) || null : v === null ? null : null),
+    (v) => (v ? v.slice(0, 200) : null)
   )
   maybeSet(
     "notes",

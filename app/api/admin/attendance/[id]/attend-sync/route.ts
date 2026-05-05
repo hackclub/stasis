@@ -34,6 +34,9 @@ export async function POST(
     data: {
       attendInvited: !!attend?.found,
       attendFlightBooked: !!attend?.hasFlight,
+      attendCity: attend?.city ?? null,
+      attendState: attend?.state ?? null,
+      attendCountry: attend?.country ?? null,
       attendCachedAt: new Date(),
     },
   })

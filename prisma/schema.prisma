@@ -446,6 +446,7 @@ enum Role {
   REVIEWER
   SIDEKICK
   AUDITOR
+  ATTENDANCE_ADMIN
 }
 
 model UserRole {
@@ -942,11 +943,19 @@ model InventorySettings {
 // ============================================================
 
 enum AttendanceStatus {
-  IDENTIFIED      // In the pool, no outreach yet
-  CONTACTED       // Reached out, waiting on them
-  SOFT_YES        // Verbal interest, not yet formally invited
-  CONFIRMED_YES   // Said they will come; usually = invited on Attend
-  DECLINED        // Explicit no, exam conflict, visa denied, etc.
+  IDENTIFIED      // In the sourcing pool — under consideration, not yet pulled into the active funnel
+  CONTACTED       // We've decided to invite them; outreach sent (or imminent)
+  SOFT_YES        // Verbal interest, not yet committed
+  CONFIRMED_YES   // Said yes; ready to book / has booked flight
+  DECLINED        // They said no
+  SHELVED         // We decided not to pursue (distinct from they-said-no)
+}
+
+enum AttendanceCandidateSource {
+  STASIS_USER          // Picked from the Stasis platform's user base
+  REVIEWER_INCENTIVE   // Reviewer who hit / is approaching the review threshold
+  EXTERNAL_HC          // Built cool hardware in another Hack Club program
+  DISCRETION           // Hand-picked by an admin
 }
 
 // One row per person we are tracking. May link to a Stasis User
@@ -967,17 +976,33 @@ model AttendanceCandidate {
 
   // Pipeline
   outreachStatus  AttendanceStatus @default(IDENTIFIED)
+  source          AttendanceCandidateSource @default(DISCRETION)
   ownerId         String?
   owner           User?    @relation("AttendanceCandidateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  snoozedUntil    DateTime?
+  invitedAt       DateTime? // first time we transitioned them to CONTACTED+
 
-  // Notes (free text blob alongside the structured comms log)
-  notes           String?  @db.Text
-  flakeNote       String?  // single subjective field
+  // Demographics — load-bearing for the 40% girl target
+  isGirl          Boolean? // null = unknown; auto-derived from she/her pronouns at creation, override anytime
+
+  // Logistics — flight cost / stipend tracking
+  homeAirport            String?  // 3-letter IATA, manually entered
+  homeCity               String?  // free-form city/region when no airport known
+  flightCostEstimateCents Int?    // most recent estimate (null = not yet estimated)
+  flightCostUpdatedAt    DateTime? // when the estimate was last refreshed
+  flightStipendCents     Int?     // null = not decided; 0 = invited but no flight; >0 = funded amount
+
+  // Notes (human-only — short editorial blurb shown on cards/rows)
+  caseForThem     String?  @db.Text  // why-we-want-them, used at sourcing time
+  statusNote      String?  @db.Text  // dynamic short status, editable inline on kanban cards
+  notes           String?  @db.Text  // long-form free notes (modal only)
+  flakeNote       String?
 
   // Cached from Attend DB (refreshed on demand or via background job)
   attendInvited      Boolean  @default(false)
   attendFlightBooked Boolean  @default(false)
+  attendCity         String?
+  attendState        String?
+  attendCountry      String?
   attendCachedAt     DateTime?
 
   createdAt       DateTime @default(now())
@@ -990,8 +1015,9 @@ model AttendanceCandidate {
   reminders       AttendanceReminder[]
 
   @@index([outreachStatus])
+  @@index([source])
   @@index([ownerId])
-  @@index([snoozedUntil])
+  @@index([isGirl])
   @@map("attendance_candidate")
 }
 

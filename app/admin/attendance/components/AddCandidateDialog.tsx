@@ -135,7 +135,9 @@ export function AddCandidateDialog({
                     <Avatar name={m.name} email={m.email} image={m.image} size={32} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-cream-50 font-medium truncate">{m.name ?? m.email}</div>
-                      <div className="text-xs text-cream-300 truncate tabular-nums">{m.email}{m.slackId ? ` · ${m.slackId}` : ''}</div>
+                      <div className="text-xs text-cream-300 truncate tabular-nums">
+                        {m.email}{m.slackId ? <><span className="mx-2 text-cream-400/60">·</span>{m.slackId}</> : null}
+                      </div>
                     </div>
                     {m.existingCandidateId ? (
                       <span className="text-xs uppercase tracking-widest font-medium text-cream-300">already added</span>

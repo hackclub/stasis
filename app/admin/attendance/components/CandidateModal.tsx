@@ -6,7 +6,8 @@ import { Avatar } from './Avatar';
 import { StatusPill, FlagPill } from './StatusPill';
 import { CommsLog, type CommsEntry } from './CommsLog';
 import { ColorSelect, SelectColor } from './ColorSelect';
-import { AttendanceStatus, STATUS_LABEL, AdminUser, relativeTime } from '../lib/types';
+import { SourceBadge } from './SourceBadge';
+import { AttendanceStatus, AttendanceCandidateSource, STATUS_LABEL, SOURCE_FULL_LABEL, AdminUser, DerivedStats, relativeTime, formatDollars } from '../lib/types';
 
 const STATUS_COLOR: Record<AttendanceStatus, SelectColor> = {
   IDENTIFIED: 'cream',
@@ -14,6 +15,14 @@ const STATUS_COLOR: Record<AttendanceStatus, SelectColor> = {
   SOFT_YES: 'yellow',
   CONFIRMED_YES: 'green',
   DECLINED: 'red',
+  SHELVED: 'brown',
+};
+
+const SOURCE_COLOR: Record<AttendanceCandidateSource, SelectColor> = {
+  STASIS_USER: 'orange',
+  REVIEWER_INCENTIVE: 'purple',
+  EXTERNAL_HC: 'blue',
+  DISCRETION: 'cream',
 };
 
 const OWNER_PALETTE: SelectColor[] = ['emerald', 'blue', 'purple', 'pink', 'orange', 'yellow', 'cream'];
@@ -33,11 +42,19 @@ interface CandidateDetail {
     slackDisplayName: string | null;
     image: string | null;
     pronouns: string | null;
-    eventPreference: string | null;
     outreachStatus: AttendanceStatus;
+    source: AttendanceCandidateSource;
     ownerId: string | null;
     owner: { id: string; name: string | null; email: string; image: string | null } | null;
-    snoozedUntil: string | null;
+    invitedAt: string | null;
+    isGirl: boolean | null;
+    homeAirport: string | null;
+    homeCity: string | null;
+    flightCostEstimateCents: number | null;
+    flightCostUpdatedAt: string | null;
+    flightStipendCents: number | null;
+    caseForThem: string | null;
+    statusNote: string | null;
     notes: string | null;
     flakeNote: string | null;
     attendInvited: boolean;
@@ -47,6 +64,7 @@ interface CandidateDetail {
     createdAt: string;
     updatedAt: string;
   };
+  derivedStats: DerivedStats;
   stasis: null | {
     projects: Array<{
       id: string;
@@ -95,7 +113,13 @@ interface CandidateDetail {
   reminders: Array<{ id: string; dueAt: string; message: string }>;
 }
 
-const STATUS_OPTIONS: AttendanceStatus[] = ['IDENTIFIED', 'CONTACTED', 'SOFT_YES', 'CONFIRMED_YES', 'DECLINED'];
+const STATUS_OPTIONS: AttendanceStatus[] = ['IDENTIFIED', 'CONTACTED', 'SOFT_YES', 'CONFIRMED_YES', 'DECLINED', 'SHELVED'];
+const SOURCE_OPTIONS: AttendanceCandidateSource[] = ['STASIS_USER', 'REVIEWER_INCENTIVE', 'EXTERNAL_HC', 'DISCRETION'];
+const GIRL_OPTIONS: Array<{ value: string; label: string; color: SelectColor }> = [
+  { value: 'unknown', label: 'Unknown', color: 'cream' },
+  { value: 'true', label: 'Yes — counts', color: 'pink' },
+  { value: 'false', label: 'No', color: 'brown' },
+];
 
 export function CandidateModal({
   candidateId,
@@ -131,7 +155,6 @@ export function CandidateModal({
 
   useEffect(() => { load(); }, [load]);
 
-  // Esc to close
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -140,7 +163,6 @@ export function CandidateModal({
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  // Silent URL update so links are shareable, no UI clutter
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.set('id', candidateId);
@@ -278,20 +300,19 @@ function ModalBody({
   setShowAudit: (v: boolean) => void;
 }>) {
   const c = data.candidate;
+  const ds = data.derivedStats;
   return (
     <>
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-brown-800 border-b border-cream-200/10 px-6 py-4 flex items-start gap-4">
         <Avatar name={c.name} email={c.email} image={c.image} size={48} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-cream-50 text-lg font-medium truncate">{c.name ?? c.email ?? 'Unknown'}</h2>
             <StatusPill status={c.outreachStatus} size="md" />
+            <SourceBadge source={c.source} />
+            {c.isGirl ? <FlagPill label="♀ Girl" tone="positive" title="Counts toward girl target" /> : null}
             {c.attendInvited ? <FlagPill label="Attend ✓" tone="positive" /> : null}
             {c.attendFlightBooked ? <FlagPill label="Flight ✓" tone="positive" /> : null}
-            {c.snoozedUntil && new Date(c.snoozedUntil) > new Date() ? (
-              <FlagPill label={`Snoozed → ${new Date(c.snoozedUntil).toLocaleDateString()}`} tone="snooze" />
-            ) : null}
             {c.isExternal ? <FlagPill label="External" /> : null}
           </div>
           <div className="text-xs text-cream-300 mt-1 flex items-center gap-3 flex-wrap">
@@ -305,6 +326,7 @@ function ModalBody({
               >{c.slackId}</a>
             ) : null}
             {c.pronouns ? <span>{c.pronouns}</span> : null}
+            {c.invitedAt ? <span>invited {relativeTime(c.invitedAt)}</span> : null}
             {c.userId ? (
               <Link href={`/admin/users?search=${encodeURIComponent(c.email ?? '')}`} className="text-orange-400 hover:text-orange-300">
                 user record →
@@ -320,7 +342,7 @@ function ModalBody({
       </div>
 
       <div className="px-6 py-6 space-y-6">
-        {/* Pipeline controls */}
+        {/* Pipeline */}
         <Section title="Pipeline">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Outreach status">
@@ -328,13 +350,17 @@ function ModalBody({
                 value={c.outreachStatus}
                 onChange={(v) => patch({ outreachStatus: v }, 'outreachStatus')}
                 disabled={savingField === 'outreachStatus'}
-                fullWidth
-                size="md"
-                options={STATUS_OPTIONS.map((s) => ({
-                  value: s,
-                  label: STATUS_LABEL[s],
-                  color: STATUS_COLOR[s],
-                }))}
+                fullWidth size="md"
+                options={STATUS_OPTIONS.map((s) => ({ value: s, label: STATUS_LABEL[s], color: STATUS_COLOR[s] }))}
+              />
+            </Field>
+            <Field label="Source">
+              <ColorSelect
+                value={c.source}
+                onChange={(v) => patch({ source: v }, 'source')}
+                disabled={savingField === 'source'}
+                fullWidth size="md"
+                options={SOURCE_OPTIONS.map((s) => ({ value: s, label: SOURCE_FULL_LABEL[s], color: SOURCE_COLOR[s] }))}
               />
             </Field>
             <Field label="Owner">
@@ -342,47 +368,99 @@ function ModalBody({
                 value={c.ownerId ?? ''}
                 onChange={(v) => patch({ ownerId: v || null }, 'ownerId')}
                 disabled={savingField === 'ownerId'}
-                fullWidth
-                size="md"
+                fullWidth size="md"
                 options={[
                   { value: '', label: '— unassigned —', color: 'brown' },
                   ...admins.map((a) => ({
-                    value: a.id,
-                    label: a.name ?? a.email,
-                    color: ownerColor(a.id),
+                    value: a.id, label: a.name ?? a.email, color: ownerColor(a.id),
                     hint: a.name ? a.email : undefined,
                   })),
                 ]}
               />
             </Field>
-            <Field label="Snooze until">
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={c.snoozedUntil ? c.snoozedUntil.slice(0, 10) : ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    patch({ snoozedUntil: v ? new Date(v).toISOString() : null }, 'snoozedUntil');
-                  }}
-                  disabled={savingField === 'snoozedUntil'}
-                  className="flex-1 bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
-                />
-                {c.snoozedUntil ? (
-                  <button
-                    onClick={() => patch({ snoozedUntil: null }, 'snoozedUntil')}
-                    className="text-xs text-cream-300 hover:text-cream-50 px-3 py-2 cursor-pointer"
-                  >Clear</button>
-                ) : null}
-              </div>
+            <Field label="Counts toward girl target?">
+              <ColorSelect
+                value={c.isGirl === null ? 'unknown' : c.isGirl ? 'true' : 'false'}
+                onChange={(v) => patch({ isGirl: v === 'unknown' ? null : v === 'true' }, 'isGirl')}
+                disabled={savingField === 'isGirl'}
+                fullWidth size="md"
+                options={GIRL_OPTIONS}
+              />
             </Field>
-            <Field label="Flake note">
-              <FlakeNoteInput
-                value={c.flakeNote}
-                onSave={(v) => patch({ flakeNote: v || null }, 'flakeNote')}
-                saving={savingField === 'flakeNote'}
+            <div className="sm:col-span-2">
+              <Field label="Case for them — why we want them">
+                <CaseForThemInput
+                  value={c.caseForThem}
+                  onSave={(v) => patch({ caseForThem: v || null }, 'caseForThem')}
+                  saving={savingField === 'caseForThem'}
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Status — what's happening with them right now">
+                <CaseForThemInput
+                  value={c.statusNote}
+                  onSave={(v) => patch({ statusNote: v || null }, 'statusNote')}
+                  saving={savingField === 'statusNote'}
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Flake note">
+                <FlakeNoteInput
+                  value={c.flakeNote}
+                  onSave={(v) => patch({ flakeNote: v || null }, 'flakeNote')}
+                  saving={savingField === 'flakeNote'}
+                />
+              </Field>
+            </div>
+          </div>
+        </Section>
+
+        {/* Logistics — flight cost / stipend */}
+        <Section title="Logistics">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Field label="Home airport (IATA)">
+              <SmallTextInput
+                value={c.homeAirport}
+                placeholder="SFO"
+                onSave={(v) => patch({ homeAirport: v.toUpperCase() || null }, 'homeAirport')}
+                saving={savingField === 'homeAirport'}
+                maxLength={8}
+              />
+            </Field>
+            <Field label="Home city">
+              <SmallTextInput
+                value={c.homeCity}
+                placeholder="San Francisco"
+                onSave={(v) => patch({ homeCity: v || null }, 'homeCity')}
+                saving={savingField === 'homeCity'}
+                maxLength={200}
+              />
+            </Field>
+            <Field label="Flight cost estimate ($)">
+              <DollarInput
+                cents={c.flightCostEstimateCents}
+                onSave={(cents) => patch({ flightCostEstimateCents: cents }, 'flightCostEstimateCents')}
+                saving={savingField === 'flightCostEstimateCents'}
+              />
+            </Field>
+            <Field label="Flight stipend committed ($)">
+              <DollarInput
+                cents={c.flightStipendCents}
+                onSave={(cents) => patch({ flightStipendCents: cents }, 'flightStipendCents')}
+                saving={savingField === 'flightStipendCents'}
               />
             </Field>
           </div>
+          <LogisticsSummary
+            estimateCents={c.flightCostEstimateCents}
+            stipendCents={c.flightStipendCents}
+            updatedAt={c.flightCostUpdatedAt}
+            attendCity={data.attend?.city}
+            attendState={data.attend?.state}
+            attendCountry={data.attend?.country}
+          />
         </Section>
 
         {/* Comms log */}
@@ -395,7 +473,7 @@ function ModalBody({
           />
         </Section>
 
-        {/* Notes (free blob) */}
+        {/* Notes */}
         <Section title="Notes">
           <NotesField
             value={c.notes}
@@ -404,39 +482,44 @@ function ModalBody({
           />
         </Section>
 
-        {/* Stasis effort panel */}
-        {data.stasis ? (
-          <Section title="Stasis activity">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm mb-3">
-              <Stat label="Real bits" value={data.stasis.realBits} hint="design + build approvals only" />
-              <Stat label="Hours claimed" value={data.stasis.totalHoursClaimed.toFixed(1)} hint="pre-deflation" />
-              <Stat label="Projects" value={data.stasis.projects.length} />
-              <Stat label="Admin grants" value={data.stasis.adminGrants} hint="manual bit grants" muted />
+        {/* Stasis activity */}
+        <Section title="Stasis activity">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm mb-3">
+            <Stat label="Real bits" value={ds.realBits} hint="design + build approvals" />
+            <Stat label="Hours" value={ds.totalHoursClaimed.toFixed(1)} hint="pre-deflation" />
+            <Stat label="Projects" value={ds.projectsSubmitted} hint={`${ds.projectsApproved} approved`} />
+            <Stat label="Top tier" value={ds.topProjectTier ?? '—'} />
+            {ds.reviewerWeekCount != null ? (
+              <Stat label="Reviews this wk" value={`${ds.reviewerWeekCount}/30`} hint="since 5/5 11AM EST" />
+            ) : data.stasis ? (
+              <Stat label="Admin grants" value={data.stasis.adminGrants} hint="manual" muted />
+            ) : null}
+          </div>
+          {data.stasis && data.stasis.projects.length > 0 ? (
+            <div className="flex flex-col gap-px bg-brown-900">
+              {data.stasis.projects.map((p) => (
+                <a
+                  key={p.id}
+                  href={`/admin/projects/${p.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 px-3 py-2 bg-brown-800 hover:bg-orange-500/10 group"
+                >
+                  <span className="text-xs text-cream-200 font-medium w-12 tabular-nums">T{p.tier ?? '–'}</span>
+                  <span className="text-sm text-cream-50 group-hover:text-orange-400 flex-1 truncate">{p.title}</span>
+                  <span className="text-xs text-cream-300 font-medium">{statusShort(p.designStatus, p.buildStatus)}</span>
+                  <span className="text-xs text-cream-200 w-14 text-right tabular-nums">{p.hoursClaimed.toFixed(1)}h</span>
+                </a>
+              ))}
             </div>
-            {data.stasis.projects.length === 0 ? (
-              <div className="text-xs text-cream-300 italic">No projects yet.</div>
-            ) : (
-              <div className="flex flex-col gap-px bg-brown-900">
-                {data.stasis.projects.map((p) => (
-                  <a
-                    key={p.id}
-                    href={`/admin/projects/${p.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-3 px-3 py-2 bg-brown-800 hover:bg-orange-500/10 group"
-                  >
-                    <span className="text-xs text-cream-200 font-medium w-12 tabular-nums">T{p.tier ?? '–'}</span>
-                    <span className="text-sm text-cream-50 group-hover:text-orange-400 flex-1 truncate">{p.title}</span>
-                    <span className="text-xs text-cream-300 font-medium">{statusShort(p.designStatus, p.buildStatus)}</span>
-                    <span className="text-xs text-cream-200 w-14 text-right tabular-nums">{p.hoursClaimed.toFixed(1)}h</span>
-                  </a>
-                ))}
-              </div>
-            )}
-          </Section>
-        ) : null}
+          ) : c.userId ? (
+            <div className="text-xs text-cream-300 italic">No projects yet.</div>
+          ) : (
+            <div className="text-xs text-cream-300 italic">External candidate — no Stasis data.</div>
+          )}
+        </Section>
 
-        {/* Attend panel */}
+        {/* Attend */}
         <Section
           title="Attend"
           right={
@@ -496,16 +579,13 @@ function ModalBody({
           ) : null}
         </Section>
 
-        {/* Audit log (collapsed) */}
+        {/* Audit log */}
         <div>
           <button
             onClick={() => setShowAudit(!showAudit)}
             className="text-xs uppercase tracking-widest font-medium text-cream-300 hover:text-cream-100 cursor-pointer tabular-nums px-2 py-1 inline-flex items-center gap-1.5"
           >
-            <span
-              aria-hidden
-              className={`text-[9px] leading-none transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${showAudit ? 'rotate-90' : ''}`}
-            >▶</span>
+            <span aria-hidden className={`text-xs leading-none transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${showAudit ? 'rotate-90' : ''}`}>▶</span>
             Audit log ({data.auditEntries.length})
           </button>
           {showAudit ? (
@@ -582,6 +662,21 @@ function FlakeNoteInput({ value, onSave, saving }: Readonly<{ value: string | nu
   );
 }
 
+function CaseForThemInput({ value, onSave, saving }: Readonly<{ value: string | null; onSave: (v: string) => void; saving: boolean }>) {
+  const [draft, setDraft] = useState(value ?? '');
+  useEffect(() => { setDraft(value ?? ''); }, [value]);
+  return (
+    <input
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => { if (draft !== (value ?? '')) onSave(draft); }}
+      placeholder="e.g. built a sick keyboard in Boba Drops; Reem said she's solid"
+      disabled={saving}
+      className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
+    />
+  );
+}
+
 function NotesField({ value, onSave, saving }: Readonly<{ value: string | null; onSave: (v: string) => void; saving: boolean }>) {
   const [draft, setDraft] = useState(value ?? '');
   const debouncedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -605,16 +700,94 @@ function NotesField({ value, onSave, saving }: Readonly<{ value: string | null; 
   );
 }
 
+function SmallTextInput({ value, placeholder, onSave, saving, maxLength }: Readonly<{ value: string | null; placeholder?: string; onSave: (v: string) => void; saving: boolean; maxLength: number }>) {
+  const [draft, setDraft] = useState(value ?? '');
+  useEffect(() => { setDraft(value ?? ''); }, [value]);
+  return (
+    <input
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => { if (draft.trim() !== (value ?? '')) onSave(draft.trim()); }}
+      placeholder={placeholder}
+      disabled={saving}
+      maxLength={maxLength}
+      className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
+    />
+  );
+}
+
+function DollarInput({ cents, onSave, saving }: Readonly<{ cents: number | null; onSave: (cents: number | null) => void; saving: boolean }>) {
+  const [draft, setDraft] = useState<string>(cents == null ? '' : String(Math.round(cents / 100)));
+  useEffect(() => { setDraft(cents == null ? '' : String(Math.round(cents / 100))); }, [cents]);
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={0}
+      step={1}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const n = draft.trim();
+        if (n === '') {
+          if (cents != null) onSave(null);
+          return;
+        }
+        const num = parseInt(n, 10);
+        if (!isFinite(num) || num < 0) return;
+        const newCents = num * 100;
+        if (newCents !== cents) onSave(newCents);
+      }}
+      placeholder="—"
+      disabled={saving}
+      className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset tabular-nums"
+    />
+  );
+}
+
+function LogisticsSummary({ estimateCents, stipendCents, updatedAt, attendCity, attendState, attendCountry }: Readonly<{
+  estimateCents: number | null;
+  stipendCents: number | null;
+  updatedAt: string | null;
+  attendCity?: string | null;
+  attendState?: string | null;
+  attendCountry?: string | null;
+}>) {
+  const shortfallCents = estimateCents != null && stipendCents != null ? estimateCents - stipendCents : null;
+  const attendLoc = [attendCity, attendState, attendCountry].filter(Boolean).join(', ');
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-cream-300">
+      {shortfallCents != null ? (
+        <span>
+          <span className="text-cream-300">Shortfall:</span>{' '}
+          <span className={`tabular-nums font-medium ${shortfallCents > 0 ? 'text-yellow-300' : 'text-green-400'}`}>
+            {shortfallCents > 0 ? formatDollars(shortfallCents) : 'covered'}
+          </span>
+        </span>
+      ) : null}
+      {updatedAt ? <span><span className="text-cream-300">Estimate:</span> {relativeTime(updatedAt)}</span> : null}
+      {attendLoc ? <span><span className="text-cream-300">Attend says:</span> {attendLoc}</span> : null}
+    </div>
+  );
+}
+
 const AUDIT_FIELD_LABEL: Record<string, string> = {
   outreachStatus: 'Status',
+  source: 'Source',
   ownerId: 'Owner',
-  snoozedUntil: 'Snoozed until',
+  invitedAt: 'Invited at',
+  isGirl: 'Counts toward girls',
+  homeAirport: 'Home airport',
+  homeCity: 'Home city',
+  flightStipendCents: 'Flight stipend',
+  flightCostEstimateCents: 'Flight cost estimate',
+  caseForThem: 'Case for them',
+  statusNote: 'Status note',
   flakeNote: 'Flake note',
   notes: 'Notes',
   attendInvited: 'Invited in Attend',
   attendFlightBooked: 'Flight booked',
   pronouns: 'Pronouns',
-  eventPreference: 'Goal',
 };
 function auditFieldLabel(field: string): string {
   return AUDIT_FIELD_LABEL[field] ?? field;
@@ -623,6 +796,13 @@ function auditValueLabel(field: string, value: string | null): string {
   if (value === null || value === '') return '∅';
   if (field === 'outreachStatus' && value in STATUS_LABEL) {
     return STATUS_LABEL[value as AttendanceStatus];
+  }
+  if (field === 'source' && value in SOURCE_FULL_LABEL) {
+    return SOURCE_FULL_LABEL[value as AttendanceCandidateSource];
+  }
+  if (field === 'flightStipendCents' || field === 'flightCostEstimateCents') {
+    const n = parseInt(value, 10);
+    return isFinite(n) ? formatDollars(n) : value;
   }
   return value;
 }
