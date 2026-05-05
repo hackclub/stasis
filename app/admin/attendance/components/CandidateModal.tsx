@@ -434,7 +434,7 @@ function ModalBody({
         {/* Address — home address (Stasis user → fallback to Attend → manual override) */}
         <Section title="Address" right={<AddressSourceHint candidate={c} />}>
           <ResolvedAddressBanner candidate={c} />
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-3">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-3 items-end">
             <div className="col-span-2 sm:col-span-3">
               <Field label="Street">
                 <SmallTextInput
@@ -500,7 +500,7 @@ function ModalBody({
 
         {/* Logistics — flight cost / stipend */}
         <Section title="Logistics">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 items-end">
             <Field label="Flight cost estimate ($)">
               <DollarInput
                 cents={c.flightCostEstimateCents}

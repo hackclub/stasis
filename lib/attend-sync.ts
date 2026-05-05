@@ -230,8 +230,9 @@ export async function syncCandidatesAgainstAttend(
                 desired.invitedAt = sourceInvitedAt
               }
 
-              // Auto-bump from sourcing.
-              const willAutoBump = !!attend?.found && c.outreachStatus === "IDENTIFIED"
+              // Auto-bump from sourcing — anyone in Attend (participant row OR
+              // invitation row) shouldn't sit in the sourcing pool.
+              const willAutoBump = (!!attend?.found || !!invite) && c.outreachStatus === "IDENTIFIED"
               if (willAutoBump) {
                 desired.outreachStatus = "CONTACTED"
                 if (!c.invitedAt && !desired.invitedAt) {
