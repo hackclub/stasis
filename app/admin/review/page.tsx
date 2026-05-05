@@ -63,6 +63,7 @@ interface Stats {
   totalPendingWorkUnits: number;
   topReviewersWeekly: ReviewerStat[];
   topReviewersAllTime: ReviewerStat[];
+  comingToStasis: ReviewerStat[];
   guideCounts: Record<string, number>;
 }
 
@@ -98,7 +99,7 @@ interface RewardResponse {
   entries: RewardEntry[];
 }
 
-type StatsTab = 'weekly' | 'allTime' | 'fudgeHoodie';
+type StatsTab = 'weekly' | 'allTime' | 'comingToStasis' | 'fudgeHoodie';
 
 export default function ReviewQueuePage() {
   const router = useRouter();
@@ -341,6 +342,16 @@ export default function ReviewQueuePage() {
                 All Time
               </button>
               <button
+                onClick={() => setStatsTab('comingToStasis')}
+                className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
+                  statsTab === 'comingToStasis'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
+                }`}
+              >
+                Coming To Stasis (&gt;30)
+              </button>
+              <button
                 onClick={() => setStatsTab('fudgeHoodie')}
                 className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
                   statsTab === 'fudgeHoodie'
@@ -356,7 +367,7 @@ export default function ReviewQueuePage() {
             <FudgeHoodieStats rewards={rewards} loading={rewardsLoading} />
           ) : (
           <div className="flex gap-4 flex-wrap">
-            {(statsTab === 'weekly' ? stats?.topReviewersWeekly : stats?.topReviewersAllTime)?.map(
+            {(statsTab === 'weekly' ? stats?.topReviewersWeekly : statsTab === 'comingToStasis' ? stats?.comingToStasis : stats?.topReviewersAllTime)?.map(
               (s, i) => (
                 <div key={s.reviewer.id} className="flex items-center gap-2">
                   <span className="text-cream-200 text-xs">{i + 1}.</span>

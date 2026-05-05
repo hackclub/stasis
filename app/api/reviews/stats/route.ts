@@ -70,6 +70,15 @@ export async function GET() {
     if (r.reviewerId) allTimeByReviewer.set(r.reviewerId, (allTimeByReviewer.get(r.reviewerId) || 0) + 1)
   }
 
+  // "Coming To Stasis" — reviews after 2026-05-05 12:00 EST (17:00 UTC)
+  const stasisCutoff = new Date("2026-05-05T17:00:00Z")
+  const stasisByReviewer = new Map<string, number>()
+  for (const r of allReviewActions) {
+    if (r.reviewerId && new Date(r.createdAt) >= stasisCutoff) {
+      stasisByReviewer.set(r.reviewerId, (stasisByReviewer.get(r.reviewerId) || 0) + 1)
+    }
+  }
+
   const formatLeaderboard = (map: Map<string, number>) =>
     [...map.entries()]
       .sort((a, b) => b[1] - a[1])
@@ -84,6 +93,7 @@ export async function GET() {
     totalPendingWorkUnits: Math.round(totalPendingWorkUnits * 10) / 10,
     topReviewersWeekly: formatLeaderboard(weeklyByReviewer),
     topReviewersAllTime: formatLeaderboard(allTimeByReviewer),
+    comingToStasis: formatLeaderboard(stasisByReviewer),
     guideCounts,
   })
 }
