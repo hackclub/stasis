@@ -109,11 +109,11 @@ export function kanbanColumnAccent(col: KanbanColumn): string {
 
 export function statusBg(status: AttendanceStatus): string {
   switch (status) {
-    case "DECLINED":      return "bg-red-500/10 border-red-500/40 text-red-400"
-    case "CONFIRMED_YES": return "bg-green-500/10 border-green-500/40 text-green-500"
-    case "SOFT_YES":      return "bg-yellow-500/10 border-yellow-500/40 text-yellow-500"
-    case "CONTACTED":     return "bg-orange-500/10 border-orange-500/40 text-orange-400"
-    case "IDENTIFIED":    return "bg-cream-50/5 border-cream-200/30 text-cream-200"
+    case "DECLINED":      return "bg-red-500/20 text-red-300"
+    case "CONFIRMED_YES": return "bg-green-500/20 text-green-400"
+    case "SOFT_YES":      return "bg-yellow-500/25 text-yellow-300"
+    case "CONTACTED":     return "bg-orange-500/20 text-orange-300"
+    case "IDENTIFIED":    return "bg-cream-200/10 text-cream-200"
   }
 }
 

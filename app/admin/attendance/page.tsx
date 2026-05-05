@@ -63,23 +63,26 @@ export default function AttendancePage() {
   // Mirror filters/view/id to URL (replace, no history spam)
   const initialMount = useRef(true);
   useEffect(() => {
-    const sp = new URLSearchParams();
-    if (filters.q) sp.set('q', filters.q);
-    if (filters.status) sp.set('status', filters.status);
-    if (filters.ownerId) sp.set('owner', filters.ownerId);
-    if (filters.showSnoozed) sp.set('snoozed', '1');
-    if (filters.goal) sp.set('goal', filters.goal);
-    if (filters.pronouns) sp.set('pronouns', filters.pronouns);
-    if (view !== 'table') sp.set('view', view);
-    if (selectedId) sp.set('id', selectedId);
-    const qs = sp.toString();
-    const next = qs ? `${pathname}?${qs}` : pathname;
     // Skip the initial mount push so we don't immediately rewrite the URL we just read from
     if (initialMount.current) {
       initialMount.current = false;
       return;
     }
-    router.replace(next, { scroll: false });
+    const t = setTimeout(() => {
+      const sp = new URLSearchParams();
+      if (filters.q) sp.set('q', filters.q);
+      if (filters.status) sp.set('status', filters.status);
+      if (filters.ownerId) sp.set('owner', filters.ownerId);
+      if (filters.showSnoozed) sp.set('snoozed', '1');
+      if (filters.goal) sp.set('goal', filters.goal);
+      if (filters.pronouns) sp.set('pronouns', filters.pronouns);
+      if (view !== 'table') sp.set('view', view);
+      if (selectedId) sp.set('id', selectedId);
+      const qs = sp.toString();
+      const next = qs ? `${pathname}?${qs}` : pathname;
+      router.replace(next, { scroll: false });
+    }, 250);
+    return () => clearTimeout(t);
   }, [filters, view, selectedId, pathname, router]);
 
   const load = useCallback(async () => {
@@ -223,35 +226,33 @@ export default function AttendancePage() {
         </p>
 
         {/* Pipeline strip — instrumented readout of the kanban columns */}
-        <div className="mt-6 border-y border-brown-700">
-          <div className="flex overflow-x-auto">
-            {KANBAN_ORDER.map((col, i) => {
-              const n = counts.byCol.get(col) ?? 0;
-              const tone = kanbanColumnTone(col);
-              const accent = kanbanColumnAccent(col);
-              return (
-                <div
-                  key={col}
-                  className={`relative flex-1 min-w-[120px] flex items-baseline justify-between gap-3 px-3 py-2.5 ${i > 0 ? 'border-l border-dashed border-brown-700' : ''}`}
-                >
-                  {/* Hairline stage indicator — top edge */}
-                  <span className={`absolute top-0 left-0 right-0 h-px ${accent}`} aria-hidden />
-                  <div className="flex items-baseline gap-2 min-w-0">
-                    <span className={`text-[11px] font-medium tabular-nums ${n > 0 ? tone : 'text-cream-300'}`}>{String(i + 1).padStart(2, '0')}</span>
-                    <span className="text-[11px] uppercase tracking-widest text-cream-200 font-medium truncate">
-                      {KANBAN_LABEL[col]}
-                    </span>
-                  </div>
-                  <span className={`text-base font-medium tabular-nums ${n > 0 ? tone : 'text-cream-400'}`}>{n}</span>
+        <div className="mt-6 flex overflow-x-auto gap-px bg-brown-900">
+          {KANBAN_ORDER.map((col, i) => {
+            const n = counts.byCol.get(col) ?? 0;
+            const tone = kanbanColumnTone(col);
+            const accent = kanbanColumnAccent(col);
+            const active = n > 0;
+            return (
+              <div
+                key={col}
+                className={`flex-1 min-w-[120px] flex items-center justify-between gap-3 px-3 py-3 ${active ? 'bg-brown-800' : 'bg-brown-800/40'}`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={`block w-2 h-5 shrink-0 ${active ? accent : 'bg-brown-900'}`} aria-hidden />
+                  <span className={`font-mono text-xs font-medium tabular-nums ${active ? tone : 'text-cream-400'}`}>{String(i + 1).padStart(2, '0')}</span>
+                  <span className="text-xs uppercase tracking-widest text-cream-200 font-medium truncate">
+                    {KANBAN_LABEL[col]}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <span className={`text-base font-medium tabular-nums ${active ? tone : 'text-cream-400'}`}>{n}</span>
+              </div>
+            );
+          })}
         </div>
       </header>
 
-      {/* Toolbar — filter cluster | divider | action cluster */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-6">
+      {/* Toolbar — filter cluster | spacer | action cluster */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-6">
         <div className="relative w-72">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-cream-300 pointer-events-none">›</span>
           <input
@@ -259,7 +260,7 @@ export default function AttendancePage() {
             value={filters.q}
             onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
             placeholder="Search name, email, slack, notes…  ( / )"
-            className="bg-brown-800 border border-brown-700 text-cream-50 text-xs pl-7 pr-2.5 py-1.5 focus:outline-none focus:border-orange-500 w-full"
+            className="bg-brown-800 text-cream-50 text-xs pl-7 pr-2.5 py-2 outline-none focus:bg-brown-800 focus:ring-2 focus:ring-orange-500/60 focus:ring-inset w-full"
           />
         </div>
         <Select
@@ -305,7 +306,7 @@ export default function AttendancePage() {
             { value: 'none', label: 'no pronouns set' },
           ]}
         />
-        <label className="text-xs uppercase tracking-widest text-cream-200 font-medium inline-flex items-center gap-1.5 cursor-pointer">
+        <label className="text-xs uppercase tracking-widest text-cream-200 font-medium inline-flex items-center gap-1.5 cursor-pointer bg-brown-800 px-2.5 py-2">
           <input
             type="checkbox"
             checked={filters.showSnoozed}
@@ -315,20 +316,20 @@ export default function AttendancePage() {
           show snoozed
         </label>
 
-        <div className="ml-auto flex items-center gap-3 pl-3 border-l border-brown-700">
-          <div className="flex border border-brown-700">
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex gap-px bg-brown-900">
             <button
               onClick={() => setView('table')}
-              className={`text-xs uppercase tracking-widest font-medium px-2.5 py-1.5 cursor-pointer ${view === 'table' ? 'bg-orange-500/20 text-orange-400' : 'text-cream-200 hover:text-cream-50'}`}
+              className={`text-xs uppercase tracking-widest font-medium px-3 py-2 cursor-pointer ${view === 'table' ? 'bg-orange-500/20 text-orange-400' : 'bg-brown-800 text-cream-200 hover:text-cream-50'}`}
             >Table</button>
             <button
               onClick={() => setView('kanban')}
-              className={`text-xs uppercase tracking-widest font-medium px-2.5 py-1.5 border-l border-brown-700 cursor-pointer ${view === 'kanban' ? 'bg-orange-500/20 text-orange-400' : 'text-cream-200 hover:text-cream-50'}`}
+              className={`text-xs uppercase tracking-widest font-medium px-3 py-2 cursor-pointer ${view === 'kanban' ? 'bg-orange-500/20 text-orange-400' : 'bg-brown-800 text-cream-200 hover:text-cream-50'}`}
             >Kanban</button>
           </div>
           <button
             onClick={() => setAdding(true)}
-            className="text-xs uppercase tracking-widest font-medium px-2.5 py-1.5 border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 cursor-pointer"
+            className="text-xs uppercase tracking-widest font-medium px-3 py-2 bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 cursor-pointer"
           >+ Add candidate</button>
         </div>
       </div>
@@ -336,7 +337,11 @@ export default function AttendancePage() {
       {error ? <div className="text-red-400 text-sm mb-3">{error}</div> : null}
 
       {loading ? (
-        <div className="text-cream-300">Loading…</div>
+        <div className="flex flex-col gap-px bg-brown-900">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-12 bg-brown-800/60 animate-pulse" />
+          ))}
+        </div>
       ) : view === 'table' ? (
         <CandidateTable rows={filtered} onOpen={setSelectedId} highlightedId={highlightedId} onHighlight={setHighlightedId} />
       ) : (
@@ -376,7 +381,7 @@ function Select({ value, onChange, options }: Readonly<{
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="bg-brown-800 border border-brown-700 text-cream-50 text-xs px-2 py-1.5 focus:outline-none focus:border-orange-500 cursor-pointer"
+      className="bg-brown-800 text-cream-50 text-xs px-2 py-2 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset cursor-pointer"
     >
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -385,7 +390,7 @@ function Select({ value, onChange, options }: Readonly<{
 
 function Kbd({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <kbd className="inline-flex items-center px-1 py-px border border-brown-700 text-cream-200 text-[11px] tabular-nums">
+    <kbd className="font-mono inline-flex items-center px-1.5 py-px bg-brown-800 text-cream-200 text-xs tabular-nums">
       {children}
     </kbd>
   );

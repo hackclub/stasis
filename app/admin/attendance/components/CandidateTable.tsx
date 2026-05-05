@@ -36,32 +36,33 @@ export function CandidateTable({
     return <EmptyState />;
   }
   return (
-    <div className="border border-brown-700 overflow-x-auto">
-      <table className="min-w-full text-sm">
-        <thead className="bg-brown-800/60 border-b border-brown-700">
+    <div className="overflow-x-auto bg-brown-800">
+      <table className="min-w-full text-sm border-separate border-spacing-0">
+        <thead className="bg-brown-900">
           <tr className="text-left text-xs uppercase tracking-widest text-cream-200">
-            <th className="px-4 py-2.5 font-medium">Person</th>
-            <th className="px-4 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 font-medium">Owner</th>
-            <th className="px-4 py-2.5 font-medium text-right" title="Real bits earned (project approvals only) / project count">Engagement</th>
-            <th className="px-4 py-2.5 font-medium">Last touch</th>
-            <th className="px-4 py-2.5 font-medium">Notes</th>
-            <th className="px-4 py-2.5 font-medium">Flags</th>
+            <th className="px-4 py-3 font-medium">Person</th>
+            <th className="px-4 py-3 font-medium">Status</th>
+            <th className="px-4 py-3 font-medium">Owner</th>
+            <th className="px-4 py-3 font-medium text-right" title="Real bits earned (project approvals only) / project count">Engagement</th>
+            <th className="px-4 py-3 font-medium">Last touch</th>
+            <th className="px-4 py-3 font-medium">Notes</th>
+            <th className="px-4 py-3 font-medium">Flags</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-brown-700/60">
-          {sorted.map((r) => {
+        <tbody>
+          {sorted.map((r, idx) => {
             const lastIso = r.lastComms?.createdAt ?? null;
             const health = touchHealth(lastIso);
             const isSnoozed = !!r.snoozedUntil && new Date(r.snoozedUntil) > new Date();
             const isHighlighted = highlightedId === r.id;
+            const zebra = idx % 2 === 1 ? 'bg-brown-900/30' : '';
             return (
               <tr
                 key={r.id}
                 ref={isHighlighted ? highlightedRef : null}
                 onClick={() => onOpen(r.id)}
                 onMouseEnter={() => onHighlight?.(r.id)}
-                className={`cursor-pointer transition-colors ${isHighlighted ? 'bg-orange-500/10 outline outline-1 outline-orange-500/40 -outline-offset-1' : 'hover:bg-brown-800/40'} ${isSnoozed ? 'opacity-60' : ''}`}
+                className={`cursor-pointer transition-colors ${isHighlighted ? 'bg-orange-500/15 outline outline-2 -outline-offset-2 outline-orange-500/60' : `${zebra} hover:bg-orange-500/5`} ${isSnoozed ? 'opacity-60' : ''}`}
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -131,7 +132,7 @@ export function CandidateTable({
 
 function EmptyState() {
   return (
-    <div className="border border-dashed border-brown-700 p-12 text-center">
+    <div className="bg-brown-800 p-12 text-center">
       <div className="text-cream-100 text-sm font-medium">No candidates yet.</div>
       <div className="text-cream-300 text-xs mt-1">Click <span className="text-orange-400">+ Add candidate</span> to start tracking someone.</div>
     </div>

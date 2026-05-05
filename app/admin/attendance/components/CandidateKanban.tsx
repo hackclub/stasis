@@ -37,23 +37,25 @@ export function CandidateKanban({
           const hasItems = items.length > 0;
           return (
             <div key={col} className="w-[280px] shrink-0 flex flex-col">
-              {/* Column header — instrumented bracket, no nested card */}
-              <div className="relative flex items-baseline justify-between gap-2 pb-2 mb-3 border-b border-dashed border-brown-700">
-                <span className={`absolute top-0 left-0 w-8 h-px ${accent}`} aria-hidden />
-                <div className="flex items-baseline gap-2 min-w-0">
-                  <span className={`text-xs font-medium tabular-nums ${hasItems ? tone : 'text-cream-300'}`}>{rank}</span>
-                  <span className="text-xs uppercase tracking-widest text-cream-100 font-medium truncate">
-                    {KANBAN_LABEL[col]}
-                  </span>
+              {/* Column header — solid block with leading accent chip */}
+              <div className={`flex items-center justify-between gap-2 mb-3 ${hasItems ? 'bg-brown-800' : 'bg-brown-800/40'}`}>
+                <div className="flex items-stretch gap-2.5 min-w-0">
+                  <span className={`block w-1.5 ${hasItems ? accent : 'bg-brown-900'}`} aria-hidden />
+                  <div className="flex items-baseline gap-2 min-w-0 py-2">
+                    <span className={`text-xs font-medium tabular-nums ${hasItems ? tone : 'text-cream-400'}`}>{rank}</span>
+                    <span className="text-xs uppercase tracking-widest text-cream-100 font-medium truncate">
+                      {KANBAN_LABEL[col]}
+                    </span>
+                  </div>
                 </div>
-                <span className={`text-xs font-medium tabular-nums ${hasItems ? tone : 'text-cream-300'}`}>{items.length}</span>
+                <span className={`text-xs font-medium tabular-nums px-3 py-2 ${hasItems ? tone : 'text-cream-400'}`}>{items.length}</span>
               </div>
-              <div className="flex-1 space-y-3 min-h-[120px] max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+              <div className="flex-1 flex flex-col gap-2 min-h-[120px] max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
                 {items.map((r) => (
                   <KanbanCard key={r.id} row={r} onOpen={onOpen} />
                 ))}
                 {items.length === 0 ? (
-                  <div className="text-xs text-cream-300 uppercase tracking-widest px-0.5 py-3 border border-dashed border-brown-800 text-center">
+                  <div className="text-xs text-cream-400 uppercase tracking-widest py-6 border-2 border-dashed border-cream-200/10 text-center">
                     · empty ·
                   </div>
                 ) : null}
@@ -74,7 +76,7 @@ function KanbanCard({ row, onOpen }: Readonly<{ row: CandidateRow; onOpen: (id: 
   return (
     <button
       onClick={() => onOpen(row.id)}
-      className={`group relative w-full text-left bg-brown-800/40 border border-brown-700/70 hover:border-orange-500/50 hover:bg-brown-800/70 transition-colors cursor-pointer ${isSnoozed ? 'opacity-60' : ''}`}
+      className={`group relative w-full text-left bg-brown-800 border-2 border-cream-200/10 hover:border-orange-500/60 hover:bg-orange-500/10 transition-colors cursor-pointer ${isSnoozed ? 'opacity-60' : ''}`}
     >
       {/* Identity zone */}
       <div className="flex items-center gap-2.5 min-w-0 px-3 pt-3">
@@ -87,8 +89,8 @@ function KanbanCard({ row, onOpen }: Readonly<{ row: CandidateRow; onOpen: (id: 
         </div>
       </div>
 
-      {/* Meta zone — separated by hairline rule for rhythm */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 mt-2.5 border-t border-brown-700/50 text-[11px]">
+      {/* Meta zone — inset darken overlay (tone-agnostic so it picks up hover tint) */}
+      <div className="flex items-center justify-between gap-2 px-3 py-2 mt-2.5 bg-black/10 text-xs">
         <div className="flex items-center gap-1.5 text-cream-200 tabular-nums">
           {row.realBits > 0 ? <span className="text-orange-400 font-medium">{row.realBits}<span className="text-orange-400/60">b</span></span> : <span className="text-cream-400">·</span>}
           {row.projectCount > 0 ? <span className="text-cream-400">/{row.projectCount}p</span> : null}
@@ -101,14 +103,14 @@ function KanbanCard({ row, onOpen }: Readonly<{ row: CandidateRow; onOpen: (id: 
 
       {/* Snippet zone */}
       {row.lastComms?.text ? (
-        <div className="px-3 pb-2.5 text-xs text-cream-200 line-clamp-2 leading-snug">
+        <div className="px-3 pt-2.5 pb-2.5 text-xs text-cream-200 line-clamp-2 leading-snug">
           {row.lastComms.text}
         </div>
       ) : null}
 
       {/* Flag rail — pinned to bottom edge so cards align */}
       {hasFlags ? (
-        <div className="flex items-center gap-1 flex-wrap px-3 pb-2.5 pt-0">
+        <div className={`flex items-center gap-1 flex-wrap px-3 pb-2.5 ${row.lastComms?.text ? 'pt-0' : 'pt-2.5'}`}>
           {row.attendInvited ? <FlagPill label="A" tone="positive" /> : null}
           {row.attendFlightBooked ? <FlagPill label="✈" tone="positive" /> : null}
           {isSnoozed ? <FlagPill label="zz" tone="snooze" /> : null}
