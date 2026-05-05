@@ -156,11 +156,9 @@ export async function GET(
       flightCostEstimateCents: candidate.flightCostEstimateCents,
       flightCostUpdatedAt: candidate.flightCostUpdatedAt,
       flightStipendCents: candidate.flightStipendCents,
-      caseForThem: candidate.caseForThem,
-      statusNote: candidate.statusNote,
       notes: candidate.notes,
-      flakeNote: candidate.flakeNote,
       attendInvited: candidate.attendInvited,
+      attendOnboardingStarted: candidate.attendOnboardingStarted,
       attendFlightBooked: candidate.attendFlightBooked,
       attendCity: candidate.attendCity,
       attendState: candidate.attendState,
@@ -287,32 +285,11 @@ export async function PATCH(
     data.flightCostUpdatedAt = new Date()
   }
   maybeSet(
-    "caseForThem",
-    body.caseForThem,
-    existing.caseForThem,
-    (v) => (typeof v === "string" ? sanitize(v).slice(0, 1000) || null : v === null ? null : null),
-    (v) => (v ? v.slice(0, 200) : null)
-  )
-  maybeSet(
-    "statusNote",
-    body.statusNote,
-    existing.statusNote,
-    (v) => (typeof v === "string" ? sanitize(v).slice(0, 500) || null : v === null ? null : null),
-    (v) => (v ? v.slice(0, 200) : null)
-  )
-  maybeSet(
     "notes",
     body.notes,
     existing.notes,
     (v) => (typeof v === "string" ? v.slice(0, 50_000) : v === null ? null : null),
     (v) => (v ? v.slice(0, 200) : null)
-  )
-  maybeSet(
-    "flakeNote",
-    body.flakeNote,
-    existing.flakeNote,
-    (v) => (typeof v === "string" ? sanitize(v).slice(0, 1000) : v === null ? null : null),
-    (v) => v
   )
 
   // External-only edits

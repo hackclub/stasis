@@ -53,10 +53,7 @@ interface CandidateDetail {
     flightCostEstimateCents: number | null;
     flightCostUpdatedAt: string | null;
     flightStipendCents: number | null;
-    caseForThem: string | null;
-    statusNote: string | null;
     notes: string | null;
-    flakeNote: string | null;
     attendInvited: boolean;
     attendFlightBooked: boolean;
     attendCachedAt: string | null;
@@ -260,7 +257,7 @@ export function CandidateModal({
           <div className="attendance-modal-backdrop absolute inset-0 bg-black/70" />
           <div className="attendance-modal-drawer relative bg-brown-900 outline outline-1 outline-cream-200/15 shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-5 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="text-cream-50 text-sm font-medium mb-1">Remove this candidate?</div>
-            <div className="text-cream-300 text-xs mb-4">Notes and comms log will be permanently deleted.</div>
+            <div className="text-cream-300 text-xs mb-4">Notes and communication log will be permanently deleted.</div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setConfirmingDelete(false)} className="text-xs uppercase tracking-widest font-medium text-cream-200 hover:text-cream-50 bg-brown-800 px-3 py-2 cursor-pointer">Cancel</button>
               <button onClick={performDelete} className="text-xs uppercase tracking-widest font-medium text-red-300 bg-red-500/20 hover:bg-red-500/30 px-3 py-2 cursor-pointer">Remove</button>
@@ -387,34 +384,16 @@ function ModalBody({
                 options={GIRL_OPTIONS}
               />
             </Field>
-            <div className="sm:col-span-2">
-              <Field label="Case for them — why we want them">
-                <CaseForThemInput
-                  value={c.caseForThem}
-                  onSave={(v) => patch({ caseForThem: v || null }, 'caseForThem')}
-                  saving={savingField === 'caseForThem'}
-                />
-              </Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Status — what's happening with them right now">
-                <CaseForThemInput
-                  value={c.statusNote}
-                  onSave={(v) => patch({ statusNote: v || null }, 'statusNote')}
-                  saving={savingField === 'statusNote'}
-                />
-              </Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Flake note">
-                <FlakeNoteInput
-                  value={c.flakeNote}
-                  onSave={(v) => patch({ flakeNote: v || null }, 'flakeNote')}
-                  saving={savingField === 'flakeNote'}
-                />
-              </Field>
-            </div>
           </div>
+        </Section>
+
+        {/* Notes — single free-form field, sits directly below pipeline */}
+        <Section title="Notes">
+          <NotesField
+            value={c.notes}
+            onSave={(v) => patch({ notes: v || null }, 'notes').then(() => onMutatedNotes())}
+            saving={savingField === 'notes'}
+          />
         </Section>
 
         {/* Logistics — flight cost / stipend */}
@@ -464,21 +443,12 @@ function ModalBody({
         </Section>
 
         {/* Comms log */}
-        <Section title="Communications log" right={<span className="text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums">{data.commsEntries.length} entries</span>}>
+        <Section title="Communication log" right={<span className="text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums">{data.commsEntries.length} entries</span>}>
           <CommsLog
             candidateId={c.id}
             entries={data.commsEntries}
             onAppend={onAppendComms}
             onDelete={onDeleteComms}
-          />
-        </Section>
-
-        {/* Notes */}
-        <Section title="Notes">
-          <NotesField
-            value={c.notes}
-            onSave={(v) => patch({ notes: v || null }, 'notes').then(() => onMutatedNotes())}
-            saving={savingField === 'notes'}
           />
         </Section>
 
@@ -647,36 +617,6 @@ function Stat({ label, value, hint, muted }: Readonly<{ label: string; value: st
   );
 }
 
-function FlakeNoteInput({ value, onSave, saving }: Readonly<{ value: string | null; onSave: (v: string) => void; saving: boolean }>) {
-  const [draft, setDraft] = useState(value ?? '');
-  useEffect(() => { setDraft(value ?? ''); }, [value]);
-  return (
-    <input
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => { if (draft !== (value ?? '')) onSave(draft); }}
-      placeholder="e.g. low confidence, parents undecided"
-      disabled={saving}
-      className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
-    />
-  );
-}
-
-function CaseForThemInput({ value, onSave, saving }: Readonly<{ value: string | null; onSave: (v: string) => void; saving: boolean }>) {
-  const [draft, setDraft] = useState(value ?? '');
-  useEffect(() => { setDraft(value ?? ''); }, [value]);
-  return (
-    <input
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => { if (draft !== (value ?? '')) onSave(draft); }}
-      placeholder="e.g. built a sick keyboard in Boba Drops; Reem said she's solid"
-      disabled={saving}
-      className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
-    />
-  );
-}
-
 function NotesField({ value, onSave, saving }: Readonly<{ value: string | null; onSave: (v: string) => void; saving: boolean }>) {
   const [draft, setDraft] = useState(value ?? '');
   const debouncedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -781,9 +721,6 @@ const AUDIT_FIELD_LABEL: Record<string, string> = {
   homeCity: 'Home city',
   flightStipendCents: 'Flight stipend',
   flightCostEstimateCents: 'Flight cost estimate',
-  caseForThem: 'Case for them',
-  statusNote: 'Status note',
-  flakeNote: 'Flake note',
   notes: 'Notes',
   attendInvited: 'Invited in Attend',
   attendFlightBooked: 'Flight booked',

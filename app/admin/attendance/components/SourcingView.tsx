@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { Avatar } from './Avatar';
 import { SourceBadge } from './SourceBadge';
 import { AttendanceStatus } from '../lib/types';
-import { CandidateRow, derivedStatLine, relativeTime } from '../lib/types';
+import { CandidateRow, earnedBits, relativeTime } from '../lib/types';
+import { DerivedStatLine } from './DerivedStatLine';
 
 type SortKey = 'recent' | 'realBits' | 'projects' | 'hours' | 'reviews';
 
@@ -30,7 +31,7 @@ export function SourcingView({
   const sorted = useMemo(() => {
     const list = [...rows];
     switch (sortKey) {
-      case 'realBits': list.sort((a, b) => b.derivedStats.realBits - a.derivedStats.realBits); break;
+      case 'realBits': list.sort((a, b) => earnedBits(b.derivedStats) - earnedBits(a.derivedStats)); break;
       case 'projects': list.sort((a, b) => b.derivedStats.projectsSubmitted - a.derivedStats.projectsSubmitted); break;
       case 'hours': list.sort((a, b) => b.derivedStats.totalHoursClaimed - a.derivedStats.totalHoursClaimed); break;
       case 'reviews': list.sort((a, b) => (b.derivedStats.reviewerWeekCount ?? -1) - (a.derivedStats.reviewerWeekCount ?? -1)); break;
@@ -137,7 +138,7 @@ export function SourcingView({
               <th className="px-4 py-3 font-medium">Person</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Stats</th>
-              <th className="px-4 py-3 font-medium">Case</th>
+              <th className="px-4 py-3 font-medium">Notes</th>
               <th className="px-4 py-3 font-medium">Owner</th>
               <th className="px-4 py-3 font-medium">Added</th>
               <th className="px-4 py-3 font-medium text-right">Action</th>
@@ -173,9 +174,9 @@ export function SourcingView({
                     </div>
                   </td>
                   <td className="px-4 py-3"><SourceBadge source={r.source} /></td>
-                  <td className="px-4 py-3 text-cream-200 text-xs tabular-nums whitespace-nowrap">{derivedStatLine(r)}</td>
+                  <td className="px-4 py-3 text-cream-200 text-xs tabular-nums whitespace-nowrap"><DerivedStatLine row={r} /></td>
                   <td className="px-4 py-3 text-xs text-cream-100 max-w-md">
-                    <div className="line-clamp-2">{r.caseForThem ?? <span className="text-cream-400 italic">no case yet</span>}</div>
+                    <div className="line-clamp-2">{r.notes ?? <span className="text-cream-400 italic">no notes yet</span>}</div>
                   </td>
                   <td className="px-4 py-3">
                     {r.owner ? (

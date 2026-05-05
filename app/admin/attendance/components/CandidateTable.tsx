@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Avatar } from './Avatar';
 import { StatusPill, FlagPill } from './StatusPill';
 import { SourceBadge, Dot } from './SourceBadge';
-import { CandidateRow, relativeTime, touchHealth, derivedStatLine, formatDollars } from '../lib/types';
+import { CandidateRow, relativeTime, touchHealth, formatDollars } from '../lib/types';
+import { DerivedStatLine } from './DerivedStatLine';
 
 const TOUCH_DOT: Record<ReturnType<typeof touchHealth>, string> = {
   fresh: 'bg-green-500',
@@ -107,7 +108,7 @@ export function CandidateTable({
                     <span className="text-xs uppercase tracking-widest text-cream-300 font-medium">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-cream-200 text-xs tabular-nums whitespace-nowrap">{derivedStatLine(r)}</td>
+                <td className="px-4 py-3 text-cream-200 text-xs tabular-nums whitespace-nowrap"><DerivedStatLine row={r} /></td>
                 <td className="px-4 py-3 text-right tabular-nums">
                   {r.flightStipendCents == null ? (
                     <span className="text-cream-400 text-xs">—</span>
@@ -130,9 +131,9 @@ export function CandidateTable({
                 </td>
                 <td className="px-4 py-3 text-xs text-cream-200 max-w-xs">
                   <div className="truncate">
-                    {r.caseForThem ? <span className="text-cream-100">{r.caseForThem}</span>
+                    {r.notes ? <span className="text-cream-100">{r.notes}</span>
                       : r.lastComms?.text ? r.lastComms.text
-                      : (r.flakeNote ? <span className="italic text-cream-300">{r.flakeNote}</span> : '—')}
+                      : '—'}
                   </div>
                 </td>
                 <td className="px-4 py-3">

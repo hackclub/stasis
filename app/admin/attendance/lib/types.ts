@@ -59,7 +59,11 @@ export const KANBAN_LABEL: Record<KanbanColumn, string> = {
 export interface DerivedStats {
   projectsApproved: number
   projectsSubmitted: number
+  /** Includes laundered admin grants — subtract `adminGrantedDesignBits` for the
+   *  earned-only number that the dashboard displays by default. */
   realBits: number
+  /** DESIGN_APPROVED entries written by admin tooling rather than a real review. */
+  adminGrantedDesignBits: number
   designPendingBits: number
   totalHoursClaimed: number
   topProjectTier: number | null
@@ -86,16 +90,14 @@ export interface CandidateRow {
   flightCostUpdatedAt: string | null
   flightStipendCents: number | null
   attendInvited: boolean
+  attendOnboardingStarted: boolean
   attendFlightBooked: boolean
   attendCity: string | null
   attendState: string | null
   attendCountry: string | null
   attendCachedAt: string | null
   derivedStats: DerivedStats
-  caseForThem: string | null
-  statusNote: string | null
-  flakeNote: string | null
-  hasNotes: boolean
+  notes: string | null
   commsCount: number
   remindersCount: number
   lastComms: { createdAt: string; text: string; authorId: string } | null
@@ -204,34 +206,142 @@ export function formatDollars(cents: number | null | undefined): string {
   return `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 }
 
+/** Stable, deterministic color picked for an owner by id. Used everywhere
+ * (filter dropdown, kanban card name, modal select, right-click submenu) so a
+ * given admin always shows up in the same color. */
+const OWNER_PALETTE = ['emerald', 'blue', 'purple', 'pink', 'orange', 'yellow', 'cream'] as const
+export type OwnerColor = typeof OWNER_PALETTE[number]
+export function ownerColor(id: string): OwnerColor {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return OWNER_PALETTE[h % OWNER_PALETTE.length]
+}
+/** CSS class for an owner-colored name (matches the swatch in dropdowns). */
+export function ownerNameTextClass(id: string): string {
+  switch (ownerColor(id)) {
+    case 'emerald': return 'text-emerald-300'
+    case 'blue':    return 'text-sky-300'
+    case 'purple':  return 'text-violet-300'
+    case 'pink':    return 'text-pink-300'
+    case 'orange':  return 'text-orange-300'
+    case 'yellow':  return 'text-yellow-300'
+    case 'cream':   return 'text-cream-100'
+  }
+}
+
 /**
  * Best-known location string for the candidate, in priority order:
- * 1. Manually-entered homeCity (admin override)
- * 2. Cached Attend city/state
- * 3. Manually-entered homeAirport (IATA)
+ * 1. City (manual homeCity override, else cached Attend city)
+ * 2. Manually-entered homeAirport (IATA)
  * Returns null when nothing's known.
+ *
+ * Region rule: append state (2-letter) when in the US, country otherwise.
  */
 export function locationLabel(row: Pick<CandidateRow, "homeCity" | "attendCity" | "attendState" | "attendCountry" | "homeAirport">): string | null {
-  if (row.homeCity) return row.homeCity
-  if (row.attendCity) {
-    const region = row.attendState ?? row.attendCountry
-    return region ? `${row.attendCity}, ${region}` : row.attendCity
+  const city = row.homeCity ?? row.attendCity
+  if (city) {
+    const region = formatRegion(row.attendCountry, row.attendState)
+    return region ? `${city}, ${region}` : city
   }
   if (row.homeAirport) return row.homeAirport
   return null
 }
 
+const US_STATE_TO_CODE: Record<string, string> = {
+  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+  colorado: "CO", connecticut: "CT", delaware: "DE", "district of columbia": "DC",
+  florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID", illinois: "IL",
+  indiana: "IN", iowa: "IA", kansas: "KS", kentucky: "KY", louisiana: "LA",
+  maine: "ME", maryland: "MD", massachusetts: "MA", michigan: "MI", minnesota: "MN",
+  mississippi: "MS", missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
+  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+  "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK",
+  oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC",
+  "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT",
+  virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI",
+  wyoming: "WY", "puerto rico": "PR",
+}
+
+function isUS(country: string | null | undefined): boolean {
+  if (!country) return false
+  const c = country.trim().toLowerCase()
+  return c === "united states" || c === "united states of america" || c === "usa" || c === "us" || c === "u.s." || c === "u.s.a."
+}
+
+function normalizeUSState(state: string): string {
+  const trimmed = state.trim()
+  if (trimmed.length === 2) return trimmed.toUpperCase()
+  return US_STATE_TO_CODE[trimmed.toLowerCase()] ?? trimmed
+}
+
+function formatRegion(country: string | null | undefined, state: string | null | undefined): string | null {
+  if (isUS(country)) return state ? normalizeUSState(state) : null
+  return country?.trim() || null
+}
+
 /** One-line derived stats summary used on cards/rows. Wide dot separator
  * (en-space + middle dot + en-space) so the cluster reads at small sizes. */
-export function derivedStatLine(row: CandidateRow): string {
+export interface DerivedStatPart {
+  key: "reviewer" | "tier" | "bits" | "hours" | "projects"
+  text: string
+  /** Plain-text description; rendered in the hover tooltip. */
+  tooltip: string
+  /** True for the bits part when admin-granted bits were excluded — caller
+   *  can append the breakdown inside the tooltip. */
+  hasAdminGrantNote?: boolean
+}
+
+/** Earned bits for display: realBits minus laundered admin grants. */
+export function earnedBits(s: DerivedStats): number {
+  return s.realBits - s.adminGrantedDesignBits
+}
+
+/**
+ * Structured stat parts for the candidate row's "stats" cell. Returns an
+ * empty array if the candidate has nothing worth showing (caller renders an
+ * em-dash). Reviewer candidates short-circuit to a review-progress part.
+ */
+export function derivedStatParts(row: CandidateRow): DerivedStatPart[] {
   const s = row.derivedStats
   if (row.source === "REVIEWER_INCENTIVE" && s.reviewerWeekCount != null) {
-    return `${s.reviewerWeekCount}/30 reviews`
+    return [{
+      key: "reviewer",
+      text: `${s.reviewerWeekCount}/30 reviews`,
+      tooltip: "Reviews completed since 5/5 11AM EST (target: 30 for the reviewer incentive).",
+    }]
   }
-  const parts: string[] = []
-  if (s.topProjectTier != null) parts.push(`T${s.topProjectTier}`)
-  if (s.realBits) parts.push(`${s.realBits}b`)
-  if (s.totalHoursClaimed) parts.push(`${s.totalHoursClaimed.toFixed(0)}h`)
-  if (s.projectsSubmitted) parts.push(`${s.projectsSubmitted}p`)
-  return parts.length > 0 ? parts.join("\u2002·\u2002") : "—"
+  const parts: DerivedStatPart[] = []
+  if (s.topProjectTier != null) {
+    parts.push({
+      key: "tier",
+      text: `T${s.topProjectTier}`,
+      tooltip: `Top project tier (T${s.topProjectTier} of T1–T5). Tiers reflect project ambition and award 25–400 bits at build approval.`,
+    })
+  }
+  const earned = earnedBits(s)
+  if (earned || s.adminGrantedDesignBits) {
+    parts.push({
+      key: "bits",
+      text: `${earned}b`,
+      tooltip: s.adminGrantedDesignBits > 0
+        ? `${earned} bits earned (design + build approvals).  Excludes ${s.adminGrantedDesignBits} admin-granted bits — total with admin grants: ${s.realBits}.`
+        : `${earned} bits earned from design + build approvals.`,
+      hasAdminGrantNote: s.adminGrantedDesignBits > 0,
+    })
+  }
+  if (s.totalHoursClaimed) {
+    parts.push({
+      key: "hours",
+      text: `${s.totalHoursClaimed.toFixed(0)}h`,
+      tooltip: `${s.totalHoursClaimed.toFixed(1)} hours claimed across all projects (pre-deflation).`,
+    })
+  }
+  if (s.projectsSubmitted) {
+    parts.push({
+      key: "projects",
+      text: `${s.projectsSubmitted}p`,
+      tooltip: `${s.projectsSubmitted} project${s.projectsSubmitted === 1 ? "" : "s"} submitted (${s.projectsApproved} approved).`,
+    })
+  }
+  return parts
 }

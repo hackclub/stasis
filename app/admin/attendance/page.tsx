@@ -7,7 +7,8 @@ import { CandidateKanban } from './components/CandidateKanban';
 import { CandidateModal } from './components/CandidateModal';
 import { AddCandidateDialog } from './components/AddCandidateDialog';
 import { SourcingView } from './components/SourcingView';
-import { CandidateRow, AdminUser, AttendanceStatus, AttendanceCandidateSource, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent } from './lib/types';
+import { HelpModal } from './components/HelpModal';
+import { CandidateRow, AdminUser, AttendanceStatus, AttendanceCandidateSource, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, ownerColor } from './lib/types';
 import { ColorSelect } from './components/ColorSelect';
 
 type ViewMode = 'kanban' | 'table' | 'sourcing';
@@ -58,8 +59,24 @@ export default function AttendancePage() {
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
   const [adding, setAdding] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [hideChrome, setHideChrome] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const searchRef = useRef<HTMLInputElement | null>(null);
+
+  // Toggle admin nav visibility — persisted to localStorage, applied as a class
+  // on <html> so the layout's chrome elements (header + tab bar) can collapse.
+  useEffect(() => {
+    const stored = localStorage.getItem('attendance:hideChrome') === '1';
+    setHideChrome(stored);
+  }, []);
+  useEffect(() => {
+    const html = document.documentElement;
+    if (hideChrome) html.classList.add('hide-admin-chrome');
+    else html.classList.remove('hide-admin-chrome');
+    localStorage.setItem('attendance:hideChrome', hideChrome ? '1' : '0');
+    return () => { html.classList.remove('hide-admin-chrome'); };
+  }, [hideChrome]);
 
   // Mirror filters/view/id to URL
   const initialMount = useRef(true);
@@ -138,7 +155,7 @@ export default function AttendancePage() {
       if (view === 'sourcing' && r.outreachStatus !== 'IDENTIFIED') return false;
       if (view === 'kanban' && r.outreachStatus === 'IDENTIFIED') return false;
       if (q) {
-        const hay = [r.name, r.email, r.slackId, r.flakeNote, r.caseForThem, r.lastComms?.text]
+        const hay = [r.name, r.email, r.slackId, r.notes, r.lastComms?.text]
           .filter(Boolean).join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
@@ -199,10 +216,17 @@ export default function AttendancePage() {
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        if (showHelp) { setShowHelp(false); return; }
         if (adding) { setAdding(false); return; }
         if (selectedId) { setSelectedId(null); return; }
         if (filters.q) { setFilters((f) => ({ ...f, q: '' })); return; }
         if (highlightedId) { setHighlightedId(null); return; }
+      }
+      if (showHelp) return;
+      if (e.key === '?' && !isTypingTarget(e.target)) {
+        e.preventDefault();
+        setShowHelp(true);
+        return;
       }
       if (selectedId || adding) return;
       if (e.key === '/' && !isTypingTarget(e.target)) {
@@ -245,7 +269,7 @@ export default function AttendancePage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [adding, selectedId, filters.q, highlightedId, filtered, view]);
+  }, [adding, selectedId, filters.q, highlightedId, filtered, view, showHelp]);
 
   useEffect(() => {
     if (!highlightedId || selectedId || adding) return;
@@ -264,16 +288,18 @@ export default function AttendancePage() {
   const showSourceFilter = view !== 'kanban'; // sourcing + table
 
   return (
-    <div className="font-sans flex flex-col -mb-8 h-[calc(100dvh-9rem)]">
+    <div className="attendance-page-root font-sans flex flex-col">
       <header className="mb-4 shrink-0 flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-baseline gap-3 shrink-0">
           <h1 className="text-cream-50 text-xl font-medium">Attendance</h1>
-          <span className="text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums">
-            {rows.length} candidate{rows.length === 1 ? '' : 's'}
-          </span>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => setHideChrome((v) => !v)}
+            title={hideChrome ? 'Show admin nav' : 'Hide admin nav for more screen space'}
+            className="text-xs uppercase tracking-widest font-medium px-3 py-2 bg-brown-800 text-cream-300 hover:text-cream-50 cursor-pointer transition-[color,background-color] duration-150 active:scale-[0.97]"
+          >{hideChrome ? '↓ Show nav' : '↑ Hide nav'}</button>
           <SegmentedView
             value={view}
             onChange={setView}
@@ -403,10 +429,10 @@ export default function AttendancePage() {
         )}
       </div>
 
-      <div className="mt-3 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums shrink-0 bg-brown-950">
-        <span>showing {filtered.length} of {rows.length}</span>
+      <div className="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums shrink-0 bg-brown-950">
+        <span>showing {filtered.length} of {view === 'sourcing' ? `${funnelCounts.sourced} pool` : rows.length}</span>
         <span className="text-cream-300 normal-case tracking-normal font-normal">
-          <Kbd>/</Kbd> search · <Kbd>j</Kbd>/<Kbd>k</Kbd> nav · <Kbd>Enter</Kbd> open · <Kbd>n</Kbd> new · <Kbd>v</Kbd> view · <Kbd>Esc</Kbd> close
+          <Kbd>/</Kbd> search · <Kbd>j</Kbd>/<Kbd>k</Kbd> nav · <Kbd>Enter</Kbd> open · <Kbd>n</Kbd> new · <Kbd>v</Kbd> view · <button type="button" onClick={() => setShowHelp(true)} className="cursor-pointer hover:text-cream-50 transition-colors duration-150"><Kbd>?</Kbd> help</button> · <Kbd>Esc</Kbd> close
         </span>
       </div>
 
@@ -424,6 +450,7 @@ export default function AttendancePage() {
           onAdded={(id) => { setAdding(false); setSelectedId(id); load(); }}
         />
       ) : null}
+      {showHelp ? <HelpModal onClose={() => setShowHelp(false)} /> : null}
     </div>
   );
 }
@@ -477,36 +504,34 @@ function FunnelChip({
   );
 }
 
-/** Hero readout for the girl target. Denominator is the *event target* (e.g. 40),
- * not the current confirmed count — keeps the metric meaningful when N is small. */
+/** Hero readout for the girl target — compact two-line layout that matches
+ * the per-stage funnel chip height. */
 function GirlTargetChip({ confirmedGirls, girlTarget }: Readonly<{ confirmedGirls: number; girlTarget: number }>) {
   const pctOfTarget = girlTarget > 0 ? Math.min(100, Math.round((confirmedGirls / girlTarget) * 100)) : 0;
   const cls = girlPctClass(pctOfTarget);
   return (
-    <div className="bg-brown-800 px-4 py-2 flex flex-col justify-between min-w-[180px]">
+    <div className="bg-brown-800 px-3 py-2 flex flex-col justify-between min-w-[180px]">
       <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Girls confirmed</div>
-      <div className="flex items-baseline gap-1 mt-1">
-        <span className={`text-2xl font-semibold tabular-nums leading-none ${cls}`}>{confirmedGirls}</span>
-        <span className="text-base text-cream-400 font-medium tabular-nums leading-none">/ {girlTarget}</span>
-      </div>
-      <div className="mt-1.5 flex items-center gap-2">
-        <div className="flex-1 h-1 bg-brown-900 relative overflow-hidden" aria-hidden>
-          <div className="absolute inset-y-0 left-0 bg-pink-400/70" style={{ width: `${pctOfTarget}%` }} />
-        </div>
-        <span className="text-xs tabular-nums text-cream-300 font-medium shrink-0">{pctOfTarget}%</span>
+      <div className="flex items-baseline justify-between gap-2 mt-1.5">
+        <span className="text-base font-semibold tabular-nums leading-none">
+          <span className={cls}>{confirmedGirls}</span>
+          <span className="text-cream-400 font-medium mx-1.5">/</span>
+          <span className="text-cream-400 font-medium">{girlTarget}</span>
+          <span className="mx-2 text-cream-400/60 font-normal">·</span>
+          <span className={cls}>{pctOfTarget}%</span>
+        </span>
       </div>
     </div>
   );
 }
 
-/** Hero readout for committed stipend total — big $ number. */
+/** Hero readout for committed stipend total — compact two-line layout. */
 function StipendChip({ cents }: Readonly<{ cents: number }>) {
   const dollars = Math.round(cents / 100);
   return (
-    <div className="bg-brown-800 px-4 py-2 flex flex-col justify-between min-w-[150px]">
-      <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Stipend</div>
-      <div className="text-2xl font-semibold tabular-nums leading-none text-orange-400 mt-1">${dollars.toLocaleString()}</div>
-      <div className="text-xs text-cream-400 mt-1.5">committed to flights</div>
+    <div className="bg-brown-800 px-3 py-2 flex flex-col justify-between min-w-[150px]">
+      <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Total stipend</div>
+      <div className="text-base font-semibold tabular-nums leading-none text-orange-400 mt-1.5">${dollars.toLocaleString()}</div>
     </div>
   );
 }
@@ -515,13 +540,6 @@ function girlPctClass(pct: number): string {
   if (pct >= 40) return 'text-pink-300';
   if (pct >= 30) return 'text-yellow-300';
   return 'text-red-400';
-}
-
-const OWNER_PALETTE = ['emerald', 'blue', 'purple', 'pink', 'orange', 'yellow', 'cream'] as const;
-function ownerColor(id: string): typeof OWNER_PALETTE[number] {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return OWNER_PALETTE[h % OWNER_PALETTE.length];
 }
 
 function Kbd({ children }: Readonly<{ children: React.ReactNode }>) {

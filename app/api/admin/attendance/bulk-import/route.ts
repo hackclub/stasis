@@ -16,8 +16,7 @@ interface ImportItem {
   externalImage?: string
   source?: AttendanceCandidateSource
   outreachStatus?: AttendanceStatus
-  caseForThem?: string
-  statusNote?: string
+  notes?: string
   isGirl?: boolean
   homeAirport?: string
   homeCity?: string
@@ -45,6 +44,26 @@ export async function POST(request: NextRequest) {
   }
 
   const actorId = authCheck.session!.user.id
+
+  // Resolve any externalSlackId → userId for items that didn't pass userId directly.
+  // This lets callers pass just slackIds and have the import auto-link to existing
+  // Stasis users when they exist (and create external candidates otherwise).
+  const slackIdsToResolve = items
+    .filter((i) => !i.userId && i.externalSlackId)
+    .map((i) => i.externalSlackId!)
+  const slackResolved = slackIdsToResolve.length > 0
+    ? await prisma.user.findMany({
+        where: { slackId: { in: slackIdsToResolve } },
+        select: { id: true, slackId: true, pronouns: true },
+      })
+    : []
+  const userIdBySlackId = new Map(slackResolved.map((u) => [u.slackId!, u.id]))
+  for (const it of items) {
+    if (!it.userId && it.externalSlackId) {
+      const resolved = userIdBySlackId.get(it.externalSlackId)
+      if (resolved) it.userId = resolved
+    }
+  }
 
   // Pre-resolve user pronouns so we can auto-derive isGirl
   const userIds = items.map((i) => i.userId).filter((u): u is string => !!u)
@@ -125,8 +144,7 @@ export async function POST(request: NextRequest) {
         source,
         isGirl,
         invitedAt,
-        caseForThem: it.caseForThem ? sanitize(it.caseForThem).slice(0, 1000) : null,
-        statusNote: it.statusNote ? sanitize(it.statusNote).slice(0, 500) : null,
+        notes: it.notes ? it.notes.slice(0, 50_000) : null,
         homeAirport: it.homeAirport ? sanitize(it.homeAirport).slice(0, 8).toUpperCase() : null,
         homeCity: it.homeCity ? sanitize(it.homeCity).slice(0, 200) : null,
         flightStipendCents: typeof it.flightStipendCents === "number" ? Math.round(it.flightStipendCents) : null,

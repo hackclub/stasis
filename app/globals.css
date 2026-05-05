@@ -323,3 +323,31 @@ a:focus-visible {
 	}
 }
 
+/* Toggleable admin chrome — controlled by /admin/attendance "Hide nav" button.
+ * When `.hide-admin-chrome` is set on the document root, the persistent admin
+ * header + tab bar are hidden so the dashboard can use the full viewport. */
+.hide-admin-chrome [data-admin-chrome] {
+	display: none;
+}
+
+/* Page wrapper fills exactly from the layout's content top to the viewport
+ * bottom — bottom bar (last child) sits flush with the viewport edge.
+ * Math:
+ *   shown   = 100dvh - chrome (~6.5rem) - layout pt-8 (2rem) = 100dvh - 8.5rem
+ *   hidden  = 100dvh - layout pt (0.5rem)                    = 100dvh - 0.5rem */
+.attendance-page-root {
+	height: calc(100dvh - 8.5rem);
+}
+.hide-admin-chrome .attendance-page-root {
+	height: calc(100dvh - 0.5rem);
+}
+/* Drop the layout's bottom padding for /attendance specifically — the page
+ * wrapper handles its own bottom edge, so any pb here would create a gap. */
+[data-admin-content]:has(.attendance-page-root) {
+	padding-bottom: 0;
+}
+/* Smaller top padding when the chrome is hidden. */
+.hide-admin-chrome [data-admin-content] {
+	padding-top: 0.5rem;
+}
+

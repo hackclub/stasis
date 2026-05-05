@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar } from './Avatar';
-import { SOURCE_LABEL, CandidateRow, KanbanColumn, AttendanceStatus, AdminUser, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, relativeTime, touchHealth, locationLabel } from '../lib/types';
+import { SOURCE_LABEL, SOURCE_FULL_LABEL, CandidateRow, KanbanColumn, AttendanceStatus, AttendanceCandidateSource, AdminUser, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, relativeTime, touchHealth, locationLabel, ownerColor, ownerNameTextClass } from '../lib/types';
 import { ContextMenu, MenuItem } from './ContextMenu';
 import { InviteAttendDialog } from './InviteAttendDialog';
+import { Tooltip } from './Tooltip';
 
 const TOUCH_DOT: Record<ReturnType<typeof touchHealth>, string> = {
   fresh: 'bg-green-500',
@@ -92,6 +93,36 @@ export function CandidateKanban({
     onReload();
   }
 
+  async function setSource(id: string, source: AttendanceCandidateSource) {
+    await fetch(`/api/admin/attendance/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+    onReload();
+  }
+
+  function buildSourceMenuItems(row: CandidateRow): MenuItem[] {
+    const sources: AttendanceCandidateSource[] = ['STASIS_USER', 'REVIEWER_INCENTIVE', 'EXTERNAL_HC', 'DISCRETION'];
+    return sources.map((s) => ({
+      label: SOURCE_FULL_LABEL[s],
+      disabled: row.source === s,
+      onSelect: () => setSource(row.id, s),
+    }));
+  }
+
+  function buildOwnerMenuItems(row: CandidateRow): MenuItem[] {
+    return [
+      { label: '— Unassigned —', disabled: row.ownerId === null, onSelect: () => setOwner(row.id, null) },
+      ...admins.map((a) => ({
+        label: a.name ?? a.email,
+        swatchColor: ownerColor(a.id),
+        disabled: a.id === row.ownerId,
+        onSelect: () => setOwner(row.id, a.id),
+      })),
+    ];
+  }
+
   function buildMenuItems(row: CandidateRow): MenuItem[] {
     const moves: MenuItem[] = (
       [
@@ -112,6 +143,7 @@ export function CandidateKanban({
       { label: '— Unassigned —', disabled: row.ownerId === null, onSelect: () => setOwner(row.id, null) },
       ...admins.map((a) => ({
         label: a.name ?? a.email,
+        swatchColor: ownerColor(a.id),
         disabled: a.id === row.ownerId,
         onSelect: () => setOwner(row.id, a.id),
       })),
@@ -205,6 +237,16 @@ export function CandidateKanban({
                       e.stopPropagation();
                       setContextMenu({ x: e.clientX, y: e.clientY, items: buildMenuItems(r) });
                     }}
+                    onEditOwner={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setContextMenu({ x: e.clientX, y: e.clientY, items: buildOwnerMenuItems(r) });
+                    }}
+                    onEditSource={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setContextMenu({ x: e.clientX, y: e.clientY, items: buildSourceMenuItems(r) });
+                    }}
                   />
                 ))}
                 {items.length === 0 ? (
@@ -283,6 +325,8 @@ function KanbanCard({
   onDragStart,
   onDragEnd,
   onContextMenu,
+  onEditOwner,
+  onEditSource,
 }: Readonly<{
   row: CandidateRow;
   index: number;
@@ -292,12 +336,14 @@ function KanbanCard({
   onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onEditOwner: (e: React.MouseEvent) => void;
+  onEditSource: (e: React.MouseEvent) => void;
 }>) {
   const lastIso = row.lastComms?.createdAt ?? null;
   const health = touchHealth(lastIso);
   const ownerFirst = row.owner?.name?.split(' ')[0] ?? row.owner?.email ?? null;
-  const sourceLine = row.source === 'REVIEWER_INCENTIVE' && row.derivedStats.reviewerWeekCount != null
-    ? `Reviewer ${row.derivedStats.reviewerWeekCount}/30`
+  const sourceValue = row.source === 'REVIEWER_INCENTIVE' && row.derivedStats.reviewerWeekCount != null
+    ? `Reviewer · ${row.derivedStats.reviewerWeekCount}/30`
     : SOURCE_LABEL[row.source];
   const loc = locationLabel(row);
 
@@ -330,11 +376,48 @@ function KanbanCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <div className="text-cream-50 text-sm font-medium truncate leading-tight">{row.name ?? row.email ?? '?'}</div>
-            {row.isGirl ? <span title="Counts toward girl target" className="text-pink-300 text-sm leading-none shrink-0">♀</span> : null}
+            {row.isGirl ? (
+              <Tooltip content={<>Counts toward the <span className="text-pink-300">40% girls</span> target for the event.</>}>
+                <span className="text-pink-300 text-sm leading-none shrink-0 ">♀</span>
+              </Tooltip>
+            ) : null}
           </div>
-          <div className="text-xs text-cream-300 truncate mt-0.5">
-            {sourceLine}
-            {ownerFirst ? <span className="text-cream-400"> · Owner: <span className="text-cream-200">{ownerFirst}</span></span> : <span className="text-cream-400"> · No owner</span>}
+          <div className="text-xs text-cream-400 truncate mt-0.5">
+            <span>Source: </span>
+            <button
+              type="button"
+              data-inline-edit
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onEditSource(e); }}
+              className="text-cream-200 hover:text-orange-300 cursor-pointer"
+            >
+              {sourceValue}
+            </button>
+            {' · '}
+            {ownerFirst && row.ownerId ? (
+              <>
+                <span>Owner: </span>
+                <button
+                  type="button"
+                  data-inline-edit
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); onEditOwner(e); }}
+                  className={`font-medium hover:text-orange-300 cursor-pointer ${ownerNameTextClass(row.ownerId)}`}
+                >
+                  {ownerFirst}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                data-inline-edit
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onEditOwner(e); }}
+                className="hover:text-orange-300 cursor-pointer"
+              >
+                No owner
+              </button>
+            )}
           </div>
           {loc ? (
             <div className="text-xs text-cream-400 truncate mt-0.5">{loc}</div>
@@ -342,48 +425,69 @@ function KanbanCard({
         </div>
       </div>
 
-      {/* Status note — inline editable */}
+      {/* Notes — inline editable */}
       <div className="px-3 pt-3 pb-2.5">
-        <StatusNoteField
+        <NotesField
           candidateId={row.id}
-          value={row.statusNote}
+          value={row.notes}
           onSaved={onReload}
         />
       </div>
 
       {/* Bottom row — Attend Status + last touch */}
       <div className="flex items-center justify-between gap-2 px-3 py-2 bg-black/15 text-xs">
-        <AttendStatusPill invited={row.attendInvited} external={!row.userId} />
-        <div className="flex items-center gap-1.5 text-cream-300 tabular-nums shrink-0">
-          <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]} ${health === 'fresh' ? 'attendance-dot-fresh' : ''}`} aria-hidden />
-          <span>{lastIso ? relativeTime(lastIso) : 'no contact'}</span>
-        </div>
+        <Tooltip content={
+          row.attendOnboardingStarted
+            ? <>Accepted the Attend invite — onboarding is in progress on <span className="text-cream-100">attend.hackclub.com</span>.</>
+            : row.attendInvited
+              ? <>Invitation email has been sent, but they haven&apos;t accepted yet. Once they click the link in the email, this flips to <span className="text-cream-100">In Attend</span>.</>
+              : <>Not yet invited on <span className="text-cream-100">attend.hackclub.com</span>. Right-click → <span className="text-cream-100">Send Attend invite</span> when ready.</>
+        }>
+          <span className=""><AttendStatusPill invited={row.attendInvited} onboardingStarted={row.attendOnboardingStarted} /></span>
+        </Tooltip>
+        <Tooltip content={
+          lastIso
+            ? <>Last communication log entry on this candidate ({relativeTime(lastIso)}). Dot color: <span className="text-green-400">green</span> ≤3d, <span className="text-yellow-400">yellow</span> ≤7d, <span className="text-red-400">red</span> &gt;7d.</>
+            : <>No communication log entries yet. Add one in the candidate modal under <span className="text-cream-100">Communication log</span>.</>
+        }>
+          <div className="flex items-center gap-1.5 text-cream-300 tabular-nums shrink-0 ">
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${TOUCH_DOT[health]} ${health === 'fresh' ? 'attendance-dot-fresh' : ''}`} aria-hidden />
+            <span>{lastIso ? relativeTime(lastIso) : 'no contact'}</span>
+          </div>
+        </Tooltip>
       </div>
     </div>
   );
 }
 
-function AttendStatusPill({ invited, external }: Readonly<{ invited: boolean; external: boolean }>) {
-  if (invited) {
+function AttendStatusPill({ invited, onboardingStarted }: Readonly<{ invited: boolean; onboardingStarted: boolean }>) {
+  if (onboardingStarted) {
     return (
       <span className="inline-flex items-center gap-1 text-green-400 font-medium">
-        <span aria-hidden className="text-green-400">✓</span> In Attend
+        <span aria-hidden>✓</span> In Attend
+      </span>
+    );
+  }
+  if (invited) {
+    return (
+      <span className="inline-flex items-center gap-1 text-yellow-300 font-medium">
+        <span aria-hidden>•</span> Attend Invited
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 text-cream-400">
-      Not in Attend{external ? ' (external)' : ''}
+      Not in Attend
     </span>
   );
 }
 
 /**
- * Inline-editable statusNote on the kanban card.
+ * Inline-editable notes on the kanban card.
  * Click to edit, Enter / blur to save, Esc to cancel. Doesn't trigger
  * the card click (data-status-edit hooks the parent's stopPropagation).
  */
-function StatusNoteField({
+function NotesField({
   candidateId, value, onSaved,
 }: Readonly<{ candidateId: string; value: string | null; onSaved: () => void }>) {
   const [editing, setEditing] = useState(false);
@@ -414,7 +518,7 @@ function StatusNoteField({
       await fetch(`/api/admin/attendance/${candidateId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ statusNote: next || null }),
+        body: JSON.stringify({ notes: next || null }),
       });
       onSaved();
     } finally {
@@ -429,12 +533,13 @@ function StatusNoteField({
         type="button"
         data-status-edit
         onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-        className={`w-full text-left text-sm leading-snug min-h-[1.5rem] cursor-text transition-colors duration-100 ${
-          value ? 'text-cream-100 hover:text-orange-300' : 'text-cream-400 italic hover:text-cream-200'
+        onMouseDown={(e) => e.stopPropagation()}
+        className={`w-full text-left text-sm leading-snug min-h-[1.75rem] px-2 py-1 -mx-2 cursor-text transition-[background-color,border-color] duration-100 border-2 border-transparent hover:border-cream-200/20 hover:bg-brown-900 ${
+          value ? 'text-cream-100' : 'text-cream-400 italic'
         }`}
         title="Click to edit"
       >
-        {value || 'Add status…'}
+        {value || 'Add notes…'}
       </button>
     );
   }
@@ -467,7 +572,7 @@ function StatusNoteField({
       }}
       onBlur={() => save()}
       disabled={saving}
-      placeholder="What's happening with them right now?"
+      placeholder="Add notes…"
       rows={1}
       className="w-full bg-brown-900 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset resize-none leading-snug placeholder:text-cream-400 placeholder:italic"
     />

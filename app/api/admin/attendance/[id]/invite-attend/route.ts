@@ -82,6 +82,8 @@ export async function POST(
   const now = new Date()
 
   await prisma.$transaction(async (tx) => {
+    // attendInvited=true (we just sent it). attendOnboardingStarted stays false
+    // until they actually accept and a participant row is created in Attend.
     await tx.attendanceCandidate.update({
       where: { id },
       data: { attendInvited: true, attendCachedAt: now },

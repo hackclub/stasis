@@ -991,19 +991,19 @@ model AttendanceCandidate {
   flightCostUpdatedAt    DateTime? // when the estimate was last refreshed
   flightStipendCents     Int?     // null = not decided; 0 = invited but no flight; >0 = funded amount
 
-  // Notes (human-only — short editorial blurb shown on cards/rows)
-  caseForThem     String?  @db.Text  // why-we-want-them, used at sourcing time
-  statusNote      String?  @db.Text  // dynamic short status, editable inline on kanban cards
-  notes           String?  @db.Text  // long-form free notes (modal only)
-  flakeNote       String?
+  // Notes — single free-form field shown on kanban cards and below the
+  // pipeline section in the modal. (Previously split across caseForThem /
+  // statusNote / flakeNote — merged 2026-05-05.)
+  notes           String?  @db.Text
 
   // Cached from Attend DB (refreshed on demand or via background job)
-  attendInvited      Boolean  @default(false)
-  attendFlightBooked Boolean  @default(false)
-  attendCity         String?
-  attendState        String?
-  attendCountry      String?
-  attendCachedAt     DateTime?
+  attendInvited            Boolean  @default(false)  // invitation email sent (covers both pending + accepted)
+  attendOnboardingStarted  Boolean  @default(false)  // participant row exists in Attend (i.e. they accepted the invite)
+  attendFlightBooked       Boolean  @default(false)
+  attendCity               String?
+  attendState              String?
+  attendCountry            String?
+  attendCachedAt           DateTime?
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

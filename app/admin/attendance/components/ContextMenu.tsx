@@ -3,6 +3,8 @@
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+export type SwatchColor = 'emerald' | 'blue' | 'purple' | 'pink' | 'orange' | 'yellow' | 'cream';
+
 export interface MenuItem {
   type?: 'item' | 'separator' | 'submenu';
   label?: string;
@@ -10,8 +12,19 @@ export interface MenuItem {
   hint?: string;        // small right-aligned annotation (e.g. "↗" for opens-new-tab)
   disabled?: boolean;
   danger?: boolean;     // red-tinted (e.g. Remove)
+  swatchColor?: SwatchColor; // small leading colored square (e.g. owner color)
   children?: MenuItem[]; // for type: 'submenu'
 }
+
+const SWATCH_BG: Record<SwatchColor, string> = {
+  emerald: 'bg-emerald-400',
+  blue:    'bg-sky-400',
+  purple:  'bg-violet-400',
+  pink:    'bg-pink-400',
+  orange:  'bg-orange-500',
+  yellow:  'bg-yellow-500',
+  cream:   'bg-cream-200',
+};
 
 /** Right-click context menu for kanban cards. */
 export function ContextMenu({
@@ -104,7 +117,12 @@ function MenuRow({ item, index, hovered, setHovered, onClose }: Readonly<{
             : 'text-cream-100 hover:bg-orange-500/15 hover:text-orange-300'
       }`}
     >
-      <span className="truncate text-left">{item.label}</span>
+      <span className="flex items-center gap-2 min-w-0">
+        {item.swatchColor ? (
+          <span aria-hidden className={`shrink-0 size-2.5 ${SWATCH_BG[item.swatchColor]}`} />
+        ) : null}
+        <span className="truncate text-left">{item.label}</span>
+      </span>
       {item.hint ? <span className="text-xs text-cream-400 shrink-0">{item.hint}</span> : null}
     </button>
   );

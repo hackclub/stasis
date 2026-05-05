@@ -77,6 +77,7 @@ export async function GET() {
       flightStipendCents: c.flightStipendCents,
       // attend
       attendInvited: c.attendInvited,
+      attendOnboardingStarted: c.attendOnboardingStarted,
       attendFlightBooked: c.attendFlightBooked,
       attendCity: c.attendCity,
       attendState: c.attendState,
@@ -85,10 +86,7 @@ export async function GET() {
       // derived stats
       derivedStats: stats,
       // notes / comms summary
-      caseForThem: c.caseForThem,
-      statusNote: c.statusNote,
-      flakeNote: c.flakeNote,
-      hasNotes: !!c.notes && c.notes.trim().length > 0,
+      notes: c.notes,
       commsCount: c._count.commsEntries,
       remindersCount: c._count.reminders,
       lastComms: last
@@ -108,7 +106,7 @@ export async function GET() {
  *   { userId, source?, ... }                 – link to existing Stasis user
  *   { externalName, externalEmail?, externalSlackId?, source?, ... } – external
  *
- * Optional fields at creation: caseForThem, outreachStatus, isGirl,
+ * Optional fields at creation: notes, outreachStatus, isGirl,
  * flightStipendCents, flightCostEstimateCents, homeAirport, homeCity.
  *
  * isGirl is auto-derived from she/her pronouns if not provided.
@@ -169,7 +167,7 @@ export async function POST(request: NextRequest) {
       source,
       isGirl,
       invitedAt,
-      caseForThem: typeof body.caseForThem === "string" ? sanitize(body.caseForThem).slice(0, 1000) : null,
+      notes: typeof body.notes === "string" ? body.notes.slice(0, 50_000) : null,
       flightStipendCents: typeof body.flightStipendCents === "number" ? Math.round(body.flightStipendCents) : null,
       flightCostEstimateCents: typeof body.flightCostEstimateCents === "number" ? Math.round(body.flightCostEstimateCents) : null,
       homeAirport: typeof body.homeAirport === "string" ? sanitize(body.homeAirport).slice(0, 8).toUpperCase() : null,

@@ -63,7 +63,15 @@ export function kanbanColumnFor(
 export interface DerivedStats {
   projectsApproved: number
   projectsSubmitted: number
+  /** Sum of design+build approval entries — *includes* laundered admin grants
+   *  (DESIGN_APPROVED rows written by admin tooling without a project). UI
+   *  subtracts `adminGrantedDesignBits` for the displayed "earned" value. */
   realBits: number
+  /** Subset of realBits that came from admin tooling rather than a real
+   *  review — DESIGN_APPROVED entries with no project or note ILIKE 'ADMIN
+   *  GRANT%'. We surface these so the dashboard can show earned-only by
+   *  default and reveal the laundered total in the tooltip. */
+  adminGrantedDesignBits: number
   designPendingBits: number
   totalHoursClaimed: number
   topProjectTier: number | null
@@ -82,10 +90,25 @@ export async function getDerivedStatsBatch(
     .filter((c) => c.source === "REVIEWER_INCENTIVE" && c.userId)
     .map((c) => c.userId as string)
 
-  const [bitsByType, projectAgg, _hoursIgnored, reviewerCounts] = await Promise.all([
+  const [bitsByType, adminLaunderedDesign, projectAgg, _hoursIgnored, reviewerCounts] = await Promise.all([
     userIds.length === 0 ? [] : prisma.currencyTransaction.groupBy({
       by: ["userId", "type"],
       where: { userId: { in: userIds } },
+      _sum: { amount: true },
+    }),
+    // Laundered admin grants: DESIGN_APPROVED rows written by admin tooling
+    // (no project, or note like 'ADMIN GRANT…'). These slip through the
+    // realBits filter because they re-use the DESIGN_APPROVED type.
+    userIds.length === 0 ? [] : prisma.currencyTransaction.groupBy({
+      by: ["userId"],
+      where: {
+        userId: { in: userIds },
+        type: { in: [CurrencyTransactionType.DESIGN_APPROVED, CurrencyTransactionType.DESIGN_APPROVED_REVERSED] },
+        OR: [
+          { projectId: null },
+          { note: { startsWith: "ADMIN GRANT", mode: "insensitive" } },
+        ],
+      },
       _sum: { amount: true },
     }),
     userIds.length === 0 ? [] : prisma.project.findMany({
@@ -128,13 +151,14 @@ export async function getDerivedStatsBatch(
   }
 
   const reviewerCountsByUser = new Map(reviewerCounts.map((r) => [r.reviewerId!, r._count]))
+  const adminLaunderedByUser = new Map(adminLaunderedDesign.map((r) => [r.userId!, r._sum.amount ?? 0]))
 
   const out = new Map<string, DerivedStats>()
   for (const c of candidates) {
     if (!c.userId) {
       out.set(c.id, {
         projectsApproved: 0, projectsSubmitted: 0,
-        realBits: 0, designPendingBits: 0,
+        realBits: 0, adminGrantedDesignBits: 0, designPendingBits: 0,
         totalHoursClaimed: 0, topProjectTier: null,
         reviewerWeekCount: c.source === "REVIEWER_INCENTIVE" ? 0 : null,
       })
@@ -154,6 +178,7 @@ export async function getDerivedStatsBatch(
       projectsApproved: proj.approved,
       projectsSubmitted: proj.submitted,
       realBits,
+      adminGrantedDesignBits: adminLaunderedByUser.get(c.userId) ?? 0,
       designPendingBits,
       totalHoursClaimed: proj.hours,
       topProjectTier: proj.topTier,

@@ -28,11 +28,16 @@ export async function POST(
     return NextResponse.json({ error: "No email on candidate" }, { status: 400 })
   }
 
+  // lookupAttendByEmail only checks the participants table, so a found result
+  // means onboarding has started. We only flip attendOnboardingStarted to true;
+  // attendInvited is left to whatever it already is (the dashboard / sync script
+  // is the source of truth for "we sent an invitation"). Otherwise a fresh
+  // pending invite would get cleared every time someone hits Sync.
   const attend = await lookupAttendByEmail(email).catch(() => null)
   await prisma.attendanceCandidate.update({
     where: { id },
     data: {
-      attendInvited: !!attend?.found,
+      ...(attend?.found ? { attendInvited: true, attendOnboardingStarted: true } : {}),
       attendFlightBooked: !!attend?.hasFlight,
       attendCity: attend?.city ?? null,
       attendState: attend?.state ?? null,

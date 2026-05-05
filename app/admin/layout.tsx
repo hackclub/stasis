@@ -53,7 +53,7 @@ export default function AdminLayout({
     <>
       <div className="min-h-screen bg-brown-900 font-mono">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-brown-800">
+        <div data-admin-chrome className="px-6 py-4 flex items-center justify-between border-b border-brown-800">
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-cream-100 hover:text-orange-500 transition-colors">
               <svg 
@@ -91,7 +91,7 @@ export default function AdminLayout({
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-brown-800">
+        <div data-admin-chrome className="border-b border-brown-800">
           <div className="px-4">
             <div className="flex overflow-x-auto gap-0">
               <Link href="/admin/review" className={getTabClass('/admin/review')}>
@@ -172,7 +172,7 @@ export default function AdminLayout({
           </div>
         </div>
 
-        <div className="px-6 py-8">
+        <div data-admin-content className="px-6 py-8">
           {children}
         </div>
       </div>
