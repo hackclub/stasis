@@ -10,6 +10,7 @@ import { SourcingView } from './components/SourcingView';
 import { HelpModal } from './components/HelpModal';
 import { CandidateRow, AdminUser, AttendanceStatus, AttendanceCandidateSource, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, ownerColor, relativeTime } from './lib/types';
 import { ColorSelect } from './components/ColorSelect';
+import { useRoles, Permission, Role } from '@/lib/hooks/useRoles';
 
 type ViewMode = 'kanban' | 'table' | 'sourcing';
 
@@ -49,6 +50,14 @@ export default function AttendancePage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+
+  const { isLoading: rolesLoading, hasPermission, hasRole } = useRoles();
+  const allowed = hasPermission(Permission.MANAGE_ATTENDANCE);
+  useEffect(() => {
+    if (!rolesLoading && !allowed) {
+      router.replace(hasRole(Role.ADMIN) ? '/admin' : '/dashboard');
+    }
+  }, [rolesLoading, allowed, hasRole, router]);
 
   const [rows, setRows] = useState<CandidateRow[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -126,7 +135,7 @@ export default function AttendancePage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (allowed) load(); }, [load, allowed]);
 
   const runSyncAll = useCallback(async () => {
     setSyncAll((s) => ({ ...s, state: 'running', error: null }));
@@ -333,6 +342,14 @@ export default function AttendancePage() {
   // Show/hide filter chips based on active view.
   const showStatusFilter = view === 'table';
   const showSourceFilter = view !== 'kanban'; // sourcing + table
+
+  if (rolesLoading || !allowed) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <div className="loader" />
+      </div>
+    );
+  }
 
   return (
     <div className="attendance-page-root font-sans flex flex-col">
