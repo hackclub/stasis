@@ -1,6 +1,48 @@
 // Shared types for the attendance admin dashboard.
 // These mirror the JSON contracts of /api/admin/attendance/*.
 
+export type AttendDisplayState = "invited" | "wip" | "complete" | null
+
+export const ATTEND_DISPLAY_LABEL: Record<NonNullable<AttendDisplayState>, string> = {
+  invited: "Attend Invited",
+  wip: "Attend WIP",
+  complete: "Attend Complete",
+}
+
+/** Client mirror of `deriveAttendDisplayState` in lib/attend-sync.ts.
+ *  Kept here so client components can derive locally without pulling
+ *  server-only modules into the client bundle. */
+export function deriveAttendDisplayState(c: {
+  attendInvited: boolean
+  attendOnboardingStarted: boolean
+  attendStatus: string | null
+}): AttendDisplayState {
+  const s = c.attendStatus
+  if (s === "complete") return "complete"
+  if (s === "in_progress" || s === "awaiting_guardian") return "wip"
+  if (c.attendInvited && (!c.attendOnboardingStarted || s === "invited")) return "invited"
+  return null
+}
+
+export function attendDisplayTone(state: AttendDisplayState): string {
+  switch (state) {
+    case "complete": return "bg-green-500/20 text-green-300"
+    case "wip":      return "bg-orange-500/20 text-orange-300"
+    case "invited":  return "bg-yellow-500/20 text-yellow-300"
+    default:         return ""
+  }
+}
+
+/** Friendly explanation for the tooltip + the raw status echoed verbatim. */
+export function attendStatusTooltip(state: AttendDisplayState, rawStatus: string | null | undefined): string {
+  const friendly =
+    state === "complete" ? "Onboarding complete on attend.hackclub.com"
+    : state === "wip"      ? "Onboarding in progress on attend.hackclub.com"
+    : state === "invited"  ? "Invitation sent — they haven't started onboarding yet"
+    : "Not in Attend"
+  return rawStatus ? `${friendly} (raw: ${rawStatus})` : friendly
+}
+
 export type AttendanceStatus =
   | "IDENTIFIED"
   | "CONTACTED"
@@ -70,6 +112,14 @@ export interface DerivedStats {
   reviewerWeekCount: number | null  // null when source !== REVIEWER_INCENTIVE
 }
 
+export interface DecryptedUserAddress {
+  street: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  country: string | null
+}
+
 export interface CandidateRow {
   id: string
   userId: string | null
@@ -85,17 +135,26 @@ export interface CandidateRow {
   invitedAt: string | null
   isGirl: boolean | null
   homeAirport: string | null
+  homeStreet: string | null
   homeCity: string | null
+  homeState: string | null
+  homeZip: string | null
+  homeCountry: string | null
+  /** Decrypted Stasis-user address (only present when linked to a User with
+   * HCA address PII). Display fallback when home* overrides aren't set. */
+  userAddress: DecryptedUserAddress | null
   flightCostEstimateCents: number | null
   flightCostUpdatedAt: string | null
   flightStipendCents: number | null
   attendInvited: boolean
   attendOnboardingStarted: boolean
   attendFlightBooked: boolean
+  attendStatus: string | null
   attendCity: string | null
   attendState: string | null
   attendCountry: string | null
   attendCachedAt: string | null
+  attendDisplayState: AttendDisplayState
   derivedStats: DerivedStats
   notes: string | null
   commsCount: number
@@ -230,21 +289,40 @@ export function ownerNameTextClass(id: string): string {
 }
 
 /**
- * Best-known location string for the candidate, in priority order:
- * 1. City (manual homeCity override, else cached Attend city)
- * 2. Manually-entered homeAirport (IATA)
+ * Best-known location string for the candidate. Priority:
+ *   1. Candidate-level home* override (admin-edited, source of truth)
+ *   2. Decrypted Stasis-user address (linked Stasis users)
+ *   3. Cached Attend city/state/country
+ *   4. Manually-entered homeAirport (IATA fallback)
  * Returns null when nothing's known.
  *
- * Region rule: append state (2-letter) when in the US, country otherwise.
+ * Region rule: 2-letter state when in the US, country otherwise.
  */
-export function locationLabel(row: Pick<CandidateRow, "homeCity" | "attendCity" | "attendState" | "attendCountry" | "homeAirport">): string | null {
-  const city = row.homeCity ?? row.attendCity
-  if (city) {
-    const region = formatRegion(row.attendCountry, row.attendState)
-    return region ? `${city}, ${region}` : city
+type LocationRow = Pick<
+  CandidateRow,
+  | "homeCity" | "homeState" | "homeCountry"
+  | "attendCity" | "attendState" | "attendCountry"
+  | "homeAirport" | "userAddress"
+>
+export function locationLabel(row: LocationRow): string | null {
+  const resolved = resolveLocation(row)
+  if (resolved.city) {
+    const region = formatRegion(resolved.country, resolved.state)
+    return region ? `${resolved.city}, ${region}` : resolved.city
   }
   if (row.homeAirport) return row.homeAirport
   return null
+}
+
+/** Pick city/state/country from the highest-priority source available. Each
+ * field falls back independently so a manual `homeCity` doesn't blank out a
+ * Stasis-side state. */
+function resolveLocation(row: LocationRow): { city: string | null; state: string | null; country: string | null } {
+  return {
+    city: row.homeCity ?? row.userAddress?.city ?? row.attendCity ?? null,
+    state: row.homeState ?? row.userAddress?.state ?? row.attendState ?? null,
+    country: row.homeCountry ?? row.userAddress?.country ?? row.attendCountry ?? null,
+  }
 }
 
 const US_STATE_TO_CODE: Record<string, string> = {
@@ -279,69 +357,7 @@ function formatRegion(country: string | null | undefined, state: string | null |
   return country?.trim() || null
 }
 
-/** One-line derived stats summary used on cards/rows. Wide dot separator
- * (en-space + middle dot + en-space) so the cluster reads at small sizes. */
-export interface DerivedStatPart {
-  key: "reviewer" | "tier" | "bits" | "hours" | "projects"
-  text: string
-  /** Plain-text description; rendered in the hover tooltip. */
-  tooltip: string
-  /** True for the bits part when admin-granted bits were excluded — caller
-   *  can append the breakdown inside the tooltip. */
-  hasAdminGrantNote?: boolean
-}
-
 /** Earned bits for display: realBits minus laundered admin grants. */
 export function earnedBits(s: DerivedStats): number {
   return s.realBits - s.adminGrantedDesignBits
-}
-
-/**
- * Structured stat parts for the candidate row's "stats" cell. Returns an
- * empty array if the candidate has nothing worth showing (caller renders an
- * em-dash). Reviewer candidates short-circuit to a review-progress part.
- */
-export function derivedStatParts(row: CandidateRow): DerivedStatPart[] {
-  const s = row.derivedStats
-  if (row.source === "REVIEWER_INCENTIVE" && s.reviewerWeekCount != null) {
-    return [{
-      key: "reviewer",
-      text: `${s.reviewerWeekCount}/30 reviews`,
-      tooltip: "Reviews completed since 5/5 11AM EST (target: 30 for the reviewer incentive).",
-    }]
-  }
-  const parts: DerivedStatPart[] = []
-  if (s.topProjectTier != null) {
-    parts.push({
-      key: "tier",
-      text: `T${s.topProjectTier}`,
-      tooltip: `Top project tier (T${s.topProjectTier} of T1–T5). Tiers reflect project ambition and award 25–400 bits at build approval.`,
-    })
-  }
-  const earned = earnedBits(s)
-  if (earned || s.adminGrantedDesignBits) {
-    parts.push({
-      key: "bits",
-      text: `${earned}b`,
-      tooltip: s.adminGrantedDesignBits > 0
-        ? `${earned} bits earned (design + build approvals).  Excludes ${s.adminGrantedDesignBits} admin-granted bits — total with admin grants: ${s.realBits}.`
-        : `${earned} bits earned from design + build approvals.`,
-      hasAdminGrantNote: s.adminGrantedDesignBits > 0,
-    })
-  }
-  if (s.totalHoursClaimed) {
-    parts.push({
-      key: "hours",
-      text: `${s.totalHoursClaimed.toFixed(0)}h`,
-      tooltip: `${s.totalHoursClaimed.toFixed(1)} hours claimed across all projects (pre-deflation).`,
-    })
-  }
-  if (s.projectsSubmitted) {
-    parts.push({
-      key: "projects",
-      text: `${s.projectsSubmitted}p`,
-      tooltip: `${s.projectsSubmitted} project${s.projectsSubmitted === 1 ? "" : "s"} submitted (${s.projectsApproved} approved).`,
-    })
-  }
-  return parts
 }

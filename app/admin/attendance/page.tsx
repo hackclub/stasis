@@ -8,7 +8,7 @@ import { CandidateModal } from './components/CandidateModal';
 import { AddCandidateDialog } from './components/AddCandidateDialog';
 import { SourcingView } from './components/SourcingView';
 import { HelpModal } from './components/HelpModal';
-import { CandidateRow, AdminUser, AttendanceStatus, AttendanceCandidateSource, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, ownerColor } from './lib/types';
+import { CandidateRow, AdminUser, AttendanceStatus, AttendanceCandidateSource, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, ownerColor, relativeTime } from './lib/types';
 import { ColorSelect } from './components/ColorSelect';
 
 type ViewMode = 'kanban' | 'table' | 'sourcing';
@@ -61,6 +61,12 @@ export default function AttendancePage() {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [hideChrome, setHideChrome] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [syncAll, setSyncAll] = useState<{
+    state: 'idle' | 'running' | 'error';
+    error: string | null;
+    lastResult: { scanned: number; updated: number; bumped: number; errors: number } | null;
+    lastRunAt: string | null;
+  }>({ state: 'idle', error: null, lastResult: null, lastRunAt: null });
 
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -121,6 +127,47 @@ export default function AttendancePage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const runSyncAll = useCallback(async () => {
+    setSyncAll((s) => ({ ...s, state: 'running', error: null }));
+    try {
+      const res = await fetch('/api/admin/attendance/sync-all', { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error ?? `Sync failed (${res.status})`);
+      }
+      setSyncAll({
+        state: 'idle',
+        error: null,
+        lastResult: {
+          scanned: body.scanned ?? 0,
+          updated: body.updated ?? 0,
+          bumped: body.bumped ?? 0,
+          errors: Array.isArray(body.errors) ? body.errors.length : 0,
+        },
+        lastRunAt: body.syncedAt ?? new Date().toISOString(),
+      });
+      await load();
+    } catch (err) {
+      setSyncAll((s) => ({
+        ...s,
+        state: 'error',
+        error: err instanceof Error ? err.message : 'Sync failed',
+      }));
+    }
+  }, [load]);
+
+  // Newest server-side cache timestamp across all rows. Used as a fallback
+  // "last sync" indicator before the user runs sync-all themselves this session.
+  const newestServerSync = useMemo(() => {
+    let max = 0;
+    for (const r of rows) {
+      if (!r.attendCachedAt) continue;
+      const t = Date.parse(r.attendCachedAt);
+      if (t > max) max = t;
+    }
+    return max > 0 ? new Date(max).toISOString() : null;
+  }, [rows]);
 
   const moveCandidate = useCallback(async (id: string, nextStatus: AttendanceStatus) => {
     let prevStatus: AttendanceStatus | null = null;
@@ -309,6 +356,14 @@ export default function AttendancePage() {
               { value: 'sourcing', label: 'Sourcing' },
             ]}
           />
+          <SyncAllButton
+            state={syncAll.state}
+            error={syncAll.error}
+            lastResult={syncAll.lastResult}
+            lastRunAt={syncAll.lastRunAt ?? newestServerSync}
+            onRun={runSyncAll}
+            onDismissError={() => setSyncAll((s) => ({ ...s, state: 'idle', error: null }))}
+          />
           <button
             onClick={() => setAdding(true)}
             className="text-xs uppercase tracking-widest font-medium px-3 py-2 bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 cursor-pointer transition-[background-color] duration-150 active:scale-[0.97]"
@@ -451,6 +506,55 @@ export default function AttendancePage() {
         />
       ) : null}
       {showHelp ? <HelpModal onClose={() => setShowHelp(false)} /> : null}
+    </div>
+  );
+}
+
+/**
+ * "Resync attend" header button + status sub-line. Shows the latest sync's
+ * scanned/updated/bumped counts, falls back to the cron's most recent
+ * attendCachedAt across all rows when we haven't run a manual sync this
+ * session. Errors render inline next to the button with a dismiss control.
+ */
+function SyncAllButton({
+  state, error, lastResult, lastRunAt, onRun, onDismissError,
+}: Readonly<{
+  state: 'idle' | 'running' | 'error';
+  error: string | null;
+  lastResult: { scanned: number; updated: number; bumped: number; errors: number } | null;
+  lastRunAt: string | null;
+  onRun: () => void;
+  onDismissError: () => void;
+}>) {
+  const running = state === 'running';
+  return (
+    <div className="flex items-center gap-2">
+      {error ? (
+        <div className="flex items-center gap-1 text-xs text-red-400">
+          <span className="max-w-[18rem] truncate" title={error}>{error}</span>
+          <button
+            type="button"
+            onClick={onDismissError}
+            aria-label="Dismiss error"
+            className="text-cream-300 hover:text-cream-50 cursor-pointer px-1"
+          >×</button>
+        </div>
+      ) : lastResult ? (
+        <span className="text-xs text-cream-300 tabular-nums" aria-live="polite">
+          Last sync: {lastRunAt ? relativeTime(lastRunAt) : '—'} · {lastResult.updated} updated · {lastResult.bumped} bumped
+          {lastResult.errors > 0 ? <span className="text-red-400"> · {lastResult.errors} errors</span> : null}
+        </span>
+      ) : lastRunAt ? (
+        <span className="text-xs text-cream-300 tabular-nums">
+          Last sync: {relativeTime(lastRunAt)}
+        </span>
+      ) : null}
+      <button
+        type="button"
+        onClick={onRun}
+        disabled={running}
+        className="text-xs uppercase tracking-widest font-medium px-3 py-2 bg-brown-800 text-cream-200 hover:text-cream-50 disabled:opacity-40 cursor-pointer transition-[color,background-color] duration-150 active:scale-[0.97]"
+      >{running ? 'Syncing…' : 'Resync attend'}</button>
     </div>
   );
 }

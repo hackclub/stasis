@@ -26,6 +26,45 @@ export function encryptPII(plaintext: string): string {
   return `${iv.toString("base64")}:${authTag.toString("base64")}:${encrypted.toString("base64")}`;
 }
 
+export interface DecryptedAddress {
+  street: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  country: string | null
+}
+
+/** Decrypts the User.encryptedAddress* fields as a single address object.
+ * Returns null when none of the address fields are populated. Individual
+ * decryption failures (corruption, key rotation) are swallowed so a single
+ * bad column doesn't take out the whole record. */
+export function decryptUserAddress(user: {
+  encryptedAddressStreet: string | null
+  encryptedAddressCity: string | null
+  encryptedAddressState: string | null
+  encryptedAddressZip: string | null
+  encryptedAddressCountry: string | null
+}): DecryptedAddress | null {
+  if (
+    !user.encryptedAddressStreet &&
+    !user.encryptedAddressCity &&
+    !user.encryptedAddressState &&
+    !user.encryptedAddressZip &&
+    !user.encryptedAddressCountry
+  ) return null
+  const safe = (s: string | null): string | null => {
+    if (!s) return null
+    try { return decryptPII(s) } catch { return null }
+  }
+  return {
+    street: safe(user.encryptedAddressStreet),
+    city: safe(user.encryptedAddressCity),
+    state: safe(user.encryptedAddressState),
+    zip: safe(user.encryptedAddressZip),
+    country: safe(user.encryptedAddressCountry),
+  }
+}
+
 /**
  * Decrypts a string produced by encryptPII.
  */

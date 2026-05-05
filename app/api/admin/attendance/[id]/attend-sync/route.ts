@@ -3,11 +3,14 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { lookupAttendByEmail } from "@/lib/attend-db"
+import { syncOneCandidateAgainstAttend, deriveAttendDisplayState } from "@/lib/attend-sync"
 
 /**
  * POST /api/admin/attendance/[id]/attend-sync
- * Refreshes the cached `attendInvited` + `attendFlightBooked` columns from
- * the read-only Attend DB. Idempotent.
+ *
+ * Refreshes the cached attend* fields for one candidate from the read-only
+ * Attend DB. Idempotent. Returns the live AttendStatus too so the modal can
+ * paint travel legs / t-shirt / pronouns without an extra round trip.
  */
 export async function POST(
   _request: NextRequest,
@@ -28,23 +31,26 @@ export async function POST(
     return NextResponse.json({ error: "No email on candidate" }, { status: 400 })
   }
 
-  // lookupAttendByEmail only checks the participants table, so a found result
-  // means onboarding has started. We only flip attendOnboardingStarted to true;
-  // attendInvited is left to whatever it already is (the dashboard / sync script
-  // is the source of truth for "we sent an invitation"). Otherwise a fresh
-  // pending invite would get cleared every time someone hits Sync.
-  const attend = await lookupAttendByEmail(email).catch(() => null)
-  await prisma.attendanceCandidate.update({
+  const summary = await syncOneCandidateAgainstAttend(prisma, id, "manual")
+  const fresh = await prisma.attendanceCandidate.findUnique({
     where: { id },
-    data: {
-      ...(attend?.found ? { attendInvited: true, attendOnboardingStarted: true } : {}),
-      attendFlightBooked: !!attend?.hasFlight,
-      attendCity: attend?.city ?? null,
-      attendState: attend?.state ?? null,
-      attendCountry: attend?.country ?? null,
-      attendCachedAt: new Date(),
+    select: {
+      attendInvited: true,
+      attendOnboardingStarted: true,
+      attendFlightBooked: true,
+      attendStatus: true,
+      attendCity: true,
+      attendState: true,
+      attendCountry: true,
+      attendCachedAt: true,
     },
   })
+  const attend = await lookupAttendByEmail(email).catch(() => null)
 
-  return NextResponse.json({ attend, attendInvited: !!attend?.found, attendFlightBooked: !!attend?.hasFlight })
+  return NextResponse.json({
+    attend,
+    candidate: fresh,
+    attendDisplayState: fresh ? deriveAttendDisplayState(fresh) : null,
+    summary,
+  })
 }

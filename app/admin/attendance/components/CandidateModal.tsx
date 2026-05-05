@@ -7,7 +7,7 @@ import { StatusPill, FlagPill } from './StatusPill';
 import { CommsLog, type CommsEntry } from './CommsLog';
 import { ColorSelect, SelectColor } from './ColorSelect';
 import { SourceBadge } from './SourceBadge';
-import { AttendanceStatus, AttendanceCandidateSource, STATUS_LABEL, SOURCE_FULL_LABEL, AdminUser, DerivedStats, relativeTime, formatDollars } from '../lib/types';
+import { AttendanceStatus, AttendanceCandidateSource, STATUS_LABEL, SOURCE_FULL_LABEL, AdminUser, DerivedStats, DecryptedUserAddress, relativeTime, formatDollars } from '../lib/types';
 
 const STATUS_COLOR: Record<AttendanceStatus, SelectColor> = {
   IDENTIFIED: 'cream',
@@ -49,13 +49,23 @@ interface CandidateDetail {
     invitedAt: string | null;
     isGirl: boolean | null;
     homeAirport: string | null;
+    homeStreet: string | null;
     homeCity: string | null;
+    homeState: string | null;
+    homeZip: string | null;
+    homeCountry: string | null;
+    userAddress: DecryptedUserAddress | null;
+    attendCity: string | null;
+    attendState: string | null;
+    attendCountry: string | null;
     flightCostEstimateCents: number | null;
     flightCostUpdatedAt: string | null;
     flightStipendCents: number | null;
     notes: string | null;
     attendInvited: boolean;
+    attendOnboardingStarted: boolean;
     attendFlightBooked: boolean;
+    attendStatus: string | null;
     attendCachedAt: string | null;
     isExternal: boolean;
     createdAt: string;
@@ -135,6 +145,8 @@ export function CandidateModal({
   const [savingField, setSavingField] = useState<string | null>(null);
   const [showAudit, setShowAudit] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [attendSync, setAttendSync] = useState<{ syncing: boolean; error: string | null }>({ syncing: false, error: null });
+  const attendSyncAbortRef = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -190,13 +202,32 @@ export function CandidateModal({
   }
 
   async function syncAttend() {
-    setSavingField('attend');
+    // Cancel any in-flight sync for this candidate (handles double-clicks).
+    attendSyncAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    attendSyncAbortRef.current = ctrl;
+    setAttendSync({ syncing: true, error: null });
     try {
-      await fetch(`/api/admin/attendance/${candidateId}/attend-sync`, { method: 'POST' });
+      const res = await fetch(`/api/admin/attendance/${candidateId}/attend-sync`, {
+        method: 'POST',
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? `Sync failed (${res.status})`);
+      }
+      // Optimistically advance the cached timestamp so "Last synced …" jumps
+      // forward even before the full reload finishes.
+      setData((prev) => prev ? {
+        ...prev,
+        candidate: { ...prev.candidate, attendCachedAt: new Date().toISOString() },
+      } : prev);
       await load();
       onMutated();
-    } finally {
-      setSavingField(null);
+      setAttendSync({ syncing: false, error: null });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setAttendSync({ syncing: false, error: err instanceof Error ? err.message : 'Sync failed' });
     }
   }
 
@@ -242,6 +273,7 @@ export function CandidateModal({
             savingField={savingField}
             patch={patch}
             syncAttend={syncAttend}
+            attendSync={attendSync}
             deleteCandidate={deleteCandidate}
             onClose={onClose}
             onAppendComms={(entry) => setData((d) => d ? { ...d, commsEntries: [entry, ...d.commsEntries] } : d)}
@@ -275,6 +307,7 @@ function ModalBody({
   savingField,
   patch,
   syncAttend,
+  attendSync,
   deleteCandidate,
   onClose,
   onAppendComms,
@@ -288,6 +321,7 @@ function ModalBody({
   savingField: string | null;
   patch: (p: Record<string, unknown>, field: string) => Promise<void>;
   syncAttend: () => Promise<void>;
+  attendSync: { syncing: boolean; error: string | null };
   deleteCandidate: () => Promise<void>;
   onClose: () => void;
   onAppendComms: (entry: CommsEntry) => void;
@@ -396,9 +430,61 @@ function ModalBody({
           />
         </Section>
 
-        {/* Logistics — flight cost / stipend */}
-        <Section title="Logistics">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Address — home address (Stasis user → fallback to Attend → manual override) */}
+        <Section title="Address" right={<AddressSourceHint candidate={c} />}>
+          <ResolvedAddressBanner candidate={c} />
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-3">
+            <div className="col-span-2 sm:col-span-3">
+              <Field label="Street">
+                <SmallTextInput
+                  value={c.homeStreet}
+                  placeholder={c.userAddress?.street ?? '15 Falls Rd'}
+                  onSave={(v) => patch({ homeStreet: v || null }, 'homeStreet')}
+                  saving={savingField === 'homeStreet'}
+                  maxLength={300}
+                />
+              </Field>
+            </div>
+            <div className="col-span-2 sm:col-span-2">
+              <Field label="City">
+                <SmallTextInput
+                  value={c.homeCity}
+                  placeholder={c.userAddress?.city ?? c.attendCity ?? 'San Francisco'}
+                  onSave={(v) => patch({ homeCity: v || null }, 'homeCity')}
+                  saving={savingField === 'homeCity'}
+                  maxLength={200}
+                />
+              </Field>
+            </div>
+            <Field label="State / region">
+              <SmallTextInput
+                value={c.homeState}
+                placeholder={c.userAddress?.state ?? c.attendState ?? 'CA'}
+                onSave={(v) => patch({ homeState: v || null }, 'homeState')}
+                saving={savingField === 'homeState'}
+                maxLength={100}
+              />
+            </Field>
+            <Field label="ZIP / postal">
+              <SmallTextInput
+                value={c.homeZip}
+                placeholder={c.userAddress?.zip ?? '94025'}
+                onSave={(v) => patch({ homeZip: v || null }, 'homeZip')}
+                saving={savingField === 'homeZip'}
+                maxLength={30}
+              />
+            </Field>
+            <div className="col-span-2 sm:col-span-2">
+              <Field label="Country">
+                <SmallTextInput
+                  value={c.homeCountry}
+                  placeholder={c.userAddress?.country ?? c.attendCountry ?? 'United States'}
+                  onSave={(v) => patch({ homeCountry: v || null }, 'homeCountry')}
+                  saving={savingField === 'homeCountry'}
+                  maxLength={100}
+                />
+              </Field>
+            </div>
             <Field label="Home airport (IATA)">
               <SmallTextInput
                 value={c.homeAirport}
@@ -408,15 +494,12 @@ function ModalBody({
                 maxLength={8}
               />
             </Field>
-            <Field label="Home city">
-              <SmallTextInput
-                value={c.homeCity}
-                placeholder="San Francisco"
-                onSave={(v) => patch({ homeCity: v || null }, 'homeCity')}
-                saving={savingField === 'homeCity'}
-                maxLength={200}
-              />
-            </Field>
+          </div>
+        </Section>
+
+        {/* Logistics — flight cost / stipend */}
+        <Section title="Logistics">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Flight cost estimate ($)">
               <DollarInput
                 cents={c.flightCostEstimateCents}
@@ -495,19 +578,26 @@ function ModalBody({
           right={
             <button
               onClick={syncAttend}
-              disabled={savingField === 'attend'}
+              disabled={attendSync.syncing}
               className="text-xs uppercase tracking-widest font-medium text-orange-400 hover:text-orange-300 disabled:opacity-40 cursor-pointer px-3 py-2"
-            >{savingField === 'attend' ? 'Syncing…' : 'Sync now'}</button>
+            >{attendSync.syncing ? 'Syncing…' : 'Sync now'}</button>
           }
         >
-          {!data.attend ? (
-            <div className="text-xs text-cream-300 italic">
-              {process.env.NEXT_PUBLIC_ATTEND_ENABLED === 'false'
-                ? 'Attend integration disabled.'
-                : 'No record found in Attend for this email.'}
+          {attendSync.error ? (
+            <div className="text-xs text-red-400 mb-2">{attendSync.error}</div>
+          ) : null}
+          {process.env.NEXT_PUBLIC_ATTEND_ENABLED === 'false' ? (
+            <div className="text-xs text-cream-300 italic">Attend integration disabled.</div>
+          ) : !data.attend?.found && data.candidate.attendInvited ? (
+            <div className="bg-yellow-500/10 border-l-2 border-yellow-500/40 px-3 py-2.5">
+              <div className="text-xs uppercase tracking-widest text-yellow-300 font-medium mb-1">Invited — waiting for them to start onboarding</div>
+              <div className="text-xs text-cream-200">
+                {data.candidate.invitedAt ? <>Invitation sent {relativeTime(data.candidate.invitedAt)} ({new Date(data.candidate.invitedAt).toLocaleDateString()}). </> : null}
+                They&apos;ll appear here once they click the link in their invite email.
+              </div>
             </div>
-          ) : !data.attend.found ? (
-            <div className="text-xs text-cream-300 italic">Not in Attend yet — invite still needed.</div>
+          ) : !data.attend?.found ? (
+            <div className="text-xs text-cream-300 italic">Not yet invited — use Send Attend invite when ready.</div>
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
@@ -685,6 +775,51 @@ function DollarInput({ cents, onSave, saving }: Readonly<{ cents: number | null;
   );
 }
 
+/** Renders the resolved best-known address as a one-block readout, drawing
+ * from candidate-level home* overrides first, then Stasis-user PII, then
+ * Attend's cached city/state/country. Hides itself when there's nothing to
+ * show. */
+function ResolvedAddressBanner({ candidate }: Readonly<{ candidate: CandidateDetail['candidate'] }>) {
+  const c = candidate;
+  const street = c.homeStreet ?? c.userAddress?.street ?? null;
+  const city = c.homeCity ?? c.userAddress?.city ?? c.attendCity ?? null;
+  const state = c.homeState ?? c.userAddress?.state ?? c.attendState ?? null;
+  const zip = c.homeZip ?? c.userAddress?.zip ?? null;
+  const country = c.homeCountry ?? c.userAddress?.country ?? c.attendCountry ?? null;
+  const cityRegion = [city, state].filter(Boolean).join(', ');
+  const cityLine = [cityRegion, zip].filter(Boolean).join(' ');
+  const lines = [street, cityLine, country].filter(Boolean);
+  if (lines.length === 0 && !c.homeAirport) {
+    return (
+      <div className="text-xs text-cream-300 italic bg-brown-800 px-3 py-2.5">
+        No address on file. {c.isExternal ? 'Fill in the fields below — externals don\'t come with HCA address PII.' : 'No HCA address either; ask the user to update it on hackclub.com or fill in below.'}
+      </div>
+    );
+  }
+  return (
+    <div className="bg-brown-800 px-3 py-2.5 text-sm text-cream-50 flex flex-col gap-0.5 leading-snug">
+      {lines.map((l, i) => <div key={i}>{l}</div>)}
+      {c.homeAirport ? <div className="text-xs text-cream-300 mt-1 tabular-nums">Airport: {c.homeAirport}</div> : null}
+    </div>
+  );
+}
+
+/** Caption above the Address fields explaining where the displayed data is
+ * coming from, since the source can be any of: candidate override, Stasis
+ * user PII, or Attend cache. */
+function AddressSourceHint({ candidate }: Readonly<{ candidate: CandidateDetail['candidate'] }>) {
+  const c = candidate;
+  const hasOverride = !!(c.homeStreet || c.homeCity || c.homeState || c.homeZip || c.homeCountry);
+  const hasUserAddress = !!(c.userAddress && (c.userAddress.street || c.userAddress.city || c.userAddress.state || c.userAddress.zip || c.userAddress.country));
+  const hasAttend = !!(c.attendCity || c.attendState || c.attendCountry);
+  const sources: string[] = [];
+  if (hasOverride) sources.push('manual override');
+  if (!c.isExternal && hasUserAddress) sources.push('Stasis user');
+  if (hasAttend) sources.push('Attend');
+  if (sources.length === 0) return null;
+  return <span className="text-xs uppercase tracking-widest text-cream-300 font-medium">source: {sources.join(' › ')}</span>;
+}
+
 function LogisticsSummary({ estimateCents, stipendCents, updatedAt, attendCity, attendState, attendCountry }: Readonly<{
   estimateCents: number | null;
   stipendCents: number | null;
@@ -718,7 +853,11 @@ const AUDIT_FIELD_LABEL: Record<string, string> = {
   invitedAt: 'Invited at',
   isGirl: 'Counts toward girls',
   homeAirport: 'Home airport',
+  homeStreet: 'Home street',
   homeCity: 'Home city',
+  homeState: 'Home state',
+  homeZip: 'Home ZIP',
+  homeCountry: 'Home country',
   flightStipendCents: 'Flight stipend',
   flightCostEstimateCents: 'Flight cost estimate',
   notes: 'Notes',

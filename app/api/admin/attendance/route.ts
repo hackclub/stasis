@@ -5,6 +5,8 @@ import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
 import { AttendanceStatus, AttendanceCandidateSource } from "@/app/generated/prisma/enums"
 import { getDerivedStatsBatch } from "@/lib/attendance"
+import { decryptUserAddress } from "@/lib/pii"
+import { deriveAttendDisplayState } from "@/lib/attend-sync"
 
 const VALID_SOURCES: AttendanceCandidateSource[] = ["STASIS_USER", "REVIEWER_INCENTIVE", "EXTERNAL_HC", "DISCRETION"]
 
@@ -28,6 +30,11 @@ export async function GET() {
           image: true,
           slackId: true,
           pronouns: true,
+          encryptedAddressStreet: true,
+          encryptedAddressCity: true,
+          encryptedAddressState: true,
+          encryptedAddressZip: true,
+          encryptedAddressCountry: true,
         },
       },
       owner: { select: { id: true, name: true, email: true, image: true } },
@@ -69,9 +76,17 @@ export async function GET() {
       invitedAt: c.invitedAt,
       // demographics
       isGirl: c.isGirl,
-      // logistics
+      // logistics — manual home* overrides + (for Stasis-linked) decrypted
+      // user address as a fallback display source. Decryption is cheap (one
+      // AES op per non-null field per row) but skip it entirely for externals
+      // and unfilled users.
       homeAirport: c.homeAirport,
+      homeStreet: c.homeStreet,
       homeCity: c.homeCity,
+      homeState: c.homeState,
+      homeZip: c.homeZip,
+      homeCountry: c.homeCountry,
+      userAddress: c.user ? decryptUserAddress(c.user) : null,
       flightCostEstimateCents: c.flightCostEstimateCents,
       flightCostUpdatedAt: c.flightCostUpdatedAt,
       flightStipendCents: c.flightStipendCents,
@@ -79,10 +94,12 @@ export async function GET() {
       attendInvited: c.attendInvited,
       attendOnboardingStarted: c.attendOnboardingStarted,
       attendFlightBooked: c.attendFlightBooked,
+      attendStatus: c.attendStatus,
       attendCity: c.attendCity,
       attendState: c.attendState,
       attendCountry: c.attendCountry,
       attendCachedAt: c.attendCachedAt,
+      attendDisplayState: deriveAttendDisplayState(c),
       // derived stats
       derivedStats: stats,
       // notes / comms summary

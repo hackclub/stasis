@@ -49,9 +49,11 @@ export function ContextMenu({
     setPos({ x: nx, y: ny });
   }, [x, y]);
 
-  // Close on outside click / Escape / scroll
+  // Close on outside click / Escape / scroll. Use `click` instead of `mousedown`
+  // so submenu items (rendered in their own portal at document.body, outside
+  // ref.current) get to fire their React onClick before we unmount.
   useEffect(() => {
-    function onDown(e: MouseEvent) {
+    function onClick(e: MouseEvent) {
       if (!ref.current) return;
       if (ref.current.contains(e.target as Node)) return;
       onClose();
@@ -60,11 +62,11 @@ export function ContextMenu({
       if (e.key === 'Escape') onClose();
     }
     function onScroll() { onClose(); }
-    document.addEventListener('mousedown', onDown);
+    document.addEventListener('click', onClick);
     document.addEventListener('keydown', onKey);
     window.addEventListener('scroll', onScroll, true);
     return () => {
-      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('click', onClick);
       document.removeEventListener('keydown', onKey);
       window.removeEventListener('scroll', onScroll, true);
     };

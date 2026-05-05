@@ -6,6 +6,7 @@ import { StatusPill, FlagPill } from './StatusPill';
 import { SourceBadge, Dot } from './SourceBadge';
 import { CandidateRow, relativeTime, touchHealth, formatDollars } from '../lib/types';
 import { DerivedStatLine } from './DerivedStatLine';
+import { AttendStatusPill } from './AttendStatusPill';
 
 const TOUCH_DOT: Record<ReturnType<typeof touchHealth>, string> = {
   fresh: 'bg-green-500',
@@ -86,6 +87,10 @@ export function CandidateTable({
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-cream-50 font-medium truncate">{r.name ?? r.email ?? '?'}</span>
+                        {r.userId ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src="/stasis-s.svg" alt="" title="Linked to a Stasis user" className="h-3 w-auto shrink-0 opacity-70" />
+                        ) : null}
                         {r.isGirl ? <span title="Counts toward girl target" className="text-pink-300 text-xs">♀</span> : null}
                       </div>
                       <div className="text-xs text-cream-300 truncate tabular-nums flex items-center">
@@ -138,7 +143,7 @@ export function CandidateTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 flex-wrap">
-                    {r.attendInvited ? <FlagPill label="A" tone="positive" title="Attend invited" /> : null}
+                    {r.attendDisplayState ? <AttendStatusPill state={r.attendDisplayState} rawStatus={r.attendStatus} /> : null}
                     {r.attendFlightBooked ? <FlagPill label="✈" tone="positive" title="Flight booked" /> : null}
                     {!r.userId ? <FlagPill label="ext" title="External — no Stasis account" /> : null}
                   </div>

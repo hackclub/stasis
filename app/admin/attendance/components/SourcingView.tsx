@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Avatar } from './Avatar';
 import { SourceBadge } from './SourceBadge';
 import { AttendanceStatus } from '../lib/types';
-import { CandidateRow, earnedBits, relativeTime } from '../lib/types';
+import { CandidateRow, earnedBits, relativeTime, locationLabel } from '../lib/types';
 import { DerivedStatLine } from './DerivedStatLine';
 
 type SortKey = 'recent' | 'realBits' | 'projects' | 'hours' | 'reviews';
@@ -138,8 +138,7 @@ export function SourcingView({
               <th className="px-4 py-3 font-medium">Person</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Stats</th>
-              <th className="px-4 py-3 font-medium">Notes</th>
-              <th className="px-4 py-3 font-medium">Owner</th>
+              <th className="px-4 py-3 font-medium">Location</th>
               <th className="px-4 py-3 font-medium">Added</th>
               <th className="px-4 py-3 font-medium text-right">Action</th>
             </tr>
@@ -167,6 +166,10 @@ export function SourcingView({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-cream-50 font-medium truncate">{r.name ?? r.email ?? '?'}</span>
+                          {r.userId ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src="/stasis-s.svg" alt="" title="Linked to a Stasis user" className="h-3 w-auto shrink-0 opacity-70" />
+                          ) : null}
                           {r.isGirl ? <span title="Counts toward girl target" className="text-pink-300 text-xs">♀</span> : null}
                         </div>
                         <div className="text-xs text-cream-300 truncate tabular-nums">{r.email ?? r.slackId ?? '—'}</div>
@@ -175,18 +178,8 @@ export function SourcingView({
                   </td>
                   <td className="px-4 py-3"><SourceBadge source={r.source} /></td>
                   <td className="px-4 py-3 text-cream-200 text-xs tabular-nums whitespace-nowrap"><DerivedStatLine row={r} /></td>
-                  <td className="px-4 py-3 text-xs text-cream-100 max-w-md">
-                    <div className="line-clamp-2">{r.notes ?? <span className="text-cream-400 italic">no notes yet</span>}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {r.owner ? (
-                      <div className="flex items-center gap-1.5">
-                        <Avatar name={r.owner.name} email={r.owner.email} image={r.owner.image} size={20} />
-                        <span className="text-cream-200 text-xs">{r.owner.name?.split(' ')[0] ?? r.owner.email}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs uppercase tracking-widest text-cream-300 font-medium">—</span>
-                    )}
+                  <td className="px-4 py-3 text-xs text-cream-200 whitespace-nowrap">
+                    {locationLabel(r) ?? <span className="text-cream-400">—</span>}
                   </td>
                   <td className="px-4 py-3 text-xs text-cream-300 tabular-nums whitespace-nowrap">{relativeTime(r.createdAt)}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap" data-stop>

@@ -1,3 +1,3 @@
-psql:/tmp/identity-stasis-match.sql:12: ERROR:  syntax error at or near ")"
+psql:/tmp/pronouns.sql:9: ERROR:  syntax error at or near ")"
 LINE 1: WITH lb(username, display_name) AS (VALUES )
                                                    ^

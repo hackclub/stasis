@@ -5,7 +5,9 @@ import { Avatar } from './Avatar';
 import { SOURCE_LABEL, SOURCE_FULL_LABEL, CandidateRow, KanbanColumn, AttendanceStatus, AttendanceCandidateSource, AdminUser, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, relativeTime, touchHealth, locationLabel, ownerColor, ownerNameTextClass } from '../lib/types';
 import { ContextMenu, MenuItem } from './ContextMenu';
 import { InviteAttendDialog } from './InviteAttendDialog';
+import { LinkStasisUserDialog } from './LinkStasisUserDialog';
 import { Tooltip } from './Tooltip';
+import { AttendStatusPill } from './AttendStatusPill';
 
 const TOUCH_DOT: Record<ReturnType<typeof touchHealth>, string> = {
   fresh: 'bg-green-500',
@@ -30,6 +32,13 @@ interface InviteTarget {
   alreadyInvited: boolean;
 }
 
+interface LinkTarget {
+  candidateId: string;
+  candidateName: string | null;
+  candidateEmail: string | null;
+  candidateImage: string | null;
+}
+
 export function CandidateKanban({
   rows,
   onOpen,
@@ -47,6 +56,7 @@ export function CandidateKanban({
   const [hoverCol, setHoverCol] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const [inviteTarget, setInviteTarget] = useState<InviteTarget | null>(null);
+  const [linkTarget, setLinkTarget] = useState<LinkTarget | null>(null);
 
   const grouped = useMemo(() => {
     const m = new Map<string, CandidateRow[]>();
@@ -169,7 +179,15 @@ export function CandidateKanban({
         label: 'Open user record',
         hint: '↗',
         onSelect: () => window.open(`/admin/users?search=${encodeURIComponent(row.email ?? '')}`, '_blank'),
-      } as MenuItem] : []),
+      } as MenuItem] : [{
+        label: 'Link to Stasis user…',
+        onSelect: () => setLinkTarget({
+          candidateId: row.id,
+          candidateName: row.name,
+          candidateEmail: row.email,
+          candidateImage: row.image,
+        }),
+      } as MenuItem]),
       { type: 'separator' },
       { label: 'Open profile', onSelect: () => onOpen(row.id) },
     ];
@@ -312,6 +330,14 @@ export function CandidateKanban({
           onInvited={onReload}
         />
       ) : null}
+
+      {linkTarget ? (
+        <LinkStasisUserDialog
+          target={linkTarget}
+          onClose={() => setLinkTarget(null)}
+          onLinked={onReload}
+        />
+      ) : null}
     </div>
   );
 }
@@ -376,6 +402,12 @@ function KanbanCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <div className="text-cream-50 text-sm font-medium truncate leading-tight">{row.name ?? row.email ?? '?'}</div>
+            {row.userId ? (
+              <Tooltip content={<>Linked to a <span className="text-orange-300">Stasis user</span> — derived stats (bits, hours, projects) are pulled from their account.</>}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/stasis-s.svg" alt="" className="h-3 w-auto shrink-0 ml-0.5 opacity-70" />
+              </Tooltip>
+            ) : null}
             {row.isGirl ? (
               <Tooltip content={<>Counts toward the <span className="text-pink-300">40% girls</span> target for the event.</>}>
                 <span className="text-pink-300 text-sm leading-none shrink-0 ">♀</span>
@@ -436,15 +468,13 @@ function KanbanCard({
 
       {/* Bottom row — Attend Status + last touch */}
       <div className="flex items-center justify-between gap-2 px-3 py-2 bg-black/15 text-xs">
-        <Tooltip content={
-          row.attendOnboardingStarted
-            ? <>Accepted the Attend invite — onboarding is in progress on <span className="text-cream-100">attend.hackclub.com</span>.</>
-            : row.attendInvited
-              ? <>Invitation email has been sent, but they haven&apos;t accepted yet. Once they click the link in the email, this flips to <span className="text-cream-100">In Attend</span>.</>
-              : <>Not yet invited on <span className="text-cream-100">attend.hackclub.com</span>. Right-click → <span className="text-cream-100">Send Attend invite</span> when ready.</>
-        }>
-          <span className=""><AttendStatusPill invited={row.attendInvited} onboardingStarted={row.attendOnboardingStarted} /></span>
-        </Tooltip>
+        {row.attendDisplayState ? (
+          <AttendStatusPill state={row.attendDisplayState} rawStatus={row.attendStatus} />
+        ) : (
+          <Tooltip content={<>Not yet invited on <span className="text-cream-100">attend.hackclub.com</span>. Right-click → <span className="text-cream-100">Send Attend invite</span> when ready.</>}>
+            <span className="inline-flex items-center gap-1 text-cream-400">Not in Attend</span>
+          </Tooltip>
+        )}
         <Tooltip content={
           lastIso
             ? <>Last communication log entry on this candidate ({relativeTime(lastIso)}). Dot color: <span className="text-green-400">green</span> ≤3d, <span className="text-yellow-400">yellow</span> ≤7d, <span className="text-red-400">red</span> &gt;7d.</>
@@ -457,28 +487,6 @@ function KanbanCard({
         </Tooltip>
       </div>
     </div>
-  );
-}
-
-function AttendStatusPill({ invited, onboardingStarted }: Readonly<{ invited: boolean; onboardingStarted: boolean }>) {
-  if (onboardingStarted) {
-    return (
-      <span className="inline-flex items-center gap-1 text-green-400 font-medium">
-        <span aria-hidden>✓</span> In Attend
-      </span>
-    );
-  }
-  if (invited) {
-    return (
-      <span className="inline-flex items-center gap-1 text-yellow-300 font-medium">
-        <span aria-hidden>•</span> Attend Invited
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-cream-400">
-      Not in Attend
-    </span>
   );
 }
 

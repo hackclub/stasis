@@ -986,7 +986,15 @@ model AttendanceCandidate {
 
   // Logistics — flight cost / stipend tracking
   homeAirport            String?  // 3-letter IATA, manually entered
-  homeCity               String?  // free-form city/region when no airport known
+  // Address fields — manual override / external-only. For Stasis-linked
+  // candidates the source of truth is User.encryptedAddress* (decrypted on
+  // read by the attendance API); these candidate columns let admins fill in
+  // externals or override Stasis-side data.
+  homeStreet             String?
+  homeCity               String?
+  homeState              String?
+  homeZip                String?
+  homeCountry            String?
   flightCostEstimateCents Int?    // most recent estimate (null = not yet estimated)
   flightCostUpdatedAt    DateTime? // when the estimate was last refreshed
   flightStipendCents     Int?     // null = not decided; 0 = invited but no flight; >0 = funded amount
@@ -1000,6 +1008,7 @@ model AttendanceCandidate {
   attendInvited            Boolean  @default(false)  // invitation email sent (covers both pending + accepted)
   attendOnboardingStarted  Boolean  @default(false)  // participant row exists in Attend (i.e. they accepted the invite)
   attendFlightBooked       Boolean  @default(false)
+  attendStatus             String?  // raw participant_events.status from Attend ('complete', 'in_progress', 'awaiting_guardian'); 'invited' is synthetic for the pending-invitation case
   attendCity               String?
   attendState              String?
   attendCountry            String?

@@ -186,3 +186,39 @@ export async function lookupAttendByEmail(email: string): Promise<AttendStatus |
   const map = await lookupAttendByEmails([email])
   return map.get(email.toLowerCase()) ?? null
 }
+
+/**
+ * Invitations for the Stasis event keyed by lowercased email. Returns rows
+ * for both un-accepted (`accepted_at IS NULL`) and accepted-but-stuck invites
+ * — the latter happens when someone clicks the invite link but never
+ * completes onboarding, leaving an accepted invitation row with no
+ * corresponding participant_events row. Used by the sync job to surface
+ * "we sent them a link" state when they aren't in `participants`.
+ */
+export async function lookupPendingInvitesByEmails(
+  emails: string[]
+): Promise<Map<string, { invitedAt: Date; acceptedAt: Date | null }>> {
+  const result = new Map<string, { invitedAt: Date; acceptedAt: Date | null }>()
+  const pool = getAttendPool()
+  if (!pool || emails.length === 0) return result
+
+  const lowered = Array.from(new Set(emails.map((e) => e.toLowerCase()).filter(Boolean)))
+  if (lowered.length === 0) return result
+
+  const { rows } = await pool.query<{ email: string; created_at: Date; accepted_at: Date | null }>(
+    `SELECT lower(email) AS email, created_at, accepted_at
+       FROM invitations
+      WHERE event_id = $1
+        AND lower(email) = ANY($2::text[])`,
+    [STASIS_EVENT_ID, lowered]
+  )
+  for (const r of rows) {
+    // If multiple invitations exist for one email (re-invites), keep the most
+    // recent one — the older ones are superseded.
+    const existing = result.get(r.email)
+    if (!existing || r.created_at > existing.invitedAt) {
+      result.set(r.email, { invitedAt: r.created_at, acceptedAt: r.accepted_at })
+    }
+  }
+  return result
+}

@@ -6,6 +6,7 @@ import { sanitize } from "@/lib/sanitize"
 import { AttendanceStatus, AttendanceCandidateSource, CurrencyTransactionType } from "@/app/generated/prisma/enums"
 import { lookupAttendByEmail } from "@/lib/attend-db"
 import { getDerivedStatsBatch } from "@/lib/attendance"
+import { decryptUserAddress } from "@/lib/pii"
 
 const VALID_SOURCES: AttendanceCandidateSource[] = ["STASIS_USER", "REVIEWER_INCENTIVE", "EXTERNAL_HC", "DISCRETION"]
 
@@ -35,6 +36,11 @@ export async function GET(
           pronouns: true,
           attendRegisteredAt: true,
           createdAt: true,
+          encryptedAddressStreet: true,
+          encryptedAddressCity: true,
+          encryptedAddressState: true,
+          encryptedAddressZip: true,
+          encryptedAddressCountry: true,
         },
       },
       owner: { select: { id: true, name: true, email: true, image: true } },
@@ -152,7 +158,15 @@ export async function GET(
       invitedAt: candidate.invitedAt,
       isGirl: candidate.isGirl,
       homeAirport: candidate.homeAirport,
+      homeStreet: candidate.homeStreet,
       homeCity: candidate.homeCity,
+      homeState: candidate.homeState,
+      homeZip: candidate.homeZip,
+      homeCountry: candidate.homeCountry,
+      // Decrypted Stasis-user address (null for externals or when HCA PII
+      // hasn't been pulled). Source of truth for linked candidates unless
+      // the admin has filled in a home* override above.
+      userAddress: candidate.user ? decryptUserAddress(candidate.user) : null,
       flightCostEstimateCents: candidate.flightCostEstimateCents,
       flightCostUpdatedAt: candidate.flightCostUpdatedAt,
       flightStipendCents: candidate.flightStipendCents,
@@ -160,6 +174,7 @@ export async function GET(
       attendInvited: candidate.attendInvited,
       attendOnboardingStarted: candidate.attendOnboardingStarted,
       attendFlightBooked: candidate.attendFlightBooked,
+      attendStatus: candidate.attendStatus,
       attendCity: candidate.attendCity,
       attendState: candidate.attendState,
       attendCountry: candidate.attendCountry,
@@ -260,10 +275,38 @@ export async function PATCH(
     (v) => v
   )
   maybeSet(
+    "homeStreet",
+    body.homeStreet,
+    existing.homeStreet,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 300) || null : v === null ? null : null),
+    (v) => v
+  )
+  maybeSet(
     "homeCity",
     body.homeCity,
     existing.homeCity,
     (v) => (typeof v === "string" ? sanitize(v).slice(0, 200) || null : v === null ? null : null),
+    (v) => v
+  )
+  maybeSet(
+    "homeState",
+    body.homeState,
+    existing.homeState,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 100) || null : v === null ? null : null),
+    (v) => v
+  )
+  maybeSet(
+    "homeZip",
+    body.homeZip,
+    existing.homeZip,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 30) || null : v === null ? null : null),
+    (v) => v
+  )
+  maybeSet(
+    "homeCountry",
+    body.homeCountry,
+    existing.homeCountry,
+    (v) => (typeof v === "string" ? sanitize(v).slice(0, 100) || null : v === null ? null : null),
     (v) => v
   )
   maybeSet(

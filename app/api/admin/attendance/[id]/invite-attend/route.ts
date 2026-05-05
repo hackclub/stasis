@@ -4,6 +4,8 @@ import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { registerAttendParticipant, splitName } from "@/lib/attend"
 import { sendInviteConfirmationEmail } from "@/lib/loops"
+import { syncOneCandidateAgainstAttend } from "@/lib/attend-sync"
+import { lookupAttendByEmail } from "@/lib/attend-db"
 
 /**
  * POST /api/admin/attendance/[id]/invite-attend
@@ -105,5 +107,17 @@ export async function POST(
     })
   })
 
-  return NextResponse.json({ ok: true, alreadyRegistered: attendResult.alreadyRegistered })
+  // Best-effort post-hook: refresh cached attend* fields so the modal can
+  // immediately render the new "Invited — waiting…" state. Never fails the
+  // invite if the lookup hiccups.
+  await syncOneCandidateAgainstAttend(prisma, id, "invite").catch((e) =>
+    console.error("[invite-attend] post-sync failed", e)
+  )
+  const attend = await lookupAttendByEmail(email).catch(() => null)
+
+  return NextResponse.json({
+    ok: true,
+    alreadyRegistered: attendResult.alreadyRegistered,
+    attend,
+  })
 }
