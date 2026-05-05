@@ -27,8 +27,8 @@ export function CandidateKanban({
   }, [rows]);
 
   return (
-    <div className="-mx-6 px-6 overflow-x-auto">
-      <div className="flex gap-4 min-w-max pb-2">
+    <div className="-mx-6 px-6 h-full overflow-x-auto overflow-y-hidden">
+      <div className="flex gap-4 min-w-max h-full pb-2">
         {KANBAN_ORDER.map((col, i) => {
           const items = grouped.get(col) ?? [];
           const rank = String(i + 1).padStart(2, '0');
@@ -50,7 +50,7 @@ export function CandidateKanban({
                 </div>
                 <span className={`text-xs font-medium tabular-nums px-3 py-2 ${hasItems ? tone : 'text-cream-400'}`}>{items.length}</span>
               </div>
-              <div className="flex-1 flex flex-col gap-2 min-h-[120px] max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+              <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-y-auto pr-1 pb-2">
                 {items.map((r) => (
                   <KanbanCard key={r.id} row={r} onOpen={onOpen} />
                 ))}

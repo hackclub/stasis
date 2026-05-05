@@ -36,9 +36,9 @@ export function CandidateTable({
     return <EmptyState />;
   }
   return (
-    <div className="overflow-x-auto bg-brown-800">
+    <div className="overflow-auto bg-brown-800 h-full">
       <table className="min-w-full text-sm border-separate border-spacing-0">
-        <thead className="bg-brown-900">
+        <thead className="bg-brown-900 sticky top-0 z-10">
           <tr className="text-left text-xs uppercase tracking-widest text-cream-200">
             <th className="px-4 py-3 font-medium">Person</th>
             <th className="px-4 py-3 font-medium">Status</th>

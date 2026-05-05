@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 /**
  * Identity bubble. Falls back through:
  *   1. Provided image URL (Slack avatar pulled into User.image)
@@ -17,14 +19,13 @@ export function Avatar({
 
   if (image) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={image}
         alt={name ?? email ?? ''}
         width={size}
         height={size}
-        style={{ width: size, height: size }}
-        className="border border-brown-700 object-cover bg-brown-800"
+        unoptimized
+        className="object-cover bg-brown-800"
       />
     );
   }
@@ -32,7 +33,7 @@ export function Avatar({
   return (
     <div
       style={{ width: size, height: size, backgroundColor: bg, fontSize: Math.round(size * 0.42) }}
-      className="border border-brown-700 flex items-center justify-center text-brown-900 font-semibold uppercase tracking-tight"
+      className="flex items-center justify-center text-brown-900 font-semibold uppercase tracking-tight"
     >
       {initials}
     </div>
@@ -49,11 +50,10 @@ function deriveInitials(name: string | null, email: string | null): string {
   return '??';
 }
 
-// Generate a desaturated cream-tinted color from a string hash.
+// Deterministic pick from a brand-aligned warm-monochrome palette.
 function deriveColor(seed: string): string {
+  const palette = ['#D5CCB7', '#EBE8E0', '#9C8F88', '#E1AB55', '#FC8A58', '#D5BCA0'];
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-  const hue = Math.abs(h) % 360;
-  // OKLCH-ish via HSL approximation; keep light + low chroma so the cream UI stays cohesive.
-  return `hsl(${hue}, 30%, 78%)`;
+  return palette[Math.abs(h) % palette.length];
 }

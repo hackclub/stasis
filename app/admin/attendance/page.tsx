@@ -213,8 +213,8 @@ export default function AttendancePage() {
   }, [adding, selectedId, filters.q, highlightedId, filtered, view]);
 
   return (
-    <div className="font-sans">
-      <header className="mb-8">
+    <div className="font-sans flex flex-col -mb-8 h-[calc(100dvh-9rem)]">
+      <header className="mb-8 shrink-0">
         <div className="flex items-baseline gap-3 mb-1.5">
           <h1 className="text-cream-50 text-2xl font-medium">Attendance</h1>
           <span className="text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums">
@@ -239,7 +239,7 @@ export default function AttendancePage() {
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className={`block w-2 h-5 shrink-0 ${active ? accent : 'bg-brown-900'}`} aria-hidden />
-                  <span className={`font-mono text-xs font-medium tabular-nums ${active ? tone : 'text-cream-400'}`}>{String(i + 1).padStart(2, '0')}</span>
+                  <span className={`text-xs font-medium tabular-nums ${active ? tone : 'text-cream-400'}`}>{String(i + 1).padStart(2, '0')}</span>
                   <span className="text-xs uppercase tracking-widest text-cream-200 font-medium truncate">
                     {KANBAN_LABEL[col]}
                   </span>
@@ -252,7 +252,7 @@ export default function AttendancePage() {
       </header>
 
       {/* Toolbar — filter cluster | spacer | action cluster */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-6">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-6 shrink-0">
         <div className="relative w-72">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-cream-300 pointer-events-none">›</span>
           <input
@@ -334,21 +334,23 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      {error ? <div className="text-red-400 text-sm mb-3">{error}</div> : null}
+      {error ? <div className="text-red-400 text-sm mb-3 shrink-0">{error}</div> : null}
 
-      {loading ? (
-        <div className="flex flex-col gap-px bg-brown-900">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-12 bg-brown-800/60 animate-pulse" />
-          ))}
-        </div>
-      ) : view === 'table' ? (
-        <CandidateTable rows={filtered} onOpen={setSelectedId} highlightedId={highlightedId} onHighlight={setHighlightedId} />
-      ) : (
-        <CandidateKanban rows={filtered} onOpen={setSelectedId} />
-      )}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {loading ? (
+          <div className="flex flex-col gap-px bg-brown-900 h-full overflow-hidden">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-12 bg-brown-800/60 animate-pulse shrink-0" />
+            ))}
+          </div>
+        ) : view === 'table' ? (
+          <CandidateTable rows={filtered} onOpen={setSelectedId} highlightedId={highlightedId} onHighlight={setHighlightedId} />
+        ) : (
+          <CandidateKanban rows={filtered} onOpen={setSelectedId} />
+        )}
+      </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums">
+      <div className="mt-3 pb-3 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-widest text-cream-300 font-medium tabular-nums shrink-0 bg-brown-900">
         <span>showing {filtered.length} of {rows.length}</span>
         <span className="text-cream-300 normal-case tracking-normal font-normal">
           <Kbd>/</Kbd> search · <Kbd>j</Kbd>/<Kbd>k</Kbd> nav · <Kbd>Enter</Kbd> open · <Kbd>n</Kbd> new · <Kbd>v</Kbd> view · <Kbd>Esc</Kbd> close
@@ -390,7 +392,7 @@ function Select({ value, onChange, options }: Readonly<{
 
 function Kbd({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <kbd className="font-mono inline-flex items-center px-1.5 py-px bg-brown-800 text-cream-200 text-xs tabular-nums">
+    <kbd className="inline-flex items-center px-1.5 py-px bg-brown-800 text-cream-200 text-xs tabular-nums">
       {children}
     </kbd>
   );

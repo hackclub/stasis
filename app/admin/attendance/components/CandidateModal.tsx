@@ -97,6 +97,7 @@ export function CandidateModal({
   const [error, setError] = useState<string | null>(null);
   const [savingField, setSavingField] = useState<string | null>(null);
   const [showAudit, setShowAudit] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -165,7 +166,11 @@ export function CandidateModal({
   }
 
   async function deleteCandidate() {
-    if (!confirm('Permanently remove this candidate from the dashboard? Notes and comms log will be deleted.')) return;
+    setConfirmingDelete(true);
+  }
+
+  async function performDelete() {
+    setConfirmingDelete(false);
     const res = await fetch(`/api/admin/attendance/${candidateId}`, { method: 'DELETE' });
     if (res.ok) {
       onMutated();
@@ -177,11 +182,22 @@ export function CandidateModal({
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" />
       <div
-        className="relative w-full max-w-3xl h-full bg-brown-900 border-l border-brown-700 overflow-y-auto"
+        className="relative w-full max-w-3xl h-full bg-brown-900 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {loading && !data ? (
-          <div className="p-8 text-cream-200">Loading…</div>
+          <div className="p-6 space-y-4">
+            <div className="flex gap-4">
+              <div className="w-12 h-12 bg-brown-800 animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-1/3 bg-brown-800 animate-pulse" />
+                <div className="h-3 w-1/2 bg-brown-800/60 animate-pulse" />
+              </div>
+            </div>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-20 bg-brown-800/40 animate-pulse" />
+            ))}
+          </div>
         ) : error || !data ? (
           <div className="p-8 text-red-400">{error ?? 'Not found'}</div>
         ) : (
@@ -201,6 +217,19 @@ export function CandidateModal({
           />
         )}
       </div>
+      {confirmingDelete ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setConfirmingDelete(false)}>
+          <div className="absolute inset-0 bg-black/70" />
+          <div className="relative bg-brown-900 border-2 border-cream-200/10 p-5 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-cream-50 text-sm font-medium mb-1">Remove this candidate?</div>
+            <div className="text-cream-300 text-xs mb-4">Notes and comms log will be permanently deleted.</div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmingDelete(false)} className="text-xs uppercase tracking-widest font-medium text-cream-200 hover:text-cream-50 bg-brown-800 px-3 py-2 cursor-pointer">Cancel</button>
+              <button onClick={performDelete} className="text-xs uppercase tracking-widest font-medium text-red-300 bg-red-500/20 hover:bg-red-500/30 px-3 py-2 cursor-pointer">Remove</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -236,7 +265,7 @@ function ModalBody({
   return (
     <>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-brown-900 border-b border-brown-700 px-6 py-4 flex items-start gap-4">
+      <div className="sticky top-0 z-10 bg-brown-800 px-6 py-4 flex items-start gap-4">
         <Avatar name={c.name} email={c.email} image={c.image} size={48} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -269,7 +298,7 @@ function ModalBody({
         </div>
         <button
           onClick={onClose}
-          className="text-cream-300 hover:text-cream-50 text-2xl leading-none cursor-pointer"
+          className="text-cream-300 hover:text-cream-50 text-2xl leading-none cursor-pointer px-2 py-1"
           aria-label="Close"
         >×</button>
       </div>
@@ -283,7 +312,7 @@ function ModalBody({
                 value={c.outreachStatus}
                 onChange={(e) => patch({ outreachStatus: e.target.value }, 'outreachStatus')}
                 disabled={savingField === 'outreachStatus'}
-                className="w-full bg-brown-800 border border-brown-700 text-cream-50 text-sm px-2 py-1.5 focus:outline-none focus:border-orange-500"
+                className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s}>{STATUS_LABEL[s]}</option>
@@ -295,7 +324,7 @@ function ModalBody({
                 value={c.ownerId ?? ''}
                 onChange={(e) => patch({ ownerId: e.target.value || null }, 'ownerId')}
                 disabled={savingField === 'ownerId'}
-                className="w-full bg-brown-800 border border-brown-700 text-cream-50 text-sm px-2 py-1.5 focus:outline-none focus:border-orange-500"
+                className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
               >
                 <option value="">— unassigned —</option>
                 {admins.map((a) => (
@@ -313,12 +342,12 @@ function ModalBody({
                     patch({ snoozedUntil: v ? new Date(v).toISOString() : null }, 'snoozedUntil');
                   }}
                   disabled={savingField === 'snoozedUntil'}
-                  className="flex-1 bg-brown-800 border border-brown-700 text-cream-50 text-sm px-2 py-1.5 focus:outline-none focus:border-orange-500"
+                  className="flex-1 bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
                 />
                 {c.snoozedUntil ? (
                   <button
                     onClick={() => patch({ snoozedUntil: null }, 'snoozedUntil')}
-                    className="text-xs text-cream-300 hover:text-cream-50 px-2 cursor-pointer"
+                    className="text-xs text-cream-300 hover:text-cream-50 px-3 py-2 cursor-pointer"
                   >Clear</button>
                 ) : null}
               </div>
@@ -364,14 +393,14 @@ function ModalBody({
             {data.stasis.projects.length === 0 ? (
               <div className="text-xs text-cream-300 italic">No projects yet.</div>
             ) : (
-              <div className="border border-brown-700 divide-y divide-brown-700">
+              <div className="flex flex-col gap-px bg-brown-900">
                 {data.stasis.projects.map((p) => (
                   <a
                     key={p.id}
                     href={`/admin/projects/${p.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-brown-800/40 group"
+                    className="flex items-center gap-3 px-3 py-2 bg-brown-800 hover:bg-orange-500/10 group"
                   >
                     <span className="text-xs text-cream-200 font-medium w-12 tabular-nums">T{p.tier ?? '–'}</span>
                     <span className="text-sm text-cream-50 group-hover:text-orange-400 flex-1 truncate">{p.title}</span>
@@ -391,7 +420,7 @@ function ModalBody({
             <button
               onClick={syncAttend}
               disabled={savingField === 'attend'}
-              className="text-xs uppercase tracking-widest font-medium text-orange-400 hover:text-orange-300 disabled:opacity-40 cursor-pointer"
+              className="text-xs uppercase tracking-widest font-medium text-orange-400 hover:text-orange-300 disabled:opacity-40 cursor-pointer px-3 py-2"
             >{savingField === 'attend' ? 'Syncing…' : 'Sync now'}</button>
           }
         >
@@ -417,7 +446,7 @@ function ModalBody({
                 {data.attend.travel?.visaRequired ? <span><span className="text-cream-300">Visa:</span> {data.attend.travel.visaStatus ?? 'required'}</span> : null}
               </div>
               {data.attend.travel?.inbound ? (
-                <div className="text-xs border-t border-brown-700/60 pt-2">
+                <div className="text-xs bg-brown-800 px-3 py-2.5">
                   <div className="text-cream-300 uppercase tracking-widest text-xs font-medium mb-1">Inbound flight</div>
                   <div className="text-cream-100">
                     {data.attend.travel.inbound.flightCode ?? '—'} · {data.attend.travel.inbound.departureAirport ?? '?'} → {data.attend.travel.inbound.arrivalAirport ?? '?'}
@@ -429,7 +458,7 @@ function ModalBody({
                 </div>
               ) : null}
               {data.attend.travel?.outbound ? (
-                <div className="text-xs border-t border-brown-700/60 pt-2">
+                <div className="text-xs bg-brown-800 px-3 py-2.5">
                   <div className="text-cream-300 uppercase tracking-widest text-xs font-medium mb-1">Outbound flight</div>
                   <div className="text-cream-100">
                     {data.attend.travel.outbound.flightCode ?? '—'} · {data.attend.travel.outbound.departureAirport ?? '?'} → {data.attend.travel.outbound.arrivalAirport ?? '?'}
@@ -440,7 +469,7 @@ function ModalBody({
             </div>
           )}
           {data.candidate.attendCachedAt ? (
-            <div className="text-[11px] text-cream-300 mt-2">Cached badge updated {relativeTime(data.candidate.attendCachedAt)}</div>
+            <div className="text-xs text-cream-300 mt-2">Cached badge updated {relativeTime(data.candidate.attendCachedAt)}</div>
           ) : null}
         </Section>
 
@@ -448,31 +477,31 @@ function ModalBody({
         <div>
           <button
             onClick={() => setShowAudit(!showAudit)}
-            className="text-xs uppercase tracking-widest font-medium text-cream-300 hover:text-cream-100 cursor-pointer tabular-nums"
+            className="text-xs uppercase tracking-widest font-medium text-cream-300 hover:text-cream-100 cursor-pointer tabular-nums px-2 py-1"
           >
             {showAudit ? '▾' : '▸'} Audit log ({data.auditEntries.length})
           </button>
           {showAudit ? (
-            <div className="mt-2 border border-brown-700 divide-y divide-brown-700 text-xs">
+            <div className="mt-2 flex flex-col gap-px bg-brown-900 text-xs">
               {data.auditEntries.length === 0 ? (
-                <div className="p-2 text-cream-300 italic">No changes recorded.</div>
+                <div className="p-2 bg-brown-800 text-cream-300 italic">No changes recorded.</div>
               ) : data.auditEntries.map((a) => (
-                <div key={a.id} className="px-3 py-1.5 flex items-center gap-2 text-cream-200">
+                <div key={a.id} className="px-3 py-1.5 bg-brown-800 flex items-center gap-2 text-cream-200">
                   <span className="text-cream-300 w-20 truncate">{a.actor?.name ?? a.actor?.email ?? 'system'}</span>
                   <span className="text-cream-100">{a.field}</span>
                   <span className="text-cream-400">→</span>
                   <span className="text-cream-50 truncate flex-1">{a.newValue ?? '∅'}</span>
-                  <span className="text-cream-300 text-[11px] tabular-nums">{relativeTime(a.createdAt)}</span>
+                  <span className="text-cream-300 text-xs tabular-nums">{relativeTime(a.createdAt)}</span>
                 </div>
               ))}
             </div>
           ) : null}
         </div>
 
-        <div className="border-t border-brown-700 pt-4 flex justify-end">
+        <div className="pt-2 flex justify-end">
           <button
             onClick={deleteCandidate}
-            className="text-xs text-red-400 hover:text-red-300 cursor-pointer"
+            className="text-xs uppercase tracking-widest font-medium text-red-300 bg-red-500/15 hover:bg-red-500/25 cursor-pointer px-3 py-2"
           >Remove from dashboard</button>
         </div>
       </div>
@@ -503,10 +532,10 @@ function Field({ label, children }: Readonly<{ label: string; children: React.Re
 
 function Stat({ label, value, hint, muted }: Readonly<{ label: string; value: string | number; hint?: string; muted?: boolean }>) {
   return (
-    <div className={`border border-brown-700 px-2.5 py-1.5 ${muted ? 'opacity-70' : ''}`}>
+    <div className={`bg-brown-800 px-2.5 py-1.5 ${muted ? 'opacity-70' : ''}`}>
       <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">{label}</div>
       <div className="text-cream-50 text-sm font-medium mt-0.5 tabular-nums">{value}</div>
-      {hint ? <div className="text-[11px] text-cream-300 mt-0.5">{hint}</div> : null}
+      {hint ? <div className="text-xs text-cream-300 mt-0.5">{hint}</div> : null}
     </div>
   );
 }
@@ -521,7 +550,7 @@ function FlakeNoteInput({ value, onSave, saving }: Readonly<{ value: string | nu
       onBlur={() => { if (draft !== (value ?? '')) onSave(draft); }}
       placeholder="e.g. low confidence, parents undecided"
       disabled={saving}
-      className="w-full bg-brown-800 border border-brown-700 text-cream-50 text-sm px-2 py-1.5 focus:outline-none focus:border-orange-500"
+      className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset"
     />
   );
 }
@@ -544,7 +573,7 @@ function NotesField({ value, onSave, saving }: Readonly<{ value: string | null; 
       placeholder="Free-form notes — anything that doesn't fit elsewhere."
       rows={4}
       disabled={saving}
-      className="w-full bg-brown-800 border border-brown-700 text-cream-50 text-sm px-3 py-2 focus:outline-none focus:border-orange-500 resize-y"
+      className="w-full bg-brown-800 text-cream-50 text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset resize-y"
     />
   );
 }
