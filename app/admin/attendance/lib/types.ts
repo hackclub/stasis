@@ -147,7 +147,16 @@ export interface CandidateRow {
   userAddress: DecryptedUserAddress | null
   flightCostEstimateCents: number | null
   flightCostUpdatedAt: string | null
+  /** Approved-amount column from the "Need Based Stipends" Airtable. null when
+   * the candidate isn't in that table or the field is empty (still in review).
+   * Read-only — admins edit the value in Airtable, not here. */
   flightStipendCents: number | null
+  /** Free-form status string from Airtable's "Stasus" column ("In review",
+   * "Approved", etc.) — purely informational. */
+  stipendStatus: string | null
+  /** Deep link to the candidate's row in Airtable, or the table view itself
+   * when no record was matched. Always populated. */
+  stipendAirtableUrl: string
   attendInvited: boolean
   attendOnboardingStarted: boolean
   attendFlightBooked: boolean

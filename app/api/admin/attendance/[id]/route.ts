@@ -7,6 +7,7 @@ import { AttendanceStatus, AttendanceCandidateSource, CurrencyTransactionType } 
 import { lookupAttendByEmail } from "@/lib/attend-db"
 import { getDerivedStatsBatch } from "@/lib/attendance"
 import { decryptUserAddress } from "@/lib/pii"
+import { getNeedBasedStipendLookup, findStipend, airtableStipendUrl } from "@/lib/need-based-stipends"
 
 const VALID_SOURCES: AttendanceCandidateSource[] = ["STASIS_USER", "REVIEWER_INCENTIVE", "EXTERNAL_HC", "DISCRETION"]
 
@@ -139,7 +140,12 @@ export async function GET(
 
   // Live Attend lookup (synchronous; cheap because we're hitting one row)
   const email = candidate.user?.email ?? candidate.externalEmail ?? null
-  const attend = email ? await lookupAttendByEmail(email).catch(() => null) : null
+  const slackId = candidate.user?.slackId ?? candidate.externalSlackId ?? null
+  const [attend, stipendLookup] = await Promise.all([
+    email ? lookupAttendByEmail(email).catch(() => null) : Promise.resolve(null),
+    getNeedBasedStipendLookup().catch(() => null),
+  ])
+  const stipend = findStipend(stipendLookup, email, slackId)
 
   return NextResponse.json({
     candidate: {
@@ -169,7 +175,9 @@ export async function GET(
       userAddress: candidate.user ? decryptUserAddress(candidate.user) : null,
       flightCostEstimateCents: candidate.flightCostEstimateCents,
       flightCostUpdatedAt: candidate.flightCostUpdatedAt,
-      flightStipendCents: candidate.flightStipendCents,
+      flightStipendCents: stipend?.approvedAmountCents ?? null,
+      stipendStatus: stipend?.status ?? null,
+      stipendAirtableUrl: airtableStipendUrl(stipend?.recordId),
       notes: candidate.notes,
       sourcingReason: candidate.sourcingReason,
       attendInvited: candidate.attendInvited,
@@ -309,13 +317,6 @@ export async function PATCH(
     existing.homeCountry,
     (v) => (typeof v === "string" ? sanitize(v).slice(0, 100) || null : v === null ? null : null),
     (v) => v
-  )
-  maybeSet(
-    "flightStipendCents",
-    body.flightStipendCents,
-    existing.flightStipendCents,
-    (v) => (typeof v === "number" && isFinite(v) ? Math.round(v) : v === null ? null : null),
-    (v) => (v === null ? null : String(v))
   )
   maybeSet(
     "flightCostEstimateCents",

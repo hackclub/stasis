@@ -56,6 +56,8 @@ interface CandidateDetail {
     flightCostEstimateCents: number | null;
     flightCostUpdatedAt: string | null;
     flightStipendCents: number | null;
+    stipendStatus: string | null;
+    stipendAirtableUrl: string;
     notes: string | null;
     sourcingReason: string | null;
     attendInvited: boolean;
@@ -474,10 +476,10 @@ function ModalBody({
               />
             </Field>
             <Field label="Flight stipend ($)">
-              <DollarInput
+              <StipendReadout
                 cents={c.flightStipendCents}
-                onSave={(cents) => patch({ flightStipendCents: cents }, 'flightStipendCents')}
-                saving={savingField === 'flightStipendCents'}
+                status={c.stipendStatus}
+                airtableUrl={c.stipendAirtableUrl}
               />
             </Field>
           </div>
@@ -778,6 +780,30 @@ function DollarInput({ cents, onSave, saving }: Readonly<{ cents: number | null;
       disabled={saving}
       className="w-full bg-brown-800 text-cream-50 text-sm px-2 py-1.5 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset tabular-nums"
     />
+  );
+}
+
+function StipendReadout({ cents, status, airtableUrl }: Readonly<{
+  cents: number | null;
+  status: string | null;
+  airtableUrl: string;
+}>) {
+  const display = cents == null ? '—' : `$${Math.round(cents / 100).toLocaleString()}`;
+  const isApproved = cents != null && cents > 0;
+  return (
+    <div className="bg-brown-800 px-2 py-1.5 flex items-center justify-between gap-2 min-h-[34px]">
+      <div className="flex items-baseline gap-2 min-w-0">
+        <span className={`text-sm font-medium tabular-nums ${isApproved ? 'text-orange-400' : 'text-cream-300'}`}>{display}</span>
+        {status ? <span className="text-xs uppercase tracking-widest text-cream-300 font-medium truncate">{status}</span> : null}
+      </div>
+      <a
+        href={airtableUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="shrink-0 text-xs uppercase tracking-widest text-orange-400 hover:text-orange-300 font-medium"
+        title="Edit in Airtable — Need Based Stipends"
+      >Edit in Airtable ↗</a>
+    </div>
   );
 }
 

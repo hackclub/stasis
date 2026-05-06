@@ -7,6 +7,7 @@ import { AttendanceStatus, AttendanceCandidateSource } from "@/app/generated/pri
 import { getDerivedStatsBatch } from "@/lib/attendance"
 import { decryptUserAddress } from "@/lib/pii"
 import { deriveAttendDisplayState } from "@/lib/attend-sync"
+import { getNeedBasedStipendLookup, findStipend, airtableStipendUrl } from "@/lib/need-based-stipends"
 
 const VALID_SOURCES: AttendanceCandidateSource[] = ["STASIS_USER", "REVIEWER_INCENTIVE", "EXTERNAL_HC", "DISCRETION"]
 
@@ -42,7 +43,7 @@ export async function GET() {
     },
   })
 
-  const [statsByCandidate, lastComms] = await Promise.all([
+  const [statsByCandidate, lastComms, stipendLookup] = await Promise.all([
     getDerivedStatsBatch(
       candidates.map((c) => ({ id: c.id, userId: c.userId, source: c.source }))
     ),
@@ -52,6 +53,7 @@ export async function GET() {
       distinct: ["candidateId"],
       select: { candidateId: true, createdAt: true, text: true, authorId: true },
     }),
+    getNeedBasedStipendLookup().catch(() => null),
   ])
 
   const lastCommsByCandidate = new Map(lastComms.map((c) => [c.candidateId, c]))
@@ -59,6 +61,9 @@ export async function GET() {
   const items = candidates.map((c) => {
     const stats = statsByCandidate.get(c.id)!
     const last = lastCommsByCandidate.get(c.id) ?? null
+    const email = c.user?.email ?? c.externalEmail ?? null
+    const slackId = c.user?.slackId ?? c.externalSlackId ?? null
+    const stipend = findStipend(stipendLookup, email, slackId)
     return {
       id: c.id,
       userId: c.userId,
@@ -89,7 +94,11 @@ export async function GET() {
       userAddress: c.user ? decryptUserAddress(c.user) : null,
       flightCostEstimateCents: c.flightCostEstimateCents,
       flightCostUpdatedAt: c.flightCostUpdatedAt,
-      flightStipendCents: c.flightStipendCents,
+      // Sourced from the "Need Based Stipends" Airtable, not our DB. The
+      // db column is preserved for history but no longer surfaced here.
+      flightStipendCents: stipend?.approvedAmountCents ?? null,
+      stipendStatus: stipend?.status ?? null,
+      stipendAirtableUrl: airtableStipendUrl(stipend?.recordId),
       // attend
       attendInvited: c.attendInvited,
       attendOnboardingStarted: c.attendOnboardingStarted,
@@ -124,7 +133,7 @@ export async function GET() {
  *   { externalName, externalEmail?, externalSlackId?, source?, ... } – external
  *
  * Optional fields at creation: notes, outreachStatus, isGirl,
- * flightStipendCents, flightCostEstimateCents, homeAirport, homeCity.
+ * flightCostEstimateCents, homeAirport, homeCity.
  *
  * isGirl is auto-derived from she/her pronouns if not provided.
  */
@@ -185,7 +194,6 @@ export async function POST(request: NextRequest) {
       isGirl,
       invitedAt,
       notes: typeof body.notes === "string" ? body.notes.slice(0, 50_000) : null,
-      flightStipendCents: typeof body.flightStipendCents === "number" ? Math.round(body.flightStipendCents) : null,
       flightCostEstimateCents: typeof body.flightCostEstimateCents === "number" ? Math.round(body.flightCostEstimateCents) : null,
       homeAirport: typeof body.homeAirport === "string" ? sanitize(body.homeAirport).slice(0, 8).toUpperCase() : null,
       homeCity: typeof body.homeCity === "string" ? sanitize(body.homeCity).slice(0, 200) : null,
