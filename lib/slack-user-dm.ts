@@ -97,10 +97,10 @@ export async function postUserMessage(
 }
 
 /**
- * Send a single DM to a user. Opens a conversation, posts the message, and
- * closes the conversation if it wasn't already open (matches the slack-dmer
- * demo's behavior — leaves the recipient's sidebar uncluttered if they
- * weren't already DMing the sender).
+ * Send a single DM to a user. Opens a conversation and posts the message.
+ * Leaves the conversation open afterward — recipients reply in their own
+ * Slack client, and admins want the thread visible in their sidebar so
+ * they can follow up.
  *
  * Throws a `SlackError` (`{ ok: false, error, status }`) on any Slack API
  * failure. Caller is responsible for surfacing.
@@ -111,15 +111,8 @@ export async function sendUserDM(
   text: string
 ): Promise<{ ts: string; channelId: string; alreadyOpen: boolean }> {
   const { channelId, alreadyOpen } = await openUserDM(tokens, slackId)
-  try {
-    const { ts } = await postUserMessage(tokens, channelId, text)
-    return { ts, channelId, alreadyOpen }
-  } finally {
-    if (!alreadyOpen) {
-      // Best-effort close; never let cleanup mask a real send error.
-      await closeUserDM(tokens, channelId).catch(() => {})
-    }
-  }
+  const { ts } = await postUserMessage(tokens, channelId, text)
+  return { ts, channelId, alreadyOpen }
 }
 
 export function isSlackError(e: unknown): e is SlackError {
