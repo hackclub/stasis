@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { SHOP_ITEMS, SHOP_ITEM_IDS, REQUIRES_STASIS_INVITE_IDS, PENDING_BITS_ELIGIBLE_IDS } from "@/lib/shop"
 import { Prisma } from "@/app/generated/prisma/client"
-import { runInvitePurchaseSideEffects } from "@/lib/attend"
+import { runInvitePurchaseSideEffects, type InvitePurchaseResult } from "@/lib/attend"
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -147,15 +147,52 @@ export async function POST(request: NextRequest) {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
 
-    // Fire-and-forget side effects for Stasis Event Invite purchases
+    // For Stasis Event Invite: registration on Attend is part of the purchase.
+    // If it fails, refund the bits (positive SHOP_REFUND ledger entry) and
+    // return an error so the buyer knows to retry rather than silently being
+    // charged with no Attend record.
     if (itemId === SHOP_ITEM_IDS.STASIS_EVENT_INVITE) {
-      runInvitePurchaseSideEffects({
+      const sideEffect = await runInvitePurchaseSideEffects({
         userId,
         email: session.user.email,
         name: session.user.name,
-      }).catch((err) =>
-        console.error("[shop/purchase] Invite side effects error:", err)
-      )
+      }).catch((err): InvitePurchaseResult => ({
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      }))
+
+      if (!sideEffect.ok) {
+        try {
+          await prisma.$transaction(async (tx) => {
+            const agg = await tx.currencyTransaction.aggregate({
+              where: { userId },
+              _sum: { amount: true },
+            })
+            const balance = agg._sum.amount ?? 0
+            await tx.currencyTransaction.create({
+              data: {
+                userId,
+                amount: totalCost,
+                type: "SHOP_REFUND",
+                shopItemId: itemId,
+                note: "Refund: Attend registration failed",
+                balanceBefore: balance,
+                balanceAfter: balance + totalCost,
+              },
+            })
+          }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+        } catch (refundErr) {
+          console.error("[shop/purchase] Refund after Attend failure failed:", refundErr)
+        }
+        return NextResponse.json(
+          {
+            error: "Couldn't register you on Attend right now. Your bits have been refunded — please try again in a moment.",
+            detail: sideEffect.error.slice(0, 500),
+            code: "ATTEND_REGISTRATION_FAILED",
+          },
+          { status: 502 }
+        )
+      }
     }
 
     return NextResponse.json(result)

@@ -82,10 +82,18 @@ export async function registerAttendParticipant({
  * export async function listAttendParticipants(): Promise<Array<{ email: string }>>
  */
 
+export type InvitePurchaseResult =
+  | { ok: true; alreadyRegistered: boolean }
+  | { ok: false; error: string; skipped?: boolean }
+
 /**
  * Side effects after a Stasis Event Invite is granted or purchased.
- * Persists Attend registration outcome to User. Best-effort on Loops email.
- * Never throws — caller doesn't need to wrap.
+ * Persists Attend registration outcome to User and upserts an
+ * AttendanceCandidate row so the buyer shows up on the attendance dashboard.
+ *
+ * Loops email is best-effort. Attend registration failure is surfaced via
+ * the return value so the caller can refund / abort. Candidate sync failures
+ * are swallowed (the attend-sync cron will catch missing rows on next sweep).
  */
 export async function runInvitePurchaseSideEffects({
   userId,
@@ -95,7 +103,7 @@ export async function runInvitePurchaseSideEffects({
   userId: string
   email: string
   name: string | null
-}): Promise<void> {
+}): Promise<InvitePurchaseResult> {
   const { firstName, lastName } = splitName(name)
 
   const [, attendResult] = await Promise.all([
@@ -111,26 +119,11 @@ export async function runInvitePurchaseSideEffects({
     ),
   ])
 
-  if (attendResult.ok) {
-    await prisma.user
-      .update({
-        where: { id: userId },
-        data: {
-          attendRegisteredAt: new Date(),
-          attendLastError: null,
-        },
-      })
-      .catch((err) =>
-        console.error(
-          "[invite-side-effects] Failed to write attend success status:",
-          err
-        )
-      )
-  } else if ("skipped" in attendResult) {
-    // ATTEND_API_KEY not configured — already warned, no DB write
-  } else {
-    const errMsg =
-      `[${attendResult.status}] ${attendResult.body}`.slice(0, 500)
+  if (!attendResult.ok) {
+    if ("skipped" in attendResult) {
+      return { ok: false, error: "ATTEND_API_KEY not configured", skipped: true }
+    }
+    const errMsg = `[${attendResult.status}] ${attendResult.body}`.slice(0, 500)
     console.error("[invite-side-effects] Attend registration failed:", errMsg)
     await prisma.user
       .update({
@@ -143,5 +136,138 @@ export async function runInvitePurchaseSideEffects({
           err
         )
       )
+    return { ok: false, error: errMsg }
+  }
+
+  await prisma.user
+    .update({
+      where: { id: userId },
+      data: {
+        attendRegisteredAt: new Date(),
+        attendLastError: null,
+      },
+    })
+    .catch((err) =>
+      console.error(
+        "[invite-side-effects] Failed to write attend success status:",
+        err
+      )
+    )
+
+  await syncCandidateForTicketPurchase(userId).catch((err) => {
+    console.error("[invite-side-effects] Candidate sync failed:", err)
+  })
+
+  return { ok: true, alreadyRegistered: attendResult.alreadyRegistered }
+}
+
+const BUMP_TO_SOFT_YES = new Set(["IDENTIFIED", "CONTACTED"])
+const FLAG_LOUDLY = new Set(["DECLINED", "SHELVED"])
+
+async function syncCandidateForTicketPurchase(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, pronouns: true },
+  })
+  if (!user) return
+
+  const existing = await prisma.attendanceCandidate.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      outreachStatus: true,
+      notes: true,
+      attendInvited: true,
+      invitedAt: true,
+    },
+  })
+
+  const today = new Date()
+  const dateStr = `${today.getMonth() + 1}/${today.getDate()}`
+  const ticketNote = `Bought a ticket ${dateStr}`
+  const sourcingReason = `Auto-pooled: purchased Stasis Event Invite (${dateStr})`
+  const isGirl =
+    user.pronouns && /she\/her/i.test(user.pronouns) ? true : null
+
+  if (!existing) {
+    const created = await prisma.attendanceCandidate.create({
+      data: {
+        user: { connect: { id: userId } },
+        outreachStatus: "SOFT_YES",
+        source: "STASIS_USER",
+        notes: ticketNote,
+        sourcingReason,
+        attendInvited: true,
+        isGirl,
+        invitedAt: today,
+        attendCachedAt: today,
+      },
+      select: { id: true },
+    })
+    await prisma.attendanceAuditEntry.create({
+      data: {
+        candidateId: created.id,
+        actorId: null,
+        field: "outreachStatus",
+        oldValue: null,
+        newValue: "SOFT_YES (created on ticket purchase)",
+      },
+    })
+    return
+  }
+
+  const isBumped = BUMP_TO_SOFT_YES.has(existing.outreachStatus)
+  const isFlagged = FLAG_LOUDLY.has(existing.outreachStatus)
+
+  const newStatus = isBumped ? "SOFT_YES" : existing.outreachStatus
+  const appendedNote = isFlagged
+    ? `🚨 ${ticketNote} (was ${existing.outreachStatus} — review)`
+    : ticketNote
+  const newNotes = existing.notes
+    ? `${existing.notes}\n${appendedNote}`
+    : appendedNote
+
+  await prisma.attendanceCandidate.update({
+    where: { id: existing.id },
+    data: {
+      outreachStatus: newStatus,
+      notes: newNotes,
+      attendInvited: true,
+      invitedAt: existing.invitedAt ?? today,
+    },
+  })
+
+  if (newStatus !== existing.outreachStatus) {
+    await prisma.attendanceAuditEntry.create({
+      data: {
+        candidateId: existing.id,
+        actorId: null,
+        field: "outreachStatus",
+        oldValue: existing.outreachStatus,
+        newValue: `${newStatus} (ticket purchase)`,
+      },
+    })
+  }
+  if (!existing.attendInvited) {
+    await prisma.attendanceAuditEntry.create({
+      data: {
+        candidateId: existing.id,
+        actorId: null,
+        field: "attendInvited",
+        oldValue: "false",
+        newValue: "true (ticket purchase)",
+      },
+    })
+  }
+  if (isFlagged) {
+    await prisma.attendanceAuditEntry.create({
+      data: {
+        candidateId: existing.id,
+        actorId: null,
+        field: "notes",
+        oldValue: null,
+        newValue: `Ticket purchase while ${existing.outreachStatus}`,
+      },
+    })
   }
 }
