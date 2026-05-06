@@ -63,7 +63,7 @@ export const STATUS_LABEL: Record<AttendanceStatus, string> = {
   CONTACTED: "Reached out",
   SOFT_YES: "Soft yes",
   CONFIRMED_YES: "Confirmed yes",
-  BOOKED_FLIGHT: "Booked flight",
+  BOOKED_FLIGHT: "Travel confirmed",
   DECLINED: "Declined",
   SHELVED: "Shelved",
 }
@@ -97,7 +97,7 @@ export const KANBAN_LABEL: Record<KanbanColumn, string> = {
   CONTACTED: "Reached out",
   SOFT_YES: "Soft yes",
   CONFIRMED_YES: "Confirmed yes",
-  BOOKED_FLIGHT: "Booked flight",
+  BOOKED_FLIGHT: "Travel confirmed",
 }
 
 export interface DerivedStats {

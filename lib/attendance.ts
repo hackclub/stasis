@@ -10,7 +10,7 @@ export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
   CONTACTED: "Reached out",
   SOFT_YES: "Soft yes",
   CONFIRMED_YES: "Confirmed yes",
-  BOOKED_FLIGHT: "Booked flight",
+  BOOKED_FLIGHT: "Travel confirmed",
   DECLINED: "Declined",
   SHELVED: "Shelved",
 }
@@ -36,7 +36,7 @@ export const KANBAN_COLUMN_LABELS: Record<KanbanColumn, string> = {
   CONTACTED: "Reached out",
   SOFT_YES: "Soft yes",
   CONFIRMED_YES: "Confirmed yes",
-  BOOKED_FLIGHT: "Booked flight",
+  BOOKED_FLIGHT: "Travel confirmed",
 }
 
 export const REAL_EFFORT_BIT_TYPES: CurrencyTransactionType[] = [

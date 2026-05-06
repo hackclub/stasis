@@ -210,7 +210,7 @@ export function CandidateKanban({
         ['CONTACTED', 'Reached out'],
         ['SOFT_YES', 'Soft yes'],
         ['CONFIRMED_YES', 'Confirmed yes'],
-        ['BOOKED_FLIGHT', 'Booked flight'],
+        ['BOOKED_FLIGHT', 'Travel confirmed'],
         ['SHELVED', 'Shelved'],
         ['DECLINED', 'Declined'],
       ] as const

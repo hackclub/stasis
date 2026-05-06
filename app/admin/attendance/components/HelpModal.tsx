@@ -32,7 +32,7 @@ const SHORTCUTS: Array<{ heading: string; items: Shortcut[] }> = [
 const TIPS: Array<{ title: string; body: string }> = [
   {
     title: 'Drag to advance',
-    body: 'Drag a card between Reached out → Soft yes → Confirmed yes to update status. Booked flight is automatic — set the flight as booked on the candidate, and the card slides over.',
+    body: 'Drag a card between Reached out → Soft yes → Confirmed yes to update status. Travel confirmed is automatic — set the flight as booked on the candidate, and the card slides over.',
   },
   {
     title: 'Right-click for everything',
@@ -59,7 +59,7 @@ const COLUMN_LEGEND: Array<{ accent: string; tone: string; label: string; meanin
   { accent: 'bg-orange-500/60', tone: 'text-orange-400', label: 'Reached out', meaning: 'CONTACTED — first message sent, awaiting reply' },
   { accent: 'bg-yellow-500/60', tone: 'text-yellow-500', label: 'Soft yes', meaning: 'SOFT_YES — verbal interest, not yet committed' },
   { accent: 'bg-green-500/60', tone: 'text-green-500', label: 'Confirmed yes', meaning: 'CONFIRMED_YES — locked in, flight not booked' },
-  { accent: 'bg-emerald-400/70', tone: 'text-emerald-300', label: 'Booked flight', meaning: 'CONFIRMED_YES + flight on file in Attend' },
+  { accent: 'bg-emerald-400/70', tone: 'text-emerald-300', label: 'Travel confirmed', meaning: 'CONFIRMED_YES + flight on file in Attend' },
 ];
 
 export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {

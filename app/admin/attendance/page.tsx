@@ -483,7 +483,7 @@ export default function AttendancePage() {
               { value: 'CONTACTED', label: 'Reached out', color: 'orange' },
               { value: 'SOFT_YES', label: 'Soft yes', color: 'yellow' },
               { value: 'CONFIRMED_YES', label: 'Confirmed yes', color: 'green' },
-              { value: 'BOOKED_FLIGHT', label: 'Booked flight', color: 'emerald' },
+              { value: 'BOOKED_FLIGHT', label: 'Travel confirmed', color: 'emerald' },
               { value: 'DECLINED', label: 'Declined', color: 'red' },
               { value: 'SHELVED', label: 'Shelved', color: 'brown' },
             ]}
