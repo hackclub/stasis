@@ -59,6 +59,7 @@ When `NEXT_PUBLIC_PRELAUNCH_MODE=true`, the site shows RSVP-only mode with refer
 Copy `.env.example` for required variables. Key ones: `DATABASE_URL`, `BETTER_AUTH_SECRET`, OAuth client IDs/secrets (HCA, Hackatime, GitHub), `AIRTABLE_API_KEY`, S3 credentials, `SLACK_BOT_TOKEN`.
 
 - `READONLY_PRODUCTION_DATABASE_URL` (already exported to Claude's shell via `.claude/settings.local.json`): read-only prod replica. Use it for real user/project/streak/currency questions — local DB is usually empty. Safe to query freely, never write. Retry once on "Connection refused".
+- `STASIS_PROD_ATTENDANCE_DATABASE_URL` (already exported via `.claude/settings.local.json`): prod superuser-on-the-primary connection scoped to the `claude_attendance` role — `SELECT` everywhere, `INSERT`/`UPDATE`/`DELETE` only on `attendance_candidate`, `attendance_comms_entry`, `attendance_audit_entry`, `attendance_reminder`. Use this (not the readonly URL) when an attendance task needs to write rows. Set `createdById` to the requesting user's id rather than leaving it NULL so audit attribution survives.
 - `STASIS_PROD_AIRTABLE_BASE_ID` (already exported via `.claude/settings.local.json`): the Airtable base ID (`appRMw1ya4lnaYsGv`) for the prod "YSWS - Stasis (PROD)" base. Query it via the `mcp__claude_ai_Airtable__query` tool. Key tables: `rsvps`, `nps_1`, `ysws_project_submission`, `ysws_config`.
 
 ## Looking Up a User by Slack ID
