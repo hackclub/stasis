@@ -96,6 +96,11 @@ model User {
   attendLastSyncedAt DateTime?
   attendLastError    String?
 
+  // May 15-18 in-person attendance survey
+  stasisAttendSurveyAt   DateTime?
+  stasisAttendInterested Boolean?
+  stasisAttendPlanning   Boolean?
+
   // Encrypted PII fields (AES-256-GCM) — only populated when PULL_HCA_PII is set
   encryptedAddressStreet  String?
   encryptedAddressCity    String?

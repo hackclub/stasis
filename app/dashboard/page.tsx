@@ -10,8 +10,7 @@ import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial } from '../components/OnboardingTutorial';
 import { PronounsModal } from '../components/PronounsModal';
-import { AttendanceSurveyModal } from '../components/AttendanceSurveyModal';
-import { CertificatePopup } from '../components/CertificatePopup';
+import { StasisAttendanceModal } from '../components/StasisAttendanceModal';
 import { GoalPicker } from '../components/GoalPicker';
 import { PrizeGoalPicker } from '../components/PrizeGoalPicker';
 import { AnimatedResize } from '../components/AnimatedResize';
@@ -86,20 +85,20 @@ export default function ProjectsPage() {
   const [pickerSelection, setPickerSelection] = useState<GoalPreference | null>(null);
   const [userPronouns, setUserPronouns] = useState<string | null>(null);
   const [showPronounsModal, setShowPronounsModal] = useState(false);
-  const [attendanceSurveyEligible, setAttendanceSurveyEligible] = useState(false);
-  const [showAttendanceSurvey, setShowAttendanceSurvey] = useState(false);
+  const [stasisAttendanceEligible, setStasisAttendanceEligible] = useState(false);
+  const [showStasisAttendance, setShowStasisAttendance] = useState(false);
   const [hoveredPrizeId, setHoveredPrizeId] = useState<string | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<'confirmed' | 'pending' | null>(null);
 
   const fetchProjects = useCallback(async () => {
     try {
-      const [projectsRes, currencyRes, goalPrefRes, pronounsRes, tutorialRes, attendanceRes] = await Promise.all([
+      const [projectsRes, currencyRes, goalPrefRes, pronounsRes, tutorialRes, stasisAttendanceRes] = await Promise.all([
         fetch('/api/projects'),
         fetch('/api/currency'),
         fetch('/api/user/goal-preference'),
         fetch('/api/user/pronouns'),
         fetch('/api/user/tutorial'),
-        fetch('/api/user/attendance-survey'),
+        fetch('/api/user/stasis-attendance'),
       ]);
       if (projectsRes.ok) {
         setProjects(await projectsRes.json());
@@ -135,23 +134,19 @@ export default function ProjectsPage() {
         fetchedPronouns = data.pronouns;
         setUserPronouns(fetchedPronouns);
       }
-      // Check attendance survey eligibility
-      let surveyEligible = false;
-      if (attendanceRes.ok) {
-        const { eligible } = await attendanceRes.json();
-        surveyEligible = eligible;
-        setAttendanceSurveyEligible(eligible);
+      // Check Stasis in-person attendance survey eligibility
+      let stasisEligible = false;
+      if (stasisAttendanceRes.ok) {
+        const { eligible } = await stasisAttendanceRes.json();
+        stasisEligible = eligible;
+        setStasisAttendanceEligible(eligible);
       }
       if (tutorialRes.ok) {
         const { tutorialDashboard } = await tutorialRes.json();
         if (tutorialDashboard && fetchedPronouns === null) {
           setShowPronounsModal(true);
-        } else if (tutorialDashboard && fetchedPronouns !== null && surveyEligible) {
-          // No tutorial or pronouns modal needed — but wait for CertificatePopup
-          if (localStorage.getItem('stasis_certificate_popup_dismissed')) {
-            setShowAttendanceSurvey(true);
-          }
-          // If certificate popup hasn't been dismissed yet, it'll trigger via onCertificateDismiss
+        } else if (tutorialDashboard && fetchedPronouns !== null && stasisEligible) {
+          setShowStasisAttendance(true);
         }
       }
       // Fetch Blueprint imports
@@ -378,8 +373,8 @@ export default function ProjectsPage() {
           setShowTutorial(false);
           if (userPronouns === null) {
             setShowPronounsModal(true);
-          } else if (attendanceSurveyEligible && localStorage.getItem('stasis_certificate_popup_dismissed')) {
-            setShowAttendanceSurvey(true);
+          } else if (stasisAttendanceEligible) {
+            setShowStasisAttendance(true);
           }
         }}
         onGoalChange={(goal) => setGoalPreference(goal)}
@@ -678,28 +673,14 @@ export default function ProjectsPage() {
       {showPronounsModal && (
         <PronounsModal onComplete={() => {
           setShowPronounsModal(false);
-          // After setting pronouns, re-check attendance survey eligibility
-          // (user just set she/her and may now qualify)
-          fetch('/api/user/attendance-survey').then(r => r.json()).then(({ eligible }) => {
-            if (eligible) {
-              if (localStorage.getItem('stasis_certificate_popup_dismissed')) {
-                setShowAttendanceSurvey(true);
-              } else {
-                setAttendanceSurveyEligible(true);
-              }
-            }
-          }).catch(() => {});
+          if (stasisAttendanceEligible) {
+            setShowStasisAttendance(true);
+          }
         }} />
       )}
 
-      <CertificatePopup onDismiss={() => {
-        if (attendanceSurveyEligible && !showPronounsModal) {
-          setShowAttendanceSurvey(true);
-        }
-      }} />
-
-      {showAttendanceSurvey && (
-        <AttendanceSurveyModal onComplete={() => setShowAttendanceSurvey(false)} />
+      {showStasisAttendance && (
+        <StasisAttendanceModal onComplete={() => setShowStasisAttendance(false)} />
       )}
 
       {/* Goal change confirmation dialog */}
