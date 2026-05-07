@@ -124,8 +124,8 @@ function PurchaseConfirmModal({
 
             <div className="bg-cream-200 border border-cream-400 p-4">
               <div className="flex justify-between text-brown-800 text-sm mb-1">
-                <span>{item.bitsCost.toLocaleString()}&nbsp;bits &times; {quantity}</span>
-                <span className="font-bold">{totalCost.toLocaleString()}&nbsp;bits</span>
+                <span>{item.bitsCost.toLocaleString()}&nbsp;{(PENDING_BITS_ELIGIBLE_IDS as readonly string[]).includes(item.id) ? 'pending bits' : 'bits'} &times; {quantity}</span>
+                <span className="font-bold">{totalCost.toLocaleString()}&nbsp;{(PENDING_BITS_ELIGIBLE_IDS as readonly string[]).includes(item.id) ? 'pending bits' : 'bits'}</span>
               </div>
               <div className="flex justify-between text-brown-800 text-sm">
                 <span>Flight stipend added</span>
@@ -405,14 +405,17 @@ export default function ShopPage() {
               </div>
 
               {/* Flight Stipend - full width below invite grid */}
-              {flightItem && (
+              {flightItem && (() => {
+                const flightEffectiveBal = getEffectiveBalance(flightItem.id);
+                const flightUsesPending = canUsePendingBits(flightItem.id);
+                return (
               <div className={`mt-4 bg-cream-100 border-2 p-6 flex flex-col sm:flex-row gap-4 ${
-                !hasEventInvite ? 'border-cream-300 opacity-60' : confirmedBits >= flightItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
+                !hasEventInvite ? 'border-cream-300 opacity-60' : flightEffectiveBal >= flightItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
               }`}>
                 <div className="flex-1">
                   <h3 className="text-brown-800 text-xl font-medium mb-1">{flightItem.name}</h3>
                   <p className="text-brown-800 text-sm mb-3">{flightItem.description}</p>
-                  <p className="text-orange-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()}&nbsp;Bits per $10</p>
+                  <p className="text-orange-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()}&nbsp;{flightUsesPending ? 'Pending Bits' : 'Bits'} per $10</p>
                   {(itemTotals[flightItem.id] ?? 0) > 0 && (
                     <p className="text-brown-800 text-sm mt-2">
                       You&apos;ve put <span className="font-bold text-orange-400">${(itemTotals[flightItem.id] ?? 0).toLocaleString()}</span> toward your flight so far
@@ -426,7 +429,7 @@ export default function ShopPage() {
                         Buy an event invite first
                       </span>
                     </div>
-                  ) : confirmedBits >= flightItem.bitsCost ? (
+                  ) : flightEffectiveBal >= flightItem.bitsCost ? (
                     <button
                       onClick={() => openConfirmModal(flightItem.id)}
                       disabled={purchasing === flightItem.id}
@@ -439,13 +442,14 @@ export default function ShopPage() {
                   ) : (
                     <div className="bg-cream-300 px-6 py-3 text-center w-full">
                       <span className="text-cream-600 uppercase tracking-wide text-sm">
-                        <span className="text-orange-500 font-medium">{(flightItem.bitsCost - confirmedBits).toLocaleString()}&nbsp;bits</span> needed
+                        <span className="text-orange-500 font-medium">{(flightItem.bitsCost - flightEffectiveBal).toLocaleString()}&nbsp;{flightUsesPending ? 'pending bits' : 'bits'}</span> needed
                       </span>
                     </div>
                   )}
                 </div>
               </div>
-              )}
+                );
+              })()}
 
               {/* Accommodation - full width below flight stipend */}
               {accommodationItems.length > 0 && (
