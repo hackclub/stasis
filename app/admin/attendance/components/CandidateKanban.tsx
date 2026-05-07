@@ -687,7 +687,6 @@ function KanbanCard({
             {' · '}
             {ownerFirst && row.ownerId ? (
               <>
-                <span>Owner: </span>
                 <button
                   type="button"
                   data-inline-edit
