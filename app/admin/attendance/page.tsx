@@ -507,6 +507,7 @@ export default function AttendancePage() {
             <span className="block w-px self-stretch bg-cream-200/10 mx-1" aria-hidden />
             <GirlTargetChip
               confirmedGirls={funnelCounts.confirmedGirls}
+              confirmed={funnelCounts.confirmed}
               girlTarget={40}
             />
             <StipendChip summary={stipendSummary} />
@@ -802,20 +803,43 @@ function FunnelChip({
 
 /** Hero readout for the girl target — compact two-line layout that matches
  * the per-stage funnel chip height. */
-function GirlTargetChip({ confirmedGirls, girlTarget }: Readonly<{ confirmedGirls: number; girlTarget: number }>) {
+function GirlTargetChip({ confirmedGirls, confirmed, girlTarget }: Readonly<{ confirmedGirls: number; confirmed: number; girlTarget: number }>) {
   const pctOfTarget = girlTarget > 0 ? Math.min(100, Math.round((confirmedGirls / girlTarget) * 100)) : 0;
   const cls = girlPctClass(pctOfTarget);
+  const pctOfConfirmed = confirmed > 0 ? Math.round((confirmedGirls / confirmed) * 100) : 0;
+  const shareCls = girlPctClass(pctOfConfirmed);
   return (
-    <div className="bg-brown-800 px-3 py-2 flex flex-col justify-between min-w-[180px]">
-      <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Girls confirmed</div>
-      <div className="flex items-baseline justify-between gap-2 mt-1.5">
-        <span className="text-base font-semibold tabular-nums leading-none">
-          <span className={cls}>{confirmedGirls}</span>
-          <span className="text-cream-400 font-medium mx-1.5">/</span>
-          <span className="text-cream-400 font-medium">{girlTarget}</span>
-          <span className="mx-2 text-cream-400/60 font-normal">·</span>
-          <span className={cls}>{pctOfTarget}%</span>
-        </span>
+    <div className="relative group min-w-[180px]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-0 right-0 top-full h-[2px] bg-[#4f4437] z-20 opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 bg-brown-800 px-3 py-2 flex flex-col justify-between translate-y-0 transition-transform duration-200 ease-out group-hover:translate-y-[calc(100%+2px)]"
+      >
+        <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Of current</div>
+        <div className="flex items-baseline justify-between gap-2 mt-1.5">
+          <span className="text-base font-semibold tabular-nums leading-none">
+            <span className={shareCls}>{confirmedGirls}</span>
+            <span className="text-cream-300 font-medium mx-1.5">/</span>
+            <span className="text-cream-300 font-medium">{confirmed}</span>
+            <span className="mx-2 text-cream-300/60 font-normal">·</span>
+            <span className={shareCls}>{pctOfConfirmed}%</span>
+          </span>
+        </div>
+      </div>
+      <div className="relative z-10 bg-brown-800 px-3 py-2 flex flex-col justify-between">
+        <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Girls confirmed</div>
+        <div className="flex items-baseline justify-between gap-2 mt-1.5">
+          <span className="text-base font-semibold tabular-nums leading-none">
+            <span className={cls}>{confirmedGirls}</span>
+            <span className="text-cream-400 font-medium mx-1.5">/</span>
+            <span className="text-cream-400 font-medium">{girlTarget}</span>
+            <span className="mx-2 text-cream-400/60 font-normal">·</span>
+            <span className={cls}>{pctOfTarget}%</span>
+          </span>
+        </div>
       </div>
     </div>
   );
