@@ -63,7 +63,6 @@ export default isDeployBuild
       widenClientFileUpload: true,
       tunnelRoute: "/monitoring",
       webpack: {
-        automaticVercelMonitors: true,
         treeshake: {
           removeDebugLogging: true,
         },
