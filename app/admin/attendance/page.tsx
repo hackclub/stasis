@@ -801,14 +801,14 @@ function FunnelChip({
   );
 }
 
-/** Hero readout for the girl target — compact two-line layout that matches
- * the per-stage funnel chip height. */
+/** Hero readout for the gender ratio — compact two-line layout that matches
+ * the per-stage funnel chip height. Hover reveals progress toward the absolute
+ * girl-count target. */
 function GirlTargetChip({ confirmedGirls, confirmed, girlTarget }: Readonly<{ confirmedGirls: number; confirmed: number; girlTarget: number }>) {
   const pctOfTarget = girlTarget > 0 ? Math.min(100, Math.round((confirmedGirls / girlTarget) * 100)) : 0;
-  const cls = girlPctClass(pctOfTarget);
-  const girlsNeededFor40 = Math.ceil(confirmed * 0.4);
-  const pctOfGoal = girlsNeededFor40 > 0 ? Math.min(100, Math.round((confirmedGirls / girlsNeededFor40) * 100)) : 0;
-  const shareCls = girlPctClass(pctOfGoal);
+  const targetCls = girlPctClass(pctOfTarget);
+  const ratioPct = confirmed > 0 ? Math.round((confirmedGirls / confirmed) * 100) : 0;
+  const ratioCls = girlPctClass(ratioPct);
   return (
     <div className="relative group min-w-[180px]">
       <div
@@ -819,26 +819,26 @@ function GirlTargetChip({ confirmedGirls, confirmed, girlTarget }: Readonly<{ co
         aria-hidden
         className="pointer-events-none absolute inset-0 z-0 bg-brown-800 px-3 py-2 flex flex-col justify-between translate-y-0 transition-transform duration-200 ease-out group-hover:translate-y-[calc(100%+2px)]"
       >
-        <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">40% goal</div>
+        <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Girls confirmed</div>
         <div className="flex items-baseline justify-between gap-2 mt-1.5">
           <span className="text-base font-semibold tabular-nums leading-none">
-            <span className={shareCls}>{confirmedGirls}</span>
+            <span className={targetCls}>{confirmedGirls}</span>
             <span className="text-cream-400 font-medium mx-1.5">/</span>
-            <span className="text-cream-400 font-medium">{girlsNeededFor40}</span>
+            <span className="text-cream-400 font-medium">{girlTarget}</span>
             <span className="mx-2 text-cream-400/60 font-normal">·</span>
-            <span className={shareCls}>{pctOfGoal}%</span>
+            <span className={targetCls}>{pctOfTarget}%</span>
           </span>
         </div>
       </div>
       <div className="relative z-10 bg-brown-800 px-3 py-2 flex flex-col justify-between">
-        <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Girls confirmed</div>
+        <div className="text-xs uppercase tracking-widest text-cream-300 font-medium">Gender ratio</div>
         <div className="flex items-baseline justify-between gap-2 mt-1.5">
           <span className="text-base font-semibold tabular-nums leading-none">
-            <span className={cls}>{confirmedGirls}</span>
+            <span className={ratioCls}>{confirmedGirls}</span>
             <span className="text-cream-400 font-medium mx-1.5">/</span>
-            <span className="text-cream-400 font-medium">{girlTarget}</span>
+            <span className="text-cream-400 font-medium">{confirmed}</span>
             <span className="mx-2 text-cream-400/60 font-normal">·</span>
-            <span className={cls}>{pctOfTarget}%</span>
+            <span className={ratioCls}>{ratioPct}%</span>
           </span>
         </div>
       </div>
