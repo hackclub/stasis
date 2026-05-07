@@ -18,8 +18,9 @@ interface FilterState {
   q: string;
   status: string;        // '' = all (table only)
   ownerId: string;       // '' = all, 'unassigned'
-  source: string;        // '' = all (table + sourcing)
+  source: string;        // '' = all
   girls: string;         // '' = all, 'girls', 'non-girls', 'unknown'
+  attend: string;        // '' = all, 'invited' | 'wip' | 'complete' | 'none'
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -28,6 +29,7 @@ const DEFAULT_FILTERS: FilterState = {
   ownerId: '',
   source: '',
   girls: '',
+  attend: '',
 };
 
 function readFiltersFromUrl(sp: URLSearchParams): FilterState {
@@ -37,6 +39,7 @@ function readFiltersFromUrl(sp: URLSearchParams): FilterState {
     ownerId: sp.get('owner') ?? '',
     source: sp.get('source') ?? '',
     girls: sp.get('girls') ?? '',
+    attend: sp.get('attend') ?? '',
   };
 }
 
@@ -113,6 +116,7 @@ export default function AttendancePage() {
       if (filters.ownerId) sp.set('owner', filters.ownerId);
       if (filters.source) sp.set('source', filters.source);
       if (filters.girls) sp.set('girls', filters.girls);
+      if (filters.attend) sp.set('attend', filters.attend);
       if (view !== 'kanban') sp.set('view', view);
       if (selectedId) sp.set('id', selectedId);
       const qs = sp.toString();
@@ -257,6 +261,10 @@ export default function AttendancePage() {
       if (filters.girls === 'girls' && r.isGirl !== true) return false;
       if (filters.girls === 'non-girls' && r.isGirl !== false) return false;
       if (filters.girls === 'unknown' && r.isGirl !== null) return false;
+      if (filters.attend) {
+        const state = r.attendDisplayState;
+        if (filters.attend === 'none' ? state !== null : state !== filters.attend) return false;
+      }
       return true;
     });
   }, [rows, filters, view]);
@@ -376,7 +384,7 @@ export default function AttendancePage() {
 
   // Show/hide filter chips based on active view.
   const showStatusFilter = view === 'table';
-  const showSourceFilter = view !== 'kanban'; // sourcing + table
+  const showSourceFilter = true;
 
   if (rolesLoading || !allowed) {
     return (
@@ -523,6 +531,17 @@ export default function AttendancePage() {
             { value: 'girls', label: 'Girls only', color: 'pink' },
             { value: 'non-girls', label: 'Non-girls', color: 'brown' },
             { value: 'unknown', label: 'Gender unknown', color: 'cream' },
+          ]}
+        />
+        <ColorSelect
+          value={filters.attend}
+          onChange={(v) => setFilters((f) => ({ ...f, attend: v }))}
+          options={[
+            { value: '', label: 'Any attend status' },
+            { value: 'invited', label: 'Attend invited', color: 'yellow' },
+            { value: 'wip', label: 'Attend WIP', color: 'orange' },
+            { value: 'complete', label: 'Attend complete', color: 'green' },
+            { value: 'none', label: 'Not in Attend', color: 'brown' },
           ]}
         />
       </div>
