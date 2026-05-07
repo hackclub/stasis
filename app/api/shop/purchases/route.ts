@@ -17,15 +17,23 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const transactions = await prisma.currencyTransaction.findMany({
-    where: {
-      userId: session.user.id,
-      type: "SHOP_PURCHASE",
-      shopItemId: { not: null },
-    },
-    select: { id: true, shopItemId: true, amount: true, note: true, createdAt: true },
-    orderBy: { createdAt: "desc" },
-  })
+  const [transactions, userRow] = await Promise.all([
+    prisma.currencyTransaction.findMany({
+      where: {
+        userId: session.user.id,
+        type: "SHOP_PURCHASE",
+        shopItemId: { not: null },
+      },
+      select: { id: true, shopItemId: true, amount: true, note: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { attendRegisteredAt: true },
+    }),
+  ])
+
+  const isStasisAttendee = !!userRow?.attendRegisteredAt
 
   const purchasedItemIds: string[] = []
   const itemTotals: Record<string, number> = {}
@@ -75,5 +83,5 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ purchasedItemIds, itemTotals, purchases })
+  return NextResponse.json({ purchasedItemIds, itemTotals, purchases, isStasisAttendee })
 }

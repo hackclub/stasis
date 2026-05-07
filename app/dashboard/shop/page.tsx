@@ -175,6 +175,7 @@ export default function ShopPage() {
   const [bitsEarned, setBitsEarned] = useState<number>(0);
   const [bitsSpent, setBitsSpent] = useState<number>(0);
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
+  const [isStasisAttendee, setIsStasisAttendee] = useState<boolean>(false);
   const [itemTotals, setItemTotals] = useState<Record<string, number>>({});
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,10 +202,11 @@ export default function ShopPage() {
         setPendingBits(pending ?? 0);
       }
       if (purchasesRes.ok) {
-        const { purchasedItemIds, itemTotals, purchases: purchaseList } = await purchasesRes.json();
+        const { purchasedItemIds, itemTotals, purchases: purchaseList, isStasisAttendee: attendee } = await purchasesRes.json();
         setPurchasedItems(new Set(purchasedItemIds));
         setItemTotals(itemTotals);
         setPurchases(purchaseList ?? []);
+        setIsStasisAttendee(!!attendee);
       }
       if (itemsRes.ok) {
         const { items } = await itemsRes.json();
@@ -311,8 +313,10 @@ export default function ShopPage() {
   const inviteItems = SHOP_ITEMS.filter(item => item.category === 'invite');
   const flightItem = SHOP_ITEMS.find(item => item.category === 'flight_stipend');
   const accommodationItems = SHOP_ITEMS.filter(item => item.category === 'accommodation');
-  const hasEventInvite = inviteItems.some(item => purchasedItems.has(item.id));
-  const hasStasisInvite = purchasedItems.has(SHOP_ITEM_IDS.STASIS_EVENT_INVITE);
+  // Flight stipend: API allows on-Attend users OR Open Sauce ticket holders.
+  // Accommodation: API allows on-Attend users (regardless of how they got there — shop or manual invite).
+  const hasEventInvite = isStasisAttendee || purchasedItems.has(SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
+  const hasStasisInvite = isStasisAttendee;
 
   // Stasis ticket + accommodations can be purchased with pending bits
   const canUsePendingBits = (itemId: string) =>
@@ -360,10 +364,17 @@ export default function ShopPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {inviteItems.map((inviteItem) => {
                   const effectiveBal = getEffectiveBalance(inviteItem.id);
+                  const alreadyHas =
+                    purchasedItems.has(inviteItem.id) ||
+                    (inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE && isStasisAttendee);
+                  const alreadyHasLabel =
+                    inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE && isStasisAttendee && !purchasedItems.has(inviteItem.id)
+                      ? 'Invited!'
+                      : 'Purchased!';
                   return (
                   <div key={inviteItem.id}>
                     <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-full ${
-                      purchasedItems.has(inviteItem.id) || effectiveBal >= inviteItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
+                      alreadyHas || effectiveBal >= inviteItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
                     }`}>
                       <div className="flex-1">
                         <h3 className="text-brown-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
@@ -376,9 +387,9 @@ export default function ShopPage() {
                         </p>
                       </div>
                       <div>
-                        {purchasedItems.has(inviteItem.id) ? (
+                        {alreadyHas ? (
                           <div className="bg-orange-500/20 border border-orange-500/50 px-6 py-3 text-center">
-                            <span className="text-orange-400 uppercase tracking-wide text-sm font-bold">Purchased!</span>
+                            <span className="text-orange-400 uppercase tracking-wide text-sm font-bold">{alreadyHasLabel}</span>
                           </div>
                         ) : effectiveBal >= inviteItem.bitsCost ? (
                           <button
