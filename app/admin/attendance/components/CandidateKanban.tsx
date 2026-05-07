@@ -673,7 +673,7 @@ function KanbanCard({
               </Tooltip>
             ) : null}
           </div>
-          <div className="text-xs text-cream-400 truncate mt-0.5">
+          <div className="text-xs text-cream-400 mt-0.5 leading-snug break-words">
             <span>Source: </span>
             <button
               type="button"
