@@ -21,7 +21,6 @@ interface ImportItem {
   isGirl?: boolean
   homeAirport?: string
   homeCity?: string
-  flightStipendCents?: number
   flightCostEstimateCents?: number
   invitedAt?: string
 }
@@ -149,7 +148,6 @@ export async function POST(request: NextRequest) {
         sourcingReason: it.sourcingReason ? sanitize(it.sourcingReason).slice(0, 5_000) : null,
         homeAirport: it.homeAirport ? sanitize(it.homeAirport).slice(0, 8).toUpperCase() : null,
         homeCity: it.homeCity ? sanitize(it.homeCity).slice(0, 200) : null,
-        flightStipendCents: typeof it.flightStipendCents === "number" ? Math.round(it.flightStipendCents) : null,
         flightCostEstimateCents: typeof it.flightCostEstimateCents === "number" ? Math.round(it.flightCostEstimateCents) : null,
         flightCostUpdatedAt: typeof it.flightCostEstimateCents === "number" ? new Date() : null,
         createdById: actorId,

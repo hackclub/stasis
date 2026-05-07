@@ -998,7 +998,6 @@ model AttendanceCandidate {
   homeCountry            String?
   flightCostEstimateCents Int?    // most recent estimate (null = not yet estimated)
   flightCostUpdatedAt    DateTime? // when the estimate was last refreshed
-  flightStipendCents     Int?     // null = not decided; 0 = invited but no flight; >0 = funded amount
 
   // Notes — single free-form field shown on kanban cards and below the
   // pipeline section in the modal. (Previously split across caseForThem /
