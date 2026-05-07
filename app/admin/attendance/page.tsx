@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { CandidateTable } from './components/CandidateTable';
 import { CandidateKanban } from './components/CandidateKanban';
@@ -78,7 +78,20 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>(() => readViewFromUrl(new URLSearchParams(searchParams.toString())));
-  const [filters, setFilters] = useState<FilterState>(() => readFiltersFromUrl(new URLSearchParams(searchParams.toString())));
+  // Filters are kept in two separate bags so switching between the sourcing
+  // view and kanban/table doesn't carry over filter state — each surface has
+  // a different decision frame, and the toolbars are tuned per-view.
+  const [mainFilters, setMainFilters] = useState<FilterState>(() => {
+    const sp = new URLSearchParams(searchParams.toString());
+    return readViewFromUrl(sp) === 'sourcing' ? DEFAULT_FILTERS : readFiltersFromUrl(sp);
+  });
+  const [sourcingFilters, setSourcingFilters] = useState<FilterState>(() => {
+    const sp = new URLSearchParams(searchParams.toString());
+    if (readViewFromUrl(sp) !== 'sourcing') return DEFAULT_FILTERS;
+    return { ...readFiltersFromUrl(sp), attend: '' };
+  });
+  const filters = view === 'sourcing' ? sourcingFilters : mainFilters;
+  const setFilters: Dispatch<SetStateAction<FilterState>> = view === 'sourcing' ? setSourcingFilters : setMainFilters;
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
   const [sourcingSelected, setSourcingSelected] = useState<Set<string>>(() => readSourcingSelectionFromUrl(new URLSearchParams(searchParams.toString())));
   const [adding, setAdding] = useState(false);
@@ -398,6 +411,7 @@ export default function AttendancePage() {
   // Show/hide filter chips based on active view.
   const showStatusFilter = view === 'table';
   const showSourceFilter = true;
+  const showAttendFilter = view !== 'sourcing';
 
   if (rolesLoading || !allowed) {
     return (
@@ -546,17 +560,19 @@ export default function AttendancePage() {
             { value: 'unknown', label: 'Gender unknown', color: 'cream' },
           ]}
         />
-        <ColorSelect
-          value={filters.attend}
-          onChange={(v) => setFilters((f) => ({ ...f, attend: v }))}
-          options={[
-            { value: '', label: 'Any attend status' },
-            { value: 'invited', label: 'Attend invited', color: 'yellow' },
-            { value: 'wip', label: 'Attend WIP', color: 'orange' },
-            { value: 'complete', label: 'Attend complete', color: 'green' },
-            { value: 'none', label: 'Not in Attend', color: 'brown' },
-          ]}
-        />
+        {showAttendFilter ? (
+          <ColorSelect
+            value={filters.attend}
+            onChange={(v) => setFilters((f) => ({ ...f, attend: v }))}
+            options={[
+              { value: '', label: 'Any attend status' },
+              { value: 'invited', label: 'Attend invited', color: 'yellow' },
+              { value: 'wip', label: 'Attend WIP', color: 'orange' },
+              { value: 'complete', label: 'Attend complete', color: 'green' },
+              { value: 'none', label: 'Not in Attend', color: 'brown' },
+            ]}
+          />
+        ) : null}
       </div>
 
       {error ? <div className="text-red-400 text-sm mb-3 shrink-0">{error}</div> : null}
