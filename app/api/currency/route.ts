@@ -22,7 +22,7 @@ export async function GET() {
 
   const userId = session.user.id
 
-  const [earned, deducted, bomResult, taxShippingResult] = await Promise.all([
+  const [earned, deducted, designApprovedProjects] = await Promise.all([
     prisma.currencyTransaction.aggregate({
       where: { userId, amount: { gt: 0 } },
       _sum: { amount: true },
@@ -31,20 +31,13 @@ export async function GET() {
       where: { userId, amount: { lt: 0 } },
       _sum: { amount: true },
     }),
-    prisma.bOMItem.findMany({
-      where: {
-        status: "approved",
-        project: { userId, designStatus: "approved" },
+    prisma.project.findMany({
+      where: { userId, deletedAt: null, designStatus: "approved" },
+      select: {
+        bomTax: true,
+        bomShipping: true,
+        bomItems: { where: { status: "approved" }, select: { totalCost: true } },
       },
-      select: { totalCost: true },
-    }),
-    prisma.project.aggregate({
-      where: {
-        userId,
-        deletedAt: null,
-        designStatus: "approved",
-      },
-      _sum: { bomTax: true, bomShipping: true },
     }),
   ])
 
@@ -59,8 +52,13 @@ export async function GET() {
   const bitsEarned = earned._sum.amount ?? 0
   const bitsDeducted = Math.abs(deducted._sum.amount ?? 0)
   const bitsBalance = bitsEarned - bitsDeducted
-  const bomItemsCost = bomResult.reduce((acc, item) => acc + item.totalCost, 0)
-  const bomCost = bomItemsCost + (taxShippingResult._sum.bomTax ?? 0) + (taxShippingResult._sum.bomShipping ?? 0)
+  // Sum each design-approved project's BOM cost (items + tax + shipping) ceil'd to whole bits,
+  // matching how bits are deducted at design-approval time. Otherwise the UI shows fractional dollars.
+  const bomCost = designApprovedProjects.reduce((acc, p) => {
+    const items = p.bomItems.reduce((s, b) => s + b.totalCost, 0)
+    const project = items + (p.bomTax ?? 0) + (p.bomShipping ?? 0)
+    return acc + Math.ceil(project)
+  }, 0)
 
   return NextResponse.json({ bitsEarned, bitsDeducted, bitsBalance, pendingBits, bomCost })
 }
