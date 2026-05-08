@@ -11,14 +11,14 @@ const TABLE_NAME = 'Loops Categories';
 const FIELD_EMAIL = 'email';
 const FIELD_IS_GIRL_REACHED_OUT = 'Loops - stasisIsGirlReachedOut';
 
-const TAG_YES = 'YES';
+const TAG_YES = '1';
 const TAG_EMPTY = '';
 
 /**
  * For each candidate in /admin/attendance, decide what value
  * `Loops - stasisIsGirlReachedOut` should hold:
- *   - "YES" when the candidate is marked isGirl AND outreachStatus = CONTACTED
- *   - ""    otherwise (still imported so the row exists for other future tags)
+ *   - "1" when the candidate is marked isGirl AND outreachStatus = CONTACTED
+ *   - ""  otherwise (still imported so the row exists for other future tags)
  *
  * Emails are normalized to lowercase. Candidates without any usable email are
  * skipped entirely.

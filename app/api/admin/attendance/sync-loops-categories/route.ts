@@ -12,7 +12,7 @@ export const maxDuration = 120;
  *
  * Pushes every /admin/attendance candidate's email into the Airtable
  * "Loops Categories" table, tagging girls in the CONTACTED column with
- * `Loops - stasisIsGirlReachedOut = "YES"` (others get an empty value).
+ * `Loops - stasisIsGirlReachedOut = "1"` (others get an empty value).
  *
  * Idempotent — safe to wire to cron.
  */
