@@ -294,10 +294,14 @@ export async function GET(
       pronouns: { contains: navPronouns, mode: "insensitive" },
     }
   }
+  // Survey response (stasisAttendPlanning) takes precedence over eventPreference.
   if (navAttendees) {
     navWhere.user = {
       ...navWhere.user,
-      eventPreference: "stasis",
+      OR: [
+        { stasisAttendPlanning: true },
+        { stasisAttendPlanning: null, eventPreference: "stasis" },
+      ],
     }
   }
 

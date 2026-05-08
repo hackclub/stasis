@@ -76,10 +76,16 @@ export async function GET(request: NextRequest) {
     projectWhere.starterProjectId = guide
   }
 
+  // Survey response (stasisAttendPlanning) takes precedence over eventPreference:
+  // if the user has answered the attendance survey, trust that; otherwise fall back
+  // to their original eventPreference selection.
   if (prioritizeAttending) {
     projectWhere.user = {
       ...projectWhere.user,
-      eventPreference: "stasis",
+      OR: [
+        { stasisAttendPlanning: true },
+        { stasisAttendPlanning: null, eventPreference: "stasis" },
+      ],
     }
   }
 
@@ -134,7 +140,7 @@ export async function GET(request: NextRequest) {
   const findArgs = {
     where: projectWhere,
     include: {
-      user: { select: { id: true, name: true, email: true, image: true, pronouns: true, encryptedAddressCountry: true, eventPreference: true } },
+      user: { select: { id: true, name: true, email: true, image: true, pronouns: true, encryptedAddressCountry: true, eventPreference: true, stasisAttendPlanning: true } },
       workSessions: { select: { id: true, hoursClaimed: true, hoursApproved: true, createdAt: true } },
       bomItems: { select: { id: true, totalCost: true, status: true } },
       submissions: {
@@ -202,7 +208,9 @@ export async function GET(request: NextRequest) {
     const isSheHer = !!project.user.pronouns && project.user.pronouns.toLowerCase().includes("she/her")
     const isUS = !!country && (country === "us" || country === "usa" || country === "united states" || country === "united states of america")
     const region = classifyRegion(country)
-    const attendingEvent = project.user.eventPreference === "stasis"
+    const attendingEvent = project.user.stasisAttendPlanning !== null
+      ? project.user.stasisAttendPlanning
+      : project.user.eventPreference === "stasis"
 
     return {
       id: project.id,
