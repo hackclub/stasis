@@ -140,7 +140,7 @@ function Schedule() {
     <SectionFrame id="schedule" num="1" label="Schedule">
       <p>
         Stasis runs from <strong className="text-brown-900 font-medium">Friday, May 15</strong> through{' '}
-        <strong className="text-brown-900 font-medium">Monday, May 18</strong>. Opening kicks off at 6:30 PM
+        <strong className="text-brown-900 font-medium">Monday, May 18</strong>. Opening kicks off at 7:00 PM
         Friday, but doors are open from 3:00 PM if you want to settle in early. We wrap up between 12 and
         1 PM on Monday.
       </p>
@@ -151,7 +151,7 @@ function Schedule() {
         </li>
         <li className="grid grid-cols-[7rem_1fr] gap-x-6 items-baseline">
           <span className="text-brown-900">Opening</span>
-          <span>Friday, May 15 · 6:30 PM</span>
+          <span>Friday, May 15 · 7:00 PM</span>
         </li>
         <li className="grid grid-cols-[7rem_1fr] gap-x-6 items-baseline">
           <span className="text-brown-900">Closing</span>
@@ -177,13 +177,15 @@ function Flights() {
     <SectionFrame id="flights" num="2" label="By air">
       <p>
         Fly into <strong className="text-brown-900 font-medium">Austin-Bergstrom International (AUS)</strong>.
-        Our team will meet you at the airport and arrange an Uber to the venue.
+        We&apos;ll help you get to the venue — if you need a pickup, our team can meet you at the airport
+        and arrange an Uber.
       </p>
       <p>
-        Book flights that land at least <strong className="text-brown-900 font-medium">one hour before</strong>{' '}
-        the event begins and depart at least{' '}
-        <strong className="text-brown-900 font-medium">three hours after</strong> it ends. This gives time
-        for pickup, security, and the Austin traffic that always finds a way.
+        If possible, book flights that land at least{' '}
+        <strong className="text-brown-900 font-medium">one hour before</strong> the event begins and depart
+        at least <strong className="text-brown-900 font-medium">three hours after</strong>{' '}
+        it ends — this gives time for pickup, security, and the Austin traffic that always finds a way. If
+        that&apos;s not possible, we can accommodate you; just let us know.
       </p>
       <div className="border-t border-cream-300 pt-5 space-y-3">
         <p>
@@ -210,7 +212,7 @@ function Ground() {
           rel="noopener noreferrer"
           className="text-orange-600 underline decoration-orange-600/40 underline-offset-4 hover:decoration-orange-600"
         >
-          Gas Fund
+          Hack Club Gas Fund
         </a>
         .
       </p>
