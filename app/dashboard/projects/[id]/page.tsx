@@ -1541,7 +1541,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="bg-cream-100 border-2 border-cream-400 p-6 mb-6">
             <h2 className="text-brown-800 text-xl uppercase tracking-wide mb-2">Firmware Time</h2>
             <p className="text-brown-800 text-sm mb-4">
-              Journaling time spent on writing firmware is not required, link your <a href="https://hackatime.hackclub.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">Hackatime</a> projects and we&apos;ll pull your coding time automatically.
+              Journaling time spent on writing firmware is not required, link your <a href="https://hackatime.hackclub.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 underline">Hackatime</a>{' '}projects and we&apos;ll pull your coding time automatically.
             </p>
             
             {hackatimeLinked === null ? (
