@@ -11,8 +11,8 @@ const TABLE_NAME = 'Loops Categories';
 const FIELD_EMAIL = 'email';
 const FIELD_IS_GIRL_REACHED_OUT = 'Loops - stasisIsGirlReachedOut';
 
-const TAG_YES = '1';
-const TAG_EMPTY = '0';
+const TAG_YES = 1;
+const TAG_EMPTY = 0;
 
 /**
  * For each candidate in /admin/attendance, decide what value
@@ -23,7 +23,7 @@ const TAG_EMPTY = '0';
  * Emails are normalized to lowercase. Candidates without any usable email are
  * skipped entirely.
  */
-async function buildDesiredCategoryMap(): Promise<Map<string, { email: string; value: string }>> {
+async function buildDesiredCategoryMap(): Promise<Map<string, { email: string; value: number }>> {
   const candidates = await prisma.attendanceCandidate.findMany({
     select: {
       externalEmail: true,
@@ -33,7 +33,7 @@ async function buildDesiredCategoryMap(): Promise<Map<string, { email: string; v
     },
   });
 
-  const desired = new Map<string, { email: string; value: string }>();
+  const desired = new Map<string, { email: string; value: number }>();
   for (const c of candidates) {
     const rawEmail = c.user?.email ?? c.externalEmail ?? null;
     if (!rawEmail) continue;
@@ -54,7 +54,7 @@ async function buildDesiredCategoryMap(): Promise<Map<string, { email: string; v
 interface ExistingRow {
   id: string;
   email: string;
-  value: string;
+  value: number | null;
 }
 
 async function fetchAllExistingRows(
@@ -67,8 +67,13 @@ async function fetchAllExistingRows(
       for (const r of records) {
         const email = (r.get(FIELD_EMAIL) as string | undefined) ?? '';
         if (!email) continue;
-        const value = (r.get(FIELD_IS_GIRL_REACHED_OUT) as string | undefined) ?? '';
-        byEmail.set(email.trim().toLowerCase(), { id: r.id, email, value });
+        const raw = r.get(FIELD_IS_GIRL_REACHED_OUT);
+        const value = typeof raw === 'number' ? raw : raw == null ? null : Number(raw);
+        byEmail.set(email.trim().toLowerCase(), {
+          id: r.id,
+          email,
+          value: Number.isFinite(value as number) ? (value as number) : null,
+        });
       }
       fetchNextPage();
     });
@@ -84,7 +89,7 @@ function isAuthError(err: unknown): boolean {
 
 async function batchCreate(
   base: AirtableBase,
-  rows: Array<{ email: string; value: string }>,
+  rows: Array<{ email: string; value: number }>,
 ): Promise<{ created: number; errors: string[]; noWriteAccess: boolean }> {
   if (rows.length === 0) return { created: 0, errors: [], noWriteAccess: false };
   const errors: string[] = [];
@@ -108,7 +113,7 @@ async function batchCreate(
 
 async function batchUpdate(
   base: AirtableBase,
-  rows: Array<{ id: string; value: string }>,
+  rows: Array<{ id: string; value: number }>,
 ): Promise<{ updated: number; errors: string[]; noWriteAccess: boolean }> {
   if (rows.length === 0) return { updated: 0, errors: [], noWriteAccess: false };
   const errors: string[] = [];
@@ -161,8 +166,8 @@ export async function syncLoopsCategories(): Promise<LoopsCategoriesSyncResult> 
     fetchAllExistingRows(base),
   ]);
 
-  const toCreate: Array<{ email: string; value: string }> = [];
-  const toUpdate: Array<{ id: string; value: string }> = [];
+  const toCreate: Array<{ email: string; value: number }> = [];
+  const toUpdate: Array<{ id: string; value: number }> = [];
   let unchanged = 0;
   let girlsReachedOut = 0;
 
@@ -171,7 +176,7 @@ export async function syncLoopsCategories(): Promise<LoopsCategoriesSyncResult> 
     const ex = existing.get(key);
     if (!ex) {
       toCreate.push({ email, value });
-    } else if ((ex.value ?? '') !== value) {
+    } else if (ex.value !== value) {
       toUpdate.push({ id: ex.id, value });
     } else {
       unchanged += 1;
