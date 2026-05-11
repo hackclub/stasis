@@ -315,7 +315,16 @@ function ModalBody({
             {c.isExternal ? <FlagPill label="External" /> : null}
           </div>
           <div className="text-xs text-cream-300 mt-1 flex items-center gap-3 flex-wrap">
-            {c.email ? <CopyableEmail email={c.email} /> : null}
+            {c.email ? (
+              <CopyableEmail email={c.email} />
+            ) : c.isExternal ? (
+              <InlineEmailEdit
+                onSave={(v) => patch({ externalEmail: v }, 'externalEmail')}
+                saving={savingField === 'externalEmail'}
+              />
+            ) : (
+              <span className="italic text-cream-400">No email saved</span>
+            )}
             {c.slackId ? (
               <a
                 href={`https://hackclub.enterprise.slack.com/team/${c.slackId}`}
@@ -681,6 +690,63 @@ function CopyableEmail({ email }: Readonly<{ email: string }>) {
         {copied ? '✓' : '⧉'}
       </span>
     </button>
+  );
+}
+
+/** Click-to-edit placeholder for missing external email. */
+function InlineEmailEdit({ onSave, saving }: Readonly<{
+  onSave: (v: string) => Promise<void> | void;
+  saving: boolean;
+}>) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  function cancel() {
+    setEditing(false);
+    setDraft('');
+  }
+
+  async function commit() {
+    const v = draft.trim();
+    if (!v) { cancel(); return; }
+    await onSave(v);
+    cancel();
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        title="Click to set email"
+        className="italic text-cream-400 hover:text-cream-50 cursor-pointer transition-[color] duration-150"
+      >
+        No email saved
+      </button>
+    );
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type="email"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      }}
+      placeholder="email@example.com"
+      disabled={saving}
+      maxLength={200}
+      className="bg-brown-700 text-cream-50 text-xs px-2 py-1 outline-none focus:ring-2 focus:ring-orange-500/60 focus:ring-inset min-w-64"
+    />
   );
 }
 
