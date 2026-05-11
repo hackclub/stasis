@@ -766,6 +766,7 @@ export default function AttendancePage() {
             options={[
               { value: '', label: 'Any last outreach' },
               { value: '1', label: 'Last outreach ≥1d ago', color: 'green' },
+              { value: '2', label: 'Last outreach ≥2d ago', color: 'green' },
               { value: '3', label: 'Last outreach ≥3d ago', color: 'yellow' },
               { value: '7', label: 'Last outreach ≥7d ago', color: 'orange' },
               { value: '14', label: 'Last outreach ≥14d ago', color: 'red' },
