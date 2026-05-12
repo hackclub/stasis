@@ -8,6 +8,7 @@ import { CandidateModal } from './components/CandidateModal';
 import { AddCandidateDialog } from './components/AddCandidateDialog';
 import { SourcingView } from './components/SourcingView';
 import { HelpModal } from './components/HelpModal';
+import { RepliesSyncTokenDialog, type OwnerTokenMap } from './components/RepliesSyncTokenDialog';
 import { CandidateRow, AdminUser, AttendanceStatus, AttendanceCandidateSource, KANBAN_ORDER, KANBAN_LABEL, kanbanColumnFor, kanbanColumnTone, kanbanColumnAccent, ownerColor, relativeTime } from './lib/types';
 import { ColorSelect } from './components/ColorSelect';
 import { useRoles, Permission, Role } from '@/lib/hooks/useRoles';
@@ -52,6 +53,16 @@ function parseLoopsResult(v: unknown): { scanned: number; created: number; updat
     girlsReachedOut: asNum(o.girlsReachedOut),
     errors: asNum(o.errorCount ?? o.errors),
     skippedNoWriteAccess: !!o.skippedNoWriteAccess,
+  };
+}
+function parseRepliesResult(v: unknown): { scanned: number; logged: number; noChange: number; skipped: number; errors: number } {
+  const o = asObj(v);
+  return {
+    scanned: asNum(o.scanned),
+    logged: asNum(o.logged),
+    noChange: asNum(o.noChange),
+    skipped: asNum(o.skipped),
+    errors: asNum(o.errors),
   };
 }
 
@@ -162,6 +173,13 @@ export default function AttendancePage() {
     lastResult: { scanned: number; created: number; updated: number; unchanged: number; girlsReachedOut: number; errors: number; skippedNoWriteAccess: boolean } | null;
     lastRunAt: string | null;
   }>({ state: 'idle', error: null, lastResult: null, lastRunAt: null });
+  const [repliesSync, setRepliesSync] = useState<{
+    state: 'idle' | 'running' | 'error';
+    error: string | null;
+    lastResult: { scanned: number; logged: number; noChange: number; skipped: number; errors: number } | null;
+    lastRunAt: string | null;
+  }>({ state: 'idle', error: null, lastResult: null, lastRunAt: null });
+  const [repliesTokenModal, setRepliesTokenModal] = useState(false);
 
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -246,6 +264,12 @@ export default function AttendancePage() {
             lastRunAt: r.lastRunAt,
             lastResult: parseLoopsResult(r.result),
           });
+        } else if (r.syncKey === 'replies') {
+          setRepliesSync((s) => s.lastResult ? s : {
+            ...s,
+            lastRunAt: r.lastRunAt,
+            lastResult: parseRepliesResult(r.result),
+          });
         }
       }
     } catch (err) {
@@ -318,6 +342,44 @@ export default function AttendancePage() {
       }));
     }
   }, []);
+
+  // Tokens for the replies sync come from the admin pasting their .env
+  // block into a dialog — we never store them on the server. The menu
+  // entry opens the dialog; the dialog's onSubmit fires the actual run.
+  const runRepliesSync = useCallback(() => {
+    setRepliesTokenModal(true);
+  }, []);
+
+  const executeRepliesSync = useCallback(async (tokens: OwnerTokenMap) => {
+    setRepliesSync((s) => ({ ...s, state: 'running', error: null }));
+    try {
+      const res = await fetch('/api/admin/attendance/sync-replies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error ?? `Replies sync failed (${res.status})`);
+      }
+      const lastResult = {
+        scanned: body.scanned ?? 0,
+        logged: body.logged ?? 0,
+        noChange: body.noChange ?? 0,
+        skipped: body.skipped ?? 0,
+        errors: body.errors ?? 0,
+      };
+      const lastRunAt = body.syncedAt ?? new Date().toISOString();
+      setRepliesSync({ state: 'idle', error: null, lastResult, lastRunAt });
+      await load();
+    } catch (err) {
+      setRepliesSync((s) => ({
+        ...s,
+        state: 'error',
+        error: err instanceof Error ? err.message : 'Replies sync failed',
+      }));
+    }
+  }, [load]);
 
   const runSlackSync = useCallback(async () => {
     setSlackSync((s) => ({ ...s, state: 'running', error: null }));
@@ -604,7 +666,7 @@ export default function AttendancePage() {
               },
               {
                 key: 'slack',
-                label: 'Sync slack',
+                label: 'Sync slack channel',
                 description: 'Add CONFIRMED_YES + BOOKED_FLIGHT to attendees Slack',
                 state: slackSync.state,
                 error: slackSync.error,
@@ -619,6 +681,26 @@ export default function AttendancePage() {
                 ) : null,
                 onRun: runSlackSync,
                 onDismissError: () => setSlackSync((s) => ({ ...s, state: 'idle', error: null })),
+              },
+              {
+                key: 'replies',
+                label: 'Sync slack replies',
+                description: 'Scan DMs of CONTACTED + SOFT_YES candidates and log last reply',
+                state: repliesSync.state,
+                error: repliesSync.error,
+                lastRunAt: repliesSync.lastRunAt,
+                status: repliesSync.lastResult ? (
+                  <>
+                    {repliesSync.lastResult.logged > 0
+                      ? <><span className="text-green-400">{repliesSync.lastResult.logged} logged</span> · </>
+                      : null}
+                    {repliesSync.lastResult.noChange} unchanged
+                    {repliesSync.lastResult.skipped > 0 ? <> · {repliesSync.lastResult.skipped} skipped</> : null}
+                    {repliesSync.lastResult.errors > 0 ? <span className="text-red-400"> · {repliesSync.lastResult.errors} errors</span> : null}
+                  </>
+                ) : null,
+                onRun: runRepliesSync,
+                onDismissError: () => setRepliesSync((s) => ({ ...s, state: 'idle', error: null })),
               },
               {
                 key: 'loops',
@@ -816,6 +898,12 @@ export default function AttendancePage() {
         />
       ) : null}
       {showHelp ? <HelpModal onClose={() => setShowHelp(false)} /> : null}
+      {repliesTokenModal ? (
+        <RepliesSyncTokenDialog
+          onClose={() => setRepliesTokenModal(false)}
+          onSubmit={executeRepliesSync}
+        />
+      ) : null}
     </div>
   );
 }

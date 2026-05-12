@@ -4,7 +4,7 @@ import { Prisma } from '@/app/generated/prisma/client';
 // Cross-admin "last sync" history. One row per successful run; the attendance
 // dashboard reads the most-recent row per syncKey to show "last sync N min ago".
 // Keep keys stable — the UI matches them by literal string.
-export type SyncKey = 'attend' | 'slack' | 'loops_categories';
+export type SyncKey = 'attend' | 'slack' | 'loops_categories' | 'replies';
 
 export async function recordSyncRun(
   syncKey: SyncKey,
@@ -32,7 +32,7 @@ export interface LatestSyncRun {
 /** Fetches the most-recent successful run per known syncKey. Missing keys are
  *  omitted from the returned array. */
 export async function getLatestSyncRuns(): Promise<LatestSyncRun[]> {
-  const keys: SyncKey[] = ['attend', 'slack', 'loops_categories'];
+  const keys: SyncKey[] = ['attend', 'slack', 'loops_categories', 'replies'];
   const rows = await Promise.all(
     keys.map((k) =>
       prisma.syncRunLog.findFirst({

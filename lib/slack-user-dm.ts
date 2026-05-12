@@ -77,6 +77,71 @@ export async function closeUserDM(tokens: UserDMTokens, channelId: string): Prom
   await slackUserCall(tokens, "conversations.close", form)
 }
 
+export interface SlackHistoryMessage {
+  ts: string
+  user?: string
+  text?: string
+  thread_ts?: string
+  reply_count?: number
+  subtype?: string
+}
+
+interface PaginatedHistory {
+  messages?: SlackHistoryMessage[]
+  has_more?: boolean
+  response_metadata?: { next_cursor?: string }
+}
+
+/**
+ * Pull all DM messages with ts >= oldestUnix, paginated, sorted ascending.
+ * `oldestUnix` is a Slack-style unix timestamp string ("1747000000.000000"
+ * is fine; so is "1747000000"). `inclusive=true` so the boundary message
+ * is returned.
+ */
+export async function fetchUserDMHistorySince(
+  tokens: UserDMTokens,
+  channelId: string,
+  oldestUnix: string,
+): Promise<SlackHistoryMessage[]> {
+  const all: SlackHistoryMessage[] = []
+  let cursor: string | undefined
+  while (true) {
+    const form = new URLSearchParams()
+    form.set("channel", channelId)
+    form.set("limit", "200")
+    form.set("oldest", oldestUnix)
+    form.set("inclusive", "true")
+    if (cursor) form.set("cursor", cursor)
+    const data = await slackUserCall<PaginatedHistory>(tokens, "conversations.history", form)
+    if (data.messages) all.push(...data.messages)
+    if (!data.has_more || !data.response_metadata?.next_cursor) break
+    cursor = data.response_metadata.next_cursor
+  }
+  return all.sort((a, b) => Number(a.ts) - Number(b.ts))
+}
+
+/** Pull replies in a thread; parent is excluded. Sorted ascending by ts. */
+export async function fetchUserDMThreadReplies(
+  tokens: UserDMTokens,
+  channelId: string,
+  threadTs: string,
+): Promise<SlackHistoryMessage[]> {
+  const all: SlackHistoryMessage[] = []
+  let cursor: string | undefined
+  while (true) {
+    const form = new URLSearchParams()
+    form.set("channel", channelId)
+    form.set("ts", threadTs)
+    form.set("limit", "200")
+    if (cursor) form.set("cursor", cursor)
+    const data = await slackUserCall<PaginatedHistory>(tokens, "conversations.replies", form)
+    if (data.messages) all.push(...data.messages)
+    if (!data.has_more || !data.response_metadata?.next_cursor) break
+    cursor = data.response_metadata.next_cursor
+  }
+  return all.filter((m) => m.ts !== threadTs).sort((a, b) => Number(a.ts) - Number(b.ts))
+}
+
 export async function postUserMessage(
   tokens: UserDMTokens,
   channelId: string,
