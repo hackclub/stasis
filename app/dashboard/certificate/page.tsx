@@ -92,7 +92,7 @@ export default function CertificatePage() {
       </h1>
 
       <p className="text-[14px] md:text-[18px] leading-snug text-brown-800 mb-8">
-        Build <strong>3 projects</strong> and we&apos;ll send you a hardware engineering certificate - proof of your skills, recognized by leaders in tech and education.
+        Build <strong>3 projects </strong> and we&apos;ll send you a hardware engineering certificate - proof of your skills, recognized by leaders in tech and education.
       </p>
 
       {/* Recognized by */}
