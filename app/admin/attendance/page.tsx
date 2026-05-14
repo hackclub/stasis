@@ -76,6 +76,9 @@ interface FilterState {
   // '' = all (includes no-contact); 'fresh' | 'stale' | 'cold' from touchHealth.
   // Any non-empty value excludes candidates with no last-outreach timestamp.
   lastContact: string;
+  // '' = all. Otherwise a 2-letter US state code matched against
+  // homeState → userAddress.state → attendState (in that precedence).
+  location: string;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -86,6 +89,7 @@ const DEFAULT_FILTERS: FilterState = {
   girls: '',
   attend: '',
   lastContact: '',
+  location: '',
 };
 
 function readFiltersFromUrl(sp: URLSearchParams): FilterState {
@@ -97,6 +101,7 @@ function readFiltersFromUrl(sp: URLSearchParams): FilterState {
     girls: sp.get('girls') ?? '',
     attend: sp.get('attend') ?? '',
     lastContact: sp.get('lastContact') ?? '',
+    location: sp.get('location') ?? '',
   };
 }
 
@@ -214,6 +219,7 @@ export default function AttendancePage() {
       if (filters.girls) sp.set('girls', filters.girls);
       if (filters.attend) sp.set('attend', filters.attend);
       if (filters.lastContact) sp.set('lastContact', filters.lastContact);
+      if (filters.location) sp.set('location', filters.location);
       if (view !== 'kanban') sp.set('view', view);
       if (selectedId) sp.set('id', selectedId);
       if (view === 'sourcing' && sourcingSelected.size > 0) {
@@ -475,6 +481,17 @@ export default function AttendancePage() {
           if (ageDays < days) return false;
         }
       }
+      if (filters.location) {
+        // Match a 2-letter US state code against the same precedence
+        // resolveLocation uses (home → linked Stasis user → Attend cache).
+        const raw = (r.homeState ?? r.userAddress?.state ?? r.attendState ?? '').trim().toLowerCase();
+        if (!raw) return false;
+        const wanted = filters.location.toLowerCase();
+        const matches =
+          raw === wanted ||
+          (wanted === 'tx' && raw === 'texas');
+        if (!matches) return false;
+      }
       return true;
     });
   }, [rows, filters, view]);
@@ -609,6 +626,7 @@ export default function AttendancePage() {
     if (f.girls) sp.set('girls', f.girls);
     if (f.attend) sp.set('attend', f.attend);
     if (f.lastContact) sp.set('lastContact', f.lastContact);
+    if (f.location) sp.set('location', f.location);
     if (target !== 'kanban') sp.set('view', target);
     const qs = sp.toString();
     return qs ? `${pathname}?${qs}` : pathname;
@@ -841,6 +859,14 @@ export default function AttendancePage() {
             ]}
           />
         ) : null}
+        <ColorSelect
+          value={filters.location}
+          onChange={(v) => setFilters((f) => ({ ...f, location: v }))}
+          options={[
+            { value: '', label: 'Any location' },
+            { value: 'TX', label: 'Texas only', color: 'orange' },
+          ]}
+        />
         {showAttendFilter ? (
           <ColorSelect
             value={filters.lastContact}
