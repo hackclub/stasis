@@ -2,19 +2,22 @@
 
 interface ToolCardProps {
   tool: {
-    id: string;
+    key: string;
     name: string;
     description?: string;
     imageUrl?: string;
-    available: boolean;
+    availableCount: number;
+    totalCount: number;
+    selectedCount: number;
   };
-  onRent: (toolId: string) => void;
-  inCart?: boolean;
+  onRent: () => void;
   canRent?: boolean;
 }
 
-export function ToolCard({ tool, onRent, inCart, canRent = true }: ToolCardProps) {
-  const disabled = !tool.available || inCart || !canRent;
+export function ToolCard({ tool, onRent, canRent = true }: ToolCardProps) {
+  const availableAfterCart = Math.max(0, tool.availableCount - tool.selectedCount);
+  const disabled = availableAfterCart === 0 || !canRent;
+  const hasSelected = tool.selectedCount > 0;
 
   return (
     <div className="border-2 border-brown-800 bg-cream-100 p-4 flex flex-col">
@@ -34,16 +37,21 @@ export function ToolCard({ tool, onRent, inCart, canRent = true }: ToolCardProps
       {/* Availability badge */}
       <span
         className={`inline-block self-start px-2 py-0.5 text-xs uppercase tracking-wider border mb-2 ${
-          tool.available
+          tool.availableCount > 0
             ? 'bg-green-100 border-green-600 text-green-800'
             : 'bg-cream-200 border-cream-400 text-brown-800/50'
         }`}
       >
-        {tool.available ? 'Available' : 'Unavailable'}
+        {tool.availableCount} / {tool.totalCount} Available
       </span>
 
       {/* Name */}
       <h3 className="text-brown-800 font-bold text-sm uppercase tracking-wide mb-1">{tool.name}</h3>
+      {hasSelected && (
+        <p className="text-orange-500 text-xs uppercase tracking-wider mb-2">
+          {tool.selectedCount} in cart
+        </p>
+      )}
 
       {/* Description */}
       {tool.description && (
@@ -52,15 +60,15 @@ export function ToolCard({ tool, onRent, inCart, canRent = true }: ToolCardProps
 
       <div className="mt-auto">
         <button
-          onClick={() => onRent(tool.id)}
+          onClick={onRent}
           disabled={disabled}
           className={`w-full py-2 text-sm uppercase tracking-wider border-2 transition-colors cursor-pointer disabled:cursor-not-allowed ${
-            inCart
+            hasSelected && disabled
               ? 'border-orange-500 bg-orange-500 text-cream-50'
               : 'border-brown-800 text-brown-800 hover:bg-brown-800 hover:text-cream-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brown-800'
           }`}
         >
-          {inCart ? 'In Cart' : 'Rent'}
+          {hasSelected && disabled ? 'In Cart' : hasSelected ? 'Add Another' : 'Rent'}
         </button>
       </div>
     </div>

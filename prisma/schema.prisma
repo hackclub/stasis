@@ -66,6 +66,25 @@ enum RentalStatus {
   RETURNED
 }
 
+enum ManufacturingPrinterStatus {
+  AVAILABLE
+  PRINTING
+  PAUSED
+  MAINTENANCE
+  OFFLINE
+}
+
+enum ManufacturingJobStatus {
+  PENDING
+  APPROVED
+  QUEUED
+  PRINTING
+  PAUSED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
 // This is the primary user object
 model User {
   id                 String   @id @default(cuid())
@@ -138,6 +157,7 @@ model User {
   team         Team?        @relation("TeamMembers", fields: [teamId], references: [id])
   ordersPlaced Order[]      @relation("OrdersPlaced")
   toolsRented  ToolRental[] @relation("ToolsRented")
+  manufacturingJobs ManufacturingJob[] @relation("ManufacturingJobsSubmitted")
 
   @@index([teamId])
   @@map("user")
@@ -845,9 +865,11 @@ model Team {
   locked         Boolean      @default(false)
   slackChannelId String?
   slackWelcomeTs String?
+  manufacturingAllowanceMinutes Int @default(240)
   members        User[]       @relation("TeamMembers")
   orders         Order[]
   toolRentals    ToolRental[]
+  manufacturingJobs ManufacturingJob[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -940,6 +962,67 @@ model InventorySettings {
   enabled Boolean @default(false)
 
   @@map("inventory_settings")
+}
+
+model ManufacturingPrinter {
+  id                   String                      @id @default(cuid())
+  name                 String                      @unique
+  status               ManufacturingPrinterStatus @default(AVAILABLE)
+  currentJobId         String?                     @unique
+  progress             Int                         @default(0)
+  timeRemainingMinutes Int                         @default(0)
+  notes                String                      @default("")
+  lastCompletedJobId   String?
+  sortOrder            Int                         @default(0)
+  assignedJobs         ManufacturingJob[]
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@index([status])
+  @@map("manufacturing_printer")
+}
+
+model ManufacturingJob {
+  id                String                 @id @default(cuid())
+  teamId            String
+  team              Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  submittedById     String
+  submittedBy       User                   @relation("ManufacturingJobsSubmitted", fields: [submittedById], references: [id], onDelete: Cascade)
+  projectName       String
+  description       String
+  estimatedMinutes  Int
+  material          String
+  colour            String
+  fileLink          String?
+  notes             String?
+  status            ManufacturingJobStatus @default(PENDING)
+  assignedPrinterId String?
+  assignedPrinter   ManufacturingPrinter?  @relation(fields: [assignedPrinterId], references: [id], onDelete: SetNull)
+  submittedAt       DateTime               @default(now())
+  startedAt         DateTime?
+  completedAt       DateTime?
+  collectedAt       DateTime?
+  staffNotes        String?
+  priority          Boolean                @default(false)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([teamId, status])
+  @@index([submittedById])
+  @@index([assignedPrinterId])
+  @@index([status, priority, submittedAt])
+  @@map("manufacturing_job")
+}
+
+model ManufacturingSettings {
+  id                      String   @id @default("singleton")
+  defaultAllowanceMinutes Int      @default(240)
+  warningLongPrintMinutes Int      @default(240)
+  eventName               String   @default("Stasis")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("manufacturing_settings")
 }
 
 // ============================================================

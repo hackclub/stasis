@@ -10,15 +10,17 @@ export async function GET(
   if ("error" in adminCheck) return adminCheck.error
 
   const { slackUserId } = await params
+  const identifier = slackUserId.trim()
 
-  // Try slackId first, then nfcId (for HID badge readers that send tag UIDs)
   const userSelect = {
     id: true,
+    email: true,
     name: true,
     slackId: true,
     slackDisplayName: true,
     nfcId: true,
     image: true,
+    attendRegisteredAt: true,
     teamId: true,
     team: {
       select: {
@@ -28,16 +30,34 @@ export async function GET(
     },
   } as const
 
-  let user = await prisma.user.findUnique({
-    where: { slackId: slackUserId },
+  let user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { id: identifier },
+        { slackId: identifier },
+        { nfcId: identifier },
+        { email: { equals: identifier, mode: "insensitive" } },
+      ],
+    },
     select: userSelect,
   })
 
-  if (!user) {
-    user = await prisma.user.findUnique({
-      where: { nfcId: slackUserId },
+  if (!user && identifier.length >= 2) {
+    const terms = identifier.split(/\s+/).filter(Boolean).slice(0, 4)
+    const matches = await prisma.user.findMany({
+      where: {
+        AND: terms.map((term) => ({
+          OR: [
+            { name: { contains: term, mode: "insensitive" } },
+            { slackDisplayName: { contains: term, mode: "insensitive" } },
+            { email: { contains: term, mode: "insensitive" } },
+          ],
+        })),
+      },
       select: userSelect,
+      take: 2,
     })
+    if (matches.length === 1) user = matches[0]
   }
 
   if (!user) {
@@ -47,14 +67,27 @@ export async function GET(
     )
   }
 
+  const stasisTicketPurchase = await prisma.currencyTransaction.findFirst({
+    where: {
+      userId: user.id,
+      type: "SHOP_PURCHASE",
+      shopItemId: "stasis-event-invite",
+    },
+    select: { id: true },
+  })
+  const hasStasisTicket = Boolean(user.attendRegisteredAt || stasisTicketPurchase)
+
   if (!user.teamId) {
     return NextResponse.json({
       user: {
         id: user.id,
-        name: user.slackDisplayName ?? user.name,
+        email: user.email,
+        name: user.name ?? user.slackDisplayName ?? user.email,
         slackId: user.slackId,
+        slackDisplayName: user.slackDisplayName,
         nfcId: user.nfcId,
         image: user.image,
+        hasStasisTicket,
       },
       team: null,
       activeOrder: null,
@@ -93,10 +126,13 @@ export async function GET(
   return NextResponse.json({
     user: {
       id: user.id,
-      name: user.slackDisplayName ?? user.name,
+      email: user.email,
+      name: user.name ?? user.slackDisplayName ?? user.email,
       slackId: user.slackId,
+      slackDisplayName: user.slackDisplayName,
       nfcId: user.nfcId,
       image: user.image,
+      hasStasisTicket,
     },
     team: user.team,
     activeOrder,

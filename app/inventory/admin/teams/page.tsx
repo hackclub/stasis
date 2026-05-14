@@ -13,12 +13,15 @@ interface Team {
   name: string;
   members: TeamMember[];
   locked: boolean;
+  manufacturingAllowanceMinutes: number;
 }
 
 export default function AdminTeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [savingAllowance, setSavingAllowance] = useState<string | null>(null);
+  const [allowanceDrafts, setAllowanceDrafts] = useState<Record<string, string>>({});
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   const fetchTeams = useCallback(async () => {
@@ -27,6 +30,9 @@ export default function AdminTeamsPage() {
       if (res.ok) {
         const data = await res.json();
         setTeams(data);
+        setAllowanceDrafts(Object.fromEntries(
+          data.map((team: Team) => [team.id, String(team.manufacturingAllowanceMinutes / 60)])
+        ));
       }
     } catch {
       // silently fail
@@ -61,6 +67,23 @@ export default function AdminTeamsPage() {
     setExpandedTeam(expandedTeam === teamId ? null : teamId);
   };
 
+  const saveAllowance = async (team: Team) => {
+    setSavingAllowance(team.id);
+    try {
+      const hours = Number(allowanceDrafts[team.id] ?? team.manufacturingAllowanceMinutes / 60);
+      const res = await fetch(`/api/inventory/admin/teams/${team.id}/manufacturing-allowance`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowanceMinutes: Math.max(0, Math.round(hours * 60)) }),
+      });
+      if (res.ok) await fetchTeams();
+    } catch {
+      // silently fail
+    } finally {
+      setSavingAllowance(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12 font-mono">
@@ -90,6 +113,9 @@ export default function AdminTeamsPage() {
                 </th>
                 <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">
                   Status
+                </th>
+                <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">
+                  Print Allowance
                 </th>
                 <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">
                   Actions
@@ -126,6 +152,26 @@ export default function AdminTeamsPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.25"
+                          value={allowanceDrafts[team.id] ?? String(team.manufacturingAllowanceMinutes / 60)}
+                          onChange={(event) => setAllowanceDrafts((current) => ({ ...current, [team.id]: event.target.value }))}
+                          className="w-20 border border-brown-800 bg-cream-50 px-2 py-1 text-xs text-brown-800"
+                        />
+                        <span className="text-brown-800/50 text-xs">hours</span>
+                        <button
+                          onClick={() => saveAllowance(team)}
+                          disabled={savingAllowance === team.id}
+                          className="px-2 py-1 text-xs uppercase tracking-wider bg-orange-500 text-cream-50 hover:bg-orange-600 disabled:opacity-50"
+                        >
+                          {savingAllowance === team.id ? '...' : 'Save'}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
                       <button
                         onClick={() => toggleLock(team)}
                         disabled={toggling === team.id}
@@ -145,7 +191,7 @@ export default function AdminTeamsPage() {
                   </tr>
                   {expandedTeam === team.id && (
                     <tr key={`${team.id}-members`} className="border-t border-cream-100">
-                      <td colSpan={4} className="px-3 py-2 bg-cream-50">
+                      <td colSpan={5} className="px-3 py-2 bg-cream-50">
                         {team.members.length === 0 ? (
                           <p className="text-brown-800/50 text-xs">No members</p>
                         ) : (

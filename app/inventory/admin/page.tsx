@@ -1,7 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { useInventorySSE } from '@/lib/inventory/useInventorySSE';
+import {
+  StatusBadge,
+  minutesToHuman,
+  submittedTime,
+  type ManufacturingJob,
+  type ManufacturingPrinter,
+  type ManufacturingState,
+} from '@/app/components/inventory/manufacturing/ManufacturingUI';
 
 interface OrderItem {
   id: string;
@@ -37,12 +45,25 @@ interface LookupResult {
     name: string;
     email?: string;
     slackId?: string;
+    slackDisplayName?: string;
     nfcId?: string;
     image?: string;
+    hasStasisTicket?: boolean;
   };
   team?: { name: string };
   activeOrder?: Order;
   activeRentals?: { id: string; tool: { name: string }; createdAt: string }[];
+}
+
+interface LookupSuggestion {
+  id: string;
+  name: string;
+  email: string;
+  slackId?: string | null;
+  slackDisplayName?: string | null;
+  nfcId?: string | null;
+  image?: string | null;
+  hasStasisTicket: boolean;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -67,11 +88,21 @@ export default function AdminActivityPage() {
   const [rentalsLoading, setRentalsLoading] = useState(true);
   const [returning, setReturning] = useState<string | null>(null);
 
+  // Manufacturing
+  const [manufacturing, setManufacturing] = useState<ManufacturingState | null>(null);
+  const [manufacturingLoading, setManufacturingLoading] = useState(true);
+  const [manufacturingUpdating, setManufacturingUpdating] = useState<string | null>(null);
+  const [manufacturingError, setManufacturingError] = useState<string | null>(null);
+  const [jobPrinters, setJobPrinters] = useState<Record<string, string>>({});
+
   // Lookup
   const [lookupInput, setLookupInput] = useState('');
   const [lookupResult, setLookupResult] = useState<LookupResult | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookupFocused, setLookupFocused] = useState(false);
+  const [lookupSuggestions, setLookupSuggestions] = useState<LookupSuggestion[]>([]);
+  const [lookupSuggestLoading, setLookupSuggestLoading] = useState(false);
 
   // Badge
   const [assigningBadge, setAssigningBadge] = useState(false);
@@ -106,14 +137,65 @@ export default function AdminActivityPage() {
     }
   }, []);
 
+  const fetchManufacturing = useCallback(async () => {
+    try {
+      const res = await fetch('/api/inventory/manufacturing/state');
+      if (res.ok) {
+        const data = await res.json();
+        setManufacturing(data);
+        setJobPrinters(Object.fromEntries(
+          data.jobs.map((job: ManufacturingJob) => [job.id, job.assignedPrinterId ?? ''])
+        ));
+      }
+    } catch {
+      setManufacturingError('Failed to load manufacturing jobs.');
+    } finally {
+      setManufacturingLoading(false);
+    }
+  }, []);
+
   useEffect(() => { setOrdersLoading(true); fetchOrders(); }, [fetchOrders]);
   useEffect(() => { fetchRentals(); }, [fetchRentals]);
+  useEffect(() => { fetchManufacturing(); }, [fetchManufacturing]);
   useEffect(() => {
     if (!sseEvent) return;
     const type = sseEvent.type;
     if (type === 'order_placed' || type === 'order_status_updated') fetchOrders();
     if (type === 'rental_created' || type === 'rental_returned') fetchRentals();
   }, [sseEvent, fetchOrders, fetchRentals]);
+
+  useEffect(() => {
+    const query = lookupInput.trim();
+    if (!lookupFocused || assigningBadge || query.length < 2) {
+      setLookupSuggestions([]);
+      setLookupSuggestLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      setLookupSuggestLoading(true);
+      try {
+        const res = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setLookupSuggestions(data.results ?? []);
+      } catch (err) {
+        if (!(err instanceof DOMException && err.name === 'AbortError')) {
+          setLookupSuggestions([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLookupSuggestLoading(false);
+      }
+    }, 180);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [lookupInput, lookupFocused, assigningBadge]);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     setUpdating(orderId);
@@ -133,6 +215,50 @@ export default function AdminActivityPage() {
       const res = await fetch(`/api/inventory/admin/rentals/${rentalId}/return`, { method: 'PATCH' });
       if (res.ok) await fetchRentals();
     } catch {} finally { setReturning(null); }
+  };
+
+  const updateManufacturingJob = async (job: ManufacturingJob, patch: Record<string, unknown>) => {
+    setManufacturingUpdating(job.id);
+    setManufacturingError(null);
+    try {
+      const res = await fetch(`/api/inventory/admin/manufacturing/jobs/${job.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setManufacturingError(data?.error || 'Failed to update manufacturing job.');
+        return;
+      }
+      await fetchManufacturing();
+    } catch {
+      setManufacturingError('Failed to update manufacturing job.');
+    } finally {
+      setManufacturingUpdating(null);
+    }
+  };
+
+  const updateManufacturingPrinter = async (printer: ManufacturingPrinter, patch: Record<string, unknown>) => {
+    setManufacturingUpdating(printer.id);
+    setManufacturingError(null);
+    try {
+      const res = await fetch(`/api/inventory/admin/manufacturing/printers/${printer.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setManufacturingError(data?.error || 'Failed to update printer.');
+        return;
+      }
+      await fetchManufacturing();
+    } catch {
+      setManufacturingError('Failed to update printer.');
+    } finally {
+      setManufacturingUpdating(null);
+    }
   };
 
   const isOverdue = (dueAt?: string) => dueAt ? new Date(dueAt) < new Date() : false;
@@ -177,12 +303,19 @@ export default function AdminActivityPage() {
   const handleLookup = async (slackId?: string) => {
     const id = slackId || lookupInput.trim();
     if (!id) return;
-    setLookupLoading(true); setLookupError(null); setLookupResult(null);
+    setLookupLoading(true); setLookupError(null); setLookupResult(null); setLookupSuggestions([]); setLookupFocused(false);
     try {
       const res = await fetch(`/api/inventory/lookup/${encodeURIComponent(id)}`);
-      if (!res.ok) { setLookupError('User not found.'); return; }
+      if (!res.ok) { setLookupError('User not found. Try selecting a Stasis account from the autocomplete.'); return; }
       setLookupResult(await res.json());
     } catch { setLookupError('Lookup failed.'); } finally { setLookupLoading(false); }
+  };
+
+  const selectLookupSuggestion = (suggestion: LookupSuggestion) => {
+    setLookupInput(suggestion.name);
+    setLookupSuggestions([]);
+    setLookupFocused(false);
+    handleLookup(suggestion.id);
   };
 
   const handleNFCScan = async () => {
@@ -214,6 +347,7 @@ export default function AdminActivityPage() {
       });
       if (!res.ok) { const err = await res.json().catch(() => null); setBadgeError(err?.error || 'Failed to assign badge.'); return; }
       setBadgeSuccess(`Badge ${badgeInput.trim()} assigned.`);
+      setLookupResult((prev) => prev ? { ...prev, user: { ...prev.user, nfcId: badgeInput.trim() } } : prev);
       setBadgeInput(''); setAssigningBadge(false);
     } catch { setBadgeError('Failed to assign badge.'); } finally { setBadgeAssigning(false); }
   };
@@ -232,8 +366,62 @@ export default function AdminActivityPage() {
         <h3 className="text-brown-800 text-sm uppercase tracking-wider mb-3 font-bold">Badge Lookup</h3>
         <div className="flex gap-2 items-end flex-wrap">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-brown-800/70 text-xs uppercase mb-1">Slack ID or Badge ID</label>
-            <input ref={lookupInputRef} type="text" value={lookupInput} onChange={(e) => setLookupInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLookup()} placeholder="Tap badge or enter Slack ID..." className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800" />
+            <label className="block text-brown-800/70 text-xs uppercase mb-1">Slack ID, Badge ID, or Stasis Account</label>
+            <div className="relative">
+              <input
+                ref={lookupInputRef}
+                type="text"
+                value={lookupInput}
+                onChange={(e) => setLookupInput(e.target.value)}
+                onFocus={() => setLookupFocused(true)}
+                onBlur={() => setTimeout(() => setLookupFocused(false), 150)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                placeholder="Tap badge, enter Slack ID, or search name..."
+                className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800"
+              />
+              {lookupFocused && (lookupSuggestLoading || lookupSuggestions.length > 0) && (
+                <div className="absolute left-0 right-0 top-full z-30 mt-1 border-2 border-brown-800 bg-cream-50 shadow-lg max-h-80 overflow-y-auto">
+                  {lookupSuggestLoading && lookupSuggestions.length === 0 ? (
+                    <div className="px-3 py-2 text-brown-800/60 text-sm">Searching accounts...</div>
+                  ) : (
+                    lookupSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectLookupSuggestion(suggestion);
+                        }}
+                        className="w-full px-3 py-2 flex items-center gap-3 text-left border-b border-cream-200 last:border-b-0 hover:bg-cream-100"
+                      >
+                        {suggestion.image ? (
+                          <img src={suggestion.image} alt="" className="w-9 h-9 rounded-full object-cover border border-cream-300 shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full border border-cream-300 bg-cream-200 shrink-0 flex items-center justify-center text-brown-800/50 text-xs uppercase">
+                            {(suggestion.name || suggestion.email).slice(0, 2)}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-brown-800 text-sm font-bold truncate">{suggestion.name}</span>
+                            <span className={`shrink-0 text-[10px] uppercase tracking-wider border px-1 py-0.5 ${
+                              suggestion.hasStasisTicket
+                                ? 'border-green-600 bg-green-50 text-green-700'
+                                : 'border-red-600 bg-red-50 text-red-700'
+                            }`}>
+                              {suggestion.hasStasisTicket ? 'Stasis Ticket' : 'No Stasis Ticket'}
+                            </span>
+                          </div>
+                          <p className="text-brown-800/60 text-xs truncate">
+                            {suggestion.slackDisplayName || suggestion.slackId || 'No Slack'} | {suggestion.email}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <button onClick={() => handleLookup()} disabled={lookupLoading} className="bg-orange-500 text-cream-50 px-4 py-2 border-2 border-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors uppercase text-sm tracking-wider disabled:opacity-50">Lookup</button>
           <button onClick={handleNFCScan} disabled={lookupLoading} className="border-2 border-brown-800 text-brown-800 px-4 py-2 hover:bg-brown-800 hover:text-cream-50 transition-colors uppercase text-sm tracking-wider disabled:opacity-50">Scan Badge</button>
@@ -245,12 +433,35 @@ export default function AdminActivityPage() {
         {lookupResult && (
           <div className="mt-4 border-2 border-brown-800 bg-cream-50 p-4">
             <div className="flex justify-between items-start">
-              <div>
-                <p className="text-brown-800 font-bold">{lookupResult.user.name}</p>
-                {lookupResult.user.email && <p className="text-brown-800/60 text-sm">{lookupResult.user.email}</p>}
-                {lookupResult.user.slackId && <p className="text-brown-800/60 text-xs mt-1">Slack: {lookupResult.user.slackId}</p>}
-                {lookupResult.user.nfcId && <p className="text-brown-800/60 text-xs mt-1">Badge: {lookupResult.user.nfcId}</p>}
-                {lookupResult.team && <p className="text-brown-800/80 text-sm mt-1">Team: {lookupResult.team.name}</p>}
+              <div className="flex gap-3 min-w-0">
+                {lookupResult.user.image ? (
+                  <img src={lookupResult.user.image} alt="" className="w-12 h-12 rounded-full object-cover border border-cream-300 shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full border border-cream-300 bg-cream-200 shrink-0 flex items-center justify-center text-brown-800/50 text-sm uppercase">
+                    {lookupResult.user.name.slice(0, 2)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-brown-800 font-bold">{lookupResult.user.name}</p>
+                    <span className={`text-[10px] uppercase tracking-wider border px-1 py-0.5 ${
+                      lookupResult.user.hasStasisTicket
+                        ? 'border-green-600 bg-green-50 text-green-700'
+                        : 'border-red-600 bg-red-50 text-red-700'
+                    }`}>
+                      {lookupResult.user.hasStasisTicket ? 'Stasis Ticket' : 'No Stasis Ticket'}
+                    </span>
+                  </div>
+                  {lookupResult.user.email && <p className="text-brown-800/60 text-sm">{lookupResult.user.email}</p>}
+                  {(lookupResult.user.slackDisplayName || lookupResult.user.slackId) && (
+                    <p className="text-brown-800/60 text-xs mt-1">
+                      Slack: {lookupResult.user.slackDisplayName || lookupResult.user.slackId}
+                      {lookupResult.user.slackDisplayName && lookupResult.user.slackId ? ` (${lookupResult.user.slackId})` : ''}
+                    </p>
+                  )}
+                  {lookupResult.user.nfcId && <p className="text-brown-800/60 text-xs mt-1">Badge: {lookupResult.user.nfcId}</p>}
+                  {lookupResult.team && <p className="text-brown-800/80 text-sm mt-1">Team: {lookupResult.team.name}</p>}
+                </div>
               </div>
               <button onClick={() => { setLookupResult(null); setLookupInput(''); }} className="text-brown-800/50 hover:text-brown-800 text-lg leading-none">x</button>
             </div>
@@ -295,6 +506,18 @@ export default function AdminActivityPage() {
           </div>
         )}
       </div>
+
+      {/* === Manufacturing Section === */}
+      <ManufacturingActivity
+        state={manufacturing}
+        loading={manufacturingLoading}
+        error={manufacturingError}
+        updating={manufacturingUpdating}
+        jobPrinters={jobPrinters}
+        setJobPrinters={setJobPrinters}
+        updateJob={updateManufacturingJob}
+        updatePrinter={updateManufacturingPrinter}
+      />
 
       {/* === Orders Section === */}
       <section>
@@ -411,5 +634,238 @@ export default function AdminActivityPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function ManufacturingActivity({
+  state,
+  loading,
+  error,
+  updating,
+  jobPrinters,
+  setJobPrinters,
+  updateJob,
+  updatePrinter,
+}: Readonly<{
+  state: ManufacturingState | null;
+  loading: boolean;
+  error: string | null;
+  updating: string | null;
+  jobPrinters: Record<string, string>;
+  setJobPrinters: Dispatch<SetStateAction<Record<string, string>>>;
+  updateJob: (job: ManufacturingJob, patch: Record<string, unknown>) => Promise<void>;
+  updatePrinter: (printer: ManufacturingPrinter, patch: Record<string, unknown>) => Promise<void>;
+}>) {
+  const jobs = (state?.jobs ?? []).filter((job) => {
+    if (job.status === 'REJECTED' || job.status === 'CANCELLED') return false;
+    if (job.status === 'COMPLETED') return !job.collectedAt;
+    return true;
+  });
+  const printers = state?.printers ?? [];
+  const activeCount = jobs.filter((job) => job.status === 'PRINTING' || job.status === 'PAUSED').length;
+  const pendingCount = jobs.filter((job) => job.status === 'PENDING').length;
+  const pickupCount = jobs.filter((job) => job.status === 'COMPLETED' && !job.collectedAt).length;
+
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+        <h2 className="text-brown-800 font-bold text-lg uppercase tracking-wide">Manufacturing</h2>
+        {state && (
+          <div className="flex gap-2 flex-wrap text-xs">
+            <span className="border border-brown-800 bg-cream-100 px-2 py-1 uppercase tracking-wider text-brown-800">
+              {activeCount} active
+            </span>
+            <span className="border border-brown-800 bg-cream-100 px-2 py-1 uppercase tracking-wider text-brown-800">
+              {pendingCount} review
+            </span>
+            <span className="border border-brown-800 bg-cream-100 px-2 py-1 uppercase tracking-wider text-brown-800">
+              {pickupCount} pickup
+            </span>
+            <span className="border border-brown-800 bg-cream-100 px-2 py-1 uppercase tracking-wider text-brown-800">
+              {state.printers.filter((printer) => printer.status === 'AVAILABLE').length}/{state.printers.length} printers
+            </span>
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="loader" /></div>
+      ) : !state ? (
+        <p className="text-brown-800/60 text-sm">No manufacturing data found.</p>
+      ) : (
+        <div className="space-y-4">
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-2 border-brown-800 text-sm">
+              <thead>
+                <tr className="bg-brown-800 text-cream-50">
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Job</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Team</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Time</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Printer</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Status</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map((job) => {
+                  const assignedPrinterId = jobPrinters[job.id] ?? job.assignedPrinterId ?? '';
+                  return (
+                    <tr key={job.id} className="border-t border-cream-200">
+                      <td className="px-3 py-2 text-brown-800">
+                        <p className="font-bold">{job.projectName}</p>
+                        <p className="text-brown-800/50 text-xs max-w-[280px] truncate">
+                          {job.description || job.fileLink || job.id}
+                        </p>
+                      </td>
+                      <td className="px-3 py-2 text-brown-800/70">
+                        <p>{job.teamName}</p>
+                        <p className="text-xs text-brown-800/50">{job.slackHandle || job.submittedBy.email}</p>
+                      </td>
+                      <td className="px-3 py-2 text-brown-800/70 whitespace-nowrap">
+                        {minutesToHuman(job.estimatedMinutes)}
+                        {job.priority && <span className="ml-2 text-orange-500 text-xs uppercase font-bold">Urgent</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          value={assignedPrinterId}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setJobPrinters((current) => ({ ...current, [job.id]: value }));
+                          }}
+                          className="border border-brown-800 bg-cream-50 px-2 py-1 text-brown-800 text-xs"
+                        >
+                          <option value="">Unassigned</option>
+                          {printers.map((printer) => (
+                            <option key={printer.id} value={printer.id}>
+                              {printer.name} ({printer.status})
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <StatusBadge value={job.status} />
+                        <p className="text-brown-800/40 text-xs mt-1">{submittedTime(job.submittedAt)}</p>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {job.status === 'PENDING' && (
+                            <>
+                              <ManufacturingButton disabled={updating === job.id} onClick={() => updateJob(job, { status: 'APPROVED' })}>Approve</ManufacturingButton>
+                              <ManufacturingButton disabled={updating === job.id} onClick={() => updateJob(job, { status: 'REJECTED' })} muted>Reject</ManufacturingButton>
+                            </>
+                          )}
+                          {(job.status === 'PENDING' || job.status === 'APPROVED' || job.status === 'QUEUED') && (
+                            <ManufacturingButton disabled={updating === job.id} onClick={() => updateJob(job, { status: 'QUEUED', assignedPrinterId })}>Queue</ManufacturingButton>
+                          )}
+                          {(job.status === 'APPROVED' || job.status === 'QUEUED' || job.status === 'PAUSED') && (
+                            <ManufacturingButton disabled={updating === job.id || !assignedPrinterId} onClick={() => updateJob(job, { status: 'PRINTING', assignedPrinterId })}>Start</ManufacturingButton>
+                          )}
+                          {job.status === 'PRINTING' && (
+                            <ManufacturingButton disabled={updating === job.id} onClick={() => updateJob(job, { status: 'PAUSED' })}>Pause</ManufacturingButton>
+                          )}
+                          {(job.status === 'PRINTING' || job.status === 'PAUSED') && (
+                            <ManufacturingButton disabled={updating === job.id} onClick={() => updateJob(job, { status: 'COMPLETED' })}>Complete</ManufacturingButton>
+                          )}
+                          {job.status === 'COMPLETED' && !job.collectedAt && (
+                            <ManufacturingButton disabled={updating === job.id} onClick={() => updateJob(job, { markCollected: true })}>Collected</ManufacturingButton>
+                          )}
+                          {!['COMPLETED', 'REJECTED', 'CANCELLED'].includes(job.status) && (
+                            <ManufacturingButton disabled={updating === job.id} onClick={() => updateJob(job, { status: 'CANCELLED' })} muted>Cancel</ManufacturingButton>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {jobs.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-3 py-4 text-brown-800/60 text-sm">No active manufacturing jobs.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-2 border-brown-800 text-sm">
+              <thead>
+                <tr className="bg-brown-800 text-cream-50">
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Printer</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Status</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Current Job</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Progress</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {printers.map((printer) => {
+                  const current = state.jobs.find((job) => job.id === printer.currentJobId);
+                  return (
+                    <tr key={printer.id} className="border-t border-cream-200">
+                      <td className="px-3 py-2 text-brown-800 font-bold">{printer.name}</td>
+                      <td className="px-3 py-2">
+                        <select
+                          value={printer.status}
+                          onChange={(event) => updatePrinter(printer, { status: event.target.value as ManufacturingPrinter['status'] })}
+                          className="border border-brown-800 bg-cream-50 px-2 py-1 text-brown-800 text-xs"
+                        >
+                          {(['AVAILABLE', 'PRINTING', 'PAUSED', 'MAINTENANCE', 'OFFLINE'] satisfies ManufacturingPrinter['status'][]).map((status) => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2 text-brown-800/70">{current?.projectName ?? 'None'}</td>
+                      <td className="px-3 py-2 text-brown-800/70 whitespace-nowrap">
+                        {printer.progress}% / {minutesToHuman(printer.timeRemainingMinutes)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          <ManufacturingButton disabled={updating === printer.id} onClick={() => updatePrinter(printer, { assignNext: true })}>Start Next</ManufacturingButton>
+                          <ManufacturingButton disabled={updating === printer.id || !printer.currentJobId} onClick={() => updatePrinter(printer, { completeCurrent: true })}>Complete Current</ManufacturingButton>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {printers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-4 text-brown-800/60 text-sm">No printers configured.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ManufacturingButton({
+  children,
+  disabled,
+  muted = false,
+  onClick,
+}: Readonly<{
+  children: ReactNode;
+  disabled?: boolean;
+  muted?: boolean;
+  onClick: () => void;
+}>) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`px-2 py-1 text-xs uppercase tracking-wider transition-colors disabled:opacity-50 ${
+        muted
+          ? 'border border-brown-800 text-brown-800 hover:bg-cream-200'
+          : 'bg-orange-500 text-cream-50 hover:bg-orange-600'
+      }`}
+    >
+      {children}
+    </button>
   );
 }

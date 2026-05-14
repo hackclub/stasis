@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { ItemCard } from '@/app/components/inventory/ItemCard';
 import { ToolCard } from '@/app/components/inventory/ToolCard';
@@ -26,6 +26,17 @@ interface Tool {
   description?: string;
   imageUrl?: string;
   available: boolean;
+}
+
+interface ToolGroup {
+  key: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  tools: Tool[];
+  availableCount: number;
+  totalCount: number;
+  selectedCount: number;
 }
 
 interface CartItem {
@@ -181,15 +192,48 @@ export default function BrowsePage() {
     setCart(prev => prev.filter(c => c.itemId !== itemId));
   };
 
-  const addToolToCart = (toolId: string) => {
-    const tool = tools.find(t => t.id === toolId);
-    if (!tool) return;
-    if (cartTools.some(t => t.toolId === toolId)) return; // already in cart
-    setCartTools(prev => [...prev, { toolId, name: tool.name }]);
-  };
-
   const removeToolFromCart = (toolId: string) => {
     setCartTools(prev => prev.filter(t => t.toolId !== toolId));
+  };
+
+  const toolGroups = useMemo<ToolGroup[]>(() => {
+    const cartToolIds = new Set(cartTools.map(t => t.toolId));
+    const groups = new Map<string, Omit<ToolGroup, 'availableCount' | 'totalCount' | 'selectedCount'>>();
+
+    for (const tool of tools) {
+      const key = tool.name.trim().toLowerCase();
+      const existing = groups.get(key);
+      if (existing) {
+        existing.tools.push(tool);
+        if (!existing.description && tool.description) existing.description = tool.description;
+        if (!existing.imageUrl && tool.imageUrl) existing.imageUrl = tool.imageUrl;
+      } else {
+        groups.set(key, {
+          key,
+          name: tool.name,
+          description: tool.description,
+          imageUrl: tool.imageUrl,
+          tools: [tool],
+        });
+      }
+    }
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        availableCount: group.tools.filter(t => t.available).length,
+        totalCount: group.tools.length,
+        selectedCount: group.tools.filter(t => cartToolIds.has(t.id)).length,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [tools, cartTools]);
+
+  const addToolGroupToCart = (groupKey: string) => {
+    const group = toolGroups.find(g => g.key === groupKey);
+    const selectedToolIds = new Set(cartTools.map(t => t.toolId));
+    const tool = group?.tools.find(t => t.available && !selectedToolIds.has(t.id));
+    if (!tool) return;
+    setCartTools(prev => [...prev, { toolId: tool.id, name: tool.name }]);
   };
 
   const handleCheckout = async (floor: number, location: string) => {
@@ -367,22 +411,18 @@ export default function BrowsePage() {
               </div>
             )}
 
-            {tools.length === 0 ? (
+            {toolGroups.length === 0 ? (
               <p className="text-brown-800/50 text-sm">No tools available.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {tools.map(tool => {
-                  const inCart = cartTools.some(t => t.toolId === tool.id);
-                  return (
-                    <ToolCard
-                      key={tool.id}
-                      tool={tool}
-                      onRent={addToolToCart}
-                      inCart={inCart}
-                      canRent={canRentMore}
-                    />
-                  );
-                })}
+                {toolGroups.map(tool => (
+                  <ToolCard
+                    key={tool.key}
+                    tool={tool}
+                    onRent={() => addToolGroupToCart(tool.key)}
+                    canRent={canRentMore}
+                  />
+                ))}
               </div>
             )}
           </section>
