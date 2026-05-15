@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
-import { lookupAttendByEmail } from "@/lib/attend-db"
+import { lookupAttendForCandidate } from "@/lib/attend-db"
 import { syncOneCandidateAgainstAttend, deriveAttendDisplayState } from "@/lib/attend-sync"
 
 /**
@@ -22,13 +22,14 @@ export async function POST(
 
   const candidate = await prisma.attendanceCandidate.findUnique({
     where: { id },
-    include: { user: { select: { email: true } } },
+    include: { user: { select: { email: true, slackId: true } } },
   })
   if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const email = candidate.user?.email ?? candidate.externalEmail
-  if (!email) {
-    return NextResponse.json({ error: "No email on candidate" }, { status: 400 })
+  const email = candidate.user?.email ?? candidate.externalEmail ?? null
+  const slackId = candidate.user?.slackId ?? candidate.externalSlackId ?? null
+  if (!email && !slackId) {
+    return NextResponse.json({ error: "No email or slackId on candidate" }, { status: 400 })
   }
 
   const summary = await syncOneCandidateAgainstAttend(prisma, id, "manual")
@@ -45,7 +46,7 @@ export async function POST(
       attendCachedAt: true,
     },
   })
-  const attend = await lookupAttendByEmail(email).catch(() => null)
+  const attend = await lookupAttendForCandidate(email, slackId).catch(() => null)
 
   return NextResponse.json({
     attend,

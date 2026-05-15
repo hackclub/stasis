@@ -4,7 +4,7 @@ import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { sanitize } from "@/lib/sanitize"
 import { AttendanceStatus, AttendanceCandidateSource, CurrencyTransactionType } from "@/app/generated/prisma/enums"
-import { lookupAttendByEmail } from "@/lib/attend-db"
+import { lookupAttendForCandidate } from "@/lib/attend-db"
 import { getDerivedStatsBatch } from "@/lib/attendance"
 import { decryptUserAddress } from "@/lib/pii"
 import { getNeedBasedStipendLookup, findStipend, airtableStipendUrl } from "@/lib/need-based-stipends"
@@ -142,7 +142,7 @@ export async function GET(
   const email = candidate.user?.email ?? candidate.externalEmail ?? null
   const slackId = candidate.user?.slackId ?? candidate.externalSlackId ?? null
   const [attend, stipendLookup] = await Promise.all([
-    email ? lookupAttendByEmail(email).catch(() => null) : Promise.resolve(null),
+    (email || slackId) ? lookupAttendForCandidate(email, slackId).catch(() => null) : Promise.resolve(null),
     getNeedBasedStipendLookup().catch(() => null),
   ])
   const stipend = findStipend(stipendLookup, email, slackId)

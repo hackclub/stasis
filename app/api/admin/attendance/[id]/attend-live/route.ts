@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
-import { lookupAttendByEmail } from "@/lib/attend-db"
+import { lookupAttendForCandidate } from "@/lib/attend-db"
 
 export const dynamic = "force-dynamic"
 
@@ -23,13 +23,18 @@ export async function GET(
 
   const candidate = await prisma.attendanceCandidate.findUnique({
     where: { id },
-    select: { externalEmail: true, user: { select: { email: true } } },
+    select: {
+      externalEmail: true,
+      externalSlackId: true,
+      user: { select: { email: true, slackId: true } },
+    },
   })
   if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const email = candidate.user?.email ?? candidate.externalEmail
-  if (!email) return NextResponse.json({ attend: null })
+  const email = candidate.user?.email ?? candidate.externalEmail ?? null
+  const slackId = candidate.user?.slackId ?? candidate.externalSlackId ?? null
+  if (!email && !slackId) return NextResponse.json({ attend: null })
 
-  const attend = await lookupAttendByEmail(email).catch(() => null)
+  const attend = await lookupAttendForCandidate(email, slackId).catch(() => null)
   return NextResponse.json({ attend })
 }

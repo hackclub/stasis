@@ -32,6 +32,8 @@ export interface AttendStatus {
   found: boolean
   participantId?: string
   participantEventId?: string
+  email?: string | null                 // lowercased participant email — for cross-key reconciliation
+  slackUserId?: string | null           // Attend's record of the participant's Slack ID
   status?: string                       // invited, confirmed, checked_in, declined, etc.
   invitedAt?: string | null
   confirmedAt?: string | null
@@ -112,19 +114,44 @@ export interface AttendTravelLeg {
 /**
  * Look up Attend status for one or more emails. Returns a map keyed by
  * lowercased email. Missing emails are simply absent from the map.
+ *
+ * Thin wrapper around `lookupAttendByEmailsOrSlackIds`. Prefer that function
+ * when you have Slack IDs too — Stasis user emails sometimes diverge from the
+ * email a participant used to register on Attend (different gmail alias, etc.),
+ * and the Slack ID is a more stable cross-system identifier.
  */
 export async function lookupAttendByEmails(
   emails: string[]
 ): Promise<Map<string, AttendStatus>> {
-  const result = new Map<string, AttendStatus>()
+  const { byEmail } = await lookupAttendByEmailsOrSlackIds(emails, [])
+  return byEmail
+}
+
+/**
+ * Look up Attend status matching by email OR Slack ID. Returns two maps so
+ * callers can fall back from primary (email) to secondary (slackId) per
+ * candidate. The same participant row appears in both maps when both keys
+ * resolve.
+ *
+ * Used by the sync / import paths to reconcile candidates whose Stasis email
+ * doesn't match their Attend registration email but whose Slack ID does.
+ */
+export async function lookupAttendByEmailsOrSlackIds(
+  emails: string[],
+  slackIds: string[]
+): Promise<{ byEmail: Map<string, AttendStatus>; bySlackId: Map<string, AttendStatus> }> {
+  const byEmail = new Map<string, AttendStatus>()
+  const bySlackId = new Map<string, AttendStatus>()
   const pool = getAttendPool()
-  if (!pool || emails.length === 0) return result
+  if (!pool) return { byEmail, bySlackId }
 
   const lowered = Array.from(new Set(emails.map((e) => e.toLowerCase()).filter(Boolean)))
-  if (lowered.length === 0) return result
+  const slacks = Array.from(new Set(slackIds.filter(Boolean)))
+  if (lowered.length === 0 && slacks.length === 0) return { byEmail, bySlackId }
 
   const { rows } = await pool.query<{
     email: string
+    slack_user_id: string | null
     participant_id: string
     participant_event_id: string
     status: string
@@ -137,17 +164,18 @@ export async function lookupAttendByEmails(
     pronouns: string | null
     tshirt_size: string | null
   }>(
-    `SELECT lower(p.email) AS email, p.id AS participant_id, pe.id AS participant_event_id,
+    `SELECT lower(p.email) AS email, p.slack_user_id,
+            p.id AS participant_id, pe.id AS participant_event_id,
             pe.status, pe.created_at, pe.onboarding_completed_at, pe.checked_in_at,
             p.city, p.state, p.country_of_residence AS country, p.pronouns, p.tshirt_size
        FROM participants p
        JOIN participant_events pe ON pe.participant_id = p.id
       WHERE pe.event_id = $1
-        AND lower(p.email) = ANY($2::text[])`,
-    [STASIS_EVENT_ID, lowered]
+        AND (lower(p.email) = ANY($2::text[]) OR p.slack_user_id = ANY($3::text[]))`,
+    [STASIS_EVENT_ID, lowered, slacks]
   )
 
-  if (rows.length === 0) return result
+  if (rows.length === 0) return { byEmail, bySlackId }
 
   // Travel data for these participant_events (inbound/outbound). Mode-agnostic
   // fields come from `travels`, flight-specific fields from `travel_legs[0]`.
@@ -258,10 +286,12 @@ export async function lookupAttendByEmails(
     const travel = travelByPe.get(r.participant_event_id)
     const hasFlight =
       !!(travel?.inbound?.confirmationCode || travel?.inbound?.flightCode)
-    result.set(r.email, {
+    const status: AttendStatus = {
       found: true,
       participantId: r.participant_id,
       participantEventId: r.participant_event_id,
+      email: r.email,
+      slackUserId: r.slack_user_id,
       status: r.status,
       invitedAt: r.created_at,
       confirmedAt: r.onboarding_completed_at,
@@ -273,14 +303,39 @@ export async function lookupAttendByEmails(
       tshirtSize: r.tshirt_size,
       travel: travel ?? undefined,
       hasFlight,
-    })
+    }
+    byEmail.set(r.email, status)
+    if (r.slack_user_id) bySlackId.set(r.slack_user_id, status)
   }
-  return result
+  return { byEmail, bySlackId }
 }
 
 export async function lookupAttendByEmail(email: string): Promise<AttendStatus | null> {
-  const map = await lookupAttendByEmails([email])
-  return map.get(email.toLowerCase()) ?? null
+  return lookupAttendForCandidate(email, null)
+}
+
+/**
+ * Look up Attend status for a single candidate, trying email first and falling
+ * back to Slack ID. Use this in single-candidate routes (live status, manual
+ * sync) so we surface Attend data even when Stasis-vs-Attend emails differ.
+ */
+export async function lookupAttendForCandidate(
+  email: string | null,
+  slackId: string | null
+): Promise<AttendStatus | null> {
+  const emails = email ? [email] : []
+  const slackIds = slackId ? [slackId] : []
+  if (emails.length === 0 && slackIds.length === 0) return null
+  const { byEmail, bySlackId } = await lookupAttendByEmailsOrSlackIds(emails, slackIds)
+  if (email) {
+    const hit = byEmail.get(email.toLowerCase())
+    if (hit) return hit
+  }
+  if (slackId) {
+    const hit = bySlackId.get(slackId)
+    if (hit) return hit
+  }
+  return null
 }
 
 /**

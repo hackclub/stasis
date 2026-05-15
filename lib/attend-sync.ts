@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@/app/generated/prisma/client"
-import { lookupAttendByEmails, lookupPendingInvitesByEmails, getAttendPool, STASIS_EVENT_ID, type AttendStatus } from "./attend-db"
+import { lookupAttendByEmailsOrSlackIds, lookupPendingInvitesByEmails, getAttendPool, STASIS_EVENT_ID, type AttendStatus } from "./attend-db"
 
 /**
  * Three-state UI bucket for the Attend lifecycle.
@@ -49,7 +49,8 @@ interface SyncRow {
   attendCity: string | null
   attendState: string | null
   attendCountry: string | null
-  email: string
+  email: string | null
+  slackId: string | null
 }
 
 interface DesiredFields {
@@ -126,14 +127,16 @@ export async function syncCandidatesAgainstAttend(
         attendState: true,
         attendCountry: true,
         externalEmail: true,
-        user: { select: { email: true } },
+        externalSlackId: true,
+        user: { select: { email: true, slackId: true } },
       },
     })
 
     const candidates: SyncRow[] = raw
       .map((c): SyncRow | null => {
         const email = c.user?.email ?? c.externalEmail ?? null
-        if (!email) return null
+        const slackId = c.user?.slackId ?? c.externalSlackId ?? null
+        if (!email && !slackId) return null
         return {
           id: c.id,
           outreachStatus: c.outreachStatus,
@@ -145,7 +148,8 @@ export async function syncCandidatesAgainstAttend(
           attendCity: c.attendCity,
           attendState: c.attendState,
           attendCountry: c.attendCountry,
-          email: email.toLowerCase(),
+          email: email ? email.toLowerCase() : null,
+          slackId,
         }
       })
       .filter((x): x is SyncRow => x !== null)
@@ -154,19 +158,25 @@ export async function syncCandidatesAgainstAttend(
       return { scanned: 0, updated: 0, bumped: 0, errors }
     }
 
-    const allEmails = Array.from(new Set(candidates.map((c) => c.email)))
+    const allEmails = Array.from(new Set(candidates.map((c) => c.email).filter((e): e is string => !!e)))
+    const allSlackIds = Array.from(new Set(candidates.map((c) => c.slackId).filter((s): s is string => !!s)))
 
     // Two batched lookups in parallel against the Attend replica.
-    let participants = new Map<string, AttendStatus>()
+    let byEmail = new Map<string, AttendStatus>()
+    let bySlackId = new Map<string, AttendStatus>()
     let pending = new Map<string, { invitedAt: Date; acceptedAt: Date | null }>()
     try {
-      participants = await lookupAttendByEmails(allEmails)
+      const result = await lookupAttendByEmailsOrSlackIds(allEmails, allSlackIds)
+      byEmail = result.byEmail
+      bySlackId = result.bySlackId
     } catch (err) {
       errors.push({ stage: "lookup", message: err instanceof Error ? err.message : String(err) })
       return { scanned: candidates.length, updated: 0, bumped: 0, errors }
     }
     try {
-      const missing = allEmails.filter((e) => !participants.has(e))
+      // Only chase pending invites by email — the `invitations` table is keyed
+      // off email; people who haven't accepted yet have no slack_user_id.
+      const missing = allEmails.filter((e) => !byEmail.has(e))
       pending = missing.length > 0 ? await lookupPendingInvitesByEmails(missing) : pending
     } catch (err) {
       errors.push({
@@ -191,8 +201,13 @@ export async function syncCandidatesAgainstAttend(
         await prisma.$transaction(async (tx) => {
           for (const c of chunk) {
             try {
-              const attend = participants.get(c.email)
-              const invite = pending.get(c.email)
+              // Try email first (primary key for most candidates), then fall
+              // back to Slack ID — covers users whose Stasis email differs
+              // from the email they registered on Attend with.
+              const attend =
+                (c.email ? byEmail.get(c.email) : undefined) ??
+                (c.slackId ? bySlackId.get(c.slackId) : undefined)
+              const invite = c.email ? pending.get(c.email) : undefined
 
               const desired: DesiredFields = {}
 
@@ -437,15 +452,29 @@ export async function importNewAttendCandidates(
   const participantEmails = new Set(participants.map((r) => r.email))
   const inviteOnly = invitations.filter((i) => !participantEmails.has(i.email))
   const allEmails = [...participants.map((r) => r.email), ...inviteOnly.map((i) => i.email)]
+  const participantSlackIds = participants.map((r) => r.slack_user_id).filter((s): s is string => !!s)
   if (allEmails.length === 0) {
     return { created: 0, skippedExisting: 0, attendParticipants: 0, attendPendingInvites: 0, errors }
   }
 
+  // Match Stasis users by email OR slackId. The Slack-ID fallback catches
+  // users whose Attend registration email differs from their Stasis account
+  // email (different gmail alias, work vs personal, etc.) — without it, the
+  // importer creates a duplicate "external" candidate alongside their real
+  // user-linked one.
   const stasisUsers = await prisma.user.findMany({
-    where: { email: { in: allEmails, mode: "insensitive" } },
-    select: { id: true, email: true, attendRegisteredAt: true },
+    where: {
+      OR: [
+        { email: { in: allEmails, mode: "insensitive" } },
+        ...(participantSlackIds.length > 0 ? [{ slackId: { in: participantSlackIds } }] : []),
+      ],
+    },
+    select: { id: true, email: true, slackId: true, attendRegisteredAt: true },
   })
   const userByEmail = new Map(stasisUsers.map((u) => [u.email.toLowerCase(), u]))
+  const userBySlackId = new Map(
+    stasisUsers.filter((u) => u.slackId).map((u) => [u.slackId!, u])
+  )
 
   const existingByUserId = new Set(
     (await prisma.attendanceCandidate.findMany({
@@ -466,7 +495,9 @@ export async function importNewAttendCandidates(
 
   // Participants
   for (const r of participants) {
-    const user = userByEmail.get(r.email)
+    const user =
+      userByEmail.get(r.email) ??
+      (r.slack_user_id ? userBySlackId.get(r.slack_user_id) : undefined)
     const userId = user?.id ?? null
     if (userId && existingByUserId.has(userId)) { skippedExisting += 1; continue }
     if (existingByExternalEmail.has(r.email)) { skippedExisting += 1; continue }

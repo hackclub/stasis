@@ -5,7 +5,7 @@ import { Permission } from "@/lib/permissions"
 import { registerAttendParticipant, splitName } from "@/lib/attend"
 import { sendInviteConfirmationEmail } from "@/lib/loops"
 import { syncOneCandidateAgainstAttend } from "@/lib/attend-sync"
-import { lookupAttendByEmail } from "@/lib/attend-db"
+import { lookupAttendForCandidate } from "@/lib/attend-db"
 
 /**
  * POST /api/admin/attendance/[id]/invite-attend
@@ -33,7 +33,7 @@ export async function POST(
 
   const candidate = await prisma.attendanceCandidate.findUnique({
     where: { id },
-    include: { user: { select: { id: true, email: true, name: true, attendRegisteredAt: true } } },
+    include: { user: { select: { id: true, email: true, slackId: true, name: true, attendRegisteredAt: true } } },
   })
   if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
@@ -113,7 +113,8 @@ export async function POST(
   await syncOneCandidateAgainstAttend(prisma, id, "invite").catch((e) =>
     console.error("[invite-attend] post-sync failed", e)
   )
-  const attend = await lookupAttendByEmail(email).catch(() => null)
+  const slackId = candidate.user?.slackId ?? candidate.externalSlackId ?? null
+  const attend = await lookupAttendForCandidate(email, slackId).catch(() => null)
 
   return NextResponse.json({
     ok: true,
