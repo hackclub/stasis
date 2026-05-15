@@ -28,9 +28,7 @@ export function RentalTimer({ dueAt }: RentalTimerProps) {
     return () => clearInterval(interval);
   }, [dueAt]);
 
-  if (!dueAt) {
-    return <span className="text-brown-800/60 text-sm">No time limit</span>;
-  }
+  if (!dueAt) return null;
 
   const due = new Date(dueAt).getTime();
   const diff = due - now;

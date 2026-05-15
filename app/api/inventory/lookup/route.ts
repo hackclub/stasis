@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { requireAdmin } from "@/lib/admin-auth"
+import { requirePermission } from "@/lib/admin-auth"
+import { logAudit, AuditAction } from "@/lib/audit"
+import { checkInventoryLookupRateLimit } from "@/lib/inventory/lookup-rate-limit"
+import { Permission } from "@/lib/permissions"
 import type { Prisma } from "@/app/generated/prisma/client"
 
 const MAX_RESULTS = 8
@@ -10,9 +13,9 @@ function searchableTerm(term: string): Prisma.UserWhereInput {
     OR: [
       { name: { contains: term, mode: "insensitive" } },
       { slackDisplayName: { contains: term, mode: "insensitive" } },
-      { email: { contains: term, mode: "insensitive" } },
-      { slackId: { contains: term, mode: "insensitive" } },
-      { nfcId: { contains: term, mode: "insensitive" } },
+      { email: { startsWith: term, mode: "insensitive" } },
+      { slackId: { startsWith: term, mode: "insensitive" } },
+      { nfcId: { startsWith: term, mode: "insensitive" } },
     ],
   }
 }
@@ -47,11 +50,19 @@ function scoreUser(
 }
 
 export async function GET(request: NextRequest) {
-  const adminCheck = await requireAdmin()
-  if ("error" in adminCheck) return adminCheck.error
+  const authCheck = await requirePermission(Permission.INVENTORY_FULFILL)
+  if ("error" in authCheck) return authCheck.error
+
+  const rateLimit = checkInventoryLookupRateLimit(authCheck.session.user.id)
+  if (!rateLimit.ok) {
+    return NextResponse.json(
+      { error: "Too many lookup requests" },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    )
+  }
 
   const query = (request.nextUrl.searchParams.get("q") ?? "").trim().slice(0, 80)
-  if (query.length < 2) {
+  if (query.length < 3) {
     return NextResponse.json({ results: [] })
   }
 
@@ -73,24 +84,9 @@ export async function GET(request: NextRequest) {
       slackDisplayName: true,
       nfcId: true,
       image: true,
-      attendRegisteredAt: true,
     },
     take: 16,
   })
-
-  const userIds = users.map((user) => user.id)
-  const ticketRows = userIds.length > 0
-    ? await prisma.currencyTransaction.findMany({
-        where: {
-          userId: { in: userIds },
-          type: "SHOP_PURCHASE",
-          shopItemId: "stasis-event-invite",
-        },
-        select: { userId: true },
-        distinct: ["userId"],
-      })
-    : []
-  const ticketUserIds = new Set(ticketRows.map((row) => row.userId))
 
   const results = users
     .sort((a, b) => {
@@ -101,14 +97,23 @@ export async function GET(request: NextRequest) {
     .slice(0, MAX_RESULTS)
     .map((user) => ({
       id: user.id,
-      email: user.email,
       name: user.name ?? user.slackDisplayName ?? user.email,
-      slackId: user.slackId,
       slackDisplayName: user.slackDisplayName,
-      nfcId: user.nfcId,
       image: user.image,
-      hasStasisTicket: Boolean(user.attendRegisteredAt || ticketUserIds.has(user.id)),
     }))
+
+  await Promise.all(
+    results.map((user) =>
+      logAudit({
+        action: AuditAction.INVENTORY_LOOKUP,
+        actorId: authCheck.session.user.id,
+        actorEmail: authCheck.session.user.email,
+        targetType: "User",
+        targetId: user.id,
+        metadata: { query },
+      })
+    )
+  )
 
   return NextResponse.json({ results })
 }

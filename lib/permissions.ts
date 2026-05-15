@@ -14,6 +14,7 @@ export enum Permission {
   MANAGE_CURRENCY = "MANAGE_CURRENCY",
   VIEW_SIDEKICK_DASHBOARD = "VIEW_SIDEKICK_DASHBOARD",
   MANAGE_ATTENDANCE = "MANAGE_ATTENDANCE",
+  INVENTORY_FULFILL = "INVENTORY_FULFILL",
 }
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
@@ -29,7 +30,9 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.FLAG_FRAUD,
     Permission.MANAGE_CURRENCY,
     Permission.VIEW_SIDEKICK_DASHBOARD,
+    Permission.INVENTORY_FULFILL,
   ],
+  [Role.INVENTORY_STAFF]: [Permission.INVENTORY_FULFILL],
   [Role.REVIEWER]: [Permission.REVIEW_PROJECTS, Permission.REVIEW_SESSIONS],
   [Role.SIDEKICK]: [Permission.VIEW_SIDEKICK_DASHBOARD],
   [Role.AUDITOR]: [Permission.VIEW_AUDIT_LOG, Permission.VIEW_AUDIT_REVIEWS],

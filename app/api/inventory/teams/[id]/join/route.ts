@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { requireInventoryAccess } from "@/lib/inventory/access"
 import { MAX_TEAM_SIZE } from "@/lib/inventory/config"
+import { Prisma } from "@/app/generated/prisma/client"
 import { syncTeamChannel } from "@/lib/inventory/team-channel"
 import { logAudit, AuditAction } from "@/lib/audit"
 
@@ -18,13 +19,20 @@ export async function POST(
   let team
   try {
     team = await prisma.$transaction(async (tx) => {
-      const txTeam = await tx.team.findUnique({
-        where: { id },
-        include: { _count: { select: { members: true } } },
-      })
+      const [txTeam, settings] = await Promise.all([
+        tx.team.findUnique({
+          where: { id },
+          include: { _count: { select: { members: true } } },
+        }),
+        tx.inventorySettings.findUnique({
+          where: { id: "singleton" },
+          select: { maxTeamSize: true },
+        }),
+      ])
       if (!txTeam) throw new Error("TEAM_NOT_FOUND")
       if (txTeam.locked) throw new Error("TEAM_LOCKED")
-      if (txTeam._count.members >= MAX_TEAM_SIZE) throw new Error("TEAM_FULL")
+      const maxTeamSize = txTeam.maxMembersOverride ?? settings?.maxTeamSize ?? MAX_TEAM_SIZE
+      if (txTeam._count.members >= maxTeamSize) throw new Error("TEAM_FULL")
 
       const user = await tx.user.findUnique({
         where: { id: session.user.id },
@@ -37,6 +45,8 @@ export async function POST(
         data: { teamId: id },
       })
       return txTeam
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
   } catch (err) {
     if (err instanceof Error) {

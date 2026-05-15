@@ -5,12 +5,15 @@ import { useCallback, useEffect, useMemo, useState, type ButtonHTMLAttributes, t
 export type PrinterStatus = "AVAILABLE" | "PRINTING" | "PAUSED" | "MAINTENANCE" | "OFFLINE";
 export type JobStatus =
   | "PENDING"
-  | "APPROVED"
+  | "TIME_APPROVAL_REQUESTED"
+  | "TIME_REJECTED_BY_TEAM"
   | "QUEUED"
   | "PRINTING"
-  | "PAUSED"
+  | "READY"
   | "COMPLETED"
   | "REJECTED"
+  | "REJECTED_BY_ORGANIZER"
+  | "REJECTED_BY_PRINTER"
   | "CANCELLED";
 
 export type ManufacturingPrinter = {
@@ -18,8 +21,6 @@ export type ManufacturingPrinter = {
   name: string;
   status: PrinterStatus;
   currentJobId: string | null;
-  progress: number;
-  timeRemainingMinutes: number;
   notes: string;
   lastCompletedJobId: string | null;
   sortOrder: number;
@@ -33,14 +34,13 @@ export type ManufacturingJob = {
   submittedBy: {
     id: string;
     name: string | null;
-    email: string;
-    slackId: string | null;
     slackDisplayName: string | null;
     image: string | null;
   };
+  teamAutoApprovePrints: boolean;
   projectName: string;
   description: string;
-  estimatedMinutes: number;
+  estimatedMinutes: number | null;
   material: string;
   colour: string;
   fileLink: string;
@@ -52,7 +52,13 @@ export type ManufacturingJob = {
   startedAt: string | null;
   completedAt: string | null;
   collectedAt: string | null;
+  dismissedAt: string | null;
+  timeEstimateRequestedAt: string | null;
+  timeApprovedAt: string | null;
+  timeRejectedAt: string | null;
+  overBudgetApprovedAt: string | null;
   staffNotes: string;
+  urgent: boolean;
   priority: boolean;
 };
 
@@ -66,6 +72,7 @@ export type ManufacturingTeam = {
   jobsSubmitted: number;
   jobsCompleted: number;
   memberCount: number;
+  autoApprovePrints: boolean;
 };
 
 export type ManufacturingState = {
@@ -81,7 +88,6 @@ export type ManufacturingState = {
     activePrinters: number;
     totalQueuedJobs: number;
     avgWaitMinutes: number;
-    totalCapacityMinutes: number;
     usedMinutes: number;
     reservedMinutes: number;
     remainingAllowanceMinutes: number;
@@ -94,7 +100,6 @@ export type ManufacturingState = {
     id: string;
     name: string | null;
     email: string;
-    slackId: string | null;
     slackDisplayName: string | null;
     image: string | null;
     teamId: string | null;
@@ -105,12 +110,15 @@ export type ManufacturingState = {
 
 export const jobStatuses: JobStatus[] = [
   "PENDING",
-  "APPROVED",
+  "TIME_APPROVAL_REQUESTED",
+  "TIME_REJECTED_BY_TEAM",
   "QUEUED",
   "PRINTING",
-  "PAUSED",
+  "READY",
   "COMPLETED",
   "REJECTED",
+  "REJECTED_BY_ORGANIZER",
+  "REJECTED_BY_PRINTER",
   "CANCELLED",
 ];
 
@@ -122,9 +130,9 @@ export const printerStatuses: PrinterStatus[] = [
   "OFFLINE",
 ];
 
-export const openStatuses: JobStatus[] = ["PENDING", "APPROVED", "QUEUED"];
-export const activeStatuses: JobStatus[] = ["PRINTING", "PAUSED"];
-export const closedStatuses: JobStatus[] = ["COMPLETED", "REJECTED", "CANCELLED"];
+export const openStatuses: JobStatus[] = ["PENDING", "TIME_APPROVAL_REQUESTED", "QUEUED"];
+export const activeStatuses: JobStatus[] = ["PRINTING"];
+export const closedStatuses: JobStatus[] = ["READY", "COMPLETED", "TIME_REJECTED_BY_TEAM", "REJECTED", "REJECTED_BY_ORGANIZER", "REJECTED_BY_PRINTER", "CANCELLED"];
 
 export function minutesToHuman(minutes: number): string {
   if (!Number.isFinite(minutes) || minutes <= 0) return "0m";
@@ -149,7 +157,7 @@ export function statusLabel(value: string): string {
 }
 
 export function teamRemaining(team: ManufacturingTeam): number {
-  return team.allowanceMinutes - team.usedMinutes - team.reservedMinutes;
+  return Math.max(0, team.allowanceMinutes - team.usedMinutes - team.reservedMinutes);
 }
 
 export function usagePercent(team: ManufacturingTeam): number {
@@ -169,19 +177,35 @@ export function printerJob(printer: ManufacturingPrinter, jobs: ManufacturingJob
   return jobs.find((job) => job.id === printer.currentJobId) ?? null;
 }
 
+export function printReadyForStart(job: ManufacturingJob): boolean {
+  return (
+    job.status === "QUEUED" &&
+    Boolean(job.estimatedMinutes && job.estimatedMinutes > 0) &&
+    (job.teamAutoApprovePrints || Boolean(job.timeApprovedAt))
+  );
+}
+
+export function printNeedsEstimateReview(job: ManufacturingJob): boolean {
+  if (job.status !== "QUEUED") return false;
+  return !printReadyForStart(job);
+}
+
 export function nextJobForPrinter(printer: ManufacturingPrinter, jobs: ManufacturingJob[]): ManufacturingJob | null {
-  return jobs.find((job) => job.assignedPrinterId === printer.id && job.status === "QUEUED") ?? null;
+  return sortQueue(jobs).find((job) => printReadyForStart(job) && (!job.assignedPrinterId || job.assignedPrinterId === printer.id)) ?? null;
 }
 
 export function sortQueue(jobs: ManufacturingJob[]): ManufacturingJob[] {
   const rank: Record<string, number> = {
     PRINTING: 0,
-    PAUSED: 1,
-    QUEUED: 2,
-    APPROVED: 3,
-    PENDING: 4,
+    QUEUED: 1,
+    TIME_APPROVAL_REQUESTED: 2,
+    PENDING: 3,
+    READY: 4,
     COMPLETED: 5,
+    TIME_REJECTED_BY_TEAM: 6,
     REJECTED: 6,
+    REJECTED_BY_ORGANIZER: 6,
+    REJECTED_BY_PRINTER: 6,
     CANCELLED: 7,
   };
 
@@ -237,7 +261,7 @@ export function useDerivedManufacturingState(state: ManufacturingState | null) {
     return {
       printing: jobs.filter((job) => activeStatuses.includes(job.status)),
       upcoming: sortQueue(jobs).filter((job) => openStatuses.includes(job.status)),
-      completed: sortQueue(jobs).filter((job) => job.status === "COMPLETED"),
+      completed: sortQueue(jobs).filter((job) => job.status === "READY" || job.status === "COMPLETED"),
       printers: state?.printers ?? [],
       teams: state?.teams ?? [],
     };
@@ -291,15 +315,14 @@ export function Field({ label, children }: Readonly<{ label: string; children: R
 export const inputClass = "w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800 placeholder:text-brown-800/35 focus:border-orange-500 focus:outline-none";
 
 export function StatusBadge({ value, urgent = false }: Readonly<{ value: string; urgent?: boolean }>) {
-  const blocked = ["MAINTENANCE", "OFFLINE", "PAUSED", "REJECTED", "CANCELLED"].includes(value);
-  const live = ["PRINTING", "QUEUED", "APPROVED", "AVAILABLE", "COMPLETED", "low", "medium"].includes(value);
-  const className = urgent
-    ? "border-orange-500 bg-orange-500 text-cream-50"
-    : blocked
-      ? "border-yellow-600 bg-yellow-100 text-brown-800"
-      : live
-        ? "border-orange-500 bg-orange-50 text-orange-600"
-        : "border-brown-800 bg-cream-200 text-brown-800";
+  const danger = ["MAINTENANCE", "OFFLINE", "TIME_REJECTED_BY_TEAM", "REJECTED", "REJECTED_BY_ORGANIZER", "REJECTED_BY_PRINTER", "CANCELLED"].includes(value);
+  const muted = value === "PAUSED";
+  const live = ["PRINTING", "QUEUED", "AVAILABLE", "READY", "COMPLETED", "low", "medium"].includes(value);
+  let className = "border-brown-800 bg-cream-200 text-brown-800";
+  if (live) className = "border-orange-500 bg-orange-50 text-orange-600";
+  if (muted) className = "border-cream-400 bg-cream-200 text-brown-800/60";
+  if (danger) className = "border-red-700 bg-red-50 text-red-800";
+  if (urgent) className = "border-orange-500 bg-orange-500 text-cream-50";
   return <span className={`inline-flex border px-2 py-1 text-[10px] uppercase tracking-wider ${className}`}>{urgent ? "URGENT" : statusLabel(value)}</span>;
 }
 
@@ -349,8 +372,9 @@ export function PrinterTile({ printer, jobs }: Readonly<{ printer: Manufacturing
   const current = printerJob(printer, jobs);
   const next = nextJobForPrinter(printer, jobs);
   const blocked = printer.status === "MAINTENANCE" || printer.status === "OFFLINE";
+  const paused = printer.status === "PAUSED";
   return (
-    <div className={`border-2 bg-cream-100 p-3 ${blocked ? "border-yellow-600" : "border-brown-800"}`}>
+    <div className={`border-2 p-3 ${blocked ? "border-red-700 bg-red-50" : paused ? "border-cream-400 bg-cream-200" : "border-brown-800 bg-cream-100"}`}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-brown-800/50">{printer.id.slice(-8).toUpperCase()}</p>
@@ -358,13 +382,9 @@ export function PrinterTile({ printer, jobs }: Readonly<{ printer: Manufacturing
         </div>
         <StatusBadge value={printer.status} />
       </div>
-      <div className="mt-3">
-        <Progress value={printer.progress} tone={printer.status === "PAUSED" ? "yellow" : "orange"} />
-      </div>
       <div className="mt-3 space-y-1 text-xs text-brown-800/70">
         <p className="truncate">Now: {current ? current.projectName : "None"}</p>
         <p className="truncate">Next: {next ? next.projectName : "None"}</p>
-        {printer.timeRemainingMinutes > 0 && <p>{minutesToHuman(printer.timeRemainingMinutes)} remaining</p>}
       </div>
     </div>
   );
@@ -372,7 +392,7 @@ export function PrinterTile({ printer, jobs }: Readonly<{ printer: Manufacturing
 
 export function QueueTable({ jobs, printers, limit }: Readonly<{ jobs: ManufacturingJob[]; printers: ManufacturingPrinter[]; limit?: number }>) {
   const rows = sortQueue(jobs)
-    .filter((job) => job.status !== "REJECTED" && job.status !== "CANCELLED")
+    .filter((job) => !["REJECTED", "REJECTED_BY_ORGANIZER", "REJECTED_BY_PRINTER", "CANCELLED"].includes(job.status))
     .slice(0, limit ?? jobs.length);
 
   return (
@@ -380,7 +400,7 @@ export function QueueTable({ jobs, printers, limit }: Readonly<{ jobs: Manufactu
       <table className="w-full min-w-[860px] border-collapse">
         <thead>
           <tr className="border-b-2 border-brown-800">
-            {["#", "Team", "Project", "Estimate", "Printer", "Status", "Submitted", "Flag"].map((heading) => (
+            {["#", "Team", "Project", "Estimate", "Printer", "Status", "Submitted", "Flags"].map((heading) => (
               <th key={heading} className="px-3 py-2 text-left text-[11px] uppercase tracking-wider text-brown-800/70">{heading}</th>
             ))}
           </tr>
@@ -391,17 +411,27 @@ export function QueueTable({ jobs, printers, limit }: Readonly<{ jobs: Manufactu
               <td className="px-3 py-3 text-sm text-brown-800/70">{index + 1}</td>
               <td className="px-3 py-3">
                 <p className="font-medium text-brown-800">{job.teamName}</p>
-                <p className="text-xs text-brown-800/50">{job.slackHandle || job.submittedBy.email}</p>
+                <p className="text-xs text-brown-800/50">{job.slackHandle || job.submittedBy.slackDisplayName || "No Slack"}</p>
               </td>
               <td className="px-3 py-3">
                 <p className="text-brown-800">{job.projectName}</p>
                 <p className="max-w-[320px] truncate text-xs text-brown-800/50">{job.description}</p>
               </td>
-              <td className="px-3 py-3 text-sm text-brown-800">{minutesToHuman(job.estimatedMinutes)}</td>
+              <td className="px-3 py-3 text-sm text-brown-800">{job.estimatedMinutes ? minutesToHuman(job.estimatedMinutes) : "Not estimated"}</td>
               <td className="px-3 py-3 text-sm text-brown-800">{printers.find((printer) => printer.id === job.assignedPrinterId)?.name ?? "Unassigned"}</td>
               <td className="px-3 py-3"><StatusBadge value={job.status} /></td>
               <td className="px-3 py-3 text-sm text-brown-800">{submittedTime(job.submittedAt)}</td>
-              <td className="px-3 py-3">{job.priority ? <StatusBadge value="urgent" urgent /> : <span className="text-brown-800/35">-</span>}</td>
+              <td className="px-3 py-3">
+                <div className="flex flex-wrap gap-1">
+                  {job.urgent && <StatusBadge value="urgent" urgent />}
+                  {job.priority && (
+                    <span className="inline-flex border border-red-700 bg-red-50 px-2 py-1 text-[10px] uppercase tracking-wider text-red-800">
+                      Front
+                    </span>
+                  )}
+                  {!job.urgent && !job.priority && <span className="text-brown-800/35">-</span>}
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

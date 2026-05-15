@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       { name: printer.name }
     )
     return NextResponse.json(
-      { printer, state: await readManufacturingState(result.session.user.id) },
+      { printer, state: await readManufacturingState(result.session.user.id, { includeAll: true }) },
       { status: 201 }
     )
   } catch (error) {

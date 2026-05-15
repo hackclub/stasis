@@ -24,9 +24,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Rental not found" }, { status: 404 })
   }
 
-  if (rental.status === "RETURNED") {
+  if (rental.status !== "CHECKED_OUT" && rental.status !== "RETURN_REQUESTED") {
     return NextResponse.json(
-      { error: "Rental has already been returned" },
+      { error: "Only checked out or return-requested rentals can be returned" },
       { status: 400 }
     )
   }

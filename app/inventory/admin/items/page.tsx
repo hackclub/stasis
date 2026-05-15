@@ -27,8 +27,6 @@ interface ManufacturingPrinter {
   name: string;
   status: PrinterStatus;
   currentJobId: string | null;
-  progress: number;
-  timeRemainingMinutes: number;
   notes: string;
   sortOrder: number;
 }
@@ -162,7 +160,14 @@ export default function AdminInventoryPage() {
     try { const res = await fetch('/api/inventory/admin/tools'); if (res.ok) setTools(await res.json()); } catch {} finally { setToolsLoading(false); }
   }, []);
   const fetchPrinters = useCallback(async () => {
-    try { const res = await fetch('/api/inventory/admin/manufacturing/printers'); if (res.ok) setPrinters(await res.json()); } catch {} finally { setPrintersLoading(false); }
+    try {
+      const res = await fetch('/api/inventory/admin/manufacturing/printers');
+      if (res.ok) setPrinters(await res.json());
+      else setPrinterError('Failed to load printers.');
+    } catch (error) {
+      console.error('Failed to load printers', error);
+      setPrinterError('Failed to load printers.');
+    } finally { setPrintersLoading(false); }
   }, []);
   useEffect(() => { fetchItems(); }, [fetchItems]);
   useEffect(() => { fetchTools(); }, [fetchTools]);
@@ -252,7 +257,10 @@ export default function AdminInventoryPage() {
       const res = await fetch(`/api/inventory/admin/manufacturing/printers/${id}`, { method: 'DELETE' });
       if (res.ok) await fetchPrinters();
       else { const err = await res.json().catch(() => null); setPrinterError(err?.error || 'Failed to delete printer.'); }
-    } catch { setPrinterError('Failed to delete printer.'); }
+    } catch (error) {
+      console.error('Failed to delete printer', error);
+      setPrinterError('Failed to delete printer.');
+    }
   };
 
   const startEditPrinter = (printer: ManufacturingPrinter) => {
@@ -650,7 +658,7 @@ export default function AdminInventoryPage() {
                         <td className="px-3 py-2 text-brown-800 font-bold">{printer.name}</td>
                         <td className="px-3 py-2 text-brown-800/70">{printer.notes || '--'}</td>
                         <td className="px-3 py-2">
-                          <span className={`text-xs uppercase ${printer.status === 'AVAILABLE' ? 'text-green-600' : printer.status === 'OFFLINE' || printer.status === 'MAINTENANCE' ? 'text-red-600' : 'text-orange-500'}`}>{printer.status}</span>
+                          <span className={`text-xs uppercase ${printerStatusTextClass(printer.status)}`}>{printer.status}</span>
                         </td>
                         <td className="px-3 py-2 text-brown-800/70">{printer.sortOrder}</td>
                         <td className="px-3 py-2 text-brown-800/70">{printer.currentJobId ? printer.currentJobId.slice(-8).toUpperCase() : '--'}</td>
@@ -671,4 +679,18 @@ export default function AdminInventoryPage() {
       </section>
     </div>
   );
+}
+
+function printerStatusTextClass(status: PrinterStatus): string {
+  switch (status) {
+    case 'AVAILABLE':
+      return 'text-green-600';
+    case 'OFFLINE':
+    case 'MAINTENANCE':
+      return 'text-red-600';
+    case 'PAUSED':
+      return 'text-brown-800/50';
+    case 'PRINTING':
+      return 'text-yellow-700';
+  }
 }

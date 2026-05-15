@@ -66,7 +66,10 @@ export async function DELETE(
   if (!existing) return NextResponse.json({ error: "Tool not found" }, { status: 404 })
 
   const activeRental = await prisma.toolRental.findFirst({
-    where: { toolId: id, status: "CHECKED_OUT" },
+    where: {
+      toolId: id,
+      status: { in: ["PLACED", "IN_PROGRESS", "READY", "CHECKED_OUT", "RETURN_REQUESTED"] },
+    },
   })
   if (activeRental) {
     return NextResponse.json(

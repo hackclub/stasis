@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { removeFromTeam } from "@/lib/inventory/teams"
+import { ACTIVE_TEAM_REQUESTS_ERROR, removeFromTeam } from "@/lib/inventory/teams"
 import { logAudit, AuditAction } from "@/lib/audit"
 
 export async function POST(
@@ -35,7 +35,14 @@ export async function POST(
     return NextResponse.json({ error: "Team is locked and cannot be modified" }, { status: 400 })
   }
 
-  await removeFromTeam(session.user.id, id)
+  try {
+    await removeFromTeam(session.user.id, id)
+  } catch (error) {
+    if (error instanceof Error && error.message === ACTIVE_TEAM_REQUESTS_ERROR) {
+      return NextResponse.json({ error: ACTIVE_TEAM_REQUESTS_ERROR }, { status: 400 })
+    }
+    throw error
+  }
 
   logAudit({
     action: AuditAction.INVENTORY_TEAM_LEAVE,

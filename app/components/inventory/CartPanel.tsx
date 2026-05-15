@@ -11,20 +11,30 @@ interface CartTool {
   name: string;
 }
 
+interface CartPrint {
+  cartId: string;
+  projectName: string;
+  material: string;
+  colour: string;
+  urgent: boolean;
+}
+
 interface CartPanelProps {
   items: CartItem[];
   tools: CartTool[];
+  prints?: CartPrint[];
   onUpdateQuantity: (itemId: string, qty: number) => void;
   onRemoveItem: (itemId: string) => void;
   onRemoveTool: (toolId: string) => void;
+  onRemovePrint?: (cartId: string) => void;
   onCheckout: () => void;
   disabled?: boolean;
   hasActiveOrder?: boolean;
 }
 
-export function CartPanel({ items, tools, onUpdateQuantity, onRemoveItem, onRemoveTool, onCheckout, disabled, hasActiveOrder }: CartPanelProps) {
+export function CartPanel({ items, tools, prints = [], onUpdateQuantity, onRemoveItem, onRemoveTool, onRemovePrint, onCheckout, disabled, hasActiveOrder }: CartPanelProps) {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const isEmpty = items.length === 0 && tools.length === 0;
+  const isEmpty = items.length === 0 && tools.length === 0 && prints.length === 0;
 
   return (
     <div className="bg-cream-100 border-2 border-brown-800 p-4">
@@ -73,7 +83,7 @@ export function CartPanel({ items, tools, onUpdateQuantity, onRemoveItem, onRemo
 
           {tools.length > 0 && (
             <>
-              {items.length > 0 && <div className="border-t border-cream-400" />}
+              {(items.length > 0) && <div className="border-t border-cream-400" />}
               <ul className="space-y-2">
                 {tools.map(tool => (
                   <li key={tool.toolId} className="flex items-center justify-between gap-2">
@@ -83,6 +93,37 @@ export function CartPanel({ items, tools, onUpdateQuantity, onRemoveItem, onRemo
                     </div>
                     <button
                       onClick={() => onRemoveTool(tool.toolId)}
+                      className="px-1.5 py-0.5 text-xs text-brown-800/50 hover:text-orange-500 transition-colors cursor-pointer shrink-0"
+                      title="Remove"
+                    >
+                      x
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {prints.length > 0 && (
+            <>
+              {(items.length > 0 || tools.length > 0) && <div className="border-t border-cream-400" />}
+              <ul className="space-y-2">
+                {prints.map(print => (
+                  <li key={print.cartId} className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-cream-200 border border-cream-400 text-brown-800/60 shrink-0">Print</span>
+                        {print.urgent && (
+                          <span className="px-1.5 py-0.5 text-[10px] uppercase tracking-wider border border-red-700 bg-red-50 text-red-700 shrink-0">Urgent</span>
+                        )}
+                        <span className="text-brown-800 text-sm truncate" title={print.projectName}>{print.projectName}</span>
+                      </div>
+                      <p className="text-brown-800/60 text-xs mt-1">
+                        {print.material} / {print.colour}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onRemovePrint?.(print.cartId)}
                       className="px-1.5 py-0.5 text-xs text-brown-800/50 hover:text-orange-500 transition-colors cursor-pointer shrink-0"
                       title="Remove"
                     >
@@ -109,6 +150,12 @@ export function CartPanel({ items, tools, onUpdateQuantity, onRemoveItem, onRemo
               <div className="flex justify-between">
                 <span>Tool rentals</span>
                 <span className="font-bold">{tools.length}</span>
+              </div>
+            )}
+            {prints.length > 0 && (
+              <div className="flex justify-between">
+                <span>Print requests</span>
+                <span className="font-bold">{prints.length}</span>
               </div>
             )}
           </div>

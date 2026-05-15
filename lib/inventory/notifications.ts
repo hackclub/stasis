@@ -107,3 +107,59 @@ export function notifyRental(
 
   notifyTeam(teamId, fallback, blocks)
 }
+
+interface PrintForNotification {
+  id: string
+  projectName: string
+  estimatedMinutes?: number | null
+  material?: string | null
+  colour?: string | null
+}
+
+function printMinutes(minutes?: number | null) {
+  if (!minutes || minutes <= 0) return "not estimated"
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hours <= 0) return `${mins}m`
+  if (mins === 0) return `${hours}h`
+  return `${hours}h ${mins}m`
+}
+
+export function notifyPrintUpdate(
+  teamId: string,
+  job: PrintForNotification,
+  title: string,
+  detail?: string
+) {
+  const fallback = detail
+    ? `${title}: ${job.projectName} -- ${detail}`
+    : `${title}: ${job.projectName}`
+
+  const fields: Record<string, unknown>[] = [
+    { type: "mrkdwn", text: `*Print*\n${job.projectName}` },
+    { type: "mrkdwn", text: `*Estimate*\n${printMinutes(job.estimatedMinutes)}` },
+  ]
+  if (job.material || job.colour) {
+    fields.push({ type: "mrkdwn", text: `*Material*\n${[job.material, job.colour].filter(Boolean).join(" / ")}` })
+  }
+  if (detail) {
+    fields.push({ type: "mrkdwn", text: `*Details*\n${detail}` })
+  }
+
+  notifyTeam(teamId, fallback, [
+    {
+      type: "header",
+      text: { type: "plain_text", text: title },
+    },
+    {
+      type: "section",
+      fields,
+    },
+    {
+      type: "context",
+      elements: [
+        { type: "mrkdwn", text: `Stasis Inventory - Print #${shortOrderId(job.id)}` },
+      ],
+    },
+  ])
+}

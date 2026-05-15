@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
 import { requireInventoryAccess } from "@/lib/inventory/access"
+import { pushSSE } from "@/lib/inventory/sse"
+import { notifyPrintUpdate } from "@/lib/inventory/notifications"
+import { logAudit, AuditAction } from "@/lib/audit"
 import {
   createManufacturingJob,
-  OPEN_JOB_STATUSES,
   readManufacturingState,
 } from "@/lib/inventory/manufacturing"
 
@@ -28,13 +30,24 @@ export async function POST(request: Request) {
     const body = await request.json()
     const job = await createManufacturingJob(result.session.user.id, body, false)
     const state = await readManufacturingState(result.session.user.id)
-    const queuePosition =
-      state.jobs
-        .filter((candidate) => OPEN_JOB_STATUSES.includes(candidate.status))
-        .findIndex((candidate) => candidate.id === job.id) + 1
+    logAudit({
+      action: AuditAction.INVENTORY_ORDER_PLACE,
+      actorId: result.session.user.id,
+      actorEmail: result.session.user.email,
+      targetType: "ManufacturingJob",
+      targetId: job.id,
+      metadata: {
+        teamId: job.teamId,
+        projectName: job.projectName,
+        status: job.status,
+        urgent: job.urgent,
+      },
+    }).catch(() => {})
+    pushSSE(job.teamId, { type: "manufacturing_job_created", data: job })
+    notifyPrintUpdate(job.teamId, job, "Print Requested")
 
     return NextResponse.json(
-      { job, queuePosition: Math.max(queuePosition, 1), state },
+      { job, state },
       { status: 201 }
     )
   } catch (error) {

@@ -6,5 +6,7 @@ export async function GET() {
   const result = await requireInventoryAccess()
   if ("error" in result) return result.error
 
-  return NextResponse.json(await readManufacturingState(result.session.user.id))
+  return NextResponse.json(
+    await readManufacturingState(result.session.user.id, { includeAll: result.access.isAdmin })
+  )
 }

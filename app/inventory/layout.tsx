@@ -107,9 +107,6 @@ export default function InventoryLayout({
               <Link href="/inventory" className={getTabClass('/inventory')}>
                 Browse
               </Link>
-              <Link href="/inventory/manufacturing" className={getTabClass('/inventory/manufacturing')}>
-                Manufacturing
-              </Link>
               {access?.isAdmin && (
                 <Link href="/inventory/admin" className={getTabClass('/inventory/admin')}>
                   Admin

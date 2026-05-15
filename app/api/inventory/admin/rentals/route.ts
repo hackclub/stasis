@@ -7,7 +7,7 @@ export async function GET() {
   if ("error" in adminResult) return adminResult.error
 
   const rentals = await prisma.toolRental.findMany({
-    where: { status: "CHECKED_OUT" },
+    where: { status: { in: ["PLACED", "IN_PROGRESS", "READY", "CHECKED_OUT", "RETURN_REQUESTED"] } },
     include: {
       tool: true,
       team: { select: { id: true, name: true } },

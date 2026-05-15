@@ -13,24 +13,34 @@ interface CheckoutTool {
   name: string;
 }
 
+interface CheckoutPrint {
+  cartId: string;
+  projectName: string;
+  material: string;
+  colour: string;
+  urgent: boolean;
+}
+
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   items: CheckoutItem[];
   tools: CheckoutTool[];
+  prints?: CheckoutPrint[];
   onConfirm: (floor: number, location: string) => void;
   isSubmitting?: boolean;
   venueFloors?: number;
   error?: string | null;
 }
 
-export function CheckoutModal({ isOpen, onClose, items, tools, onConfirm, isSubmitting, venueFloors = 3, error }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, items, tools, prints = [], onConfirm, isSubmitting, venueFloors = 3, error }: CheckoutModalProps) {
   const [floor, setFloor] = useState(1);
   const [location, setLocation] = useState('');
 
   if (!isOpen) return null;
 
-  const canConfirm = location.trim().length > 0 && !isSubmitting;
+  const needsLocation = items.length > 0 || tools.length > 0;
+  const canConfirm = (!needsLocation || location.trim().length > 0) && !isSubmitting;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-mono">
@@ -65,10 +75,25 @@ export function CheckoutModal({ isOpen, onClose, items, tools, onConfirm, isSubm
           </div>
         )}
 
-        {(items.length > 0 || tools.length > 0) && <div className="border-t border-cream-400 mb-4" />}
+        {prints.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-brown-800 text-sm uppercase tracking-wider mb-2">Print Requests</h3>
+            <ul className="space-y-2">
+              {prints.map(print => (
+                <li key={print.cartId} className="text-sm text-brown-800">
+                  <span className="font-bold">{print.projectName}</span>
+                  <span className="text-brown-800/60"> - {print.material}, {print.colour}</span>
+                  {print.urgent && <span className="ml-2 text-xs font-bold uppercase tracking-wider text-red-700">Urgent</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {(items.length > 0 || tools.length > 0 || prints.length > 0) && <div className="border-t border-cream-400 mb-4" />}
 
         {/* Floor dropdown */}
-        <div className="mb-4">
+        {needsLocation && <div className="mb-4">
           <label className="block text-brown-800 text-sm uppercase tracking-wider mb-1">Floor</label>
           <select
             value={floor}
@@ -79,10 +104,10 @@ export function CheckoutModal({ isOpen, onClose, items, tools, onConfirm, isSubm
               <option key={i + 1} value={i + 1}>Floor {i + 1}</option>
             ))}
           </select>
-        </div>
+        </div>}
 
         {/* Location input */}
-        <div className="mb-6">
+        {needsLocation && <div className="mb-6">
           <label className="block text-brown-800 text-sm uppercase tracking-wider mb-1">Location</label>
           <input
             type="text"
@@ -91,7 +116,7 @@ export function CheckoutModal({ isOpen, onClose, items, tools, onConfirm, isSubm
             placeholder="Room number or table"
             className="w-full border-2 border-brown-800 bg-cream-50 text-brown-800 px-3 py-2 text-sm placeholder:text-brown-800/30"
           />
-        </div>
+        </div>}
 
         {error && (
           <div className="mb-4 border-2 border-red-600 bg-red-50 px-3 py-2 text-red-800 text-sm">
