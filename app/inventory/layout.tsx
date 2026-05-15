@@ -9,6 +9,7 @@ import { NoiseOverlay } from '../components/NoiseOverlay';
 import { UserMenu } from '../components/UserMenu';
 import { useRoles, Role } from "@/lib/hooks/useRoles";
 import { InventoryAccessProvider, type AccessInfo } from './InventoryAccessContext';
+import { InventoryWelcomeModal } from '../components/inventory/InventoryWelcomeModal';
 
 export default function InventoryLayout({
   children,
@@ -125,8 +126,18 @@ export default function InventoryLayout({
             {children}
           </InventoryAccessProvider>
         </div>
+
+        <div className="text-center py-8 text-xs md:text-sm uppercase tracking-wider text-brown-800/60">
+          <div>
+            stasis inventory system made by <a href="https://natey.me" target="_blank" rel="noopener noreferrer" className="underline hover:text-brown-800 transition-colors">@nty</a> :)
+          </div>
+          <div className="mt-2">
+            3d printer UI/UX inspired by <a href="https://hackclub.enterprise.slack.com/team/U075KPSPBQA" target="_blank" rel="noopener noreferrer" className="underline hover:text-brown-800 transition-colors">@petercrossen</a>
+          </div>
+        </div>
       </div>
 
+      <InventoryWelcomeModal />
       <NoiseOverlay />
     </>
   );
