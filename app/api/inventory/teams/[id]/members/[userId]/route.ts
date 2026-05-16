@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { removeFromTeam } from "@/lib/inventory/teams"
+import { ACTIVE_TEAM_REQUESTS_ERROR, removeFromTeam } from "@/lib/inventory/teams"
 import { logAudit, AuditAction } from "@/lib/audit"
 
 export async function DELETE(
@@ -42,7 +42,14 @@ export async function DELETE(
     return NextResponse.json({ error: "User is not a member of this team" }, { status: 400 })
   }
 
-  await removeFromTeam(userId, id)
+  try {
+    await removeFromTeam(userId, id)
+  } catch (error) {
+    if (error instanceof Error && error.message === ACTIVE_TEAM_REQUESTS_ERROR) {
+      return NextResponse.json({ error: ACTIVE_TEAM_REQUESTS_ERROR }, { status: 400 })
+    }
+    throw error
+  }
 
   logAudit({
     action: isSelfRemoval ? AuditAction.INVENTORY_TEAM_LEAVE : AuditAction.INVENTORY_TEAM_KICK_MEMBER,

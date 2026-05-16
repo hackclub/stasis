@@ -13,6 +13,8 @@ interface TeamDetail {
   id: string;
   name: string;
   locked: boolean;
+  manufacturingAutoApprovePrints: boolean;
+  maxMembersOverride?: number | null;
   members: TeamMember[];
 }
 
@@ -20,6 +22,7 @@ interface TeamListItem {
   id: string;
   name: string;
   locked: boolean;
+  maxMembers: number;
   _count: { members: number };
 }
 
@@ -39,6 +42,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [isSavingName, setIsSavingName] = useState(false);
+  const [isSavingPrintToggle, setIsSavingPrintToggle] = useState(false);
   const [addSlackId, setAddSlackId] = useState('');
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -56,14 +60,18 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
     try {
       const res = await fetch(`/api/inventory/teams/${id}`);
       if (res.ok) setTeam(await res.json());
-    } catch {}
+    } catch (error) {
+      console.error('Failed to load team', error);
+    }
   }, []);
 
   const fetchTeams = useCallback(async () => {
     try {
       const res = await fetch('/api/inventory/teams');
       if (res.ok) setTeams(await res.json());
-    } catch {}
+    } catch (error) {
+      console.error('Failed to load teams', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -133,6 +141,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
       setEditingName(false);
       setTeam(prev => prev ? { ...prev, name: updated.name } : prev);
       showSuccess('Team name updated!');
+      onTeamChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update team name');
     } finally {
@@ -157,10 +166,37 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
       setAddSlackId('');
       showSuccess('Member added!');
       await fetchTeam(team.id);
+      onTeamChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add member');
     } finally {
       setIsAddingMember(false);
+    }
+  };
+
+  const handleTogglePrintAutoApprove = async () => {
+    if (!team) return;
+    const nextValue = !team.manufacturingAutoApprovePrints;
+    setIsSavingPrintToggle(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/inventory/teams/${team.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manufacturingAutoApprovePrints: nextValue }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update print setting');
+      }
+      const updated = await res.json();
+      setTeam(prev => prev ? { ...prev, manufacturingAutoApprovePrints: updated.manufacturingAutoApprovePrints } : prev);
+      showSuccess('Print approval setting updated.');
+      onTeamChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update print setting');
+    } finally {
+      setIsSavingPrintToggle(false);
     }
   };
 
@@ -176,6 +212,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
       }
       showSuccess('Member removed.');
       await fetchTeam(team.id);
+      onTeamChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove member');
     } finally {
@@ -264,7 +301,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
                   <div>
                     <span className="text-brown-800 text-sm font-bold">{t.name}</span>
                     <span className="text-brown-800/50 text-xs ml-2">
-                      {t._count.members} member{t._count.members !== 1 ? 's' : ''}
+                      {t._count.members}/{t.maxMembers} member{t._count.members !== 1 ? 's' : ''}
                     </span>
                     {t.locked && (
                       <span className="ml-2 px-2 py-0.5 text-xs uppercase tracking-wider bg-cream-200 border border-cream-400 text-brown-800/70">
@@ -274,10 +311,10 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
                   </div>
                   <button
                     onClick={() => handleJoinTeam(t.id)}
-                    disabled={t.locked}
+                    disabled={t.locked || t._count.members >= t.maxMembers}
                     className="px-3 py-1 text-xs uppercase tracking-wider border-2 border-brown-800 text-brown-800 hover:bg-brown-800 hover:text-cream-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brown-800 transition-colors cursor-pointer disabled:cursor-not-allowed"
                   >
-                    Join
+                    {t._count.members >= t.maxMembers ? 'Full' : 'Join'}
                   </button>
                 </div>
               ))}
@@ -368,7 +405,7 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
               type="text"
               value={addSlackId}
               onChange={e => setAddSlackId(e.target.value)}
-              placeholder="Slack User ID"
+              placeholder="Slack ID, @handle, email, or name"
               className="flex-1 border-2 border-brown-800 bg-cream-50 text-brown-800 px-3 py-2 text-sm placeholder:text-brown-800/30"
             />
             <button
@@ -378,6 +415,28 @@ export function TeamPanel({ teamId, currentUserId, onTeamChanged }: TeamPanelPro
             >
               {isAddingMember ? '...' : 'Add Member'}
             </button>
+          </div>
+        )}
+
+        {!team.locked && (
+          <div className="border-t border-red-700 pt-4 mt-4">
+            <label className="flex items-start gap-3 text-sm text-brown-800">
+              <input
+                type="checkbox"
+                checked={team.manufacturingAutoApprovePrints}
+                onChange={handleTogglePrintAutoApprove}
+                disabled={isSavingPrintToggle}
+                className="mt-1 h-4 w-4 accent-red-700"
+              />
+              <span>
+                <span className="block font-bold uppercase tracking-wider text-red-700">
+                  Submit prints no matter how long it takes
+                </span>
+                <span className="block text-brown-800/70">
+                  This lets organizers move prints into the printer queue after estimating them without asking your team to approve the time first.
+                </span>
+              </span>
+            </label>
           </div>
         )}
 

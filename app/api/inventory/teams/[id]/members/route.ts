@@ -1,19 +1,25 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { requireInventoryAccess } from "@/lib/inventory/access"
 import { MAX_TEAM_SIZE } from "@/lib/inventory/config"
 import { syncTeamChannel } from "@/lib/inventory/team-channel"
 import { logAudit, AuditAction } from "@/lib/audit"
+import { Prisma } from "@/app/generated/prisma/client"
+
+function normalizeMemberLookup(input: string) {
+  const trimmed = input.trim()
+  const mention = trimmed.match(/^<@([A-Z0-9]+)(?:\|[^>]+)?>$/i)
+  if (mention) return mention[1]
+  return trimmed.startsWith("@") ? trimmed.slice(1).trim() : trimmed
+}
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const result = await requireInventoryAccess()
+  if ("error" in result) return result.error
+  const { session } = result
 
   const { id } = await params
   const body = await request.json()
@@ -22,6 +28,7 @@ export async function POST(
   if (!slackId || typeof slackId !== "string") {
     return NextResponse.json({ error: "slackId is required" }, { status: 400 })
   }
+  const memberLookup = normalizeMemberLookup(slackId)
 
   // Verify caller is a member of this team or an admin
   const caller = await prisma.user.findUnique({
@@ -39,16 +46,31 @@ export async function POST(
   let targetUserId: string
   try {
     targetUserId = await prisma.$transaction(async (tx) => {
-      const team = await tx.team.findUnique({
-        where: { id },
-        include: { _count: { select: { members: true } } },
-      })
+      const [team, settings] = await Promise.all([
+        tx.team.findUnique({
+          where: { id },
+          include: { _count: { select: { members: true } } },
+        }),
+        tx.inventorySettings.findUnique({
+          where: { id: "singleton" },
+          select: { maxTeamSize: true },
+        }),
+      ])
       if (!team) throw new Error("TEAM_NOT_FOUND")
       if (team.locked) throw new Error("TEAM_LOCKED")
-      if (team._count.members >= MAX_TEAM_SIZE) throw new Error("TEAM_FULL")
+      const maxTeamSize = team.maxMembersOverride ?? settings?.maxTeamSize ?? MAX_TEAM_SIZE
+      if (team._count.members >= maxTeamSize) throw new Error("TEAM_FULL")
 
-      const target = await tx.user.findUnique({
-        where: { slackId },
+      const target = await tx.user.findFirst({
+        where: {
+          OR: [
+            { slackId },
+            { slackId: memberLookup },
+            { slackDisplayName: { equals: memberLookup, mode: "insensitive" } },
+            { email: { equals: slackId.trim(), mode: "insensitive" } },
+            { name: { equals: slackId.trim(), mode: "insensitive" } },
+          ],
+        },
         select: { id: true, teamId: true },
       })
       if (!target) throw new Error("USER_NOT_FOUND")
@@ -59,6 +81,8 @@ export async function POST(
         data: { teamId: id },
       })
       return target.id
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     })
   } catch (err) {
     if (err instanceof Error) {

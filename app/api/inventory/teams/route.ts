@@ -4,23 +4,41 @@ import { requireInventoryAccess } from "@/lib/inventory/access"
 import { syncTeamChannel } from "@/lib/inventory/team-channel"
 import { logAudit, AuditAction } from "@/lib/audit"
 import { sanitizeName } from "@/lib/inventory/validation"
+import { DEFAULT_ALLOWANCE_MINUTES } from "@/lib/inventory/manufacturing"
+import { MAX_TEAM_SIZE } from "@/lib/inventory/config"
 
 export async function GET() {
   const result = await requireInventoryAccess()
   if ("error" in result) return result.error
 
-  const teams = await prisma.team.findMany({
-    select: {
-      id: true,
-      name: true,
-      locked: true,
-      createdAt: true,
-      _count: { select: { members: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  })
+  const [settings, teams] = await Promise.all([
+    prisma.inventorySettings.findUnique({
+      where: { id: "singleton" },
+      select: { maxTeamSize: true },
+    }),
+    prisma.team.findMany({
+      select: {
+        id: true,
+        name: true,
+        locked: true,
+        createdAt: true,
+        maxMembersOverride: true,
+        _count: { select: { members: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ])
 
-  return NextResponse.json(teams)
+  const defaultMaxTeamSize = settings?.maxTeamSize ?? MAX_TEAM_SIZE
+
+  return NextResponse.json(
+    teams
+      .filter((team) => team._count.members > 0)
+      .map((team) => ({
+        ...team,
+        maxMembers: team.maxMembersOverride ?? defaultMaxTeamSize,
+      }))
+  )
 }
 
 export async function POST(request: Request) {
@@ -49,8 +67,17 @@ export async function POST(request: Request) {
       })
       if (user?.teamId) throw new Error("ALREADY_ON_TEAM")
 
+      const settings = await tx.manufacturingSettings.findUnique({
+        where: { id: "singleton" },
+        select: { defaultAllowanceMinutes: true },
+      })
+
       const created = await tx.team.create({
-        data: { name: safeName },
+        data: {
+          name: safeName,
+          manufacturingAllowanceMinutes:
+            settings?.defaultAllowanceMinutes ?? DEFAULT_ALLOWANCE_MINUTES,
+        },
       })
 
       await tx.user.update({

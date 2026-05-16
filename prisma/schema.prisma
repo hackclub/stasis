@@ -21,16 +21,16 @@ enum ProjectStage {
 }
 
 enum CurrencyTransactionType {
-  PROJECT_APPROVED        // Bits credited when a project build is approved
+  PROJECT_APPROVED // Bits credited when a project build is approved
   PROJECT_APPROVED_REVERSED // Negating entry written when a build approval is un-approved
-  DESIGN_APPROVED         // Pending bits credited when a project design is approved (converted on build approval)
+  DESIGN_APPROVED // Pending bits credited when a project design is approved (converted on build approval)
   DESIGN_APPROVED_REVERSED // Negating entry written when a design approval is un-approved
-  ADMIN_GRANT             // Reviewer manually credits bits
-  ADMIN_DEDUCTION         // Reviewer manually debits bits (correction, etc.)
-  SHOP_PURCHASE           // User spends bits on a shop item
-  SHOP_REFUND             // Bits credited back when a shop order is rejected
-  SHOP_REFUND_REVERSED    // Bits debited when a reject is reverted (undoes a SHOP_REFUND)
-  REVIEWER_PAYMENT        // Bits credited for completing reviews (0.5 bits each)
+  ADMIN_GRANT // Reviewer manually credits bits
+  ADMIN_DEDUCTION // Reviewer manually debits bits (correction, etc.)
+  SHOP_PURCHASE // User spends bits on a shop item
+  SHOP_REFUND // Bits credited back when a shop order is rejected
+  SHOP_REFUND_REVERSED // Bits debited when a reject is reverted (undoes a SHOP_REFUND)
+  REVIEWER_PAYMENT // Bits credited for completing reviews (0.5 bits each)
 }
 
 enum ShopOrderStatus {
@@ -62,8 +62,35 @@ enum OrderStatus {
 }
 
 enum RentalStatus {
+  PLACED
+  IN_PROGRESS
+  READY
   CHECKED_OUT
+  RETURN_REQUESTED
   RETURNED
+  CANCELLED
+}
+
+enum ManufacturingPrinterStatus {
+  AVAILABLE
+  PRINTING
+  PAUSED
+  MAINTENANCE
+  OFFLINE
+}
+
+enum ManufacturingJobStatus {
+  PENDING
+  TIME_APPROVAL_REQUESTED
+  TIME_REJECTED_BY_TEAM
+  QUEUED
+  PRINTING
+  READY
+  COMPLETED
+  REJECTED
+  REJECTED_BY_ORGANIZER
+  REJECTED_BY_PRINTER
+  CANCELLED
 }
 
 // This is the primary user object
@@ -86,10 +113,10 @@ model User {
   tutorialProject    Boolean  @default(false)
   eventPreference    String?
   pronouns           String?
-  disableGrain       Boolean   @default(false)
+  disableGrain       Boolean  @default(false)
   utmSource          String?
   signupPage         String?
-  timezone           String?   // IANA timezone, e.g. "America/New_York" — updated on each authenticated request that sends tz
+  timezone           String? // IANA timezone, e.g. "America/New_York" — updated on each authenticated request that sends tz
 
   // Attend platform registration status — independent from shop ticket purchase
   attendRegisteredAt DateTime?
@@ -112,7 +139,7 @@ model User {
   sessions             Session[]
   accounts             Account[]
   projects             Project[]
-  deletedProjects      Project[]     @relation("deletedProjects")
+  deletedProjects      Project[]             @relation("deletedProjects")
   roles                UserRole[]
   currencyTransactions CurrencyTransaction[]
   kudosGiven           Kudos[]
@@ -122,22 +149,23 @@ model User {
   streakReward         StreakReward?
   blueprintImports     BlueprintImport[]
   shopOrders           ShopOrder[]
-  shopOrderNotes       ShopOrderNote[]      @relation("ShopOrderNoteAuthor")
+  shopOrderNotes       ShopOrderNote[]       @relation("ShopOrderNoteAuthor")
 
   // Attendance dashboard relations
-  attendanceCandidate   AttendanceCandidate?     @relation("AttendanceCandidateUser")
-  attendanceOwning      AttendanceCandidate[]    @relation("AttendanceCandidateOwner")
-  attendanceCommsAuthored AttendanceCommsEntry[] @relation("AttendanceCommsAuthor")
-  attendanceAuditActions  AttendanceAuditEntry[] @relation("AttendanceAuditActor")
-  attendanceRemindersCreated AttendanceReminder[] @relation("AttendanceReminderAuthor")
-  attendanceCandidatesCreated AttendanceCandidate[] @relation("AttendanceCandidateCreator")
-  syncRunLogs                 SyncRunLog[]             @relation("SyncRunLogActor")
+  attendanceCandidate         AttendanceCandidate?   @relation("AttendanceCandidateUser")
+  attendanceOwning            AttendanceCandidate[]  @relation("AttendanceCandidateOwner")
+  attendanceCommsAuthored     AttendanceCommsEntry[] @relation("AttendanceCommsAuthor")
+  attendanceAuditActions      AttendanceAuditEntry[] @relation("AttendanceAuditActor")
+  attendanceRemindersCreated  AttendanceReminder[]   @relation("AttendanceReminderAuthor")
+  attendanceCandidatesCreated AttendanceCandidate[]  @relation("AttendanceCandidateCreator")
+  syncRunLogs                 SyncRunLog[]           @relation("SyncRunLogActor")
 
   // Inventory relations
-  teamId       String?
-  team         Team?        @relation("TeamMembers", fields: [teamId], references: [id])
-  ordersPlaced Order[]      @relation("OrdersPlaced")
-  toolsRented  ToolRental[] @relation("ToolsRented")
+  teamId            String?
+  team              Team?              @relation("TeamMembers", fields: [teamId], references: [id])
+  ordersPlaced      Order[]            @relation("OrdersPlaced")
+  toolsRented       ToolRental[]       @relation("ToolsRented")
+  manufacturingJobs ManufacturingJob[] @relation("ManufacturingJobsSubmitted")
 
   @@index([teamId])
   @@map("user")
@@ -262,7 +290,7 @@ model Project {
   noBomNeeded       Boolean      @default(false)
   bomTax            Float?
   bomShipping       Float?
-  requestedAmount   Float?       // User's requested funding amount in dollars (capped at tier bits * BIT_SPEND_RATIO)
+  requestedAmount   Float? // User's requested funding amount in dollars (capped at tier bits * BIT_SPEND_RATIO)
   cartScreenshots   String[]     @default([])
   tier              Int?
   bitsAwarded       Int? // Set atomically at build approval; null until then
@@ -360,7 +388,7 @@ model WorkSession {
   content        String?
   categories     SessionCategory[]
   stage          ProjectStage       @default(BUILD)
-  effectiveDate  String?            // YYYY-MM-DD in user's local tz at creation time (for tamagotchi streaks)
+  effectiveDate  String? // YYYY-MM-DD in user's local tz at creation time (for tamagotchi streaks)
   reviewComments String?
   reviewedAt     DateTime?
   reviewedBy     String?
@@ -449,6 +477,7 @@ model ProjectBadge {
 
 enum Role {
   ADMIN
+  INVENTORY_STAFF
   REVIEWER
   SIDEKICK
   AUDITOR
@@ -523,6 +552,7 @@ enum AuditAction {
   INVENTORY_RENTAL_RETURN
   INVENTORY_TEAM_LOCK
   INVENTORY_SETTINGS_UPDATE
+  INVENTORY_LOOKUP
   INVENTORY_ITEM_CREATE
   INVENTORY_ITEM_UPDATE
   INVENTORY_ITEM_DELETE
@@ -588,7 +618,7 @@ model CurrencyTransaction {
   balanceAfter  Int // Balance after this entry
   createdBy     String? // Admin user ID; null if system-generated
   createdAt     DateTime                @default(now())
-  fulfilledAt   DateTime?               // When a shop purchase was fulfilled by admin
+  fulfilledAt   DateTime? // When a shop purchase was fulfilled by admin
 
   @@index([userId])
   @@index([userId, shopItemId])
@@ -618,25 +648,25 @@ model ShopItem {
 // Mutable order record for physical shop fulfillments.
 // Linked ledger entries (SHOP_PURCHASE / SHOP_REFUND) live on CurrencyTransaction.
 model ShopOrder {
-  id                  String          @id @default(cuid())
-  orderNumber         Int             @unique @default(autoincrement())
+  id                  String                @id @default(cuid())
+  orderNumber         Int                   @unique @default(autoincrement())
   userId              String
-  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   shopItemId          String
-  shopItem            ShopItem        @relation(fields: [shopItemId], references: [id])
+  shopItem            ShopItem              @relation(fields: [shopItemId], references: [id])
   quantity            Int
   unitBitsCost        Int
   totalBitsCost       Int
-  estimatedUsdCents   Int             // bits / 2 * 100 (at order time)
-  fulfillmentUsdCents Int?            // entered by admin at fulfill time
-  status              ShopOrderStatus @default(PENDING)
+  estimatedUsdCents   Int // bits / 2 * 100 (at order time)
+  fulfillmentUsdCents Int? // entered by admin at fulfill time
+  status              ShopOrderStatus       @default(PENDING)
   trackingNumber      String?
-  trackingCarrier     String?         // auto-detected: "ups" | "usps" | "fedex" | "dhl" | null
+  trackingCarrier     String? // auto-detected: "ups" | "usps" | "fedex" | "dhl" | null
   holdReason          String?
   rejectionReason     String?
-  encryptedPhone      String          @default("")
-  encryptedAddress    String          @default("")   // AES-256-GCM encrypted JSON snapshot of selected HCA address
-  placedAt            DateTime        @default(now())
+  encryptedPhone      String                @default("")
+  encryptedAddress    String                @default("") // AES-256-GCM encrypted JSON snapshot of selected HCA address
+  placedAt            DateTime              @default(now())
   heldAt              DateTime?
   rejectedAt          DateTime?
   fulfilledAt         DateTime?
@@ -721,7 +751,7 @@ model SubmissionReview {
   frozenReviewerNote  String?
 
   paidAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([submissionId])
   @@index([reviewerId])
@@ -810,7 +840,7 @@ model StreakReward {
 model StreakGraceDay {
   id        String   @id @default(cuid())
   userId    String
-  date      String   // YYYY-MM-DD
+  date      String // YYYY-MM-DD
   grantedBy String
   grantedAt DateTime @default(now())
 
@@ -821,16 +851,16 @@ model StreakGraceDay {
 
 // Blueprint cross-platform import tracking
 model BlueprintImport {
-  id                  String   @id @default(cuid())
-  userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  blueprintProjectId  Int
-  blueprintTitle      String
-  status              String   @default("pending") // pending | accepted | declined
-  stasisProjectId     String?
-  rawData             Json?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blueprintProjectId Int
+  blueprintTitle     String
+  status             String   @default("pending") // pending | accepted | declined
+  stasisProjectId    String?
+  rawData            Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@unique([userId, blueprintProjectId])
   @@index([userId, status])
@@ -840,16 +870,21 @@ model BlueprintImport {
 // ── Inventory Models ────────────────────────────────────────────────
 
 model Team {
-  id             String       @id @default(cuid())
-  name           String       @unique
-  locked         Boolean      @default(false)
-  slackChannelId String?
-  slackWelcomeTs String?
-  members        User[]       @relation("TeamMembers")
-  orders         Order[]
-  toolRentals    ToolRental[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                             String             @id @default(cuid())
+  name                           String             @unique
+  locked                         Boolean            @default(false)
+  slackChannelId                 String?
+  slackWelcomeTs                 String?
+  manufacturingAllowanceMinutes  Int                @default(240)
+  manufacturingAllowanceResetAt  DateTime?
+  manufacturingAutoApprovePrints Boolean            @default(false)
+  maxMembersOverride             Int?
+  members                        User[]             @relation("TeamMembers")
+  orders                         Order[]
+  toolRentals                    ToolRental[]
+  manufacturingJobs              ManufacturingJob[]
+  createdAt                      DateTime           @default(now())
+  updatedAt                      DateTime           @updatedAt
 
   @@map("team")
 }
@@ -914,32 +949,100 @@ model OrderItem {
 }
 
 model ToolRental {
-  id         String       @id @default(cuid())
-  toolId     String
-  tool       Tool         @relation(fields: [toolId], references: [id])
-  teamId     String
-  team       Team         @relation(fields: [teamId], references: [id])
-  rentedById String
-  rentedBy   User         @relation("ToolsRented", fields: [rentedById], references: [id])
-  status     RentalStatus @default(CHECKED_OUT)
-  floor      Int
-  location   String
-  dueAt      DateTime?
-  returnedAt DateTime?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id                String       @id @default(cuid())
+  toolId            String
+  tool              Tool         @relation(fields: [toolId], references: [id])
+  teamId            String
+  team              Team         @relation(fields: [teamId], references: [id])
+  rentedById        String
+  rentedBy          User         @relation("ToolsRented", fields: [rentedById], references: [id])
+  status            RentalStatus @default(PLACED)
+  floor             Int
+  location          String
+  dueAt             DateTime?
+  returnRequestedAt DateTime?
+  returnedAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   @@index([toolId])
   @@index([teamId])
+  @@index([teamId, status])
   @@index([rentedById])
   @@map("tool_rental")
 }
 
 model InventorySettings {
-  id      String  @id @default("singleton")
-  enabled Boolean @default(false)
+  id          String  @id @default("singleton")
+  enabled     Boolean @default(false)
+  maxTeamSize Int     @default(4)
 
   @@map("inventory_settings")
+}
+
+model ManufacturingPrinter {
+  id                 String                     @id @default(cuid())
+  name               String                     @unique
+  status             ManufacturingPrinterStatus @default(AVAILABLE)
+  currentJobId       String?                    @unique
+  notes              String                     @default("")
+  lastCompletedJobId String?
+  sortOrder          Int                        @default(0)
+  assignedJobs       ManufacturingJob[]
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@index([status])
+  @@map("manufacturing_printer")
+}
+
+model ManufacturingJob {
+  id                      String                 @id @default(cuid())
+  teamId                  String
+  team                    Team                   @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  submittedById           String
+  submittedBy             User                   @relation("ManufacturingJobsSubmitted", fields: [submittedById], references: [id], onDelete: Restrict)
+  projectName             String
+  description             String
+  estimatedMinutes        Int?
+  material                String
+  colour                  String
+  fileLink                String?
+  notes                   String?
+  status                  ManufacturingJobStatus @default(PENDING)
+  assignedPrinterId       String?
+  assignedPrinter         ManufacturingPrinter?  @relation(fields: [assignedPrinterId], references: [id], onDelete: SetNull)
+  submittedAt             DateTime               @default(now())
+  startedAt               DateTime?
+  timeEstimateRequestedAt DateTime?
+  timeApprovedAt          DateTime?
+  timeRejectedAt          DateTime?
+  completedAt             DateTime?
+  collectedAt             DateTime?
+  dismissedAt             DateTime?
+  overBudgetApprovedAt    DateTime?
+  staffNotes              String?
+  urgent                  Boolean                @default(false)
+  priority                Boolean                @default(false)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  @@index([teamId, status])
+  @@index([submittedById])
+  @@index([assignedPrinterId])
+  @@index([status, priority, submittedAt])
+  @@map("manufacturing_job")
+}
+
+model ManufacturingSettings {
+  id                      String   @id @default("singleton")
+  defaultAllowanceMinutes Int      @default(240)
+  warningLongPrintMinutes Int      @default(240)
+  eventName               String   @default("Stasis")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("manufacturing_settings")
 }
 
 // ============================================================
@@ -949,89 +1052,89 @@ model InventorySettings {
 // ============================================================
 
 enum AttendanceStatus {
-  IDENTIFIED      // In the sourcing pool — under consideration, not yet pulled into the active funnel
-  CONTACTED       // We've decided to invite them; outreach sent (or imminent)
-  SOFT_YES        // Verbal interest, not yet committed
-  CONFIRMED_YES   // Said yes; ready to book a flight
-  BOOKED_FLIGHT   // Travel confirmed — Attend has a flight, or admin manually confirmed
-  DECLINED        // They said no
-  SHELVED         // We decided not to pursue (distinct from they-said-no)
+  IDENTIFIED // In the sourcing pool — under consideration, not yet pulled into the active funnel
+  CONTACTED // We've decided to invite them; outreach sent (or imminent)
+  SOFT_YES // Verbal interest, not yet committed
+  CONFIRMED_YES // Said yes; ready to book a flight
+  BOOKED_FLIGHT // Travel confirmed — Attend has a flight, or admin manually confirmed
+  DECLINED // They said no
+  SHELVED // We decided not to pursue (distinct from they-said-no)
 }
 
 enum AttendanceCandidateSource {
-  STASIS_USER          // Picked from the Stasis platform's user base
-  REVIEWER_INCENTIVE   // Reviewer who hit / is approaching the review threshold
-  EXTERNAL_HC          // Built cool hardware in another Hack Club program
-  DISCRETION           // Hand-picked by an admin
+  STASIS_USER // Picked from the Stasis platform's user base
+  REVIEWER_INCENTIVE // Reviewer who hit / is approaching the review threshold
+  EXTERNAL_HC // Built cool hardware in another Hack Club program
+  DISCRETION // Hand-picked by an admin
 }
 
 // One row per person we are tracking. May link to a Stasis User
 // (userId set) or be a standalone external candidate (userId null,
 // external* fields populated manually).
 model AttendanceCandidate {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Optional link to a Stasis user (most candidates)
-  userId          String?  @unique
-  user            User?    @relation("AttendanceCandidateUser", fields: [userId], references: [id], onDelete: SetNull)
+  userId String? @unique
+  user   User?   @relation("AttendanceCandidateUser", fields: [userId], references: [id], onDelete: SetNull)
 
   // External-only fields (used when userId is null)
   externalName    String?
   externalEmail   String?
   externalSlackId String?
-  externalImage   String?  // optional avatar URL for externals
+  externalImage   String? // optional avatar URL for externals
 
   // Pipeline
-  outreachStatus  AttendanceStatus @default(IDENTIFIED)
-  source          AttendanceCandidateSource @default(DISCRETION)
-  ownerId         String?
-  owner           User?    @relation("AttendanceCandidateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  invitedAt       DateTime? // first time we transitioned them to CONTACTED+
+  outreachStatus AttendanceStatus          @default(IDENTIFIED)
+  source         AttendanceCandidateSource @default(DISCRETION)
+  ownerId        String?
+  owner          User?                     @relation("AttendanceCandidateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  invitedAt      DateTime? // first time we transitioned them to CONTACTED+
 
   // Demographics — load-bearing for the 40% girl target
-  isGirl          Boolean? // null = unknown; auto-derived from she/her pronouns at creation, override anytime
+  isGirl Boolean? // null = unknown; auto-derived from she/her pronouns at creation, override anytime
 
   // Logistics — flight cost / stipend tracking
-  homeAirport            String?  // 3-letter IATA, manually entered
+  homeAirport             String? // 3-letter IATA, manually entered
   // Address fields — manual override / external-only. For Stasis-linked
   // candidates the source of truth is User.encryptedAddress* (decrypted on
   // read by the attendance API); these candidate columns let admins fill in
   // externals or override Stasis-side data.
-  homeStreet             String?
-  homeCity               String?
-  homeState              String?
-  homeZip                String?
-  homeCountry            String?
-  flightCostEstimateCents Int?    // most recent estimate (null = not yet estimated)
-  flightCostUpdatedAt    DateTime? // when the estimate was last refreshed
+  homeStreet              String?
+  homeCity                String?
+  homeState               String?
+  homeZip                 String?
+  homeCountry             String?
+  flightCostEstimateCents Int? // most recent estimate (null = not yet estimated)
+  flightCostUpdatedAt     DateTime? // when the estimate was last refreshed
 
   // Notes — single free-form field shown on kanban cards and below the
   // pipeline section in the modal. (Previously split across caseForThem /
   // statusNote / flakeNote — merged 2026-05-05.)
-  notes           String?  @db.Text
+  notes String? @db.Text
 
   // Reason this candidate was added to the sourcing pool. Set at creation
   // time (typically via bulk-import); read-only in the modal.
-  sourcingReason  String?  @db.Text
+  sourcingReason String? @db.Text
 
   // Cached from Attend DB (refreshed on demand or via background job)
-  attendInvited            Boolean  @default(false)  // invitation email sent (covers both pending + accepted)
-  attendOnboardingStarted  Boolean  @default(false)  // participant row exists in Attend (i.e. they accepted the invite)
-  attendFlightBooked       Boolean  @default(false)  // synced from Attend's travel_legs (inbound flight code/confirmation present)
-  attendStatus             String?  // raw participant_events.status from Attend ('complete', 'in_progress', 'awaiting_guardian'); 'invited' is synthetic for the pending-invitation case
-  attendCity               String?
-  attendState              String?
-  attendCountry            String?
-  attendCachedAt           DateTime?
+  attendInvited           Boolean   @default(false) // invitation email sent (covers both pending + accepted)
+  attendOnboardingStarted Boolean   @default(false) // participant row exists in Attend (i.e. they accepted the invite)
+  attendFlightBooked      Boolean   @default(false) // synced from Attend's travel_legs (inbound flight code/confirmation present)
+  attendStatus            String? // raw participant_events.status from Attend ('complete', 'in_progress', 'awaiting_guardian'); 'invited' is synthetic for the pending-invitation case
+  attendCity              String?
+  attendState             String?
+  attendCountry           String?
+  attendCachedAt          DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  createdById     String?
-  createdBy       User?    @relation("AttendanceCandidateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("AttendanceCandidateCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
-  commsEntries    AttendanceCommsEntry[]
-  auditEntries    AttendanceAuditEntry[]
-  reminders       AttendanceReminder[]
+  commsEntries AttendanceCommsEntry[]
+  auditEntries AttendanceAuditEntry[]
+  reminders    AttendanceReminder[]
 
   @@index([outreachStatus])
   @@index([source])
@@ -1044,13 +1147,13 @@ model AttendanceCandidate {
 // Each entry is free-form text with author + timestamp; AI does the
 // post-processing to extract structure (dates, sentiment, follow-ups).
 model AttendanceCommsEntry {
-  id          String   @id @default(cuid())
+  id          String              @id @default(cuid())
   candidateId String
   candidate   AttendanceCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   authorId    String
-  author      User     @relation("AttendanceCommsAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  text        String   @db.Text
-  createdAt   DateTime @default(now())
+  author      User                @relation("AttendanceCommsAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  text        String              @db.Text
+  createdAt   DateTime            @default(now())
 
   @@index([candidateId, createdAt])
   @@map("attendance_comms_entry")
@@ -1058,15 +1161,15 @@ model AttendanceCommsEntry {
 
 // Audit trail of field changes on a candidate.
 model AttendanceAuditEntry {
-  id          String   @id @default(cuid())
+  id          String              @id @default(cuid())
   candidateId String
   candidate   AttendanceCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   actorId     String?
-  actor       User?    @relation("AttendanceAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-  field       String   // 'outreach_status', 'owner_id', 'snoozed_until', etc.
+  actor       User?               @relation("AttendanceAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  field       String // 'outreach_status', 'owner_id', 'snoozed_until', etc.
   oldValue    String?
   newValue    String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime            @default(now())
 
   @@index([candidateId, createdAt])
   @@map("attendance_audit_entry")
@@ -1075,15 +1178,15 @@ model AttendanceAuditEntry {
 // Reminders created by AI tooling (no UI surface for setting them).
 // The dashboard surfaces "due reminders" as a small badge on cards.
 model AttendanceReminder {
-  id          String   @id @default(cuid())
+  id          String              @id @default(cuid())
   candidateId String
   candidate   AttendanceCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   dueAt       DateTime
   message     String
   createdById String
-  createdBy   User     @relation("AttendanceReminderAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy   User                @relation("AttendanceReminderAuthor", fields: [createdById], references: [id], onDelete: Restrict)
   resolvedAt  DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime            @default(now())
 
   @@index([candidateId])
   @@index([dueAt])
@@ -1097,8 +1200,8 @@ model AttendanceReminder {
 // only successful round-trips, so the timestamp is meaningful.
 model SyncRunLog {
   id        String   @id @default(cuid())
-  syncKey   String   // 'attend' | 'slack' | 'loops_categories'
-  result    Json?    // arbitrary per-sync summary (counts, etc.)
+  syncKey   String // 'attend' | 'slack' | 'loops_categories'
+  result    Json? // arbitrary per-sync summary (counts, etc.)
   actorId   String?
   actor     User?    @relation("SyncRunLogActor", fields: [actorId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())

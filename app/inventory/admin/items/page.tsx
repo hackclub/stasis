@@ -20,6 +20,19 @@ interface Tool {
   available: boolean;
 }
 
+type PrinterStatus = 'AVAILABLE' | 'PRINTING' | 'PAUSED' | 'MAINTENANCE' | 'OFFLINE';
+
+interface ManufacturingPrinter {
+  id: string;
+  name: string;
+  status: PrinterStatus;
+  currentJobId: string | null;
+  notes: string;
+  sortOrder: number;
+}
+
+const PRINTER_STATUSES: PrinterStatus[] = ['AVAILABLE', 'PRINTING', 'PAUSED', 'MAINTENANCE', 'OFFLINE'];
+
 interface DigiKeyResult {
   name: string;
   description: string;
@@ -124,14 +137,41 @@ export default function AdminInventoryPage() {
   const [pendingToolDkName, setPendingToolDkName] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // 3D Printers
+  const [printers, setPrinters] = useState<ManufacturingPrinter[]>([]);
+  const [printersLoading, setPrintersLoading] = useState(true);
+  const [printerFormName, setPrinterFormName] = useState('');
+  const [printerFormNotes, setPrinterFormNotes] = useState('');
+  const [printerFormStatus, setPrinterFormStatus] = useState<PrinterStatus>('AVAILABLE');
+  const [printerFormSortOrder, setPrinterFormSortOrder] = useState('');
+  const [printerFormSubmitting, setPrinterFormSubmitting] = useState(false);
+  const [printerError, setPrinterError] = useState<string | null>(null);
+  const [editingPrinterId, setEditingPrinterId] = useState<string | null>(null);
+  const [editPrinterName, setEditPrinterName] = useState('');
+  const [editPrinterNotes, setEditPrinterNotes] = useState('');
+  const [editPrinterStatus, setEditPrinterStatus] = useState<PrinterStatus>('AVAILABLE');
+  const [editPrinterSortOrder, setEditPrinterSortOrder] = useState('');
+  const [editPrinterSubmitting, setEditPrinterSubmitting] = useState(false);
+
   const fetchItems = useCallback(async () => {
     try { const res = await fetch('/api/inventory/items'); if (res.ok) setItems(await res.json()); } catch {} finally { setItemsLoading(false); }
   }, []);
   const fetchTools = useCallback(async () => {
     try { const res = await fetch('/api/inventory/admin/tools'); if (res.ok) setTools(await res.json()); } catch {} finally { setToolsLoading(false); }
   }, []);
+  const fetchPrinters = useCallback(async () => {
+    try {
+      const res = await fetch('/api/inventory/admin/manufacturing/printers');
+      if (res.ok) setPrinters(await res.json());
+      else setPrinterError('Failed to load printers.');
+    } catch (error) {
+      console.error('Failed to load printers', error);
+      setPrinterError('Failed to load printers.');
+    } finally { setPrintersLoading(false); }
+  }, []);
   useEffect(() => { fetchItems(); }, [fetchItems]);
   useEffect(() => { fetchTools(); }, [fetchTools]);
+  useEffect(() => { fetchPrinters(); }, [fetchPrinters]);
 
   const handleDigiKeySearch = async (query: string, context: 'item-add' | 'item-edit' | 'tool-add' | 'tool-edit') => {
     if (!query.trim()) return;
@@ -187,6 +227,66 @@ export default function AdminInventoryPage() {
       const res = await fetch(`/api/inventory/admin/tools/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: editToolName, description: editToolDescription || undefined, imageUrl: editToolImageUrl || undefined }) });
       if (res.ok) { setEditingToolId(null); await fetchTools(); }
     } catch {} finally { setEditToolSubmitting(false); }
+  };
+
+  // Printer handlers
+  const handleAddPrinter = async (e: React.FormEvent) => {
+    e.preventDefault(); setPrinterError(null);
+    if (!printerFormName) { setPrinterError('Name is required.'); return; }
+    setPrinterFormSubmitting(true);
+    try {
+      const res = await fetch('/api/inventory/admin/manufacturing/printers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: printerFormName,
+          notes: printerFormNotes || undefined,
+          status: printerFormStatus,
+          sortOrder: printerFormSortOrder === '' ? undefined : Number(printerFormSortOrder),
+        }),
+      });
+      if (!res.ok) { const err = await res.json().catch(() => null); setPrinterError(err?.error || 'Failed to add printer.'); return; }
+      setPrinterFormName(''); setPrinterFormNotes(''); setPrinterFormStatus('AVAILABLE'); setPrinterFormSortOrder('');
+      await fetchPrinters();
+    } catch { setPrinterError('Failed to add printer.'); } finally { setPrinterFormSubmitting(false); }
+  };
+
+  const handleDeletePrinter = async (id: string) => {
+    if (!confirm('Delete this printer?')) return; setPrinterError(null);
+    try {
+      const res = await fetch(`/api/inventory/admin/manufacturing/printers/${id}`, { method: 'DELETE' });
+      if (res.ok) await fetchPrinters();
+      else { const err = await res.json().catch(() => null); setPrinterError(err?.error || 'Failed to delete printer.'); }
+    } catch (error) {
+      console.error('Failed to delete printer', error);
+      setPrinterError('Failed to delete printer.');
+    }
+  };
+
+  const startEditPrinter = (printer: ManufacturingPrinter) => {
+    setEditingPrinterId(printer.id);
+    setEditPrinterName(printer.name);
+    setEditPrinterNotes(printer.notes || '');
+    setEditPrinterStatus(printer.status);
+    setEditPrinterSortOrder(String(printer.sortOrder));
+  };
+
+  const handleEditPrinterSubmit = async (id: string) => {
+    setEditPrinterSubmitting(true); setPrinterError(null);
+    try {
+      const res = await fetch(`/api/inventory/admin/manufacturing/printers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editPrinterName,
+          notes: editPrinterNotes || '',
+          status: editPrinterStatus,
+          sortOrder: Number(editPrinterSortOrder) || 0,
+        }),
+      });
+      if (res.ok) { setEditingPrinterId(null); await fetchPrinters(); }
+      else { const err = await res.json().catch(() => null); setPrinterError(err?.error || 'Failed to update printer.'); }
+    } catch { setPrinterError('Failed to update printer.'); } finally { setEditPrinterSubmitting(false); }
   };
 
   const handleCSVFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -482,6 +582,115 @@ export default function AdminInventoryPage() {
           </div>
         )}
       </section>
+
+      {/* ==================== 3D PRINTERS ==================== */}
+      <section>
+        <h2 className="text-brown-800 font-bold text-lg uppercase tracking-wide mb-4">3D Printers</h2>
+
+        <div className="border-2 border-brown-800 bg-cream-100 p-4 mb-6">
+          <h3 className="text-brown-800 text-sm uppercase tracking-wider mb-4 font-bold">Add Printer</h3>
+          <form onSubmit={handleAddPrinter} className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-brown-800/70 text-xs uppercase mb-1">Name *</label>
+                <input type="text" value={printerFormName} onChange={(e) => setPrinterFormName(e.target.value)} className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800" placeholder="e.g., Printer 01" required />
+              </div>
+              <div>
+                <label className="block text-brown-800/70 text-xs uppercase mb-1">Status</label>
+                <select value={printerFormStatus} onChange={(e) => setPrinterFormStatus(e.target.value as PrinterStatus)} className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800">
+                  {PRINTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-brown-800/70 text-xs uppercase mb-1">Sort Order</label>
+                <input type="number" value={printerFormSortOrder} onChange={(e) => setPrinterFormSortOrder(e.target.value)} className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800" min="0" placeholder="Auto" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-brown-800/70 text-xs uppercase mb-1">Notes</label>
+              <input type="text" value={printerFormNotes} onChange={(e) => setPrinterFormNotes(e.target.value)} className="w-full border-2 border-brown-800 bg-cream-50 px-3 py-2 text-sm text-brown-800" />
+            </div>
+            {printerError && <p className="text-red-600 text-sm">{printerError}</p>}
+            <button type="submit" disabled={printerFormSubmitting} className="bg-orange-500 text-cream-50 px-4 py-2 hover:bg-orange-600 transition-colors uppercase text-sm tracking-wider disabled:opacity-50">{printerFormSubmitting ? 'Adding...' : 'Add Printer'}</button>
+          </form>
+        </div>
+
+        {printersLoading ? (
+          <div className="flex justify-center py-12"><div className="loader" /></div>
+        ) : printers.length === 0 ? (
+          <p className="text-brown-800/60 text-sm">No printers configured.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-2 border-brown-800 text-sm">
+              <thead>
+                <tr className="bg-brown-800 text-cream-50">
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Name</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Notes</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Status</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Order</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Current Job</th>
+                  <th className="text-left px-3 py-2 uppercase tracking-wider text-xs">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {printers.map((printer) => (
+                  <tr key={printer.id} className="border-t border-cream-200">
+                    {editingPrinterId === printer.id ? (
+                      <>
+                        <td className="px-3 py-2"><input type="text" value={editPrinterName} onChange={(e) => setEditPrinterName(e.target.value)} className="w-full border-2 border-brown-800 bg-cream-50 px-2 py-1 text-sm" /></td>
+                        <td className="px-3 py-2"><input type="text" value={editPrinterNotes} onChange={(e) => setEditPrinterNotes(e.target.value)} className="w-full border-2 border-brown-800 bg-cream-50 px-2 py-1 text-sm" /></td>
+                        <td className="px-3 py-2">
+                          <select value={editPrinterStatus} onChange={(e) => setEditPrinterStatus(e.target.value as PrinterStatus)} className="border border-brown-800 bg-cream-50 px-2 py-1 text-brown-800 text-xs">
+                            {PRINTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2"><input type="number" value={editPrinterSortOrder} onChange={(e) => setEditPrinterSortOrder(e.target.value)} className="w-24 border-2 border-brown-800 bg-cream-50 px-2 py-1 text-sm" min="0" /></td>
+                        <td className="px-3 py-2 text-brown-800/70">{printer.currentJobId ? printer.currentJobId.slice(-8).toUpperCase() : '--'}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-1">
+                            <button onClick={() => handleEditPrinterSubmit(printer.id)} disabled={editPrinterSubmitting} className="bg-orange-500 text-cream-50 px-2 py-1 text-xs uppercase hover:bg-orange-600 disabled:opacity-50">{editPrinterSubmitting ? '...' : 'Save'}</button>
+                            <button onClick={() => setEditingPrinterId(null)} className="border border-brown-800 text-brown-800 px-2 py-1 text-xs uppercase hover:bg-cream-200">Cancel</button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-3 py-2 text-brown-800 font-bold">{printer.name}</td>
+                        <td className="px-3 py-2 text-brown-800/70">{printer.notes || '--'}</td>
+                        <td className="px-3 py-2">
+                          <span className={`text-xs uppercase ${printerStatusTextClass(printer.status)}`}>{printer.status}</span>
+                        </td>
+                        <td className="px-3 py-2 text-brown-800/70">{printer.sortOrder}</td>
+                        <td className="px-3 py-2 text-brown-800/70">{printer.currentJobId ? printer.currentJobId.slice(-8).toUpperCase() : '--'}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-1">
+                            <button onClick={() => startEditPrinter(printer)} className="border border-brown-800 text-brown-800 px-2 py-1 text-xs uppercase hover:bg-cream-200">Edit</button>
+                            <button onClick={() => handleDeletePrinter(printer.id)} className="border border-orange-500 text-orange-500 px-2 py-1 text-xs uppercase hover:bg-orange-500 hover:text-cream-50">Delete</button>
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
+}
+
+function printerStatusTextClass(status: PrinterStatus): string {
+  switch (status) {
+    case 'AVAILABLE':
+      return 'text-green-600';
+    case 'OFFLINE':
+    case 'MAINTENANCE':
+      return 'text-red-600';
+    case 'PAUSED':
+      return 'text-brown-800/50';
+    case 'PRINTING':
+      return 'text-yellow-700';
+  }
 }

@@ -7,6 +7,7 @@ import {
   MIN_BITS_FOR_INVENTORY,
   VENUE_FLOORS,
   MAX_CONCURRENT_RENTALS,
+  MAX_TEAM_SIZE,
 } from "./config"
 
 export async function checkInventoryAccess(userId: string) {
@@ -30,7 +31,8 @@ export async function checkInventoryAccess(userId: string) {
   const enabled = settings?.enabled ?? false
   const balance = balanceResult._sum.amount ?? 0
   const allowMultipleOrders = process.env.INVENTORY_ALLOW_MULTIPLE_ORDERS === "true"
-  const config = { venueFloors: VENUE_FLOORS, maxConcurrentRentals: MAX_CONCURRENT_RENTALS, allowMultipleOrders }
+  const maxTeamSize = settings?.maxTeamSize ?? MAX_TEAM_SIZE
+  const config = { venueFloors: VENUE_FLOORS, maxConcurrentRentals: MAX_CONCURRENT_RENTALS, maxTeamSize, allowMultipleOrders }
 
   if (isAdmin) {
     return {

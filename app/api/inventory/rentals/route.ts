@@ -6,7 +6,6 @@ import { requireInventoryAccess } from "@/lib/inventory/access"
 import { logAudit, AuditAction } from "@/lib/audit"
 import {
   MAX_CONCURRENT_RENTALS,
-  TOOL_RENTAL_TIME_LIMIT_MINUTES,
 } from "@/lib/inventory/config"
 import {
   sanitizeLocation,
@@ -113,7 +112,7 @@ export async function POST(request: Request) {
       const activeRentals = await tx.toolRental.count({
         where: {
           teamId: user.teamId,
-          status: "CHECKED_OUT",
+          status: { in: ["PLACED", "IN_PROGRESS", "READY", "CHECKED_OUT", "RETURN_REQUESTED"] },
         },
       })
 
@@ -123,11 +122,6 @@ export async function POST(request: Request) {
         )
       }
 
-      const dueAt =
-        TOOL_RENTAL_TIME_LIMIT_MINUTES > 0
-          ? new Date(Date.now() + TOOL_RENTAL_TIME_LIMIT_MINUTES * 60 * 1000)
-          : null
-
       return tx.toolRental.create({
         data: {
           toolId,
@@ -135,7 +129,6 @@ export async function POST(request: Request) {
           rentedById: session.user.id,
           floor,
           location: safeLocation,
-          dueAt,
         },
         include: {
           tool: true,
@@ -157,7 +150,7 @@ export async function POST(request: Request) {
     metadata: { toolId, teamId: rental.teamId, floor, location: safeLocation },
   }).catch(() => {})
 
-  notifyRental(rental.teamId, rental.tool.name, "Tool Rented")
+  notifyRental(rental.teamId, rental.tool.name, "Tool Request Placed")
   pushSSE(rental.teamId, { type: "rental_created", data: rental })
 
   return NextResponse.json(rental, { status: 201 })

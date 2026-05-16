@@ -16,6 +16,7 @@ export default function AdminInventoryLayout({
   const tabs = [
     { label: 'Activity', href: '/inventory/admin' },
     { label: 'Inventory', href: '/inventory/admin/items' },
+    { label: 'Jonathan', href: '/inventory/admin/printers' },
     { label: 'Teams', href: '/inventory/admin/teams' },
     { label: 'Settings', href: '/inventory/admin/settings' },
   ];
