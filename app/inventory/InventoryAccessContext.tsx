@@ -4,10 +4,10 @@ import { createContext, useContext } from 'react';
 
 export interface AccessInfo {
   allowed: boolean;
-  reason?: string;
+  reason?: string | null;
   isAdmin: boolean;
-  teamId?: string;
-  teamName?: string;
+  teamId?: string | null;
+  teamName?: string | null;
   venueFloors?: number;
   maxConcurrentRentals?: number;
   allowMultipleOrders?: boolean;
