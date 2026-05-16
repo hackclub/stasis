@@ -51,6 +51,42 @@ interface CSVRow {
   image_url: string;
 }
 
+type BulkDeleteTarget = 'items' | 'tools' | 'printers';
+
+const BULK_DELETE_ACTIONS: Record<BulkDeleteTarget, { label: string; confirmation: string; url: string }> = {
+  items: {
+    label: 'inventory items',
+    confirmation: 'DELETE ALL INVENTORY ITEMS',
+    url: '/api/inventory/admin/items',
+  },
+  tools: {
+    label: 'tools',
+    confirmation: 'DELETE ALL TOOLS',
+    url: '/api/inventory/admin/tools',
+  },
+  printers: {
+    label: 'printers',
+    confirmation: 'DELETE ALL PRINTERS',
+    url: '/api/inventory/admin/manufacturing/printers',
+  },
+};
+
+function readCount(data: Record<string, unknown> | null, key: string): number {
+  const value = data?.[key];
+  return typeof value === 'number' ? value : 0;
+}
+
+function bulkDeleteSummary(target: BulkDeleteTarget, data: Record<string, unknown> | null): string {
+  switch (target) {
+    case 'items':
+      return `Deleted ${readCount(data, 'itemCount')} inventory items, ${readCount(data, 'orderItemCount')} order line items, and ${readCount(data, 'orderCount')} orders.`;
+    case 'tools':
+      return `Deleted ${readCount(data, 'toolCount')} tools and ${readCount(data, 'rentalCount')} rental records.`;
+    case 'printers':
+      return `Deleted ${readCount(data, 'printerCount')} printers, cancelled ${readCount(data, 'cancelledPrintJobCount')} open print jobs, and unassigned ${readCount(data, 'unassignedJobCount')} closed print jobs.`;
+  }
+}
+
 function parseCSV(text: string): CSVRow[] {
   const lines = text.split('\n').filter((l) => l.trim());
   if (lines.length < 2) return [];
@@ -153,6 +189,10 @@ export default function AdminInventoryPage() {
   const [editPrinterSortOrder, setEditPrinterSortOrder] = useState('');
   const [editPrinterSubmitting, setEditPrinterSubmitting] = useState(false);
 
+  const [bulkDeleting, setBulkDeleting] = useState<BulkDeleteTarget | null>(null);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
+  const [bulkDeleteResult, setBulkDeleteResult] = useState<string | null>(null);
+
   const fetchItems = useCallback(async () => {
     try { const res = await fetch('/api/inventory/items'); if (res.ok) setItems(await res.json()); } catch {} finally { setItemsLoading(false); }
   }, []);
@@ -177,6 +217,47 @@ export default function AdminInventoryPage() {
     if (!query.trim()) return;
     setDigiKeyLoading(true); setDigiKeyResults([]); setDigiKeyContext(context);
     try { const res = await fetch(`/api/inventory/digikey/search?q=${encodeURIComponent(query)}`); if (res.ok) setDigiKeyResults(await res.json()); } catch {} finally { setDigiKeyLoading(false); }
+  };
+
+  const refreshBulkTarget = async (target: BulkDeleteTarget) => {
+    if (target === 'items') await fetchItems();
+    if (target === 'tools') await fetchTools();
+    if (target === 'printers') await fetchPrinters();
+  };
+
+  const handleBulkDelete = async (target: BulkDeleteTarget) => {
+    const action = BULK_DELETE_ACTIONS[target];
+    const confirmed = window.confirm(`Delete all ${action.label}? This cannot be undone.`);
+    if (!confirmed) return;
+
+    const typed = window.prompt(`Type ${action.confirmation} to permanently delete all ${action.label}.`);
+    if (typed !== action.confirmation) {
+      setBulkDeleteResult(null);
+      setBulkDeleteError(`Confirmation did not match ${action.confirmation}.`);
+      return;
+    }
+
+    setBulkDeleting(target);
+    setBulkDeleteError(null);
+    setBulkDeleteResult(null);
+    try {
+      const res = await fetch(action.url, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: action.confirmation }),
+      });
+      const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!res.ok) {
+        setBulkDeleteError(typeof data?.error === 'string' ? data.error : `Failed to delete ${action.label}.`);
+        return;
+      }
+      setBulkDeleteResult(bulkDeleteSummary(target, data));
+      await refreshBulkTarget(target);
+    } catch {
+      setBulkDeleteError(`Failed to delete ${action.label}.`);
+    } finally {
+      setBulkDeleting(null);
+    }
   };
 
   // Item handlers
@@ -304,6 +385,43 @@ export default function AdminInventoryPage() {
 
   return (
     <div className="font-mono space-y-10">
+      <section className="border-2 border-red-700 bg-red-50 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-red-800 font-bold text-lg uppercase tracking-wide">Danger Zone</h2>
+            <p className="mt-1 text-red-800/80 text-sm">These actions permanently delete catalog data and require confirmation twice.</p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => handleBulkDelete('items')}
+            disabled={bulkDeleting !== null || itemsLoading || items.length === 0}
+            className="border-2 border-red-700 bg-red-700 px-4 py-2 text-sm uppercase tracking-wider text-cream-50 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {bulkDeleting === 'items' ? 'Deleting Items...' : `Delete All Items (${items.length})`}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBulkDelete('tools')}
+            disabled={bulkDeleting !== null || toolsLoading || tools.length === 0}
+            className="border-2 border-red-700 bg-red-700 px-4 py-2 text-sm uppercase tracking-wider text-cream-50 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {bulkDeleting === 'tools' ? 'Deleting Tools...' : `Delete All Tools (${tools.length})`}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBulkDelete('printers')}
+            disabled={bulkDeleting !== null || printersLoading || printers.length === 0}
+            className="border-2 border-red-700 bg-red-700 px-4 py-2 text-sm uppercase tracking-wider text-cream-50 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {bulkDeleting === 'printers' ? 'Deleting Printers...' : `Delete All Printers (${printers.length})`}
+          </button>
+        </div>
+        {bulkDeleteError && <p className="mt-3 text-sm font-bold text-red-800">{bulkDeleteError}</p>}
+        {bulkDeleteResult && <p className="mt-3 text-sm font-bold text-red-800">{bulkDeleteResult}</p>}
+      </section>
+
       {/* ==================== ITEMS ==================== */}
       <section>
         <h2 className="text-brown-800 font-bold text-lg uppercase tracking-wide mb-4">Items</h2>

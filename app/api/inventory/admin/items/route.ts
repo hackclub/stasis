@@ -10,6 +10,8 @@ import {
   validatePositiveInt,
 } from "@/lib/inventory/validation"
 
+const BULK_DELETE_CONFIRMATION = "DELETE ALL INVENTORY ITEMS"
+
 export async function POST(request: Request) {
   const result = await requireAdmin()
   if ("error" in result) return result.error
@@ -65,4 +67,41 @@ export async function POST(request: Request) {
   )
 
   return NextResponse.json(item, { status: 201 })
+}
+
+export async function DELETE(request: Request) {
+  const result = await requireAdmin()
+  if ("error" in result) return result.error
+
+  const { session } = result
+  const body = await request.json().catch(() => null)
+
+  if (body?.confirmation !== BULK_DELETE_CONFIRMATION) {
+    return NextResponse.json(
+      { error: "Bulk item deletion requires exact confirmation." },
+      { status: 400 }
+    )
+  }
+
+  const counts = await prisma.$transaction(async (tx) => {
+    const orderItems = await tx.orderItem.deleteMany()
+    const orders = await tx.order.deleteMany()
+    const items = await tx.item.deleteMany()
+    return {
+      itemCount: items.count,
+      orderItemCount: orderItems.count,
+      orderCount: orders.count,
+    }
+  })
+
+  await logAdminAction(
+    AuditAction.INVENTORY_ITEM_DELETE,
+    session.user.id,
+    session.user.email,
+    "ItemBulk",
+    "all",
+    counts
+  )
+
+  return NextResponse.json({ success: true, ...counts })
 }
