@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from "@/lib/auth-client";
+import { authClient, useSession, signOut } from "@/lib/auth-client";
 import { usePathname } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -21,9 +21,33 @@ export default function InventoryLayout({
   const pathname = usePathname();
   const [access, setAccess] = useState<AccessInfo | null>(null);
   const [accessLoading, setAccessLoading] = useState(true);
+  const [inventoryEnabled, setInventoryEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!session) return;
+    let cancelled = false;
+
+    fetch('/api/inventory/settings', { cache: 'no-store' })
+      .then(res => res.json())
+      .then((data: { enabled?: boolean }) => {
+        if (!cancelled) setInventoryEnabled(Boolean(data.enabled));
+      })
+      .catch(() => {
+        if (!cancelled) setInventoryEnabled(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session) {
+      setAccess(null);
+      setAccessLoading(false);
+      return;
+    }
+
+    setAccessLoading(true);
     fetch('/api/inventory/access')
       .then(res => res.json())
       .then((data: AccessInfo) => {
@@ -57,7 +81,40 @@ export default function InventoryLayout({
   }
 
   if (!session) {
-    notFound();
+    if (inventoryEnabled === null) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
+          <div className="loader" />
+        </div>
+      );
+    }
+
+    if (!inventoryEnabled) {
+      notFound();
+    }
+
+    return (
+      <>
+        <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden flex items-center justify-center px-4">
+          <div className="max-w-md text-center">
+            <Link href="/" className="inline-block hover:opacity-80 transition-opacity mb-8">
+              <img src="/stasis-logo.svg" alt="Stasis" className="h-12 w-auto mx-auto" />
+            </Link>
+            <h1 className="text-brown-800 text-2xl md:text-3xl font-bold uppercase tracking-wide mb-4">Log in to inventory</h1>
+            <p className="text-brown-800/70 mb-6">
+              Inventory is open. Log in with Hack Club to browse parts, tools, and print requests.
+            </p>
+            <button
+              onClick={() => authClient.signIn.oauth2({ providerId: 'hca', callbackURL: pathname })}
+              className="bg-orange-500 hover:bg-orange-600 text-cream-50 px-6 py-3 text-sm uppercase tracking-wider transition-colors"
+            >
+              Log in with Hack Club
+            </button>
+          </div>
+        </div>
+        <NoiseOverlay />
+      </>
+    );
   }
 
   if (accessLoading) {
