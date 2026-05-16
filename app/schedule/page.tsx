@@ -69,7 +69,7 @@ const SCHEDULE: ScheduleDay[] = [
     gridEndHour: 25,
     events: [
       { name: 'Breakfast', category: 'meal', startHour: 8, startMinute: 0, durationMinutes: 60 },
-      { name: 'Workshop', category: 'interactive', startHour: 10, startMinute: 0, durationMinutes: 60 },
+      { name: 'Workshop', category: 'interactive', startHour: 11, startMinute: 0, durationMinutes: 60 },
       { name: 'Idea Demos', category: 'interactive', startHour: 12, startMinute: 0, durationMinutes: 60 },
       { name: 'Lunch & Walk to Downtown Austin', category: 'meal', startHour: 13, startMinute: 0, durationMinutes: 180 },
       { name: 'Workshop', category: 'interactive', startHour: 17, startMinute: 30, durationMinutes: 60 },
@@ -132,6 +132,10 @@ function formatTime(hour: number, minute: number): string {
   return minute === 0 ? `${h} ${suffix}` : `${h}:${String(minute).padStart(2, '0')} ${suffix}`;
 }
 
+function dayEdgeMs(day: ScheduleDay, hour: number): number {
+  return new Date(`${day.isoDate}T00:00:00-05:00`).getTime() + hour * 3_600_000;
+}
+
 function toCT(date: Date) {
   const ct = new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
   return {
@@ -158,6 +162,7 @@ function DayGrid({
 
   const ct = toCT(now);
   const isToday = live && ct.dateStr === day.isoDate;
+  const isPastDay = live && ct.dateStr > day.isoDate;
   const nowMinutes = ct.hour * 60 + ct.minute;
   const nowTop = ((nowMinutes - gridStartMin) / 30) * SLOT_PX;
   const showNow = isToday && nowTop >= 0 && nowTop <= numSlots * SLOT_PX;
@@ -192,7 +197,7 @@ function DayGrid({
         const endMin = startMin + event.durationMinutes;
         const endHour = Math.floor(endMin / 60);
         const endMinute = endMin % 60;
-        const isPast = isToday && nowMinutes >= endMin;
+        const isPast = isPastDay || (isToday && nowMinutes >= endMin);
         const isCurrent = isToday && nowMinutes >= startMin && nowMinutes < endMin;
         const showTime = event.durationMinutes > 30;
         return (
@@ -324,14 +329,32 @@ function ScheduleContent() {
 
           {/* Continuous calendar */}
           <div>
-            {SCHEDULE.map((day, i) => (
+            {SCHEDULE.map((day, i) => {
+              const prevDay = i > 0 ? SCHEDULE[i - 1] : null;
+              const inQuietHours =
+                live && prevDay
+                  ? now.getTime() >= dayEdgeMs(prevDay, prevDay.gridEndHour) &&
+                    now.getTime() < dayEdgeMs(day, day.gridStartHour)
+                  : false;
+              return (
               <Fragment key={day.isoDate}>
                 {/* Overnight marker between days */}
                 {i > 0 && (
-                  <div className="py-12 md:py-16 flex items-center gap-3 ml-[54px] md:ml-0 px-8 md:px-16">
-                    <div className="flex-1 border-t border-cream-400" />
-                    <span className="text-xs text-brown-800 uppercase tracking-wider">Quiet Hours</span>
-                    <div className="flex-1 border-t border-cream-400" />
+                  <div className="relative py-12 md:py-16 ml-[54px] md:ml-0 px-8 md:px-16">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 border-t border-cream-400" />
+                      <span className="text-xs text-brown-800 uppercase tracking-wider">Quiet Hours</span>
+                      <div className="flex-1 border-t border-cream-400" />
+                    </div>
+                    {inQuietHours && (
+                      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex items-center z-20 pointer-events-none">
+                        <div
+                          className="w-2 h-2 rounded-full bg-orange-500 shrink-0 -ml-1"
+                          style={{ animation: 'pulse-dot 2s ease-in-out infinite' }}
+                        />
+                        <div className="flex-1 border-t-2 border-orange-500" />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -348,7 +371,8 @@ function ScheduleContent() {
                 {/* Day grid */}
                 <DayGrid day={day} now={now} live={live} />
               </Fragment>
-            ))}
+              );
+            })}
           </div>
 
           {/* Footer note */}
