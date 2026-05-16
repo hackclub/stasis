@@ -55,9 +55,9 @@ const SCHEDULE: ScheduleDay[] = [
     gridEndHour: 22,
     events: [
       { name: 'Doors Open & Hanging Out', category: 'ambient', startHour: 15, startMinute: 0, durationMinutes: 240 },
-      { name: 'Opening Ceremony', category: 'logistics', startHour: 19, startMinute: 0, durationMinutes: 60 },
-      { name: 'Dinner', category: 'meal', startHour: 20, startMinute: 0, durationMinutes: 60 },
-      { name: 'Ideas Demo', category: 'interactive', startHour: 21, startMinute: 0, durationMinutes: 60 },
+      { name: 'Jack Dorsey AMA', category: 'interactive', startHour: 19, startMinute: 0, durationMinutes: 60 },
+      { name: 'Opening Ceremony', category: 'logistics', startHour: 20, startMinute: 0, durationMinutes: 30 },
+      { name: 'Dinner', category: 'meal', startHour: 20, startMinute: 30, durationMinutes: 60 },
     ],
     deadlines: [],
   },
@@ -70,7 +70,7 @@ const SCHEDULE: ScheduleDay[] = [
     events: [
       { name: 'Breakfast', category: 'meal', startHour: 8, startMinute: 0, durationMinutes: 60 },
       { name: 'Workshop', category: 'interactive', startHour: 10, startMinute: 0, durationMinutes: 60 },
-      { name: 'Project Demo', category: 'interactive', startHour: 12, startMinute: 0, durationMinutes: 60 },
+      { name: 'Idea Demos', category: 'interactive', startHour: 12, startMinute: 0, durationMinutes: 60 },
       { name: 'Lunch & Walk to Downtown Austin', category: 'meal', startHour: 13, startMinute: 0, durationMinutes: 180 },
       { name: 'Workshop', category: 'interactive', startHour: 17, startMinute: 30, durationMinutes: 60 },
       { name: 'Dinner & Lightning Talks', category: 'meal', startHour: 19, startMinute: 0, durationMinutes: 60 },
