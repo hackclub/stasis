@@ -51,6 +51,13 @@ interface CSVRow {
   image_url: string;
 }
 
+interface ToolCSVRow {
+  name: string;
+  description: string;
+  quantity: number;
+  image_url: string;
+}
+
 type BulkDeleteTarget = 'items' | 'tools' | 'printers';
 
 const BULK_DELETE_ACTIONS: Record<BulkDeleteTarget, { label: string; confirmation: string; url: string }> = {
@@ -87,26 +94,27 @@ function bulkDeleteSummary(target: BulkDeleteTarget, data: Record<string, unknow
   }
 }
 
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; } else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) { fields.push(current.trim()); current = ''; } else { current += ch; }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
 function parseCSV(text: string): CSVRow[] {
   const lines = text.split('\n').filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const parseRow = (line: string): string[] => {
-    const fields: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; } else { inQuotes = !inQuotes; }
-      } else if (ch === ',' && !inQuotes) { fields.push(current.trim()); current = ''; } else { current += ch; }
-    }
-    fields.push(current.trim());
-    return fields;
-  };
-  const headers = parseRow(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, '_'));
+  const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, '_'));
   const rows: CSVRow[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const values = parseRow(lines[i]);
+    const values = parseCSVLine(lines[i]);
     if (values.length < headers.length) continue;
     const nameIdx = headers.indexOf('name');
     const descIdx = headers.indexOf('description');
@@ -119,6 +127,30 @@ function parseCSV(text: string): CSVRow[] {
       name: values[nameIdx] || '', description: descIdx >= 0 ? values[descIdx] || '' : '',
       category: values[catIdx] || '', stock: parseInt(values[stockIdx], 10) || 0,
       max_per_team: parseInt(values[maxIdx], 10) || 0, image_url: imgIdx >= 0 ? values[imgIdx] || '' : '',
+    });
+  }
+  return rows;
+}
+
+function parseToolCSV(text: string): ToolCSVRow[] {
+  const lines = text.split('\n').filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, '_'));
+  const rows: ToolCSVRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    if (values.length < headers.length) continue;
+    const nameIdx = headers.indexOf('name');
+    const descIdx = headers.indexOf('description');
+    const quantityIdx = headers.indexOf('quantity');
+    const stockIdx = headers.indexOf('stock');
+    const imgIdx = headers.indexOf('image_url');
+    if (nameIdx === -1) continue;
+    rows.push({
+      name: values[nameIdx] || '',
+      description: descIdx >= 0 ? values[descIdx] || '' : '',
+      quantity: quantityIdx >= 0 ? parseInt(values[quantityIdx], 10) || 1 : stockIdx >= 0 ? parseInt(values[stockIdx], 10) || 1 : 1,
+      image_url: imgIdx >= 0 ? values[imgIdx] || '' : '',
     });
   }
   return rows;
@@ -172,6 +204,9 @@ export default function AdminInventoryPage() {
   const [editToolSubmitting, setEditToolSubmitting] = useState(false);
   const [pendingToolDkName, setPendingToolDkName] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [toolCsvData, setToolCsvData] = useState<ToolCSVRow[] | null>(null);
+  const [toolCsvImporting, setToolCsvImporting] = useState(false);
+  const [toolCsvResult, setToolCsvResult] = useState<string | null>(null);
 
   // 3D Printers
   const [printers, setPrinters] = useState<ManufacturingPrinter[]>([]);
@@ -381,6 +416,19 @@ export default function AdminInventoryPage() {
       if (res.ok) { const data = await res.json(); setCsvResult(`Imported ${data.imported ?? csvData.length} items.`); setCsvData(null); await fetchItems(); }
       else { const err = await res.json().catch(() => null); setCsvResult(`Import failed: ${err?.error || 'Unknown error'}`); }
     } catch { setCsvResult('Import failed.'); } finally { setCsvImporting(false); }
+  };
+
+  const handleToolCSVFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return; setToolCsvResult(null);
+    const reader = new FileReader(); reader.onload = (ev) => { setToolCsvData(parseToolCSV(ev.target?.result as string)); }; reader.readAsText(file);
+  };
+  const handleToolCSVImport = async () => {
+    if (!toolCsvData || toolCsvData.length === 0) return; setToolCsvImporting(true); setToolCsvResult(null);
+    try {
+      const res = await fetch('/api/inventory/admin/tools/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tools: toolCsvData }) });
+      if (res.ok) { const data = await res.json(); setToolCsvResult(`Imported ${data.imported ?? toolCsvData.length} tools.`); setToolCsvData(null); await fetchTools(); }
+      else { const err = await res.json().catch(() => null); setToolCsvResult(`Import failed: ${err?.error || 'Unknown error'}`); }
+    } catch { setToolCsvResult('Import failed.'); } finally { setToolCsvImporting(false); }
   };
 
   return (
@@ -699,6 +747,26 @@ export default function AdminInventoryPage() {
             </table>
           </div>
         )}
+
+        {/* CSV Import */}
+        <div className="border-2 border-brown-800 bg-cream-100 p-4 mt-6">
+          <h3 className="text-brown-800 text-sm uppercase tracking-wider mb-3 font-bold">CSV Import</h3>
+          <p className="text-brown-800/60 text-xs mb-3">Expected columns: name, description, quantity, image_url. You can use stock instead of quantity.</p>
+          <input type="file" accept=".csv" onChange={handleToolCSVFile} className="block text-sm text-brown-800 file:mr-4 file:px-4 file:py-2 file:border-2 file:border-brown-800 file:bg-cream-50 file:text-brown-800 file:text-sm file:uppercase file:tracking-wider file:cursor-pointer hover:file:bg-cream-200" />
+          {toolCsvData && toolCsvData.length > 0 && (
+            <div className="mt-4">
+              <p className="text-brown-800 text-sm mb-2">Preview ({toolCsvData.length} rows):</p>
+              <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                <table className="w-full border-2 border-brown-800 text-xs">
+                  <thead><tr className="bg-brown-800 text-cream-50"><th className="px-2 py-1 text-left">Name</th><th className="px-2 py-1 text-left">Desc</th><th className="px-2 py-1 text-left">Qty</th><th className="px-2 py-1 text-left">Image</th></tr></thead>
+                  <tbody>{toolCsvData.map((row, i) => (<tr key={i} className="border-t border-cream-200"><td className="px-2 py-1 text-brown-800">{row.name}</td><td className="px-2 py-1 text-brown-800/70 max-w-[200px] truncate">{row.description}</td><td className="px-2 py-1 text-brown-800">{row.quantity}</td><td className="px-2 py-1 text-brown-800/70 max-w-[150px] truncate">{row.image_url}</td></tr>))}</tbody>
+                </table>
+              </div>
+              <button onClick={handleToolCSVImport} disabled={toolCsvImporting} className="mt-3 bg-orange-500 text-cream-50 px-4 py-2 hover:bg-orange-600 transition-colors uppercase text-sm tracking-wider disabled:opacity-50">{toolCsvImporting ? 'Importing...' : 'Import'}</button>
+            </div>
+          )}
+          {toolCsvResult && <p className={`mt-3 text-sm ${toolCsvResult.startsWith('Import failed') ? 'text-red-600' : 'text-brown-800'}`}>{toolCsvResult}</p>}
+        </div>
       </section>
 
       {/* ==================== 3D PRINTERS ==================== */}
