@@ -3,9 +3,6 @@ function safeInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-export const MIN_BITS_FOR_INVENTORY = safeInt(
-  process.env.MIN_BITS_FOR_INVENTORY, 0
-)
 export const VENUE_FLOORS = safeInt(process.env.VENUE_FLOORS, 3)
 export const TOOL_RENTAL_TIME_LIMIT_MINUTES = safeInt(
   process.env.TOOL_RENTAL_TIME_LIMIT_MINUTES, 0

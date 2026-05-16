@@ -4,7 +4,6 @@ import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import {
-  MIN_BITS_FOR_INVENTORY,
   VENUE_FLOORS,
   MAX_CONCURRENT_RENTALS,
   MAX_TEAM_SIZE,
@@ -51,19 +50,6 @@ export async function checkInventoryAccess(userId: string) {
     return {
       allowed: false,
       reason: "Inventory is currently disabled",
-      isAdmin: false,
-      teamId: null,
-      teamName: null,
-      balance,
-      enabled,
-      ...config,
-    }
-  }
-
-  if (balance < MIN_BITS_FOR_INVENTORY) {
-    return {
-      allowed: false,
-      reason: `You need at least ${MIN_BITS_FOR_INVENTORY} bits to access inventory`,
       isAdmin: false,
       teamId: null,
       teamName: null,
