@@ -129,7 +129,7 @@ That's it for the case! Next, we will work on the software and API setup.
 
 ![Spotify dashboard](https://github.com/user-attachments/assets/08ea6cbd-1e50-4130-96ad-a5f4a30cbff7)
 
-3. Give it a name, write a small description, and add a random redirect URI for now! (we will change this later)
+3. Give it a name, write a small description, and add redirect URI "https://spotifyesp32.vercel.app/api/spotify/callback" (without quotes)!
 
 4. Press save, then click on the app you just created, copy the Client ID and client secret and keep it aside for now.
 
@@ -243,11 +243,11 @@ Remember to put a `delay(ms)` at the end of the loop - Spotify's API has a rate 
 #### General Methods
 
 ```cpp
-sp.current_artist_names(); // returns String of all artists separated by a ','
-sp.current_track_name();   // returns String of song name
-sp.start_resume_playback(); // Calling this method will pause/play the track
-sp.skip();                  // skips current track
-sp.previous();              // goes to previous track
+sp.current_artist_names();  // returns String of all artists separated by a ','
+sp.current_track_name();    // returns String of song name
+sp.pause_playback();        // Calling this method will pause/play the track
+sp.skip_to_next();          // skips current track
+sp.skip_to_previous();      // goes to previous track
 sp.is_playing();            // returns a boolean if something is playing currently
 ```
 
