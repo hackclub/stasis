@@ -10,7 +10,6 @@ import { NewProjectCard } from '../components/projects/NewProjectCard';
 import { NewProjectModal } from '../components/projects/NewProjectModal';
 import { OnboardingTutorial } from '../components/OnboardingTutorial';
 import { PronounsModal } from '../components/PronounsModal';
-import { StasisAttendanceModal } from '../components/StasisAttendanceModal';
 import { GoalPicker } from '../components/GoalPicker';
 import { PrizeGoalPicker } from '../components/PrizeGoalPicker';
 import { AnimatedResize } from '../components/AnimatedResize';
@@ -85,20 +84,17 @@ export default function ProjectsPage() {
   const [pickerSelection, setPickerSelection] = useState<GoalPreference | null>(null);
   const [userPronouns, setUserPronouns] = useState<string | null>(null);
   const [showPronounsModal, setShowPronounsModal] = useState(false);
-  const [stasisAttendanceEligible, setStasisAttendanceEligible] = useState(false);
-  const [showStasisAttendance, setShowStasisAttendance] = useState(false);
   const [hoveredPrizeId, setHoveredPrizeId] = useState<string | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<'confirmed' | 'pending' | null>(null);
 
   const fetchProjects = useCallback(async () => {
     try {
-      const [projectsRes, currencyRes, goalPrefRes, pronounsRes, tutorialRes, stasisAttendanceRes] = await Promise.all([
+      const [projectsRes, currencyRes, goalPrefRes, pronounsRes, tutorialRes] = await Promise.all([
         fetch('/api/projects'),
         fetch('/api/currency'),
         fetch('/api/user/goal-preference'),
         fetch('/api/user/pronouns'),
         fetch('/api/user/tutorial'),
-        fetch('/api/user/stasis-attendance'),
       ]);
       if (projectsRes.ok) {
         setProjects(await projectsRes.json());
@@ -134,19 +130,10 @@ export default function ProjectsPage() {
         fetchedPronouns = data.pronouns;
         setUserPronouns(fetchedPronouns);
       }
-      // Check Stasis in-person attendance survey eligibility
-      let stasisEligible = false;
-      if (stasisAttendanceRes.ok) {
-        const { eligible } = await stasisAttendanceRes.json();
-        stasisEligible = eligible;
-        setStasisAttendanceEligible(eligible);
-      }
       if (tutorialRes.ok) {
         const { tutorialDashboard } = await tutorialRes.json();
         if (tutorialDashboard && fetchedPronouns === null) {
           setShowPronounsModal(true);
-        } else if (tutorialDashboard && fetchedPronouns !== null && stasisEligible) {
-          setShowStasisAttendance(true);
         }
       }
       // Fetch Blueprint imports
@@ -373,8 +360,6 @@ export default function ProjectsPage() {
           setShowTutorial(false);
           if (userPronouns === null) {
             setShowPronounsModal(true);
-          } else if (stasisAttendanceEligible) {
-            setShowStasisAttendance(true);
           }
         }}
         onGoalChange={(goal) => setGoalPreference(goal)}
@@ -673,15 +658,9 @@ export default function ProjectsPage() {
       {showPronounsModal && (
         <PronounsModal onComplete={() => {
           setShowPronounsModal(false);
-          if (stasisAttendanceEligible) {
-            setShowStasisAttendance(true);
-          }
         }} />
       )}
 
-      {showStasisAttendance && (
-        <StasisAttendanceModal onComplete={() => setShowStasisAttendance(false)} />
-      )}
 
       {/* Goal change confirmation dialog */}
       {showGoalPicker && (
