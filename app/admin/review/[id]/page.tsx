@@ -35,6 +35,53 @@ const MDPreview = dynamic(
 
 // ─── Types ───────────────────────────────────────────────────────────
 
+type AiReadmeStatusValue = 'pending' | 'done' | 'failed' | 'skipped';
+
+type AiReadmeSectionKey =
+  | 'description'
+  | 'motivation'
+  | 'project_photos'
+  | 'render_3d'
+  | 'pcb_screenshot'
+  | 'wiring_diagram'
+  | 'bom_table';
+
+interface AiReadmeVerdictPayload {
+  authenticity: 'likely_human' | 'unclear' | 'likely_ai';
+  authenticityNotes: string;
+  sections: Array<{
+    key: AiReadmeSectionKey;
+    present: boolean | null;
+    notes: string;
+  }>;
+  rationale: string;
+  modelVersion: string;
+  promptVersion: string;
+  truncated: boolean;
+  /** Present on failed/skipped statuses instead of a real verdict. */
+  reason?: string;
+}
+
+const SECTION_LABELS: Record<AiReadmeSectionKey, string> = {
+  description: 'Description',
+  motivation: 'Motivation',
+  project_photos: 'Project photos',
+  render_3d: '3D model screenshot',
+  pcb_screenshot: 'PCB screenshot',
+  wiring_diagram: 'Wiring diagram',
+  bom_table: 'BOM table at end',
+};
+
+const SECTION_ORDER: AiReadmeSectionKey[] = [
+  'description',
+  'motivation',
+  'project_photos',
+  'render_3d',
+  'pcb_screenshot',
+  'wiring_diagram',
+  'bom_table',
+];
+
 interface ReviewData {
   submission: {
     id: string;
@@ -44,6 +91,9 @@ interface ReviewData {
     createdAt: string;
     githubChecks: Array<{ key: string; label: string; passed: boolean; detail?: string }> | null;
     githubChecksAt: string | null;
+    aiReadmeVerdict: AiReadmeVerdictPayload | null;
+    aiReadmeVerdictAt: string | null;
+    aiReadmeStatus: AiReadmeStatusValue | null;
     project: {
       id: string;
       title: string;
@@ -258,6 +308,11 @@ export default function ReviewDetailPage() {
   const [ghChecksError, setGhChecksError] = useState<string | null>(null);
   const [ghChecksAt, setGhChecksAt] = useState<string | null>(null);
   const [ghChecksCached, setGhChecksCached] = useState(false);
+  const [aiVerdict, setAiVerdict] = useState<AiReadmeVerdictPayload | null>(null);
+  const [aiVerdictAt, setAiVerdictAt] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<AiReadmeStatusValue | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [kicadFiles, setKicadFiles] = useState<KiCadFilesResponse | null>(null);
   const [expandedKicad, setExpandedKicad] = useState<Set<number>>(new Set());
 
@@ -311,6 +366,10 @@ export default function ReviewDetailPage() {
       setGhChecksAt(null);
       setGhChecksCached(false);
     }
+    setAiVerdict(cachedData?.submission?.aiReadmeVerdict ?? null);
+    setAiVerdictAt(cachedData?.submission?.aiReadmeVerdictAt ?? null);
+    setAiStatus(cachedData?.submission?.aiReadmeStatus ?? null);
+    setAiError(null);
     setFailedDecisionError(null);
   }
 
@@ -523,6 +582,73 @@ export default function ReviewDetailPage() {
       setGhChecksCached(false);
     }
   }, [data?.submission.id, data?.submission.githubChecks, data?.submission.githubChecksAt]);
+
+  // Seed AI README verdict from the initial payload.
+  useEffect(() => {
+    if (!data?.submission.id) return;
+    setAiVerdict(data.submission.aiReadmeVerdict ?? null);
+    setAiVerdictAt(data.submission.aiReadmeVerdictAt ?? null);
+    setAiStatus(data.submission.aiReadmeStatus ?? null);
+    setAiError(null);
+  }, [data?.submission.id, data?.submission.aiReadmeVerdict, data?.submission.aiReadmeVerdictAt, data?.submission.aiReadmeStatus]);
+
+  // Poll while the AI check is pending — the background job updates the row
+  // out-of-band, so the only way the UI learns it landed is by re-checking.
+  useEffect(() => {
+    if (aiStatus !== 'pending') return;
+    if (!data?.submission.id) return;
+    let cancelled = false;
+    const submissionId = data.submission.id;
+
+    const poll = () => {
+      fetch(`/api/reviews/${submissionId}/ai-readme`)
+        .then(async (res) => {
+          if (cancelled) return;
+          const d = await res.json().catch(() => null);
+          if (!d) return;
+          if (d.status && d.status !== 'pending') {
+            setAiVerdict(d.verdict ?? null);
+            setAiVerdictAt(d.verdictAt ?? null);
+            setAiStatus(d.status);
+          }
+        })
+        .catch(() => {});
+    };
+
+    // First poll quickly so a fast verdict shows up nearly instantly, then
+    // back off. After 90s give up — reviewer can refresh manually.
+    const t1 = setTimeout(poll, 4000);
+    const t2 = setTimeout(poll, 12000);
+    const t3 = setTimeout(poll, 30000);
+    const t4 = setTimeout(poll, 90000);
+    return () => {
+      cancelled = true;
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
+    };
+  }, [aiStatus, data?.submission.id]);
+
+  const loadAiVerdict = useCallback((opts?: { refresh?: boolean }) => {
+    if (!data?.submission.id) return;
+    setAiLoading(true);
+    setAiError(null);
+    const url = `/api/reviews/${data.submission.id}/ai-readme${opts?.refresh ? '?refresh=1' : ''}`;
+    fetch(url)
+      .then(async (res) => {
+        const d = await res.json();
+        if (res.ok) {
+          setAiVerdict(d.verdict ?? null);
+          setAiVerdictAt(d.verdictAt ?? null);
+          setAiStatus(d.status ?? null);
+          if (d.reason && (d.status === 'failed' || d.status === 'skipped')) {
+            setAiError(d.reason);
+          }
+        } else {
+          setAiError(d.error || d.detail || `HTTP ${res.status}`);
+        }
+      })
+      .catch((err) => setAiError(String(err)))
+      .finally(() => setAiLoading(false));
+  }, [data?.submission.id]);
 
   // Fire KiCad-file lookup and claim POST as soon as we have the URL id —
   // do NOT wait for fetchData() to round-trip first. Each request races
@@ -1155,10 +1281,15 @@ export default function ReviewDetailPage() {
         </div>
       </div>
 
-      {/* ── GitHub Checks Card ── */}
+      {/* ── Repo & README Audit Card ── */}
       <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
         <div className="flex items-center justify-between mb-4 gap-4">
-          <h2 className="text-cream-50 text-sm uppercase tracking-wider">GitHub Repo Checks</h2>
+          <h2 className="text-cream-50 text-sm uppercase tracking-wider">Repo &amp; README Audit</h2>
+        </div>
+
+        {/* ── Files (file-tree scan) ── */}
+        <div className="flex items-center justify-between mb-2 gap-4">
+          <div className="text-cream-200 text-xs uppercase tracking-wider">Files</div>
           <div className="flex items-center gap-3 text-xs text-cream-200">
             {ghChecksAt && (
               <span>
@@ -1203,6 +1334,19 @@ export default function ReviewDetailPage() {
         ) : (
           <p className="text-cream-200 text-sm">Could not load checks</p>
         )}
+
+        {/* divider between deterministic file scan and probabilistic AI section */}
+        <div className="my-5 border-t border-cream-500/10" />
+
+        {/* ── README Content (AI assist) ── */}
+        <AiReadmeSection
+          verdict={aiVerdict}
+          verdictAt={aiVerdictAt}
+          status={aiStatus}
+          loading={aiLoading}
+          error={aiError}
+          onRefresh={() => loadAiVerdict({ refresh: true })}
+        />
       </div>
 
       {/* ── KiCanvas Card ── */}
@@ -2012,6 +2156,192 @@ function ReviewCard({ review, defaultExpanded }: {
             )}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── README Content section (AI-assisted, reviewer-only) ─────────────────
+//
+// Two distill pills sit at the top: authenticity ("LIKELY HUMAN" etc.) and
+// completeness ("5/7 SECTIONS"). The orange accent is reserved for failure
+// states — likely_ai authenticity or below-threshold completeness. Per-row
+// findings render below the pills with three-state icons (presence is null
+// when the section doesn't apply to this project type).
+function AiReadmeSection({
+  verdict,
+  verdictAt,
+  status,
+  loading,
+  error,
+  onRefresh,
+}: Readonly<{
+  verdict: AiReadmeVerdictPayload | null;
+  verdictAt: string | null;
+  status: AiReadmeStatusValue | null;
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => void;
+}>) {
+  const isDone = status === 'done' && verdict;
+  const sections = useMemo(() => {
+    if (!verdict?.sections) return [];
+    // Preserve the canonical order so the UI is stable regardless of model output.
+    const byKey = new Map(verdict.sections.map((s) => [s.key, s]));
+    return SECTION_ORDER.map((key) => byKey.get(key)).filter(
+      (s): s is NonNullable<typeof s> => s !== undefined
+    );
+  }, [verdict]);
+
+  const applicableSections = sections.filter((s) => s.present !== null);
+  const presentCount = applicableSections.filter((s) => s.present === true).length;
+  const totalApplicable = applicableSections.length;
+  const completenessOk = totalApplicable > 0 && presentCount === totalApplicable;
+
+  const authenticity = verdict?.authenticity ?? 'unclear';
+  const authLabel =
+    authenticity === 'likely_human'
+      ? 'LIKELY HUMAN'
+      : authenticity === 'likely_ai'
+        ? 'LIKELY AI-WRITTEN'
+        : 'UNCLEAR';
+  const authBad = authenticity === 'likely_ai';
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3 gap-4">
+        <div className="flex items-center gap-2">
+          <div className="text-cream-200 text-xs uppercase tracking-wider">README Content</div>
+          <span className="text-cream-200/60 text-[10px] uppercase tracking-wider">· AI assist</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-cream-200">
+          {verdict?.modelVersion && (
+            <span className="text-cream-200/60">
+              {verdict.promptVersion} · {verdict.modelVersion.replace(/-\d{8}$/, '')}
+            </span>
+          )}
+          {verdictAt && (
+            <span>{new Date(verdictAt).toLocaleString()}</span>
+          )}
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            className="underline hover:text-cream-50 disabled:opacity-50"
+          >
+            {loading ? 'Re-running…' : 'Re-run'}
+          </button>
+        </div>
+      </div>
+
+      {/* Status: empty / pending / failed / skipped / done */}
+      {status === null && !loading ? (
+        <p className="text-cream-200 text-sm">
+          No audit yet for this submission.{' '}
+          <button onClick={onRefresh} className="underline hover:text-cream-50">
+            Run now
+          </button>
+        </p>
+      ) : status === 'pending' || (loading && !isDone) ? (
+        <p className="text-cream-200 text-sm">AI audit running…</p>
+      ) : status === 'skipped' ? (
+        <div className="text-sm">
+          <span className="inline-block px-2 py-0.5 mr-2 text-xs uppercase tracking-wider bg-brown-900 text-cream-200 border border-cream-500/20">
+            SKIPPED
+          </span>
+          <span className="text-cream-200">
+            {verdict?.reason || error || 'AI audit was skipped.'}
+          </span>
+        </div>
+      ) : status === 'failed' ? (
+        <div className="text-sm">
+          <span className="inline-block px-2 py-0.5 mr-2 text-xs uppercase tracking-wider bg-brown-900 text-orange-500 border border-orange-500/40">
+            FAILED
+          </span>
+          <span className="text-cream-200">
+            {verdict?.reason || error || 'AI audit failed.'}{' '}
+            <button onClick={onRefresh} className="underline hover:text-cream-50">
+              Retry
+            </button>
+          </span>
+        </div>
+      ) : isDone ? (
+        <>
+          {/* Distill pills */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span
+              className={
+                'inline-block px-2 py-0.5 text-xs uppercase tracking-wider border ' +
+                (authBad
+                  ? 'bg-orange-500/15 text-orange-400 border-orange-500/40'
+                  : 'bg-brown-900 text-cream-50 border-cream-500/20')
+              }
+            >
+              {authLabel}
+            </span>
+            <span
+              className={
+                'inline-block px-2 py-0.5 text-xs uppercase tracking-wider border ' +
+                (completenessOk
+                  ? 'bg-brown-900 text-cream-50 border-cream-500/20'
+                  : 'bg-orange-500/15 text-orange-400 border-orange-500/40')
+              }
+            >
+              {presentCount}/{totalApplicable} SECTIONS
+            </span>
+            {verdict.truncated && (
+              <span className="inline-block px-2 py-0.5 text-xs uppercase tracking-wider bg-brown-900 text-cream-200 border border-cream-500/20">
+                TRUNCATED
+              </span>
+            )}
+          </div>
+
+          {/* Per-section findings */}
+          <div className="space-y-2 mb-3">
+            {sections.map((s) => {
+              const label = SECTION_LABELS[s.key];
+              const symbol =
+                s.present === true ? '✓' : s.present === false ? '✗' : '○';
+              const symbolColor =
+                s.present === true
+                  ? 'text-green-400'
+                  : s.present === false
+                    ? 'text-red-400'
+                    : 'text-cream-200/50';
+              return (
+                <div key={s.key} className="flex items-start gap-2 text-sm">
+                  <span className={symbolColor + ' leading-5 w-4 text-center'}>{symbol}</span>
+                  <span className="text-cream-50">{label}</span>
+                  {s.present === null ? (
+                    <span className="text-cream-200/60 text-xs">(n/a)</span>
+                  ) : s.notes ? (
+                    <span className="text-cream-200 text-xs">— {s.notes}</span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Authenticity row + rationale */}
+          <div className="flex items-start gap-2 text-sm mb-2">
+            <span className="text-cream-200/80 leading-5 w-4 text-center">{'◔'}</span>
+            <span className="text-cream-50">AI authorship</span>
+            {verdict.authenticityNotes && (
+              <span className="text-cream-200 text-xs">— {verdict.authenticityNotes}</span>
+            )}
+          </div>
+
+          {verdict.rationale && (
+            <div className="mt-2 border-l border-cream-500/20 pl-3 text-cream-200 text-xs italic">
+              {verdict.rationale}
+            </div>
+          )}
+
+          <p className="mt-3 text-[10px] uppercase tracking-wider text-cream-200/50">
+            Evidence for reviewers — not a verdict. AI authorship detection is imperfect.
+          </p>
+        </>
+      ) : (
+        <p className="text-cream-200 text-sm">Could not load AI audit.</p>
       )}
     </div>
   );

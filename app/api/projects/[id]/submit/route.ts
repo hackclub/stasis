@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { logAudit, AuditAction } from "@/lib/audit"
@@ -6,6 +6,7 @@ import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { runReviewChecks } from "@/lib/github-checks"
+import { runAiReadmeCheck } from "@/lib/ai-readme-check"
 
 async function cacheGithubChecks(submissionId: string, githubRepo: string | null) {
   try {
@@ -151,11 +152,16 @@ export async function POST(
           projectId: id,
           stage: "DESIGN",
           notes: submissionNotes,
+          aiReadmeStatus: "pending",
         },
       }),
     ])
 
     await cacheGithubChecks(newSubmission.id, project.githubRepo)
+
+    // Run the AI README audit AFTER the response is sent. The model call adds
+    // multiple seconds — don't make the user wait on it.
+    after(() => runAiReadmeCheck(newSubmission.id))
 
     await logAudit({
       action: AuditAction.USER_SUBMIT_PROJECT,
@@ -227,11 +233,16 @@ export async function POST(
           projectId: id,
           stage: "BUILD",
           notes: submissionNotes,
+          aiReadmeStatus: "pending",
         },
       }),
     ])
 
     await cacheGithubChecks(newSubmission.id, project.githubRepo)
+
+    // Run the AI README audit AFTER the response is sent. The model call adds
+    // multiple seconds — don't make the user wait on it.
+    after(() => runAiReadmeCheck(newSubmission.id))
 
     await logAudit({
       action: AuditAction.USER_SUBMIT_PROJECT,
