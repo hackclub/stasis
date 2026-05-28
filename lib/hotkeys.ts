@@ -25,6 +25,12 @@ export function useHotkeys(bindings: HotkeyBinding[], disabled?: boolean): void 
 
     const map: Record<string, (e: KeyboardEvent) => void> = {};
     for (const b of bindings) {
+      // $mod-prefixed bindings (Ctrl on Linux/Win, Cmd on Mac) always fire,
+      // even inside inputs — the user can't accidentally produce Ctrl+O by
+      // typing, and skipping these lets the browser's default shortcut
+      // (open file, find, etc.) leak through while the textarea has focus.
+      const isModBinding = /\$mod\b/i.test(b.key);
+      const alwaysRun = b.runInInputs || isModBinding;
       map[b.key] = (e: KeyboardEvent) => {
         const target = e.target as HTMLElement | null;
         const inInput =
@@ -32,7 +38,7 @@ export function useHotkeys(bindings: HotkeyBinding[], disabled?: boolean): void 
           (target.tagName === 'INPUT' ||
             target.tagName === 'TEXTAREA' ||
             target.isContentEditable);
-        if (inInput && !b.runInInputs) return;
+        if (inInput && !alwaysRun) return;
         e.preventDefault();
         b.handler();
       };
