@@ -1147,8 +1147,12 @@ export default function ReviewDetailPage() {
         </div>
       </div>
 
+      {/* ── Two-column workspace: evidence (left) + action panel (right, sticky) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
+      <div className="space-y-6 min-w-0">
+
       {/* ── Submission Overview Card ── */}
-      <div className="bg-brown-800 border border-cream-500/20 rounded overflow-hidden">
+      <div className="bg-brown-800 border border-cream-500/20 overflow-hidden">
         {project.coverImage && (
           <div className="w-full h-48 overflow-hidden border-b border-cream-500/20">
             <img src={project.coverImage} alt="" className="w-full h-full object-cover" />
@@ -1205,7 +1209,7 @@ export default function ReviewDetailPage() {
                       href={`https://hackclub.enterprise.slack.com/team/${project.user.slackId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs px-2 py-0.5 bg-cream-500/10 hover:bg-cream-500/20 text-cream-200 border border-cream-500/20 rounded transition-colors"
+                      className="text-xs px-2 py-0.5 bg-cream-500/10 hover:bg-cream-500/20 text-cream-200 border border-cream-500/20 transition-colors"
                     >
                       DM on Slack
                     </a>
@@ -1282,7 +1286,7 @@ export default function ReviewDetailPage() {
       </div>
 
       {/* ── Repo & README Audit Card ── */}
-      <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+      <div className="bg-brown-800 border border-cream-500/20 p-6">
         <div className="flex items-center justify-between mb-4 gap-4">
           <h2 className="text-cream-50 text-sm uppercase tracking-wider">Repo &amp; README Audit</h2>
         </div>
@@ -1351,7 +1355,7 @@ export default function ReviewDetailPage() {
 
       {/* ── KiCanvas Card ── */}
       {kicadFiles && kicadFiles.projects.length > 0 && (
-        <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+        <div className="bg-brown-800 border border-cream-500/20 p-6">
           <h2 className="text-cream-50 text-sm uppercase tracking-wider mb-4">
             KiCad Files{' '}
             <span className="text-cream-200 normal-case text-xs">
@@ -1455,7 +1459,7 @@ export default function ReviewDetailPage() {
 
       {/* ── Previous Reviews Card ── */}
       {submission.reviews.length > 0 && (
-        <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+        <div className="bg-brown-800 border border-cream-500/20 p-6">
           <h2 className="text-cream-50 text-sm uppercase tracking-wider mb-4">Previous Reviews</h2>
           <div className="space-y-4">
             {submission.reviews.map((review, idx) => {
@@ -1472,14 +1476,14 @@ export default function ReviewDetailPage() {
 
       {/* ── Note from Submitter Card ── */}
       {submission.notes && (
-        <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+        <div className="bg-brown-800 border border-cream-500/20 p-6">
           <h2 className="text-cream-50 text-sm uppercase tracking-wider mb-2">Note from Submitter</h2>
           <p className="text-cream-50 text-sm whitespace-pre-wrap">{submission.notes}</p>
         </div>
       )}
 
       {/* ── Work Log / Journal Card ── */}
-      <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+      <div className="bg-brown-800 border border-cream-500/20 p-6">
         <h2 className="text-cream-50 text-sm uppercase tracking-wider mb-4">Work Log</h2>
 
         {/* Stats */}
@@ -1607,7 +1611,7 @@ export default function ReviewDetailPage() {
       </div>
 
       {/* ── Supporting Evidence Card ── */}
-      <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+      <div className="bg-brown-800 border border-cream-500/20 p-6">
         <h2 className="text-cream-50 text-sm uppercase tracking-wider mb-4">Supporting Evidence</h2>
         <div className="flex gap-6 text-sm mb-3 flex-wrap">
           <p className="text-cream-50">
@@ -1703,8 +1707,11 @@ export default function ReviewDetailPage() {
         )}
       </div>
 
+      </div>
+      <aside className="space-y-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pr-1">
+
       {/* ── Internal Notes Card ── */}
-      <div className="bg-brown-800 border border-cream-500/20 rounded p-6">
+      <div className="bg-brown-800 border border-cream-500/20 p-6">
         <div className="flex items-baseline justify-between gap-3 mb-2">
           <h2 className="text-cream-50 text-sm uppercase tracking-wider">
             Internal Notes <span className="text-cream-200 normal-case">(about this author, shared across reviewers)</span>
@@ -2055,6 +2062,9 @@ export default function ReviewDetailPage() {
             )}
           </>
         )}
+      </div>
+
+      </aside>
       </div>
     </div>
   );
