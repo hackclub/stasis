@@ -388,6 +388,15 @@ export default function ReviewDetailPage() {
   const feedbackRef = useRef<HTMLTextAreaElement | null>(null);
   const reasonRef = useRef<HTMLTextAreaElement | null>(null);
   const internalNoteRef = useRef<HTMLTextAreaElement | null>(null);
+  const hoursOverrideRef = useRef<HTMLInputElement | null>(null);
+  const tierOverrideRef = useRef<HTMLSelectElement | null>(null);
+  const grantOverrideRef = useRef<HTMLInputElement | null>(null);
+  const deductionOverrideRef = useRef<HTMLInputElement | null>(null);
+  // First chips in their respective groups — `Tab`/arrow key chip navigation
+  // is handled by native focus traversal, but these refs let keyboard
+  // shortcuts focus the row when entering chip-toggle mode by error.
+  const journalSectionRef = useRef<HTMLDivElement | null>(null);
+  const actionPanelRef = useRef<HTMLElement | null>(null);
 
   // Hide admin chrome (header + tab bar) for more vertical room. Toggles
   // `.hide-admin-chrome` on <html>, persists in localStorage so the preference
@@ -678,33 +687,130 @@ export default function ReviewDetailPage() {
   }, [data?.navigation, router, filterQS]);
 
 
-  // Restore form state if the previous decision failed and routed us back here.
-  // Snapshot lives in sessionStorage keyed on submission id.
+  // Restore form state on id change. Precedence:
+  //   1. failedDecision sessionStorage (the user JUST tried to submit and the
+  //      server returned an error — restoring this also surfaces the error
+  //      banner). One-shot: consumed and removed.
+  //   2. reviewDraft localStorage (the user typed feedback/reason/overrides,
+  //      then j/k-navigated away — restore so the work isn't lost).
+  //   3. Empty form (no prior state for this id).
+  //
+  // Both restore paths need to run in the SAME effect so failedDecision
+  // wins — a separate effect couldn't see the sessionStorage key before this
+  // one removed it.
+  const [draftRestored, setDraftRestored] = useState<{ id: string; at: number } | null>(null);
   useEffect(() => {
     if (!id) return;
-    const key = `failedDecision:${id}`;
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return;
+
+    const failedKey = `failedDecision:${id}`;
+    const failedRaw = sessionStorage.getItem(failedKey);
+    if (failedRaw) {
+      try {
+        const snap = JSON.parse(failedRaw) as {
+          feedback?: string; reason?: string;
+          workUnitsOverride?: string; tierOverride?: string; grantOverride?: string;
+          additionalBitsDeduction?: string; categoryOverride?: string;
+          error?: string;
+        };
+        if (snap.feedback != null) setFeedback(snap.feedback);
+        if (snap.reason != null) setReason(snap.reason);
+        if (snap.workUnitsOverride != null) setWorkUnitsOverride(snap.workUnitsOverride);
+        if (snap.tierOverride != null) setTierOverride(snap.tierOverride);
+        if (snap.grantOverride != null) setGrantOverride(snap.grantOverride);
+        if (snap.additionalBitsDeduction != null) setAdditionalBitsDeduction(snap.additionalBitsDeduction);
+        if (snap.categoryOverride != null) setCategoryOverride(snap.categoryOverride);
+        setFailedDecisionError(snap.error ?? 'Decision did not save');
+      } catch { /* ignore corrupt snapshot */ }
+      sessionStorage.removeItem(failedKey);
+      return;
+    }
+
+    const draftKey = `reviewDraft:${id}`;
+    let draftRaw: string | null = null;
+    try { draftRaw = localStorage.getItem(draftKey); } catch { /* ignore quota / privacy errors */ }
+    if (!draftRaw) {
+      // No prior state — clear form so the previous submission's edits don't
+      // carry over.
+      setFeedback('');
+      setReason('');
+      setWorkUnitsOverride('');
+      setTierOverride('');
+      setGrantOverride('');
+      setAdditionalBitsDeduction('');
+      setCategoryOverride('');
+      setCheckedJustifications(new Set());
+      setCheckedFeedback(new Set());
+      return;
+    }
     try {
-      const snap = JSON.parse(raw) as {
+      const draft = JSON.parse(draftRaw) as {
         feedback?: string; reason?: string;
         workUnitsOverride?: string; tierOverride?: string; grantOverride?: string;
         additionalBitsDeduction?: string; categoryOverride?: string;
-        error?: string;
+        checkedJustifications?: number[]; checkedFeedback?: number[];
       };
-      if (snap.feedback != null) setFeedback(snap.feedback);
-      if (snap.reason != null) setReason(snap.reason);
-      if (snap.workUnitsOverride != null) setWorkUnitsOverride(snap.workUnitsOverride);
-      if (snap.tierOverride != null) setTierOverride(snap.tierOverride);
-      if (snap.grantOverride != null) setGrantOverride(snap.grantOverride);
-      if (snap.additionalBitsDeduction != null) setAdditionalBitsDeduction(snap.additionalBitsDeduction);
-      if (snap.categoryOverride != null) setCategoryOverride(snap.categoryOverride);
-      setFailedDecisionError(snap.error ?? 'Decision did not save');
+      setFeedback(draft.feedback ?? '');
+      setReason(draft.reason ?? '');
+      setWorkUnitsOverride(draft.workUnitsOverride ?? '');
+      setTierOverride(draft.tierOverride ?? '');
+      setGrantOverride(draft.grantOverride ?? '');
+      setAdditionalBitsDeduction(draft.additionalBitsDeduction ?? '');
+      setCategoryOverride(draft.categoryOverride ?? '');
+      setCheckedJustifications(new Set(draft.checkedJustifications ?? []));
+      setCheckedFeedback(new Set(draft.checkedFeedback ?? []));
+      setDraftRestored({ id, at: Date.now() });
     } catch {
-      /* ignore corrupt snapshot */
+      try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
     }
-    sessionStorage.removeItem(key);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Auto-clear the "draft restored" toast after 3s.
+  useEffect(() => {
+    if (!draftRestored) return;
+    const t = setTimeout(() => setDraftRestored(null), 3000);
+    return () => clearTimeout(t);
+  }, [draftRestored]);
+
+  // Auto-save form state to localStorage as a draft, debounced 500ms. Removes
+  // the draft entry when the form is empty so we don't leave stale entries
+  // around (and so the restore effect treats a freshly-cleared form as "no
+  // draft", not "empty draft").
+  useEffect(() => {
+    if (!id) return;
+    const handle = setTimeout(() => {
+      const hasContent =
+        feedback.length > 0 ||
+        reason.length > 0 ||
+        workUnitsOverride.length > 0 ||
+        tierOverride.length > 0 ||
+        grantOverride.length > 0 ||
+        additionalBitsDeduction.length > 0 ||
+        categoryOverride.length > 0 ||
+        checkedJustifications.size > 0 ||
+        checkedFeedback.size > 0;
+      const key = `reviewDraft:${id}`;
+      try {
+        if (hasContent) {
+          localStorage.setItem(key, JSON.stringify({
+            feedback,
+            reason,
+            workUnitsOverride,
+            tierOverride,
+            grantOverride,
+            additionalBitsDeduction,
+            categoryOverride,
+            checkedJustifications: [...checkedJustifications],
+            checkedFeedback: [...checkedFeedback],
+            updatedAt: Date.now(),
+          }));
+        } else {
+          localStorage.removeItem(key);
+        }
+      } catch { /* quota exceeded — silently drop the save */ }
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [id, feedback, reason, workUnitsOverride, tierOverride, grantOverride, additionalBitsDeduction, categoryOverride, checkedJustifications, checkedFeedback]);
 
   // Auto-clear the "✓ approved" toast after 3s
   useEffect(() => {
@@ -972,6 +1078,8 @@ export default function ReviewDetailPage() {
         // The reviewed project is no longer in_review; drop its cache entry
         // so a back-nav refetches (and gets a 400 / redirect to queue).
         REVIEW_DATA_CACHE.delete(`${originalId}${filterQS}`);
+        // Drop the saved draft for this submission — it's been committed.
+        try { localStorage.removeItem(`reviewDraft:${originalId}`); } catch { /* ignore */ }
         // Successful — show a brief toast on the new page.
         setRecentDecision({ result, at: Date.now() });
       } else {
@@ -1081,37 +1189,167 @@ export default function ReviewDetailPage() {
     }
   }
 
+  // Whether the current submission can have a decision posted right now. Used
+  // by every decision binding so we don't have to repeat the guard.
+  const canDecide = !submitting && !!data && !data.submission.claimedByOther;
+  const isAdminUser = !!data?.isAdmin;
+
+  function jumpJournal(delta: 1 | -1) {
+    if (!data) return;
+    const sessions = data.submission.project.workSessions;
+    if (sessions.length === 0) return;
+    // Sessions render newest-first; find the closest one in the viewport and
+    // hop one over. `getBoundingClientRect().top` for each candidate; nearest
+    // to the top of the scroll container wins.
+    let activeIdx = -1;
+    let activeAbsTop = Infinity;
+    for (let i = 0; i < sessions.length; i++) {
+      const el = document.getElementById(`session-${sessions[i].id}`);
+      if (!el) continue;
+      const top = el.getBoundingClientRect().top;
+      // Pick the entry whose top is closest to (but not far below) 80px from
+      // viewport top — that's where scroll-mt-4 anchors them after a jump.
+      if (top <= 100 && top > -el.clientHeight + 100) {
+        if (Math.abs(top - 80) < activeAbsTop) {
+          activeAbsTop = Math.abs(top - 80);
+          activeIdx = i;
+        }
+      }
+    }
+    if (activeIdx === -1) {
+      // Nothing in view yet — pick the first if going forward, last if back.
+      activeIdx = delta > 0 ? -1 : sessions.length;
+    }
+    // Sessions are stored in chronological order but rendered reversed.
+    // "Next" in the rendered list means *earlier* chronologically.
+    const nextIdx = activeIdx + (delta > 0 ? -1 : 1);
+    if (nextIdx < 0 || nextIdx >= sessions.length) return;
+    const target = sessions[nextIdx];
+    scrollToSession(target.id);
+  }
+
+  function scrollWorkspaceToTop() {
+    // The xl+ layout has its own overflow container; below xl the page
+    // scrolls. Try the workspace first, fall back to window.
+    const scroller = workspaceRef.current?.querySelector('.xl\\:overflow-y-auto') as HTMLElement | null;
+    if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function scrollWorkspaceToBottom() {
+    const scroller = workspaceRef.current?.querySelector('.xl\\:overflow-y-auto') as HTMLElement | null;
+    if (scroller) scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+    else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+  function jumpToJournalSection() {
+    const el = journalSectionRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function jumpToActionPanel() {
+    // Focus feedback — most-common entry point into the action panel.
+    feedbackRef.current?.focus();
+    feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function openGithubRepo() {
+    if (data?.submission.project.githubRepo) {
+      window.open(data.submission.project.githubRepo, '_blank', 'noopener,noreferrer');
+    }
+  }
+  function backToQueue() {
+    router.push(`/admin/review${filterQS}`);
+  }
+  function handleReject() {
+    if (!canDecide) return;
+    if (rejectArmed) {
+      setRejectArmed(false);
+      submitReview('REJECTED', { skipConfirm: true });
+    } else {
+      setRejectArmed(true);
+      setTimeout(() => setRejectArmed(false), 5000);
+    }
+  }
+
+  // Mirror the "Confirm & Send" button when an admin is approving a
+  // pre-reviewed submission — otherwise Ctrl+Enter would commit with empty
+  // overrides and silently drop the first-pass reviewer's chosen tier/grant.
+  function handleApprove() {
+    if (!canDecide || !data) return;
+    if (isAdminUser && data.submission.preReviewed && !modifyingPreReview) {
+      const firstPass = data.submission.reviews.find(
+        (r) => !r.isAdminReview && r.result === 'APPROVED' && !r.invalidated
+      );
+      if (firstPass) {
+        submitReview('APPROVED', {
+          feedback: firstPass.feedback || undefined,
+          reason: reason.trim() || firstPass.reason || undefined,
+          workUnitsOverride: workUnitsOverride ? parseFloat(workUnitsOverride) : (firstPass.workUnitsOverride ?? undefined),
+          tierOverride: tierOverride ? parseInt(tierOverride) : (firstPass.tierOverride ?? undefined),
+          grantOverride: grantOverride ? parseInt(grantOverride) : (firstPass.grantOverride ?? undefined),
+        });
+        return;
+      }
+    }
+    submitReview('APPROVED');
+  }
+
   // Detail-page hotkeys. Re-built each render — cheap relative to typing-driven
   // re-renders, and avoids stale closure pitfalls with submitReview/data.
+  // Bindings are ordered by group so the help overlay reads top→bottom in
+  // the order a reviewer actually moves through a submission.
+  //
+  // Modifier policy: single-letter triggers are all gated behind $mod (Ctrl on
+  // Linux/Win, Cmd on Mac) so accidental keystrokes (focus drifted off an
+  // input) don't fire navigation. Letters that collide with unblockable
+  // browser shortcuts (T = new tab, N = new window, W = close, 1–9 = switch
+  // tab) are remapped: tier → $mod+;, internal note → $mod+I, chip numbers
+  // dropped in favor of the chip-toolbar's arrow-key navigation.
   const detailHotkeys: HotkeyBinding[] = [
+    // ─── General ─────────────────────────────────────────────────────
     { key: 'Shift+?', description: 'Show keyboard shortcuts', group: 'General', handler: () => setHotkeyOverlayOpen((v) => !v) },
-    { key: '$mod+Enter', description: 'Approve', group: 'Decision', runInInputs: true, handler: () => { if (!submitting && data && !data.submission.claimedByOther) submitReview('APPROVED'); } },
-    { key: '$mod+Shift+Enter', description: 'Approve and advance', group: 'Decision', runInInputs: true, handler: () => { if (!submitting && data && !data.submission.claimedByOther) submitReview('APPROVED'); } },
-    { key: 'Shift+R', description: 'Return / request changes', group: 'Decision', handler: () => { if (!submitting && data && !data.submission.claimedByOther) submitReview('RETURNED'); } },
-    {
-      key: 'Shift+X',
-      description: 'Reject (press twice within 5s)',
-      group: 'Decision',
-      handler: () => {
-        if (submitting || !data || data.submission.claimedByOther) return;
-        if (rejectArmed) {
-          setRejectArmed(false);
-          submitReview('REJECTED', { skipConfirm: true });
-        } else {
-          setRejectArmed(true);
-          setTimeout(() => setRejectArmed(false), 5000);
-        }
-      },
-    },
-    { key: 'j', description: 'Next submission', group: 'Navigation', handler: () => { if (data?.navigation.nextId) router.push(`/admin/review/${data.navigation.nextId}${filterQS}`); } },
-    { key: 'k', description: 'Previous submission', group: 'Navigation', handler: () => { if (data?.navigation.prevId) router.push(`/admin/review/${data.navigation.prevId}${filterQS}`); } },
-    { key: 's', description: 'Skip to next', group: 'Navigation', handler: () => { skipToNext(); } },
-    { key: 'f', description: 'Focus feedback textarea', group: 'Form', handler: () => feedbackRef.current?.focus() },
-    { key: 'r', description: 'Focus reason textarea', group: 'Form', handler: () => reasonRef.current?.focus() },
-    { key: 'n', description: 'Focus internal note', group: 'Form', handler: () => internalNoteRef.current?.focus() },
+    { key: 'Escape', description: 'Blur input / close popups', group: 'General', runInInputs: true, handler: () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) {
+        el.blur();
+      }
+      if (moveConfirm) setMoveConfirm(false);
+      if (rejectArmed) setRejectArmed(false);
+    } },
+
+    // ─── Decision (work from inputs so users can type then commit) ──
+    { key: '$mod+Enter', description: 'Approve / Confirm & Send', group: 'Decision', runInInputs: true, handler: handleApprove },
+    { key: 'Shift+R', description: 'Return for edits', group: 'Decision', handler: () => { if (canDecide) submitReview('RETURNED'); } },
+    { key: 'Shift+X', description: 'Reject (press twice within 5s)', group: 'Decision', handler: handleReject },
+    { key: 'Shift+M', description: 'Move to opposite queue (admin)', group: 'Decision', handler: () => { if (isAdminUser && !submitting) handleMoveQueue(); } },
+
+    // ─── Navigation between submissions (Ctrl-gated) ────────────────
+    { key: '$mod+j', description: 'Next submission', group: 'Navigation', handler: () => { if (data?.navigation.nextId) router.push(`/admin/review/${data.navigation.nextId}${filterQS}`); } },
+    { key: '$mod+k', description: 'Previous submission', group: 'Navigation', handler: () => { if (data?.navigation.prevId) router.push(`/admin/review/${data.navigation.prevId}${filterQS}`); } },
+    { key: '$mod+s', description: 'Skip to next', group: 'Navigation', handler: () => { skipToNext(); } },
+    { key: '$mod+o', description: 'Open GitHub repo', group: 'Navigation', handler: openGithubRepo },
+
+    // ─── In-page jumps ──────────────────────────────────────────────
+    { key: '$mod+]', description: 'Next journal entry', group: 'In-page', handler: () => jumpJournal(1) },
+    { key: '$mod+[', description: 'Previous journal entry', group: 'In-page', handler: () => jumpJournal(-1) },
+    { key: 'Shift+J', description: 'Jump to journal entries', group: 'In-page', handler: jumpToJournalSection },
+    { key: 'Shift+A', description: 'Jump to action panel', group: 'In-page', handler: jumpToActionPanel },
+    { key: 'Home', description: 'Scroll to top', group: 'In-page', handler: scrollWorkspaceToTop },
+    { key: 'End', description: 'Scroll to bottom', group: 'In-page', handler: scrollWorkspaceToBottom },
+    { key: 'Shift+H', description: 'Toggle hide admin nav', group: 'In-page', handler: () => setHideChrome((v) => !v) },
+
+    // ─── Focus form fields (Ctrl-gated) ─────────────────────────────
+    { key: '$mod+f', description: 'Focus feedback (submitter)', group: 'Focus', handler: () => feedbackRef.current?.focus() },
+    { key: '$mod+r', description: 'Focus reason / justification', group: 'Focus', handler: () => reasonRef.current?.focus() },
+    { key: '$mod+i', description: 'Focus internal note', group: 'Focus', handler: () => internalNoteRef.current?.focus() },
+    { key: '$mod+h', description: 'Focus hours override', group: 'Focus', handler: () => hoursOverrideRef.current?.focus() },
+    { key: '$mod+;', description: 'Focus tier override', group: 'Focus', handler: () => tierOverrideRef.current?.focus() },
+    { key: '$mod+b', description: 'Focus bits deduction', group: 'Focus', handler: () => deductionOverrideRef.current?.focus() },
+    { key: '$mod+$', description: 'Focus grant override (USD)', group: 'Focus', handler: () => grantOverrideRef.current?.focus() },
   ];
 
-  useHotkeys(detailHotkeys, hotkeyOverlayOpen);
+  // Suspend bindings while overlay or the blank-feedback confirm modal is open
+  // so number keys / Enter inside the modal don't accidentally trigger
+  // decisions.
+  useHotkeys(detailHotkeys, hotkeyOverlayOpen || blankFeedbackPending !== null);
 
   // Newest-first ordering for the TOC and the journal-entry list. Computed
   // here (before the early return) so hook order stays stable across renders.
@@ -1217,6 +1455,22 @@ export default function ReviewDetailPage() {
           <p className="text-white text-xs uppercase tracking-wider font-bold">⚠ Press Shift+X again within 5 seconds to confirm rejection</p>
         </div>
       )}
+
+      {/* Persistent hint that hotkeys exist. Idle, low-key, and dismissable
+          via the help itself — pressing `?` toggles the overlay, which acts
+          as both teach-me and reference. */}
+      {!hotkeyOverlayOpen && !rejectArmed && (
+        <button
+          type="button"
+          onClick={() => setHotkeyOverlayOpen(true)}
+          className="hidden md:flex fixed bottom-3 right-3 z-30 items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-wider bg-brown-900/90 border border-cream-500/20 text-cream-200 hover:text-cream-50 hover:border-orange-500/60 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
+          aria-label="Show keyboard shortcuts"
+          title="Show keyboard shortcuts"
+        >
+          <kbd className="bg-brown-800 border border-cream-500/30 px-1 leading-none text-[10px]">?</kbd>
+          <span>shortcuts</span>
+        </button>
+      )}
       {/* ── Failed-decision banner (decision did not save) ── */}
       {failedDecisionError && (
         <div className="bg-red-500/15 border-2 border-red-500 p-4 flex items-center justify-between">
@@ -1238,6 +1492,15 @@ export default function ReviewDetailPage() {
         <div className="bg-green-500/10 border border-green-500/40 px-3 py-2">
           <p className="text-green-400 text-xs uppercase tracking-wider">
             ✓ Last decision committed: {recentDecision.result.toLowerCase()}
+          </p>
+        </div>
+      )}
+
+      {/* ── Draft-restored toast (auto-saved feedback/reason reloaded) ── */}
+      {draftRestored && (
+        <div className="bg-orange-500/10 border border-orange-500/40 px-3 py-2">
+          <p className="text-orange-400 text-xs uppercase tracking-wider">
+            ↻ Draft restored — your previous edits to this submission are back
           </p>
         </div>
       )}
@@ -1319,14 +1582,16 @@ export default function ReviewDetailPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/review"
-            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 transition-colors"
+            href={`/admin/review${filterQS}`}
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
           >
             Back to Queue
           </Link>
           <button
             onClick={skipToNext}
-            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 transition-colors cursor-pointer"
+            aria-keyshortcuts="Control+S"
+            title="Skip (Ctrl+S)"
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
           >
             Skip
           </button>
@@ -1338,9 +1603,18 @@ export default function ReviewDetailPage() {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => setHotkeyOverlayOpen(true)}
+            title="Keyboard shortcuts (?)"
+            aria-keyshortcuts="?"
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
+          >
+            ? Shortcuts
+          </button>
+          <button
             onClick={() => setHideChrome((v) => !v)}
-            title={hideChrome ? 'Show admin nav' : 'Hide admin nav for more vertical space'}
-            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 transition-colors cursor-pointer"
+            title={hideChrome ? 'Show admin nav (Shift+H)' : 'Hide admin nav for more vertical space (Shift+H)'}
+            aria-keyshortcuts="Shift+H"
+            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
           >
             {hideChrome ? '↓ Show nav' : '↑ Hide nav'}
           </button>
@@ -1348,7 +1622,9 @@ export default function ReviewDetailPage() {
             <div className="relative">
               <button
                 onClick={() => setMoveConfirm(!moveConfirm)}
-                className="px-3 py-1.5 text-xs uppercase tracking-wider border border-orange-500 text-orange-500 hover:bg-orange-500/10 cursor-pointer"
+                aria-keyshortcuts="Shift+M"
+                title="Move to opposite queue (Shift+M)"
+                className="px-3 py-1.5 text-xs uppercase tracking-wider border border-orange-500 text-orange-500 hover:bg-orange-500/10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
               >
                 Move to {submission.stage === 'DESIGN' ? 'Build' : 'Design'} Queue
               </button>
@@ -1945,7 +2221,7 @@ export default function ReviewDetailPage() {
            optional Hackatime block; then every journal entry is rendered inline
            (no collapsible) with a rounded orange bar on the left and a generous
            gap separating each entry. */}
-      <div className="bg-brown-800 border border-cream-500/20 p-5">
+      <div ref={journalSectionRef} className="bg-brown-800 border border-cream-500/20 p-5">
         <div className="flex items-baseline justify-between gap-4 flex-wrap mb-3">
           <h2 className="text-cream-50 text-sm uppercase tracking-wider">Journal Entries</h2>
           <div className="text-cream-200 text-xs flex items-baseline gap-x-2 gap-y-1 flex-wrap">
@@ -1975,6 +2251,7 @@ export default function ReviewDetailPage() {
                   <button
                     key={session.id}
                     type="button"
+                    tabIndex={-1}
                     onClick={() => scrollToSession(session.id)}
                     {...histHoverProps(`${session.title} · ${hours}h`)}
                     className="flex-1 h-full flex items-end min-w-[3px] cursor-pointer group p-0"
@@ -2229,22 +2506,30 @@ export default function ReviewDetailPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
               <div>
-                <label className="text-cream-200 text-xs uppercase block mb-1">Hours Override</label>
+                <label className="text-cream-200 text-xs uppercase block mb-1">
+                  Hours Override <span className="text-cream-500 normal-case ml-1">⌃H</span>
+                </label>
                 <input
+                  ref={hoursOverrideRef}
                   type="number"
                   step="0.1"
                   value={workUnitsOverride}
                   onChange={(e) => setWorkUnitsOverride(e.target.value)}
                   placeholder={`Current: ${Math.round(project.totalWorkUnits * 100) / 100}h`}
-                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500"
+                  aria-keyshortcuts="Control+H"
+                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500"
                 />
               </div>
               <div>
-                <label className="text-cream-200 text-xs uppercase block mb-1">Tier Override</label>
+                <label className="text-cream-200 text-xs uppercase block mb-1">
+                  Tier Override <span className="text-cream-500 normal-case ml-1">⌃;</span>
+                </label>
                 <select
+                  ref={tierOverrideRef}
                   value={tierOverride}
                   onChange={(e) => setTierOverride(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500"
+                  aria-keyshortcuts="Control+;"
+                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500"
                 >
                   <option value="">Current: {tierInfo?.name || 'None'}</option>
                   {TIERS.map((t) => (
@@ -2253,11 +2538,15 @@ export default function ReviewDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="text-cream-200 text-xs uppercase block mb-1">Grant Override (USD)</label>
+                <label className="text-cream-200 text-xs uppercase block mb-1">
+                  Grant Override (USD) <span className="text-cream-500 normal-case ml-1">⌃$</span>
+                </label>
                 <input
+                  ref={grantOverrideRef}
                   type="number"
                   value={grantOverride}
                   onChange={(e) => setGrantOverride(e.target.value)}
+                  aria-keyshortcuts="Control+$"
                   placeholder={(() => {
                     if (project.noBomNeeded) return 'Default: No grant (user opted out of parts)'
                     if (project.bomCost <= 0) return 'Default: No BOM cost'
@@ -2271,15 +2560,18 @@ export default function ReviewDetailPage() {
                       : 'BOM cost, legacy'
                     return `Default: ${defaultBits} bits (${source})`
                   })()}
-                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500"
                 />
                 {grantOverride && (
                   <p className="text-cream-200 text-xs mt-1">{grantOverride} bits = ${grantOverride} value</p>
                 )}
               </div>
               <div>
-                <label className="text-cream-200 text-xs uppercase block mb-1">Bits Deduction</label>
+                <label className="text-cream-200 text-xs uppercase block mb-1">
+                  Bits Deduction <span className="text-cream-500 normal-case ml-1">⌃B</span>
+                </label>
                 <input
+                  ref={deductionOverrideRef}
                   type="number"
                   min="0"
                   step="1"
@@ -2290,7 +2582,8 @@ export default function ReviewDetailPage() {
                       ? `Default: ${DEDUCTION_BY_GUIDE[project.starterProjectId]} (${project.starterProjectId} kit)`
                       : 'Default: 0'
                   }
-                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500"
+                  aria-keyshortcuts="Control+B"
+                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500"
                 />
                 {additionalBitsDeduction && parseInt(additionalBitsDeduction) > 0 && (
                   <p className="text-cream-200 text-xs mt-1">−{additionalBitsDeduction} bits will be subtracted from the tier award on build approval</p>
@@ -2313,69 +2606,53 @@ export default function ReviewDetailPage() {
             </div>
 
             <div className="mb-3">
-              <label className="text-cream-200 text-xs uppercase block mb-1">Internal Justification{!isAdmin && <span className="text-cream-500 normal-case ml-1">(optional)</span>}</label>
+              <label className="text-cream-200 text-xs uppercase block mb-1">
+                Internal Justification
+                {!isAdmin && <span className="text-cream-500 normal-case ml-1">(optional)</span>}
+                {isAdmin && <span className="text-cream-500 normal-case ml-1">⌃R · Tab in, ←→ navigate, Space toggle</span>}
+              </label>
               {isAdmin && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {JUSTIFICATION_SHORTCUTS.map((s, i) => (
-                    <label
-                      key={i}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs border cursor-pointer transition-colors select-none ${
-                        checkedJustifications.has(i)
-                          ? 'bg-green-500/15 border-green-500 text-green-400'
-                          : 'border-cream-500/20 text-cream-50 hover:border-green-500/60 hover:bg-green-500/15'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checkedJustifications.has(i)}
-                        onChange={() => toggleJustification(i)}
-                        className="accent-green-600 w-3 h-3"
-                      />
-                      {s.label}
-                    </label>
-                  ))}
-                </div>
+                <ChipGroup
+                  items={JUSTIFICATION_SHORTCUTS}
+                  checkedSet={checkedJustifications}
+                  onToggle={toggleJustification}
+                  ariaLabel="Justification presets"
+                  variant="green"
+                />
               )}
               <textarea
                 ref={reasonRef}
                 value={reason}
                 onChange={(e) => { setReason(e.target.value); setCheckedJustifications(new Set()); }}
-                className="w-full h-20 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 resize-y"
+                aria-keyshortcuts="Control+R"
+                className="w-full h-20 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500 resize-y"
                 placeholder="Internal reason for your decision (not shown to submitter)..."
               />
             </div>
 
             <div className="mb-3">
-              <label className="text-cream-200 text-xs uppercase block mb-1">Feedback for Submitter</label>
+              <label className="text-cream-200 text-xs uppercase block mb-1">
+                Feedback for Submitter
+                {isAdmin && <span className="text-cream-500 normal-case ml-1">⌃F · Tab in, ←→ navigate, Space toggle</span>}
+              </label>
               {isAdmin && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {FEEDBACK_SHORTCUTS.map((s, i) => (
-                    <label
-                      key={i}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs border cursor-pointer transition-colors select-none ${
-                        checkedFeedback.has(i)
-                          ? 'bg-yellow-500/15 border-yellow-500 text-yellow-400'
-                          : 'border-cream-500/20 text-cream-50 hover:border-yellow-500/60 hover:bg-yellow-500/15'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checkedFeedback.has(i)}
-                        onChange={() => toggleFeedback(i)}
-                        className="accent-yellow-600 w-3 h-3"
-                      />
-                      {s.label}
-                    </label>
-                  ))}
-                </div>
+                <ChipGroup
+                  items={FEEDBACK_SHORTCUTS}
+                  checkedSet={checkedFeedback}
+                  onToggle={toggleFeedback}
+                  ariaLabel="Feedback presets"
+                  variant="yellow"
+                />
               )}
               <textarea
                 ref={feedbackRef}
                 value={feedback}
                 onChange={(e) => { setFeedback(e.target.value); setCheckedFeedback(new Set()); }}
-                className="w-full h-24 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 resize-y"
+                aria-keyshortcuts="Control+F"
+                className="w-full h-24 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500 resize-y"
                 placeholder="Feedback visible to the submitter (defaults to 'Awesome project!' if blank)..."
               />
+              <p className="text-cream-200/60 text-[10px] mt-1 uppercase tracking-wider">Draft auto-saves locally as you type · restored when you return to this submission</p>
             </div>
 
             {project.user.fraudConvicted && (
@@ -2511,10 +2788,11 @@ export default function ReviewDetailPage() {
 
                 <div className="flex gap-3 flex-wrap items-center">
                   <button
-                    onClick={() => submitReview('APPROVED')}
+                    onClick={() => handleApprove()}
                     disabled={submitting || project.user.fraudConvicted}
                     title={project.user.fraudConvicted ? 'Cannot approve fraud-convicted users' : 'Ctrl+Enter'}
-                    className="px-4 py-2 text-sm uppercase tracking-wider bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    aria-keyshortcuts="Control+Enter"
+                    className="px-4 py-2 text-sm uppercase tracking-wider bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
                   >
                     {isAdmin ? 'Approve' : 'First-Pass Approve'}
                     <span className="ml-2 text-xs opacity-60 hidden sm:inline">Ctrl+Enter</span>
@@ -2522,24 +2800,32 @@ export default function ReviewDetailPage() {
                   <button
                     onClick={() => submitReview('RETURNED')}
                     disabled={submitting || project.user.fraudConvicted}
-                    title={project.user.fraudConvicted ? 'Cannot return fraud-convicted users' : undefined}
-                    className="px-4 py-2 text-sm uppercase tracking-wider bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    title={project.user.fraudConvicted ? 'Cannot return fraud-convicted users' : 'Shift+R'}
+                    aria-keyshortcuts="Shift+R"
+                    className="px-4 py-2 text-sm uppercase tracking-wider bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
                   >
                     Return for Edits
+                    <span className="ml-2 text-xs opacity-60 hidden sm:inline">Shift+R</span>
                   </button>
                   <button
                     onClick={() => submitReview('REJECTED')}
                     disabled={submitting}
-                    className="px-4 py-2 text-sm uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    title="Shift+X twice within 5s"
+                    aria-keyshortcuts="Shift+X Shift+X"
+                    className="px-4 py-2 text-sm uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
                   >
                     Permanently Reject
+                    <span className="ml-2 text-xs opacity-60 hidden sm:inline">⇧X×2</span>
                   </button>
                   <button
                     onClick={skipToNext}
                     disabled={submitting}
-                    className="px-4 py-2 text-sm uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    title="Skip (Ctrl+S)"
+                    aria-keyshortcuts="Control+S"
+                    className="px-4 py-2 text-sm uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-orange-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
                   >
                     Skip
+                    <span className="ml-2 text-xs opacity-60 hidden sm:inline">⌃S</span>
                   </button>
                 </div>
               </>
@@ -2567,7 +2853,8 @@ export default function ReviewDetailPage() {
           ref={internalNoteRef}
           value={internalNote}
           onChange={(e) => handleNoteChange(e.target.value)}
-          className="w-full h-24 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 resize-y"
+          aria-keyshortcuts="Control+I"
+          className="w-full h-24 px-3 py-2 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500 resize-y"
           placeholder="Add notes about this author..."
         />
         <p className="text-cream-200 text-xs mt-1">Auto-saved</p>
@@ -2634,6 +2921,104 @@ export default function ReviewDetailPage() {
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────
+
+// Toolbar-pattern chip group. Tab into the group lands on the most-recently
+// focused chip (roving tabindex), arrow keys / Home / End move between chips
+// inside, Tab leaves the group. Space toggles via native checkbox semantics —
+// no explicit handler needed.
+function ChipGroup<T extends { label: string; text: string }>({
+  items,
+  checkedSet,
+  onToggle,
+  ariaLabel,
+  variant,
+}: Readonly<{
+  items: T[];
+  checkedSet: Set<number>;
+  onToggle: (i: number) => void;
+  ariaLabel: string;
+  variant: 'green' | 'yellow';
+}>) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Keep activeIdx in range if items shrink (defensive — items list is
+  // module-level today, but treating it as dynamic costs nothing).
+  if (activeIdx >= items.length && items.length > 0) {
+    // Schedule a state update; render with clamped value this frame to
+    // avoid React warnings about out-of-range refs.
+    queueMicrotask(() => setActiveIdx(0));
+  }
+
+  function focusIdx(i: number) {
+    const next = ((i % items.length) + items.length) % items.length;
+    setActiveIdx(next);
+    refs.current[next]?.focus();
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault();
+        focusIdx(activeIdx + 1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault();
+        focusIdx(activeIdx - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        focusIdx(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        focusIdx(items.length - 1);
+        break;
+    }
+  }
+
+  const accentColor = variant === 'green' ? 'accent-green-600' : 'accent-yellow-600';
+
+  return (
+    <div
+      role="toolbar"
+      aria-label={ariaLabel}
+      onKeyDown={onKeyDown}
+      className="flex flex-wrap gap-1.5 mb-2"
+    >
+      {items.map((s, i) => {
+        const isActive = i === activeIdx;
+        const isChecked = checkedSet.has(i);
+        const checkedClass = variant === 'green'
+          ? 'bg-green-500/15 border-green-500 text-green-400'
+          : 'bg-yellow-500/15 border-yellow-500 text-yellow-400';
+        const idleClass = variant === 'green'
+          ? 'border-cream-500/20 text-cream-50 hover:border-green-500/60 hover:bg-green-500/15'
+          : 'border-cream-500/20 text-cream-50 hover:border-yellow-500/60 hover:bg-yellow-500/15';
+        return (
+          <label
+            key={i}
+            className={`relative flex items-center gap-1.5 px-2.5 py-1 text-xs border cursor-pointer transition-colors select-none has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-orange-500 has-[:focus-visible]:outline-offset-1 ${isChecked ? checkedClass : idleClass}`}
+          >
+            <input
+              ref={(el) => { refs.current[i] = el; }}
+              type="checkbox"
+              checked={isChecked}
+              onChange={() => onToggle(i)}
+              onFocus={() => setActiveIdx(i)}
+              tabIndex={isActive ? 0 : -1}
+              aria-checked={isChecked}
+              className={`${accentColor} w-3 h-3`}
+            />
+            {s.label}
+          </label>
+        );
+      })}
+    </div>
+  );
+}
 
 function ReviewCard({ review, defaultExpanded }: {
   review: ReviewData['submission']['reviews'][0];
