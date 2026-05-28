@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut, linkOAuth2 } from "@/lib/auth-client";
 import { ToggleSwitch } from '@/app/components/ToggleSwitch';
+import { useRoles, Role } from "@/lib/hooks/useRoles";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const { hasRole, isLoading: rolesLoading } = useRoles();
+  const isAdmin = !rolesLoading && hasRole(Role.ADMIN);
   const [hackatimeLinked, setHackatimeLinked] = useState<boolean | null>(null);
   const [disableGrain, setDisableGrain] = useState<boolean | null>(null);
+  const [reviewerUiV2, setReviewerUiV2] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function checkHackatime() {
@@ -29,11 +33,23 @@ export default function SettingsPage() {
         setDisableGrain(false);
       }
     }
+    async function fetchReviewerUi() {
+      try {
+        const res = await fetch('/api/user/reviewer-ui');
+        if (res.ok) {
+          const data = await res.json();
+          setReviewerUiV2(!!data.useV2);
+        }
+      } catch {
+        setReviewerUiV2(false);
+      }
+    }
     if (session) {
       checkHackatime();
       fetchGrainPref();
+      if (isAdmin) fetchReviewerUi();
     }
-  }, [session]);
+  }, [session, isAdmin]);
 
   if (!session) {
     return null;
@@ -111,6 +127,34 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+
+        {isAdmin && (
+          <div className="border-t border-cream-400 pt-6">
+            <h2 className="text-orange-500 text-xl uppercase mb-4">Review UI (Admin)</h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-brown-800 text-sm font-medium">Use v2 review page</p>
+                <p className="text-brown-600 text-xs">When on, /admin/review/[id] redirects to the redesigned /v2 layout.</p>
+              </div>
+              {reviewerUiV2 === null ? (
+                <div className="loader" style={{ width: 12, height: 18 }} />
+              ) : (
+                <ToggleSwitch
+                  checked={reviewerUiV2}
+                  label="Use v2 review page"
+                  onChange={async (newValue) => {
+                    setReviewerUiV2(newValue);
+                    await fetch('/api/user/reviewer-ui', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ useV2: newValue }),
+                    });
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-cream-400 pt-6">
           <h2 className="text-orange-500 text-xl uppercase mb-4">Session</h2>
