@@ -106,7 +106,7 @@ export function Tooltip({
             <div
               ref={tooltipRef}
               style={pos ? { left: pos.x, top: pos.y, opacity: 1 } : { left: -9999, top: -9999, opacity: 0 }}
-              className="attendance-tooltip fixed z-[10000] max-w-xs bg-brown-950 text-cream-100 text-xs px-2.5 py-1.5 leading-snug shadow-[0_4px_16px_rgba(0,0,0,0.5)] outline outline-1 -outline-offset-1 outline-cream-200/15 font-sans pointer-events-none"
+              className="console-tooltip fixed z-[10000] max-w-xs bg-brown-950 text-cream-100 text-xs px-2.5 py-1.5 leading-snug shadow-[0_4px_16px_rgba(0,0,0,0.5)] outline outline-1 -outline-offset-1 outline-cream-200/15 font-sans pointer-events-none"
               role="tooltip"
             >
               {content}

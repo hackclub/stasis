@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { CandidateRow, earnedBits } from '../lib/types';
-import { Tooltip } from './Tooltip';
+import { Tooltip } from '@/app/components/Tooltip';
 
 const SEP = '\u2002\u00b7\u2002';
 

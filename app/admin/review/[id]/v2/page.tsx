@@ -10,6 +10,9 @@ import { fixMarkdownImages } from '@/lib/markdown';
 import { useHotkeys, type HotkeyBinding } from '@/lib/hotkeys';
 import HotkeyOverlay from '@/app/components/HotkeyOverlay';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
+import { Select } from '@/app/components/Select';
+import { Kbd } from '@/app/components/Kbd';
+import { Tooltip } from '@/app/components/Tooltip';
 
 const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
 
@@ -190,6 +193,15 @@ const HOURS_BY_GUIDE: Record<string, number> = {
 
 const DEDUCTION_BY_GUIDE: Record<string, number> = {
   'blinky': 10,
+};
+
+/** Per-tier label tone — mirrors the tier pill colors in the page header. */
+const TIER_TONE: Record<number, string> = {
+  1: 'text-cream-100',
+  2: 'text-green-300',
+  3: 'text-blue-300',
+  4: 'text-purple-300',
+  5: 'text-orange-300',
 };
 
 const JUSTIFICATION_SHORTCUTS = [
@@ -389,7 +401,7 @@ export default function ReviewDetailPage() {
   const reasonRef = useRef<HTMLTextAreaElement | null>(null);
   const internalNoteRef = useRef<HTMLTextAreaElement | null>(null);
   const hoursOverrideRef = useRef<HTMLInputElement | null>(null);
-  const tierOverrideRef = useRef<HTMLSelectElement | null>(null);
+  const tierOverrideRef = useRef<HTMLButtonElement | null>(null);
   const grantOverrideRef = useRef<HTMLInputElement | null>(null);
   const deductionOverrideRef = useRef<HTMLInputElement | null>(null);
   // First chips in their respective groups — `Tab`/arrow key chip navigation
@@ -1824,11 +1836,14 @@ export default function ReviewDetailPage() {
           <div className="grid grid-cols-3 gap-x-4 gap-y-3 mb-3 text-sm">
             <div>
               <p className="text-cream-200 text-xs uppercase">Hours</p>
-              <p
-                className={outOfTierRange ? 'text-red-400 font-medium' : tierInfo ? 'text-green-400 font-medium' : 'text-cream-50'}
-                title={outOfTierRange && tierInfo ? `Outside ${tierInfo.name} tier range (${tierInfo.minHours}–${tierInfo.maxHours === Infinity ? '∞' : tierInfo.maxHours}h)` : tierInfo ? `Within ${tierInfo.name} tier range (${tierInfo.minHours}–${tierInfo.maxHours === Infinity ? '∞' : tierInfo.maxHours}h)` : undefined}
-              >
-                {Math.round(project.totalWorkUnits * 100) / 100}h
+              <p className={outOfTierRange ? 'text-red-400 font-medium' : tierInfo ? 'text-green-400 font-medium' : 'text-cream-50'}>
+                {tierInfo ? (
+                  <Tooltip content={`${outOfTierRange ? 'Outside' : 'Within'} ${tierInfo.name} tier range (${tierInfo.minHours}–${tierInfo.maxHours === Infinity ? '∞' : tierInfo.maxHours}h)`}>
+                    <>{Math.round(project.totalWorkUnits * 100) / 100}h</>
+                  </Tooltip>
+                ) : (
+                  <>{Math.round(project.totalWorkUnits * 100) / 100}h</>
+                )}
                 {outOfTierRange && tierInfo && (
                   <span className="text-red-400/70 text-xs ml-1 normal-case">
                     (tier: {tierInfo.minHours}–{tierInfo.maxHours === Infinity ? '∞' : tierInfo.maxHours}h)
@@ -1846,20 +1861,22 @@ export default function ReviewDetailPage() {
             </div>
             <div>
               <p className="text-cream-200 text-xs uppercase">Requested $/Hour</p>
-              <p
-                className={project.costPerHour === null ? 'text-cream-50' : highBomPerHour ? 'text-yellow-400 font-medium' : 'text-green-400 font-medium'}
-                title={highBomPerHour ? 'High cost per hour (> $5/h)' : project.costPerHour !== null ? 'Within normal range (≤ $5/h)' : undefined}
-              >
-                {project.costPerHour !== null ? `$${project.costPerHour.toFixed(2)}` : '—'}
+              <p className={project.costPerHour === null ? 'text-cream-50' : highBomPerHour ? 'text-yellow-400 font-medium' : 'text-green-400 font-medium'}>
+                {project.costPerHour !== null ? (
+                  <Tooltip content={highBomPerHour ? 'High cost per hour (> $5/h)' : 'Within normal range (≤ $5/h)'}>
+                    <>${project.costPerHour.toFixed(2)}</>
+                  </Tooltip>
+                ) : '—'}
               </p>
             </div>
             <div>
               <p className="text-cream-200 text-xs uppercase">Bits/Hour</p>
-              <p
-                className={project.bitsPerHour === null ? 'text-cream-50' : highBitsPerHour ? 'text-yellow-400 font-medium' : 'text-green-400 font-medium'}
-                title={highBitsPerHour ? 'High bits per hour (> 10)' : project.bitsPerHour !== null ? 'Within normal range (≤ 10)' : undefined}
-              >
-                {project.bitsPerHour !== null ? project.bitsPerHour : '—'}
+              <p className={project.bitsPerHour === null ? 'text-cream-50' : highBitsPerHour ? 'text-yellow-400 font-medium' : 'text-green-400 font-medium'}>
+                {project.bitsPerHour !== null ? (
+                  <Tooltip content={highBitsPerHour ? 'High bits per hour (> 10)' : 'Within normal range (≤ 10)'}>
+                    <>{project.bitsPerHour}</>
+                  </Tooltip>
+                ) : '—'}
               </p>
             </div>
             <div>
@@ -2507,7 +2524,7 @@ export default function ReviewDetailPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
               <div>
                 <label className="text-cream-200 text-xs uppercase block mb-1">
-                  Hours Override <span className="text-cream-500 normal-case ml-1">⌃H</span>
+                  Hours Override <Kbd className="ml-1.5">⌃H</Kbd>
                 </label>
                 <input
                   ref={hoursOverrideRef}
@@ -2522,24 +2539,27 @@ export default function ReviewDetailPage() {
               </div>
               <div>
                 <label className="text-cream-200 text-xs uppercase block mb-1">
-                  Tier Override <span className="text-cream-500 normal-case ml-1">⌃;</span>
+                  Tier Override <Kbd className="ml-1.5">⌃;</Kbd>
                 </label>
-                <select
-                  ref={tierOverrideRef}
+                <Select
+                  triggerRef={tierOverrideRef}
                   value={tierOverride}
-                  onChange={(e) => setTierOverride(e.target.value)}
-                  aria-keyshortcuts="Control+;"
-                  className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500 focus-visible:ring-1 focus-visible:ring-orange-500"
-                >
-                  <option value="">Current: {tierInfo?.name || 'None'}</option>
-                  {TIERS.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name} ({t.bits} bits, {t.minHours}-{t.maxHours === Infinity ? '67+' : t.maxHours}h)</option>
-                  ))}
-                </select>
+                  onChange={setTierOverride}
+                  ariaKeyshortcuts="Control+;"
+                  options={[
+                    { value: '', label: `Current: ${tierInfo?.name || 'None'}` },
+                    ...TIERS.map((t) => ({
+                      value: String(t.id),
+                      label: t.name,
+                      hint: `${t.bits} bits · ${t.minHours}–${t.maxHours === Infinity ? '67+' : t.maxHours}h`,
+                      tone: TIER_TONE[t.id],
+                    })),
+                  ]}
+                />
               </div>
               <div>
                 <label className="text-cream-200 text-xs uppercase block mb-1">
-                  Grant Override (USD) <span className="text-cream-500 normal-case ml-1">⌃$</span>
+                  Grant Override (USD) <Kbd className="ml-1.5">⌃$</Kbd>
                 </label>
                 <input
                   ref={grantOverrideRef}
@@ -2568,7 +2588,7 @@ export default function ReviewDetailPage() {
               </div>
               <div>
                 <label className="text-cream-200 text-xs uppercase block mb-1">
-                  Bits Deduction <span className="text-cream-500 normal-case ml-1">⌃B</span>
+                  Bits Deduction <Kbd className="ml-1.5">⌃B</Kbd>
                 </label>
                 <input
                   ref={deductionOverrideRef}
@@ -2592,15 +2612,15 @@ export default function ReviewDetailPage() {
               {isAdmin && (
                 <div>
                   <label className="text-cream-200 text-xs uppercase block mb-1">Stage Override (Admin)</label>
-                  <select
+                  <Select
                     value={categoryOverride}
-                    onChange={(e) => setCategoryOverride(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-cream-500/20 bg-brown-900 text-cream-50 focus:outline-none focus:border-orange-500"
-                  >
-                    <option value="">No change</option>
-                    <option value="DESIGN">Design</option>
-                    <option value="BUILD">Build</option>
-                  </select>
+                    onChange={setCategoryOverride}
+                    options={[
+                      { value: '', label: 'No change' },
+                      { value: 'DESIGN', label: 'Design', tone: 'text-blue-300' },
+                      { value: 'BUILD', label: 'Build', tone: 'text-green-300' },
+                    ]}
+                  />
                 </div>
               )}
             </div>
@@ -2609,7 +2629,7 @@ export default function ReviewDetailPage() {
               <label className="text-cream-200 text-xs uppercase block mb-1">
                 Internal Justification
                 {!isAdmin && <span className="text-cream-500 normal-case ml-1">(optional)</span>}
-                {isAdmin && <span className="text-cream-500 normal-case ml-1">⌃R · Tab in, ←→ navigate, Space toggle</span>}
+                {isAdmin && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃R</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
               </label>
               {isAdmin && (
                 <ChipGroup
@@ -2633,7 +2653,7 @@ export default function ReviewDetailPage() {
             <div className="mb-3">
               <label className="text-cream-200 text-xs uppercase block mb-1">
                 Feedback for Submitter
-                {isAdmin && <span className="text-cream-500 normal-case ml-1">⌃F · Tab in, ←→ navigate, Space toggle</span>}
+                {isAdmin && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃F</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
               </label>
               {isAdmin && (
                 <ChipGroup
@@ -2911,7 +2931,7 @@ export default function ReviewDetailPage() {
                 const rect = popupRef.current.getBoundingClientRect();
                 setPopupSize({ w: rect.width, h: rect.height });
               }}
-              className="max-w-[40vw] max-h-[60vh] object-contain block"
+              className="min-w-[320px] min-h-[240px] max-w-[40vw] max-h-[60vh] object-contain block bg-brown-900"
             />
           </div>
         );

@@ -5,7 +5,7 @@ import { Avatar } from './Avatar';
 import { SourceBadge } from './SourceBadge';
 import { AttendanceStatus } from '../lib/types';
 import { CandidateRow, earnedBits, relativeTime, locationLabel, locationRegion, fullAddressLines } from '../lib/types';
-import { Tooltip } from './Tooltip';
+import { Tooltip } from '@/app/components/Tooltip';
 import { DerivedStatLine } from './DerivedStatLine';
 
 type SortKey = 'recent' | 'realBits' | 'projects' | 'hours' | 'reviews';

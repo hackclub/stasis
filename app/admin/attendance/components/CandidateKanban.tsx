@@ -7,7 +7,7 @@ import { SOURCE_LABEL, SOURCE_FULL_LABEL, CandidateRow, KanbanColumn, Attendance
 import { ContextMenu, MenuItem } from './ContextMenu';
 import { InviteAttendDialog } from './InviteAttendDialog';
 import { LinkStasisUserDialog } from './LinkStasisUserDialog';
-import { Tooltip } from './Tooltip';
+import { Tooltip } from '@/app/components/Tooltip';
 import { AttendStatusPill } from './AttendStatusPill';
 
 const TOUCH_DOT: Record<ReturnType<typeof touchHealth>, string> = {

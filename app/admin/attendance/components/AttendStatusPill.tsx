@@ -1,6 +1,6 @@
 'use client';
 
-import { Tooltip } from './Tooltip';
+import { Tooltip } from '@/app/components/Tooltip';
 import {
   AttendDisplayState,
   ATTEND_DISPLAY_LABEL,
