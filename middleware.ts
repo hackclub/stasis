@@ -11,7 +11,7 @@ const securityHeaders = {
     "connect-src 'self' https://api2.hackclub.com https://kicanvas.org https://raw.githubusercontent.com",
     "font-src 'self' https://kicanvas.org https://fonts.gstatic.com",
     "worker-src 'self' blob:",
-    "frame-src 'self' https://www.youtube.com https://youtube.com",
+    "frame-src 'self' https://www.youtube.com https://youtube.com https://github1s.com",
     "frame-ancestors 'none'",
   ].join("; "),
   "X-Content-Type-Options": "nosniff",
