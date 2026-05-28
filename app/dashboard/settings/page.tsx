@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const isAdmin = !rolesLoading && hasRole(Role.ADMIN);
   const [hackatimeLinked, setHackatimeLinked] = useState<boolean | null>(null);
   const [disableGrain, setDisableGrain] = useState<boolean | null>(null);
-  const [reviewerUiV2, setReviewerUiV2] = useState<boolean | null>(null);
+  const [reviewerUiOld, setReviewerUiOld] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function checkHackatime() {
@@ -38,10 +38,10 @@ export default function SettingsPage() {
         const res = await fetch('/api/user/reviewer-ui');
         if (res.ok) {
           const data = await res.json();
-          setReviewerUiV2(!!data.useV2);
+          setReviewerUiOld(!!data.useOld);
         }
       } catch {
-        setReviewerUiV2(false);
+        setReviewerUiOld(false);
       }
     }
     if (session) {
@@ -133,21 +133,21 @@ export default function SettingsPage() {
             <h2 className="text-orange-500 text-xl uppercase mb-4">Review UI (Admin)</h2>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-brown-800 text-sm font-medium">Use v2 review page</p>
-                <p className="text-brown-600 text-xs">When on, /admin/review/[id] redirects to the redesigned /v2 layout.</p>
+                <p className="text-brown-800 text-sm font-medium">Use old review page</p>
+                <p className="text-brown-600 text-xs">When on, queue links open the original /old layout instead of the redesigned one.</p>
               </div>
-              {reviewerUiV2 === null ? (
+              {reviewerUiOld === null ? (
                 <div className="loader" style={{ width: 12, height: 18 }} />
               ) : (
                 <ToggleSwitch
-                  checked={reviewerUiV2}
-                  label="Use v2 review page"
+                  checked={reviewerUiOld}
+                  label="Use old review page"
                   onChange={async (newValue) => {
-                    setReviewerUiV2(newValue);
+                    setReviewerUiOld(newValue);
                     await fetch('/api/user/reviewer-ui', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ useV2: newValue }),
+                      body: JSON.stringify({ useOld: newValue }),
                     });
                   }}
                 />

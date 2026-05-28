@@ -114,9 +114,9 @@ model User {
   eventPreference    String?
   pronouns           String?
   disableGrain       Boolean  @default(false)
-  // Admin opt-in for the redesigned review-detail page (v2). When true, the
-  // default /admin/review/[id] route redirects to /admin/review/[id]/v2.
-  reviewerUiV2       Boolean  @default(false)
+  // Admin opt-in to keep using the old review-detail UI. When true, the
+  // queue page links into /admin/review/[id]/old instead of the default route.
+  reviewerUiOld      Boolean  @default(false)
   utmSource          String?
   signupPage         String?
   timezone           String? // IANA timezone, e.g. "America/New_York" — updated on each authenticated request that sends tz

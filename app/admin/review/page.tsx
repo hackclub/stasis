@@ -136,6 +136,7 @@ export default function ReviewQueuePage() {
   const [windbreakerLoading, setWindbreakerLoading] = useState(false);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [useOldReviewUi, setUseOldReviewUi] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -167,7 +168,7 @@ export default function ReviewQueuePage() {
           if (filterPronouns) qp.set('pronouns', filterPronouns);
           if (prioritizeAttending) qp.set('prioritizeAttending', 'true');
           if (region) qp.set('region', region);
-          router.push(`/admin/review/${items[0].id}?${qp}`);
+          router.push(`/admin/review/${items[0].id}${useOldReviewUi ? '/old' : ''}?${qp}`);
           return;
         }
       }
@@ -268,6 +269,14 @@ export default function ReviewQueuePage() {
 
   useEffect(() => { fetchQueues(); }, [fetchQueues]);
   useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/user/reviewer-ui')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setUseOldReviewUi(!!d.useOld); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   useEffect(() => {
     if (statsTab === 'fudgeHoodie') fetchRewards();
     if (statsTab === 'windbreaker') fetchWindbreaker();
@@ -724,7 +733,7 @@ export default function ReviewQueuePage() {
                       <td className="px-3 py-3 text-center">
                         <div>
                           <Link
-                            href={`/admin/review/${item.id}?category=${activeTab}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}`}
+                            href={`/admin/review/${item.id}${useOldReviewUi ? '/old' : ''}?category=${activeTab}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}`}
                             className={`inline-block px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
                               item.claimedByOther
                                 ? 'border-cream-500/20 text-cream-500 cursor-not-allowed'
