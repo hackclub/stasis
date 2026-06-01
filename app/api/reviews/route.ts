@@ -10,10 +10,12 @@ export async function GET(request: NextRequest) {
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
   if (authCheck.error) return authCheck.error
 
-  const isAdmin = hasRole(authCheck.roles, Role.ADMIN)
+  const realAdmin = hasRole(authCheck.roles, Role.ADMIN)
   const reviewerId = authCheck.session.user.id
 
   const url = request.nextUrl
+  const viewAs = url.searchParams.get("viewAs")
+  const isAdmin = realAdmin && viewAs === "first-pass" ? false : realAdmin
   const search = url.searchParams.get("search") || ""
   const category = url.searchParams.get("category") || "" // DESIGN or BUILD
   const guide = url.searchParams.get("guide") || "" // starter project ID filter

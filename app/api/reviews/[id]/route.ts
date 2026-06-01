@@ -14,8 +14,10 @@ export async function GET(
   if (authCheck.error) return authCheck.error
 
   const { id } = await params
-  const isAdmin = hasRole(authCheck.roles, Role.ADMIN)
+  const realAdmin = hasRole(authCheck.roles, Role.ADMIN)
   const reviewerId = authCheck.session.user.id
+  const viewAs = _request.nextUrl.searchParams.get("viewAs")
+  const isAdmin = realAdmin && viewAs === "first-pass" ? false : realAdmin
 
   // Try as project ID first (most common path from queue), then submission ID
   let project = await prisma.project.findUnique({

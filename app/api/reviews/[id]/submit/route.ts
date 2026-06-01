@@ -54,9 +54,11 @@ export async function POST(
   if (authCheck.error) return authCheck.error
 
   const { id: rawId } = await params
-  const isAdmin = hasRole(authCheck.roles, Role.ADMIN)
+  const realAdmin = hasRole(authCheck.roles, Role.ADMIN)
   const reviewerId = authCheck.session.user.id
   const body = await request.json()
+  const viewAs = body.viewAs as string | undefined
+  const isAdmin = realAdmin && viewAs === "first-pass" ? false : realAdmin
 
   const {
     result,

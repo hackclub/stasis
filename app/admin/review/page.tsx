@@ -137,6 +137,7 @@ export default function ReviewQueuePage() {
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [useOldReviewUi, setUseOldReviewUi] = useState(false);
+  const [viewAsFirstPass, setViewAsFirstPass] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -155,6 +156,7 @@ export default function ReviewQueuePage() {
       if (filterPronouns) params.set('pronouns', filterPronouns);
       if (prioritizeAttending) params.set('prioritizeAttending', 'true');
       if (region) params.set('region', region);
+      if (viewAsFirstPass) params.set('viewAs', 'first-pass');
       params.set('limit', '1');
       const res = await fetch(`/api/reviews?${params}`);
       if (res.ok) {
@@ -168,6 +170,7 @@ export default function ReviewQueuePage() {
           if (filterPronouns) qp.set('pronouns', filterPronouns);
           if (prioritizeAttending) qp.set('prioritizeAttending', 'true');
           if (region) qp.set('region', region);
+          if (viewAsFirstPass) qp.set('viewAs', 'first-pass');
           router.push(`/admin/review/${items[0].id}${useOldReviewUi ? '/old' : ''}?${qp}`);
           return;
         }
@@ -187,6 +190,7 @@ export default function ReviewQueuePage() {
       if (search) baseParams.set('search', search);
       if (prioritizeAttending) baseParams.set('prioritizeAttending', 'true');
       if (region) baseParams.set('region', region);
+      if (viewAsFirstPass) baseParams.set('viewAs', 'first-pass');
       baseParams.set('limit', '50');
 
       const designParams = new URLSearchParams(baseParams);
@@ -205,7 +209,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, prioritizeAttending, region]);
+  }, [search, prioritizeAttending, region, viewAsFirstPass]);
 
   const loadMore = useCallback(async (tab: ReviewTab) => {
     const current = tab === 'DESIGN' ? designData : buildData;
@@ -215,6 +219,7 @@ export default function ReviewQueuePage() {
     if (search) params.set('search', search);
     if (prioritizeAttending) params.set('prioritizeAttending', 'true');
     if (region) params.set('region', region);
+    if (viewAsFirstPass) params.set('viewAs', 'first-pass');
     params.set('limit', '50');
     params.set('category', tab);
     params.set('cursor', current.nextCursor);
@@ -232,7 +237,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [designData, buildData, search, prioritizeAttending, region]);
+  }, [designData, buildData, search, prioritizeAttending, region, viewAsFirstPass]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -435,6 +440,18 @@ export default function ReviewQueuePage() {
         </div>
       </div>
 
+      {viewAsFirstPass && (
+        <div className="mb-4 flex items-center justify-between px-4 py-2 border border-blue-500/40 bg-blue-500/10 text-blue-300 text-sm">
+          <span className="uppercase tracking-wider text-xs font-medium">Acting as first-pass reviewer</span>
+          <button
+            onClick={() => setViewAsFirstPass(false)}
+            className="px-3 py-1 text-xs uppercase tracking-wider border border-blue-400/50 hover:bg-blue-500/20 cursor-pointer"
+          >
+            Exit Preview
+          </button>
+        </div>
+      )}
+
       {/* Design / Build Tabs */}
       <div className="mb-4 flex items-center gap-0 border-b border-cream-500/20">
         <button
@@ -573,6 +590,15 @@ export default function ReviewQueuePage() {
             <option value="na">North America</option>
             <option value="eu">Europe</option>
           </select>
+          {data?.isAdmin && !viewAsFirstPass && (
+            <button
+              onClick={() => setViewAsFirstPass(true)}
+              title="Preview what first-pass reviewers see"
+              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer"
+            >
+              View as 1st-Pass
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSearch} className="flex gap-2">
@@ -733,7 +759,7 @@ export default function ReviewQueuePage() {
                       <td className="px-3 py-3 text-center">
                         <div>
                           <Link
-                            href={`/admin/review/${item.id}${useOldReviewUi ? '/old' : ''}?category=${activeTab}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}`}
+                            href={`/admin/review/${item.id}${useOldReviewUi ? '/old' : ''}?category=${activeTab}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}${viewAsFirstPass ? '&viewAs=first-pass' : ''}`}
                             className={`inline-block px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
                               item.claimedByOther
                                 ? 'border-cream-500/20 text-cream-500 cursor-not-allowed'
