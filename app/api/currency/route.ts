@@ -6,13 +6,15 @@ import prisma from "@/lib/prisma"
 /**
  * GET /api/currency
  *
- * Returns the authenticated user's bits balance from the immutable ledger,
- * plus BOM costs for display purposes.
+ * Returns the authenticated user's bits balance and breakdown.
  *
- *   bitsEarned  = sum of positive ledger entries (PROJECT_APPROVED + ADMIN_GRANT)
- *   bitsDeducted = absolute sum of negative ledger entries (ADMIN_DEDUCTION)
- *   bitsBalance = sum of all ledger entries (authoritative)
- *   bomCost     = sum of approved BOM item costs (informational; shown separately)
+ *   bitsEarned   = confirmed earnings (PROJECT_APPROVED + ADMIN_GRANT + SHOP_REFUND + REVIEWER_PAYMENT)
+ *   bitsSpent    = user-facing outflows (SHOP_PURCHASE + ADMIN_DEDUCTION + SHOP_REFUND_REVERSED)
+ *   bitsBalance  = sum of all ledger entries (authoritative)
+ *   pendingBits  = net DESIGN_APPROVED entries (pending build review)
+ *
+ * BOM costs are already deducted before bits are granted, so they don't appear
+ * as a separate line item. earned - spent = balance (excluding pending).
  */
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -22,26 +24,26 @@ export async function GET() {
 
   const userId = session.user.id
 
-  const [earned, deducted, designApprovedProjects] = await Promise.all([
+  const EARNED_TYPES = ['PROJECT_APPROVED', 'ADMIN_GRANT', 'SHOP_REFUND', 'REVIEWER_PAYMENT']
+  const SPENT_TYPES = ['SHOP_PURCHASE', 'ADMIN_DEDUCTION', 'SHOP_REFUND_REVERSED']
+
+  const [earnedRows, spentRows, balanceResult] = await Promise.all([
+    prisma.$queryRaw<{ total: bigint | null }[]>`
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM currency_transaction
+      WHERE "userId" = ${userId} AND type::text = ANY(${EARNED_TYPES})
+    `,
+    prisma.$queryRaw<{ total: bigint | null }[]>`
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM currency_transaction
+      WHERE "userId" = ${userId} AND type::text = ANY(${SPENT_TYPES})
+    `,
     prisma.currencyTransaction.aggregate({
-      where: { userId, amount: { gt: 0 } },
+      where: { userId },
       _sum: { amount: true },
-    }),
-    prisma.currencyTransaction.aggregate({
-      where: { userId, amount: { lt: 0 } },
-      _sum: { amount: true },
-    }),
-    prisma.project.findMany({
-      where: { userId, deletedAt: null, designStatus: "approved" },
-      select: {
-        bomTax: true,
-        bomShipping: true,
-        bomItems: { where: { status: "approved" }, select: { totalCost: true } },
-      },
     }),
   ])
 
-  // Use raw SQL with text cast to avoid enum validation error if migration hasn't run
   const pendingRows = await prisma.$queryRaw<{ pending: bigint | null }[]>`
     SELECT COALESCE(SUM(amount), 0) as pending
     FROM currency_transaction
@@ -49,16 +51,9 @@ export async function GET() {
   `
   const pendingBits = Number(pendingRows[0]?.pending ?? 0)
 
-  const bitsEarned = earned._sum.amount ?? 0
-  const bitsDeducted = Math.abs(deducted._sum.amount ?? 0)
-  const bitsBalance = bitsEarned - bitsDeducted
-  // Sum each design-approved project's BOM cost (items + tax + shipping) ceil'd to whole bits,
-  // matching how bits are deducted at design-approval time. Otherwise the UI shows fractional dollars.
-  const bomCost = designApprovedProjects.reduce((acc, p) => {
-    const items = p.bomItems.reduce((s, b) => s + b.totalCost, 0)
-    const project = items + (p.bomTax ?? 0) + (p.bomShipping ?? 0)
-    return acc + Math.ceil(project)
-  }, 0)
+  const bitsEarned = Number(earnedRows[0]?.total ?? 0)
+  const bitsSpent = Math.abs(Number(spentRows[0]?.total ?? 0))
+  const bitsBalance = balanceResult._sum.amount ?? 0
 
-  return NextResponse.json({ bitsEarned, bitsDeducted, bitsBalance, pendingBits, bomCost })
+  return NextResponse.json({ bitsEarned, bitsSpent, bitsBalance, pendingBits })
 }

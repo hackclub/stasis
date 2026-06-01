@@ -173,7 +173,7 @@ export default function ShopPage() {
   const [bitsBalance, setBitsBalance] = useState<number>(0);
   const [pendingBits, setPendingBits] = useState<number>(0);
   const [bitsEarned, setBitsEarned] = useState<number>(0);
-  const [bitsSpent, setBitsSpent] = useState<number>(0);
+  const [bitsSpentShop, setBitsSpentShop] = useState<number>(0);
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
   const [isStasisAttendee, setIsStasisAttendee] = useState<boolean>(false);
   const [itemTotals, setItemTotals] = useState<Record<string, number>>({});
@@ -195,9 +195,9 @@ export default function ShopPage() {
         fetch('/api/shop/items'),
       ]);
       if (currencyRes.ok) {
-        const { bitsEarned, bomCost, bitsBalance, pendingBits: pending } = await currencyRes.json();
+        const { bitsEarned, bitsSpent, bitsBalance, pendingBits: pending } = await currencyRes.json();
         setBitsEarned(bitsEarned);
-        setBitsSpent(bomCost ?? 0);
+        setBitsSpentShop(bitsSpent ?? 0);
         setBitsBalance(bitsBalance);
         setPendingBits(pending ?? 0);
       }
@@ -338,9 +338,22 @@ export default function ShopPage() {
           </div>
           <div className="text-right">
             <p className="text-brown-800 text-xs uppercase tracking-wide">Earned</p>
-            <p className="text-brown-800 text-lg">{bitsEarned.toLocaleString()}&nbsp;bits</p>
-            <p className="text-brown-800 text-xs uppercase tracking-wide mt-1">Spent on Parts</p>
-            <p className="text-brown-800 text-lg">{bitsSpent.toLocaleString()}&nbsp;bits</p>
+            <p className="text-brown-800 text-lg">
+              {bitsEarned > 0 ? (
+                <>
+                  {bitsEarned.toLocaleString()}&nbsp;bits
+                  {pendingBits > 0 && (
+                    <span className="text-orange-500 text-sm">&nbsp;(+{pendingBits.toLocaleString()} pending)</span>
+                  )}
+                </>
+              ) : pendingBits > 0 ? (
+                <span className="text-orange-500">{pendingBits.toLocaleString()}&nbsp;pending bits</span>
+              ) : (
+                <>0&nbsp;bits</>
+              )}
+            </p>
+            <p className="text-brown-800 text-xs uppercase tracking-wide mt-1">Spent</p>
+            <p className="text-brown-800 text-lg">{bitsSpentShop.toLocaleString()}&nbsp;bits</p>
           </div>
         </div>
       </div>
