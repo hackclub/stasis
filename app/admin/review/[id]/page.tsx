@@ -1906,6 +1906,27 @@ export default function ReviewDetailPage() {
             </div>
           )}
 
+          {(() => {
+            const videos = project.workSessions.flatMap((s) => s.media.filter((m) => m.type === 'VIDEO'));
+            if (videos.length === 0) return null;
+            return (
+              <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1">
+                {videos.map((v, i) => (
+                  <a
+                    key={v.id}
+                    href={v.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-400 underline"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    {videos.length === 1 ? 'Demo Video ↗' : `Demo Video ${i + 1} ↗`}
+                  </a>
+                ))}
+              </div>
+            );
+          })()}
+
           {project.tags.length > 0 && (
             <div className="flex gap-1 flex-wrap">
               {project.tags.map((tag) => (
