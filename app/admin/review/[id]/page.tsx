@@ -15,6 +15,7 @@ import { Kbd } from '@/app/components/Kbd';
 import { Tooltip } from '@/app/components/Tooltip';
 
 const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
+const CadFileBrowser = dynamic(() => import('@/app/components/CadFileBrowser'), { ssr: false });
 
 interface KiCadProject {
   name: string;
@@ -387,6 +388,7 @@ export default function ReviewDetailPage() {
   const [rightWidth, setRightWidth] = useState(420);
   const [resizing, setResizing] = useState(false);
   const [repoCollapsed, setRepoCollapsed] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<'repo' | 'cad'>('repo');
   // Workspace height is computed from the workspace's offset to the top of the
   // page so the panes fit in the remaining viewport. Without this the outer
   // page scrolls *in addition* to the panes — a confusing double-scroll.
@@ -496,6 +498,8 @@ export default function ReviewDetailPage() {
     if (Number.isFinite(l) && l >= 280 && l <= 800) setLeftWidth(l);
     if (Number.isFinite(r) && r >= 280 && r <= 800) setRightWidth(r);
     if (localStorage.getItem('review:repoCollapsed') === '1') setRepoCollapsed(true);
+    const storedTab = localStorage.getItem('review:sidebarTab');
+    if (storedTab === 'repo' || storedTab === 'cad') setSidebarTab(storedTab);
   }, []);
 
   // Start a drag on one of the pane dividers. Handlers are attached to the
@@ -1034,6 +1038,12 @@ export default function ReviewDetailPage() {
   }) {
     const rawFeedback = (overrides?.feedback ?? feedback).trim();
     const effectiveFeedback = rawFeedback || 'Awesome project!';
+    const effectiveReason = (overrides?.reason ?? reason).trim();
+
+    if (!isAdmin && !effectiveReason) {
+      reasonRef.current?.focus();
+      return;
+    }
 
     if (result === 'REJECTED' && !overrides?.skipConfirm && !confirm('Are you sure you want to permanently reject this submission?')) {
       return;
@@ -2710,7 +2720,7 @@ export default function ReviewDetailPage() {
             <div className="mb-3">
               <label className="text-cream-200 text-xs uppercase block mb-1">
                 Internal Justification
-                {!isAdmin && <span className="text-cream-500 normal-case ml-1">(optional)</span>}
+                {!isAdmin && <span className="text-orange-500 normal-case ml-1">(required)</span>}
                 {isAdmin && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃R</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
               </label>
               {isAdmin && (
