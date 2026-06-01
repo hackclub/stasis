@@ -301,6 +301,7 @@ export default function ReviewDetailPage() {
   const filterPronouns = searchParams.get('pronouns') || '';
   const filterAttendees = searchParams.get('prioritizeAttending') === 'true';
   const filterRegion = searchParams.get('region') || '';
+  const viewAs = searchParams.get('viewAs') || '';
 
   // Build query string for filter-aware navigation
   const filterQS = (() => {
@@ -312,6 +313,7 @@ export default function ReviewDetailPage() {
     if (filterPronouns) qp.set('pronouns', filterPronouns);
     if (filterAttendees) qp.set('prioritizeAttending', 'true');
     if (filterRegion) qp.set('region', filterRegion);
+    if (viewAs) qp.set('viewAs', viewAs);
     const s = qp.toString();
     return s ? `?${s}` : '';
   })();
@@ -384,6 +386,7 @@ export default function ReviewDetailPage() {
   const [leftWidth, setLeftWidth] = useState(600);
   const [rightWidth, setRightWidth] = useState(420);
   const [resizing, setResizing] = useState(false);
+  const [repoCollapsed, setRepoCollapsed] = useState(false);
   // Workspace height is computed from the workspace's offset to the top of the
   // page so the panes fit in the remaining viewport. Without this the outer
   // page scrolls *in addition* to the panes — a confusing double-scroll.
@@ -486,12 +489,13 @@ export default function ReviewDetailPage() {
     };
   }, [hideChrome, hasData]);
 
-  // Restore persisted pane widths on mount.
+  // Restore persisted pane widths and repo-collapsed state on mount.
   useEffect(() => {
     const l = Number(localStorage.getItem('review:leftPaneWidth'));
     const r = Number(localStorage.getItem('review:rightPaneWidth'));
     if (Number.isFinite(l) && l >= 280 && l <= 800) setLeftWidth(l);
     if (Number.isFinite(r) && r >= 280 && r <= 800) setRightWidth(r);
+    if (localStorage.getItem('review:repoCollapsed') === '1') setRepoCollapsed(true);
   }, []);
 
   // Start a drag on one of the pane dividers. Handlers are attached to the
@@ -1056,6 +1060,7 @@ export default function ReviewDetailPage() {
     else if (grantOverride) body.grantOverride = parseInt(grantOverride);
     if (additionalBitsDeduction) body.additionalBitsDeduction = parseInt(additionalBitsDeduction);
     if (categoryOverride && data?.isAdmin) body.categoryOverride = categoryOverride;
+    if (viewAs) body.viewAs = viewAs;
 
     // Snapshot form state so we can restore it if the submit fails.
     const snapshot = {
@@ -1590,6 +1595,23 @@ export default function ReviewDetailPage() {
         </div>
       )}
 
+      {viewAs === 'first-pass' && (
+        <div className="mb-4 flex items-center justify-between px-4 py-2 border border-blue-500/40 bg-blue-500/10 text-blue-300 text-sm">
+          <span className="uppercase tracking-wider text-xs font-medium">Acting as first-pass reviewer</span>
+          <Link
+            href={(() => {
+              const qp = new URLSearchParams(filterQS.replace(/^\?/, ''));
+              qp.delete('viewAs');
+              const s = qp.toString();
+              return `/admin/review/${id}${s ? `?${s}` : ''}`;
+            })()}
+            className="px-3 py-1 text-xs uppercase tracking-wider border border-blue-400/50 hover:bg-blue-500/20"
+          >
+            Exit Preview
+          </Link>
+        </div>
+      )}
+
       {/* ── Navigation Bar ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -1611,6 +1633,19 @@ export default function ReviewDetailPage() {
             <span className="px-2 py-0.5 text-xs uppercase tracking-wider bg-orange-500/10 border border-orange-500 text-orange-500">
               Filtering: {[filterCategory, filterGuide, filterNameSearch && `name:${filterNameSearch}`, filterSort].filter(Boolean).join(' + ') || 'All'}
             </span>
+          )}
+          {isAdmin && viewAs !== 'first-pass' && (
+            <Link
+              href={(() => {
+                const qp = new URLSearchParams(filterQS.replace(/^\?/, ''));
+                qp.set('viewAs', 'first-pass');
+                return `/admin/review/${id}?${qp}`;
+              })()}
+              title="Preview what first-pass reviewers see"
+              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-blue-400 hover:text-blue-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+            >
+              View as 1st-Pass
+            </Link>
           )}
         </div>
         <div className="flex gap-2">
@@ -1685,59 +1720,85 @@ export default function ReviewDetailPage() {
       >
 
       {/* ── Repo Embed Column (github1s) — 2xl+ only ──
-           Always rendered at 2xl so the column slot stays present even when the
-           project has no parseable github.com URL. */}
-      <div
-        className="hidden 2xl:flex 2xl:flex-col 2xl:h-full 2xl:w-[var(--left-w)] bg-brown-800 border border-cream-500/20 min-h-0 shrink-0"
-      >
-        <div className="flex items-center justify-between px-3 py-2 border-b border-cream-500/20 shrink-0">
-          <span className="text-cream-50 text-xs uppercase tracking-wider">Repo</span>
-          {project.githubRepo && (
-            <div className="flex items-center gap-3">
-              <a
-                href={project.githubRepo}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-orange-400 hover:text-orange-300 text-xs underline"
+           Collapsible into a thin vertical sidebar; state + width persisted
+           in localStorage so it survives across reviews. */}
+      {repoCollapsed ? (
+        <button
+          onClick={() => { setRepoCollapsed(false); localStorage.setItem('review:repoCollapsed', '0'); }}
+          className="hidden 2xl:flex 2xl:flex-col 2xl:h-full w-10 shrink-0 bg-brown-800 border border-cream-500/20 items-center justify-center cursor-pointer hover:border-orange-500/40 transition-colors group"
+          title="Expand repo panel"
+        >
+          <span
+            className="text-cream-200 text-[10px] uppercase tracking-[0.2em] group-hover:text-cream-50 transition-colors"
+            style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+          >
+            Repo
+          </span>
+        </button>
+      ) : (
+        <>
+        <div
+          className="hidden 2xl:flex 2xl:flex-col 2xl:h-full 2xl:w-[var(--left-w)] bg-brown-800 border border-cream-500/20 min-h-0 shrink-0"
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-cream-500/20 shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setRepoCollapsed(true); localStorage.setItem('review:repoCollapsed', '1'); }}
+                className="text-cream-200 hover:text-cream-50 transition-colors cursor-pointer"
+                title="Collapse repo panel"
               >
-                github ↗
-              </a>
-              {github1sUrl && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span className="text-cream-50 text-xs uppercase tracking-wider">Repo</span>
+            </div>
+            {project.githubRepo && (
+              <div className="flex items-center gap-3">
                 <a
-                  href={github1sUrl}
+                  href={project.githubRepo}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-orange-400 hover:text-orange-300 text-xs underline"
                 >
-                  github1s ↗
+                  github ↗
                 </a>
-              )}
+                {github1sUrl && (
+                  <a
+                    href={github1sUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-400 hover:text-orange-300 text-xs underline"
+                  >
+                    github1s ↗
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+          {github1sUrl ? (
+            <iframe
+              src={github1sUrl}
+              title="github1s repository browser"
+              className="flex-1 w-full border-0 bg-brown-900"
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-cream-200 text-xs px-4 text-center">
+              No GitHub repo on this submission
             </div>
           )}
         </div>
-        {github1sUrl ? (
-          <iframe
-            src={github1sUrl}
-            title="github1s repository browser"
-            className="flex-1 w-full border-0 bg-brown-900"
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-cream-200 text-xs px-4 text-center">
-            No GitHub repo on this submission
-          </div>
-        )}
-      </div>
 
-      {/* divider between github1s and evidence (2xl+) */}
-      <div
-        onMouseDown={beginPaneDrag('left')}
-        role="separator"
-        aria-orientation="vertical"
-        title="Drag to resize"
-        className="hidden 2xl:flex 2xl:self-stretch w-6 shrink-0 cursor-col-resize group items-center justify-center"
-      >
-        <div className="w-px h-full bg-cream-500/15 group-hover:bg-orange-500/60 group-active:bg-orange-500 transition-colors" />
-      </div>
+        {/* divider between github1s and evidence (2xl+) */}
+        <div
+          onMouseDown={beginPaneDrag('left')}
+          role="separator"
+          aria-orientation="vertical"
+          title="Drag to resize"
+          className="hidden 2xl:flex 2xl:self-stretch w-6 shrink-0 cursor-col-resize group items-center justify-center"
+        >
+          <div className="w-px h-full bg-cream-500/15 group-hover:bg-orange-500/60 group-active:bg-orange-500 transition-colors" />
+        </div>
+        </>
+      )}
 
       <div className="space-y-4 min-w-0 flex-1 xl:h-full xl:overflow-y-auto xl:pr-1">
 
