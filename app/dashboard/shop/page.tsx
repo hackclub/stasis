@@ -310,13 +310,9 @@ export default function ShopPage() {
   }
 
   const confirmedBits = bitsBalance - pendingBits;
-  const inviteItems = SHOP_ITEMS.filter(item => item.category === 'invite');
+  const openSauceItem = SHOP_ITEMS.find(item => item.id === SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
   const flightItem = SHOP_ITEMS.find(item => item.category === 'flight_stipend');
-  const accommodationItems = SHOP_ITEMS.filter(item => item.category === 'accommodation');
-  // Flight stipend: API allows on-Attend users OR Open Sauce ticket holders.
-  // Accommodation: API allows on-Attend users (regardless of how they got there — shop or manual invite).
-  const hasEventInvite = isStasisAttendee || purchasedItems.has(SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
-  const hasStasisInvite = isStasisAttendee;
+  const hasOpenSauceTicket = purchasedItems.has(SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
 
   // Stasis ticket + accommodations can be purchased with pending bits
   const canUsePendingBits = (itemId: string) =>
@@ -370,159 +366,100 @@ export default function ShopPage() {
         </div>
       ) : (
         <>
-          {/* Event Invites */}
-          {inviteItems.length > 0 && (
+          {/* Open Sauce Ticket + Flight Stipend side by side */}
+          {(openSauceItem || flightItem) && (
             <div>
-              <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Event Invite</h2>
+              <h2 className="text-orange-500 text-xl uppercase tracking-wide mb-4">Open Sauce</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {inviteItems.map((inviteItem) => {
-                  const effectiveBal = getEffectiveBalance(inviteItem.id);
-                  const alreadyHas =
-                    purchasedItems.has(inviteItem.id) ||
-                    (inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE && isStasisAttendee);
-                  const alreadyHasLabel =
-                    inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE && isStasisAttendee && !purchasedItems.has(inviteItem.id)
-                      ? 'Invited!'
-                      : 'Purchased!';
+                {openSauceItem && (() => {
+                  const effectiveBal = getEffectiveBalance(openSauceItem.id);
+                  const alreadyHas = hasOpenSauceTicket;
                   return (
-                  <div key={inviteItem.id}>
-                    <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-full ${
-                      alreadyHas || effectiveBal >= inviteItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
-                    }`}>
-                      <div className="flex-1">
-                        <h3 className="text-brown-800 text-xl font-medium mb-1">{inviteItem.name}</h3>
-                        <p className="text-brown-800 text-sm mb-3">
-                          {inviteItem.description}
-                          {inviteItem.disclaimer && <span className="opacity-50"> {inviteItem.disclaimer}</span>}
-                        </p>
-                        <p className="text-orange-400 font-bold text-lg">
-                          {inviteItem.bitsCost.toLocaleString()}&nbsp;{inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'Pending Bits' : 'Bits'}
-                        </p>
-                      </div>
-                      <div>
-                        {alreadyHas ? (
-                          <div className="bg-orange-500/20 border border-orange-500/50 px-6 py-3 text-center">
-                            <span className="text-orange-400 uppercase tracking-wide text-sm font-bold">{alreadyHasLabel}</span>
-                          </div>
-                        ) : effectiveBal >= inviteItem.bitsCost ? (
-                          <button
-                            onClick={() => openConfirmModal(inviteItem.id)}
-                            disabled={purchasing === inviteItem.id}
-                            className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
-                          >
-                            <span className="text-cream-100 uppercase tracking-wide text-sm font-bold">
-                              {purchasing === inviteItem.id ? 'Buying...' : 'Buy'}
-                            </span>
-                          </button>
-                        ) : (
-                          <div className="bg-cream-300 px-6 py-3 text-center">
-                            <span className="text-cream-600 uppercase tracking-wide text-sm">
-                              <span className="text-orange-500 font-medium">{(inviteItem.bitsCost - effectiveBal).toLocaleString()}&nbsp;{inviteItem.id === SHOP_ITEM_IDS.STASIS_EVENT_INVITE ? 'pending bits' : 'bits'}</span> needed
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-
-              {/* Flight Stipend - full width below invite grid */}
-              {flightItem && (() => {
-                const flightEffectiveBal = getEffectiveBalance(flightItem.id);
-                const flightUsesPending = canUsePendingBits(flightItem.id);
-                return (
-              <div className={`mt-4 bg-cream-100 border-2 p-6 flex flex-col sm:flex-row gap-4 ${
-                !hasEventInvite ? 'border-cream-300 opacity-60' : flightEffectiveBal >= flightItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
-              }`}>
-                <div className="flex-1">
-                  <h3 className="text-brown-800 text-xl font-medium mb-1">{flightItem.name}</h3>
-                  <p className="text-brown-800 text-sm mb-3">{flightItem.description}</p>
-                  <p className="text-orange-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()}&nbsp;{flightUsesPending ? 'Pending Bits' : 'Bits'} per $10</p>
-                  {(itemTotals[flightItem.id] ?? 0) > 0 && (
-                    <p className="text-brown-800 text-sm mt-2">
-                      You&apos;ve put <span className="font-bold text-orange-400">${(itemTotals[flightItem.id] ?? 0).toLocaleString()}</span> toward your flight so far
-                    </p>
-                  )}
-                </div>
-                <div className="sm:w-64 sm:flex sm:items-end sm:shrink-0">
-                  {!hasEventInvite ? (
-                    <div className="bg-cream-300 px-6 py-3 text-center w-full">
-                      <span className="text-cream-600 uppercase tracking-wide text-sm">
-                        Buy an event invite first
-                      </span>
-                    </div>
-                  ) : flightEffectiveBal >= flightItem.bitsCost ? (
-                    <button
-                      onClick={() => openConfirmModal(flightItem.id)}
-                      disabled={purchasing === flightItem.id}
-                      className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
-                    >
-                      <span className="text-cream-100 uppercase tracking-wide text-sm font-bold">
-                        {purchasing === flightItem.id ? 'Buying...' : 'Buy +$10'}
-                      </span>
-                    </button>
-                  ) : (
-                    <div className="bg-cream-300 px-6 py-3 text-center w-full">
-                      <span className="text-cream-600 uppercase tracking-wide text-sm">
-                        <span className="text-orange-500 font-medium">{(flightItem.bitsCost - flightEffectiveBal).toLocaleString()}&nbsp;{flightUsesPending ? 'pending bits' : 'bits'}</span> needed
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-                );
-              })()}
-
-              {/* Accommodation - full width below flight stipend */}
-              {accommodationItems.length > 0 && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {accommodationItems.map((accItem) => {
-                  const effectiveBal = getEffectiveBalance(accItem.id);
-                  return (
-                  <div key={accItem.id} className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 ${
-                    !hasStasisInvite ? 'border-cream-300 opacity-60' : purchasedItems.has(accItem.id) || effectiveBal >= accItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
+                  <div className={`bg-cream-100 border-2 p-6 flex flex-col gap-4 h-full ${
+                    alreadyHas || effectiveBal >= openSauceItem.bitsCost ? 'border-orange-500' : 'border-cream-400'
                   }`}>
                     <div className="flex-1">
-                      <h3 className="text-brown-800 text-xl font-medium mb-1">{accItem.name}</h3>
-                      <p className="text-brown-800 text-sm mb-3">{accItem.description}</p>
-                      <p className="text-orange-400 font-bold text-lg">{accItem.bitsCost.toLocaleString()}&nbsp;Pending Bits</p>
+                      <h3 className="text-brown-800 text-xl font-medium mb-1">{openSauceItem.name}</h3>
+                      <p className="text-brown-800 text-sm mb-3">
+                        {openSauceItem.description}
+                        {openSauceItem.disclaimer && <span className="opacity-50"> {openSauceItem.disclaimer}</span>}
+                      </p>
+                      <p className="text-orange-400 font-bold text-lg">
+                        {openSauceItem.bitsCost.toLocaleString()}&nbsp;Bits
+                      </p>
                     </div>
                     <div>
-                      {purchasedItems.has(accItem.id) ? (
+                      {alreadyHas ? (
                         <div className="bg-orange-500/20 border border-orange-500/50 px-6 py-3 text-center">
                           <span className="text-orange-400 uppercase tracking-wide text-sm font-bold">Purchased!</span>
                         </div>
-                      ) : !hasStasisInvite ? (
-                        <div className="bg-cream-300 px-6 py-3 text-center w-full">
-                          <span className="text-cream-600 uppercase tracking-wide text-sm">
-                            Buy Stasis Event Invite first
-                          </span>
-                        </div>
-                      ) : effectiveBal >= accItem.bitsCost ? (
+                      ) : effectiveBal >= openSauceItem.bitsCost ? (
                         <button
-                          onClick={() => openConfirmModal(accItem.id)}
-                          disabled={purchasing === accItem.id}
+                          onClick={() => openConfirmModal(openSauceItem.id)}
+                          disabled={purchasing === openSauceItem.id}
                           className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
                         >
                           <span className="text-cream-100 uppercase tracking-wide text-sm font-bold">
-                            {purchasing === accItem.id ? 'Buying...' : 'Buy'}
+                            {purchasing === openSauceItem.id ? 'Buying...' : 'Buy'}
                           </span>
                         </button>
                       ) : (
-                        <div className="bg-cream-300 px-6 py-3 text-center w-full">
+                        <div className="bg-cream-300 px-6 py-3 text-center">
                           <span className="text-cream-600 uppercase tracking-wide text-sm">
-                            <span className="text-orange-500 font-medium">{(accItem.bitsCost - effectiveBal).toLocaleString()}&nbsp;pending bits</span> needed
+                            <span className="text-orange-500 font-medium">{(openSauceItem.bitsCost - effectiveBal).toLocaleString()}&nbsp;bits</span> needed
                           </span>
                         </div>
                       )}
                     </div>
                   </div>
                   );
-                })}
+                })()}
+
+                {flightItem && (() => {
+                  const flightEffectiveBal = getEffectiveBalance(flightItem.id);
+                  return (
+                  <div className={`bg-cream-100 border-2 border-cream-400 p-6 flex flex-col gap-4 h-full ${
+                    !hasOpenSauceTicket ? 'opacity-60' : ''
+                  }`}>
+                    <div className="flex-1">
+                      <h3 className="text-brown-800 text-xl font-medium mb-1">{flightItem.name}</h3>
+                      <p className="text-brown-800 text-sm mb-3">Put bits toward your flight to Open Sauce. Each purchase adds $10 to your flight stipend.</p>
+                      <p className="text-orange-400 font-bold text-lg">{flightItem.bitsCost.toLocaleString()}&nbsp;Bits per $10</p>
+                      {(itemTotals[flightItem.id] ?? 0) > 0 && (
+                        <p className="text-brown-800 text-sm mt-2">
+                          You&apos;ve put <span className="font-bold text-orange-400">${(itemTotals[flightItem.id] ?? 0).toLocaleString()}</span> toward your flight so far
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      {!hasOpenSauceTicket ? (
+                        <div className="bg-cream-300 px-6 py-3 text-center w-full">
+                          <span className="text-cream-600 uppercase tracking-wide text-sm">
+                            Buy Open Sauce Ticket first
+                          </span>
+                        </div>
+                      ) : flightEffectiveBal >= flightItem.bitsCost ? (
+                        <button
+                          onClick={() => openConfirmModal(flightItem.id)}
+                          disabled={purchasing === flightItem.id}
+                          className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-6 py-3 text-center w-full cursor-pointer transition-colors"
+                        >
+                          <span className="text-cream-100 uppercase tracking-wide text-sm font-bold">
+                            {purchasing === flightItem.id ? 'Buying...' : 'Buy +$10'}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="bg-cream-300 px-6 py-3 text-center w-full">
+                          <span className="text-cream-600 uppercase tracking-wide text-sm">
+                            <span className="text-orange-500 font-medium">{(flightItem.bitsCost - flightEffectiveBal).toLocaleString()}&nbsp;bits</span> needed
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  );
+                })()}
               </div>
-              )}
             </div>
           )}
 
