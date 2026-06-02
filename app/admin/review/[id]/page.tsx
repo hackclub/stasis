@@ -14,7 +14,7 @@ import { Select } from '@/app/components/Select';
 import { Kbd } from '@/app/components/Kbd';
 import { Tooltip } from '@/app/components/Tooltip';
 
-const CadFileBrowser = dynamic(() => import('@/app/components/CadFileBrowser'), { ssr: false });
+const FileBrowser = dynamic(() => import('@/app/components/FileBrowser'), { ssr: false });
 
 const MDPreview = dynamic(
   () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
@@ -242,12 +242,12 @@ const REVIEW_CACHE_TTL_MS = 60_000; // serve stale-up-to-60s, revalidate after
 // Both are idempotent and don't depend on filterQS.
 const AIRTABLE_CHECK_CACHE: Map<string, boolean> = new Map();
 
-const CHECK_KEY_TO_CAD_TAB: Record<string, true> = {
-  checks_05_3d_file: true,
-  checks_06_3d_source: true,
-  checks_07_firmware_file: true,
-  checks_09_pcb_source: true,
-  checks_10_pcb_fab: true,
+const CHECK_KEY_TO_FILE_KIND: Record<string, import('@/lib/cad-discovery').CadFileKind> = {
+  checks_05_3d_file: '3d',
+  checks_06_3d_source: '3d-source',
+  checks_07_firmware_file: 'firmware',
+  checks_09_pcb_source: 'pcb-source',
+  checks_10_pcb_fab: 'pcb-fab',
 };
 
 // Dedupe claim POSTs per submission id. When the user mashes j/k, repeat
@@ -378,7 +378,8 @@ export default function ReviewDetailPage() {
   const [leftWidth, setLeftWidth] = useState(600);
   const [rightWidth, setRightWidth] = useState(420);
   const [resizing, setResizing] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<'cad' | 'images' | 'repo' | null>('cad');
+  const [sidebarTab, setSidebarTab] = useState<'files' | 'images' | 'repo' | null>('files');
+  const [focusFileKind, setFocusFileKind] = useState<import('@/lib/cad-discovery').CadFileKind | null>(null);
   // Workspace height is computed from the workspace's offset to the top of the
   // page so the panes fit in the remaining viewport. Without this the outer
   // page scrolls *in addition* to the panes — a confusing double-scroll.
@@ -486,8 +487,8 @@ export default function ReviewDetailPage() {
     if (Number.isFinite(l) && l >= 280 && l <= 800) setLeftWidth(l);
     if (Number.isFinite(r) && r >= 280 && r <= 800) setRightWidth(r);
     const storedTab = localStorage.getItem('review:sidebarTab');
-    if (storedTab === 'repo' || storedTab === 'cad' || storedTab === 'images' || storedTab === 'closed') {
-      setSidebarTab(storedTab === 'closed' ? null : storedTab as any);
+    if (storedTab === 'repo' || storedTab === 'files' || storedTab === 'cad' || storedTab === 'images' || storedTab === 'closed') {
+      setSidebarTab(storedTab === 'closed' ? null : storedTab === 'cad' ? 'files' : storedTab as any);
     }
   }, []);
 
@@ -1330,7 +1331,7 @@ export default function ReviewDetailPage() {
     { key: 'End', description: 'Scroll to bottom', group: 'In-page', handler: scrollWorkspaceToBottom },
     { key: 'Shift+H', description: 'Toggle hide admin nav', group: 'In-page', handler: () => setHideChrome((v) => !v) },
     { key: 'Shift+G', description: 'Toggle Repo panel', group: 'In-page', handler: () => { const next = sidebarTab === 'repo' ? null : 'repo'; setSidebarTab(next); localStorage.setItem('review:sidebarTab', next ?? 'closed'); } },
-    { key: 'Shift+C', description: 'Toggle Files panel', group: 'In-page', handler: () => { const next = sidebarTab === 'cad' ? null : 'cad'; setSidebarTab(next); localStorage.setItem('review:sidebarTab', next ?? 'closed'); } },
+    { key: 'Shift+C', description: 'Toggle Files panel', group: 'In-page', handler: () => { const next = sidebarTab === 'files' ? null : 'files'; setSidebarTab(next); localStorage.setItem('review:sidebarTab', next ?? 'closed'); } },
     { key: 'Shift+I', description: 'Toggle Images panel', group: 'In-page', handler: () => { const next = sidebarTab === 'images' ? null : 'images'; setSidebarTab(next); localStorage.setItem('review:sidebarTab', next ?? 'closed'); } },
 
     // ─── Focus form fields (Ctrl-gated) ─────────────────────────────
@@ -1706,7 +1707,7 @@ export default function ReviewDetailPage() {
       <div className="hidden 2xl:flex 2xl:h-full shrink-0">
         {/* Tab rail — always visible */}
         <div className="flex flex-col w-12 shrink-0 bg-brown-800 outline outline-1 -outline-offset-1 outline-cream-200/15 items-center py-3 gap-2">
-          {([['cad', 'Files'], ['images', 'Images'], ['repo', 'Repo']] as const).map(([tab, label]) => (
+          {([['files', 'Files'], ['images', 'Images'], ['repo', 'Repo']] as const).map(([tab, label]) => (
             <button
               key={tab}
               onClick={() => {
@@ -1761,10 +1762,12 @@ export default function ReviewDetailPage() {
                   </div>
                 )}
               </div>
-              {/* CAD content — stays mounted */}
-              <div className={`flex-1 min-h-0 ${sidebarTab === 'cad' ? 'flex flex-col' : 'hidden'}`}>
-                <CadFileBrowser
+              {/* Files content — stays mounted */}
+              <div className={`flex-1 min-h-0 ${sidebarTab === 'files' ? 'flex flex-col' : 'hidden'}`}>
+                <FileBrowser
                   cadData={data?.submission.cadFiles ?? null}
+                  focusKind={focusFileKind}
+                  onFocusKindConsumed={() => setFocusFileKind(null)}
                   onImageHover={(url, e) => {
                     if (url && e) setHoverPreview({ url, x: e.clientX, y: e.clientY });
                     else setHoverPreview(null);
@@ -2066,16 +2069,21 @@ export default function ReviewDetailPage() {
         ) : ghChecks ? (
           <div className="space-y-1.5">
             {ghChecks.map((check) => {
-              const canOpenCad = CHECK_KEY_TO_CAD_TAB[check.key] && check.passed;
-              const openCad = () => { setSidebarTab('cad'); localStorage.setItem('review:sidebarTab', 'cad'); };
+              const fileKind = CHECK_KEY_TO_FILE_KIND[check.key];
+              const canOpenFile = !!fileKind && check.passed;
+              const openFile = () => {
+                setSidebarTab('files');
+                localStorage.setItem('review:sidebarTab', 'files');
+                setFocusFileKind(fileKind!);
+              };
               return (
                 <div key={check.key} className="flex items-center gap-2 text-sm">
                   <span className={check.passed ? 'text-green-400' : 'text-red-400'}>
                     {check.passed ? '\u2713' : '\u2717'}
                   </span>
-                  {canOpenCad ? (
+                  {canOpenFile ? (
                     <button
-                      onClick={openCad}
+                      onClick={openFile}
                       title="Open in Files panel"
                       className="inline-flex items-center gap-1.5 text-cream-50 hover:underline cursor-pointer focus-visible:ring-2 focus-visible:ring-orange-500/60"
                     >

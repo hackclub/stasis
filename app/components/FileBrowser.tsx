@@ -284,12 +284,30 @@ function pickDefault(cadData: CadFilesPayload): Selection | null {
   return null;
 }
 
-export default function CadFileBrowser({ cadData, onImageHover }: Readonly<{ cadData: CadFilesPayload | null; onImageHover?: (url: string | null, e?: MouseEvent) => void }>) {
+export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, onImageHover }: Readonly<{
+  cadData: CadFilesPayload | null;
+  focusKind?: CadFileKind | null;
+  onFocusKindConsumed?: () => void;
+  onImageHover?: (url: string | null, e?: MouseEvent) => void;
+}>) {
   const [selection, setSelection] = useState<Selection | null>({ type: 'readme' });
 
   const select = useCallback((s: Selection) => {
     setSelection((prev) => prev && selKey(prev) === selKey(s) ? null : s);
   }, []);
+
+  useEffect(() => {
+    if (!focusKind || !cadData) return;
+    const file = cadData.files.find((f) => f.kind === focusKind);
+    if (file) {
+      setSelection({ type: 'file', file });
+    } else if (focusKind === 'pcb-fab' && cadData.gerberGroups?.length) {
+      setSelection({ type: 'gerber', group: cadData.gerberGroups[0], idx: 0 });
+    } else if (focusKind === 'kicad' && cadData.kicadProjects.length) {
+      setSelection({ type: 'kicad', project: cadData.kicadProjects[0], idx: 0 });
+    }
+    onFocusKindConsumed?.();
+  }, [focusKind, cadData, onFocusKindConsumed]);
 
   if (!cadData || cadData.files.length === 0) {
     return (
