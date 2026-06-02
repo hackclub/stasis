@@ -1350,6 +1350,25 @@ export default function ReviewDetailPage() {
   useHotkeys(detailHotkeys, hotkeyOverlayOpen || blankFeedbackPending !== null);
 
   // Newest-first ordering for the TOC and the journal-entry list. Computed
+  const refreshFiles = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/reviews/${id}/refresh-files`, { method: 'POST' });
+      if (!res.ok) return;
+      const updated = await res.json();
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          submission: {
+            ...prev.submission,
+            cadFiles: updated.cadFiles ?? null,
+            cadFilesAt: updated.cadFilesAt ?? null,
+          },
+        };
+      });
+    } catch { /* ignore */ }
+  }, [id]);
+
   // here (before the early return) so hook order stays stable across renders.
   // Histogram keeps chronological order so time still reads left→right; the
   // chronological index (`i = N - 1 - displayI`) is used for entry numbering
@@ -1766,8 +1785,10 @@ export default function ReviewDetailPage() {
               <div className={`flex-1 min-h-0 ${sidebarTab === 'files' ? 'flex flex-col' : 'hidden'}`}>
                 <FileBrowser
                   cadData={data?.submission.cadFiles ?? null}
+                  githubRepo={project.githubRepo}
                   focusKind={focusFileKind}
                   onFocusKindConsumed={() => setFocusFileKind(null)}
+                  onRefresh={refreshFiles}
                   onImageHover={(url, e) => {
                     if (url && e) setHoverPreview({ url, x: e.clientX, y: e.clientY });
                     else setHoverPreview(null);

@@ -286,11 +286,13 @@ function pickDefault(cadData: CadFilesPayload): Selection | null {
   return null;
 }
 
-export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, onImageHover }: Readonly<{
+export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKindConsumed, onImageHover, onRefresh }: Readonly<{
   cadData: CadFilesPayload | null;
+  githubRepo?: string | null;
   focusKind?: CadFileKind | null;
   onFocusKindConsumed?: () => void;
   onImageHover?: (url: string | null, e?: MouseEvent) => void;
+  onRefresh?: () => void;
 }>) {
   const [selection, setSelection] = useState<Selection | null>({ type: 'readme' });
 
@@ -311,20 +313,33 @@ export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, o
     onFocusKindConsumed?.();
   }, [focusKind, cadData, onFocusKindConsumed]);
 
-  if (!cadData || cadData.files.length === 0) {
+  // Resolve owner/repo/branch — from cadData if indexed, otherwise parse githubRepo
+  const repoInfo: { owner: string; repo: string; branch: string } | null = cadData
+    ? { owner: cadData.owner, repo: cadData.repo, branch: cadData.branch }
+    : githubRepo ? (() => {
+        try {
+          const u = new URL(githubRepo);
+          if (u.hostname !== 'github.com' && u.hostname !== 'www.github.com') return null;
+          const parts = u.pathname.replace(/^\/+|\/+$/g, '').split('/');
+          if (parts.length < 2) return null;
+          return { owner: parts[0], repo: parts[1], branch: 'main' };
+        } catch { return null; }
+      })() : null;
+
+  if (!repoInfo) {
     return (
       <div className="flex-1 flex items-center justify-center text-cream-300 text-xs px-4 text-center">
-        No CAD files found
+        No GitHub repo linked
       </div>
     );
   }
 
-  const { owner, repo, branch } = cadData;
-  const gerberGroups = cadData.gerberGroups ?? [];
+  const { owner, repo, branch } = repoInfo;
+  const gerberGroups = cadData?.gerberGroups ?? [];
 
   const grouped = new Map<CadFileKind, CadFile[]>();
   const gerberZips: CadFile[] = [];
-  for (const file of cadData.files) {
+  for (const file of cadData?.files ?? []) {
     if (file.kind === 'kicad') continue;
     if (file.kind === 'pcb-fab' && file.extension !== GERBER_ZIP_EXT) continue;
     if (file.kind === 'pcb-fab' && file.extension === GERBER_ZIP_EXT) { gerberZips.push(file); continue; }
@@ -334,7 +349,7 @@ export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, o
   }
 
   const activeKinds = KIND_ORDER.filter((k) => {
-    if (k === 'kicad') return cadData.kicadProjects.length > 0;
+    if (k === 'kicad') return (cadData?.kicadProjects.length ?? 0) > 0;
     if (k === 'pcb-fab') return gerberGroups.length > 0 || gerberZips.length > 0;
     return grouped.has(k);
   });
@@ -345,6 +360,14 @@ export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, o
     <div className="flex-1 flex flex-col min-h-0">
       {/* ── File inventory ── */}
       <div className={`shrink-0 overflow-y-auto ${selection ? 'max-h-[40%]' : ''}`}>
+        {onRefresh && (
+          <div className="flex items-center justify-between px-3 py-1 border-b border-cream-200/10">
+            {!cadData && <span className="text-[10px] text-cream-400">Files not indexed</span>}
+            <button onClick={onRefresh} className="text-[10px] text-cream-400 hover:text-orange-400 uppercase tracking-widest font-medium transition-colors cursor-pointer ml-auto">
+              Refresh
+            </button>
+          </div>
+        )}
         <InventoryRow
           tag="DOC"
           tagColor="text-cream-200"
@@ -359,7 +382,7 @@ export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, o
             {ki === 0 && <div className="border-t border-cream-200/10" />}
             {ki > 0 && <div className="border-t border-cream-200/10" />}
 
-            {kind === 'kicad' && cadData.kicadProjects.map((proj, idx) => (
+            {kind === 'kicad' && (cadData?.kicadProjects ?? []).map((proj, idx) => (
               <InventoryRow
                 key={`kicad-${idx}`}
                 tag={KIND_LABEL.kicad}
@@ -439,7 +462,15 @@ export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, o
               Close
             </button>
           </div>
-          <ActiveViewer selection={selection} cadData={cadData} onImageHover={onImageHover} />
+          {cadData ? (
+            <ActiveViewer selection={selection} cadData={cadData} onImageHover={onImageHover} />
+          ) : selection.type === 'readme' ? (
+            <ReadmePane owner={owner} repo={repo} branch={branch} onImageHover={onImageHover} />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-cream-300 text-xs">
+              Index files to preview
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center text-cream-400 text-xs border-t border-cream-200/10">
