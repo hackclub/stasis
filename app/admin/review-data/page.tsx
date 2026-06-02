@@ -91,6 +91,36 @@ function ChartTip({ active, payload, label }: any) {
   );
 }
 
+function QueueTip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  const delta = d.delta ?? 0;
+  return (
+    <div className="bg-brown-900/95 border border-cream-500/15 px-3 py-2 text-[11px] font-sans backdrop-blur-sm">
+      <div className="text-cream-50/70 mb-1">{label}</div>
+      <div className="flex justify-between gap-5">
+        <span style={{ color: SKY }}>Design</span>
+        <span className="text-cream-50">{d.design}</span>
+      </div>
+      <div className="flex justify-between gap-5">
+        <span style={{ color: VIOLET }}>Build</span>
+        <span className="text-cream-50">{d.build}</span>
+      </div>
+      <div className="flex justify-between gap-5 border-t border-cream-500/10 mt-1 pt-1">
+        <span className="text-cream-50/70">Total</span>
+        <span className="text-cream-50">{d.total}</span>
+      </div>
+      {delta !== 0 && (
+        <div className="flex justify-between gap-5">
+          <span className="text-cream-50/50">Change</span>
+          <span className={delta > 0 ? 'text-rose-400' : 'text-emerald-400'}>{delta > 0 ? '+' : ''}{delta}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PieTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
@@ -190,7 +220,12 @@ export default function ReviewDataPage() {
     const avg7s = last7.reduce((s, d) => s + d.submissions, 0) / 7;
     const net7 = last7.reduce((s, d) => s + d.decisions - d.submissions, 0);
 
-    const queueHistory = (data.queueHistory ?? []).map(d => ({ ...d, total: d.design + d.build }));
+    const rawQueue = data.queueHistory ?? [];
+    const queueHistory = rawQueue.map((d, i) => {
+      const total = d.design + d.build;
+      const prev = i > 0 ? rawQueue[i - 1].design + rawQueue[i - 1].build : total;
+      return { ...d, total, delta: total - prev };
+    });
 
     const burnDays = avg7d > 0 ? data.queue.total / avg7d : Infinity;
     const outcomeTotal = data.outcomes.approved + data.outcomes.returned + data.outcomes.rejected;
@@ -277,7 +312,7 @@ export default function ReviewDataPage() {
               <CartesianGrid {...GRID_LINE} />
               <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={d => d.slice(5)} interval={Math.max(1, Math.floor(queueSlice.length / 10))} />
               <YAxis tick={AXIS_TICK} width={32} />
-              <RTooltip content={<ChartTip />} />
+              <RTooltip content={<QueueTip />} />
               <Area type="monotone" dataKey="total" name="Total" stroke={AMBER} fill="none" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
               <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={2} dot={false} />
               <Area type="monotone" dataKey="build" name="Build" stroke={VIOLET} fill="url(#buildGrad)" strokeWidth={2} dot={false} />
@@ -576,7 +611,7 @@ export default function ReviewDataPage() {
                   <th className="text-right pb-2 px-2">{sort === 'week' ? <span className="text-cream-50/60">Week</span> : 'Week'}</th>
                   <th className="text-right pb-2 px-2">{sort === 'month' ? <span className="text-cream-50/60">Month</span> : 'Month'}</th>
                   <th className="text-right pb-2 px-2">{sort === 'total' ? <span className="text-cream-50/60">Total</span> : 'Total'}</th>
-                  <th className="text-right pb-2 px-2">1st / Admin</th>
+                  <th className="text-right pb-2 px-2">Tier<Tip text="Tier 1 = first-pass screening. Tier 2 = admin decisions (approve/return/reject). Based on majority of reviews." /></th>
                   <th className="text-right pb-2 px-2">Approve%</th>
                   <th className="text-right pb-2 px-2">Active days</th>
                 </tr>
@@ -597,7 +632,11 @@ export default function ReviewDataPage() {
                       <td className={`text-right font-sans py-1.5 px-2 ${sort === 'week' ? 'text-cream-50' : 'text-cream-50/60'}`}>{r.week}</td>
                       <td className={`text-right font-sans py-1.5 px-2 ${sort === 'month' ? 'text-cream-50' : 'text-cream-50/60'}`}>{r.month}</td>
                       <td className={`text-right font-sans py-1.5 px-2 ${sort === 'total' ? 'text-cream-50' : 'text-cream-50/60'}`}>{r.total}</td>
-                      <td className="text-cream-50/50 text-right font-sans py-1.5 px-2">{r.firstPass} / {r.admin}</td>
+                      <td className="text-right font-sans py-1.5 px-2">
+                        {r.admin > r.firstPass
+                          ? <span className="text-violet-400/80">Tier 2</span>
+                          : <span className="text-sky-400/80">Tier 1</span>}
+                      </td>
                       <td className="text-right font-sans py-1.5 px-2">
                         <span className={pct >= 60 ? 'text-emerald-400/70' : pct >= 30 ? 'text-yellow-400/70' : 'text-rose-400/70'}>{pct}%</span>
                       </td>
