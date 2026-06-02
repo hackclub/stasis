@@ -326,7 +326,7 @@ export default function ReviewDetailPage() {
   const filterPronouns = searchParams.get('pronouns') || '';
   const filterAttendees = searchParams.get('prioritizeAttending') === 'true';
   const filterRegion = searchParams.get('region') || '';
-  const viewAs = searchParams.get('viewAs') || '';
+  const viewAs = searchParams.get('viewAs') || (typeof window !== 'undefined' && sessionStorage.getItem('reviewViewAsFirstPass') === '1' ? 'first-pass' : '');
 
   const filterQS = useMemo(() => {
     const qp = new URLSearchParams();
@@ -1659,6 +1659,7 @@ export default function ReviewDetailPage() {
               const s = qp.toString();
               return `/admin/review/${id}${s ? `?${s}` : ''}`;
             })()}
+            onClick={() => sessionStorage.removeItem('reviewViewAsFirstPass')}
             className="px-3 py-1 text-xs uppercase tracking-wider border border-blue-400/50 hover:bg-blue-500/20"
           >
             Exit Preview
@@ -1695,6 +1696,7 @@ export default function ReviewDetailPage() {
                 qp.set('viewAs', 'first-pass');
                 return `/admin/review/${id}?${qp}`;
               })()}
+              onClick={() => sessionStorage.setItem('reviewViewAsFirstPass', '1')}
               title="Preview what first-pass reviewers see"
               className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/20 text-cream-50 hover:border-blue-400 hover:text-blue-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
             >
@@ -2292,9 +2294,13 @@ export default function ReviewDetailPage() {
         {project.cartScreenshots.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {project.cartScreenshots.map((url, i) => (
-              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-32 object-cover border border-cream-500/10" />
-              </a>
+              <div
+                key={i}
+                className="bg-brown-900 border border-cream-500/10 overflow-hidden cursor-zoom-in"
+                {...hoverProps(url, `Cart screenshot ${i + 1}`)}
+              >
+                <img src={url} alt={`Cart screenshot ${i + 1}`} className="w-full h-32 object-cover" />
+              </div>
             ))}
           </div>
         ) : (
@@ -2560,7 +2566,7 @@ export default function ReviewDetailPage() {
                       </div>
                     )}
                     {text && (
-                      <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-100 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!leading-relaxed [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_p]:my-1.5 [&_.wmde-markdown_pre]:!bg-brown-950 [&_.wmde-markdown_pre]:!border-cream-500/10 [&_.wmde-markdown_code]:!bg-brown-950 [&_.wmde-markdown_code]:!text-cream-200" data-color-mode="dark">
+                      <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-100 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!leading-relaxed [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_p]:my-1.5 [&_.wmde-markdown_pre]:!bg-brown-950 [&_.wmde-markdown_pre]:!border-cream-500/10 [&_.wmde-markdown_code]:!bg-brown-950 [&_.wmde-markdown_code]:!text-cream-200 [&_.wmde-markdown_img]:!max-w-full [&_.wmde-markdown_img]:!w-auto [&_.wmde-markdown_img]:!h-auto" data-color-mode="dark">
                         <MDPreview source={fixMarkdownImages(text)} />
                       </div>
                     )}

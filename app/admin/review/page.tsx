@@ -150,10 +150,23 @@ export default function ReviewQueuePage() {
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [useOldReviewUi, setUseOldReviewUi] = useState(false);
-  const [viewAsFirstPass, setViewAsFirstPass] = useState(false);
+  const [viewAsFirstPass, setViewAsFirstPass] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('reviewViewAsFirstPass') === '1';
+    }
+    return false;
+  });
   const [guide, setGuide] = useState('');
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (viewAsFirstPass) {
+      sessionStorage.setItem('reviewViewAsFirstPass', '1');
+    } else {
+      sessionStorage.removeItem('reviewViewAsFirstPass');
+    }
+  }, [viewAsFirstPass]);
 
   const data = activeTab === 'DESIGN' ? designData : buildData;
 
