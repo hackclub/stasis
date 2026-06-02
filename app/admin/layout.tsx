@@ -156,6 +156,11 @@ export default function AdminLayout({
                 </Link>
               )}
               {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/review-data" className={getTabClass('/admin/review-data')}>
+                  Review Data
+                </Link>
+              )}
+              {hasPermission(Permission.MANAGE_USERS) && (
                 <Link href="/admin/events" className={getTabClass('/admin/events')}>
                   Events
                 </Link>
