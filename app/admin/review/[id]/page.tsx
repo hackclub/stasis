@@ -1461,7 +1461,7 @@ export default function ReviewDetailPage() {
 
   // github1s embeds the repo in a VSCode-like file browser. We only show the
   // column when the project has a github.com URL we can parse to owner/repo.
-  const github1sUrl = useMemo(() => {
+  const github1sUrl = (() => {
     if (!project.githubRepo) return null;
     try {
       const u = new URL(project.githubRepo);
@@ -1472,7 +1472,7 @@ export default function ReviewDetailPage() {
     } catch {
       return null;
     }
-  }, [project.githubRepo]);
+  })();
 
   // Returns the mouse-handler props for an image thumbnail so hovering shows
   // the full image in a cursor-following popup.
