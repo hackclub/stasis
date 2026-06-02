@@ -263,8 +263,8 @@ export default function ReviewDataPage() {
               <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={d => d.slice(5)} interval={6} />
               <YAxis tick={AXIS_TICK} width={32} />
               <RTooltip content={<ChartTip />} />
-              <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={1.5} stackId="queue" dot={false} />
               <Area type="monotone" dataKey="build" name="Build" stroke={VIOLET} fill="url(#buildGrad)" strokeWidth={1.5} stackId="queue" dot={false} />
+              <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={1.5} stackId="queue" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
