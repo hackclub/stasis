@@ -98,6 +98,8 @@ interface ReviewData {
     aiReadmeVerdict: AiReadmeVerdictPayload | null;
     aiReadmeVerdictAt: string | null;
     aiReadmeStatus: AiReadmeStatusValue | null;
+    cadFiles: import('@/lib/cad-discovery').CadFilesPayload | null;
+    cadFilesAt: string | null;
     project: {
       id: string;
       title: string;
@@ -1362,6 +1364,8 @@ export default function ReviewDetailPage() {
     { key: 'Home', description: 'Scroll to top', group: 'In-page', handler: scrollWorkspaceToTop },
     { key: 'End', description: 'Scroll to bottom', group: 'In-page', handler: scrollWorkspaceToBottom },
     { key: 'Shift+H', description: 'Toggle hide admin nav', group: 'In-page', handler: () => setHideChrome((v) => !v) },
+    { key: 'Shift+G', description: 'Sidebar: Repo tab', group: 'In-page', handler: () => { setSidebarTab('repo'); localStorage.setItem('review:sidebarTab', 'repo'); } },
+    { key: 'Shift+C', description: 'Sidebar: CAD tab', group: 'In-page', handler: () => { setSidebarTab('cad'); localStorage.setItem('review:sidebarTab', 'cad'); } },
 
     // ─── Focus form fields (Ctrl-gated) ─────────────────────────────
     { key: '$mod+f', description: 'Focus feedback (submitter)', group: 'Focus', handler: () => feedbackRef.current?.focus() },
@@ -1729,9 +1733,10 @@ export default function ReviewDetailPage() {
         className="flex flex-col xl:flex-row items-stretch gap-4 xl:gap-0"
       >
 
-      {/* ── Repo Embed Column (github1s) — 2xl+ only ──
-           Collapsible into a thin vertical sidebar; state + width persisted
-           in localStorage so it survives across reviews. */}
+      {/* ── Repo / CAD Sidebar — 2xl+ only ──
+           Tabbed panel: "Repo" shows github1s, "CAD" shows file browser.
+           Collapsible into a thin vertical sidebar; state + width + active
+           tab persisted in localStorage across reviews. */}
       {repoCollapsed ? (
         <button
           onClick={() => { setRepoCollapsed(false); localStorage.setItem('review:repoCollapsed', '0'); }}
@@ -1742,7 +1747,7 @@ export default function ReviewDetailPage() {
             className="text-cream-200 text-[10px] uppercase tracking-[0.2em] group-hover:text-cream-50 transition-colors"
             style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
           >
-            Repo
+            {sidebarTab === 'repo' ? 'Repo' : 'CAD'}
           </span>
         </button>
       ) : (
@@ -1759,7 +1764,19 @@ export default function ReviewDetailPage() {
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <span className="text-cream-50 text-xs uppercase tracking-wider">Repo</span>
+              {(['repo', 'cad'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => { setSidebarTab(tab); localStorage.setItem('review:sidebarTab', tab); }}
+                  className={`text-xs uppercase tracking-wider px-2 py-0.5 border-b-2 transition-colors cursor-pointer ${
+                    sidebarTab === tab
+                      ? 'text-orange-400 border-orange-400'
+                      : 'text-cream-200 border-transparent hover:text-cream-50'
+                  }`}
+                >
+                  {tab === 'repo' ? 'Repo' : 'CAD'}
+                </button>
+              ))}
             </div>
             {project.githubRepo && (
               <div className="flex items-center gap-3">
@@ -1771,7 +1788,7 @@ export default function ReviewDetailPage() {
                 >
                   github ↗
                 </a>
-                {github1sUrl && (
+                {sidebarTab === 'repo' && github1sUrl && (
                   <a
                     href={github1sUrl}
                     target="_blank"
@@ -1784,16 +1801,20 @@ export default function ReviewDetailPage() {
               </div>
             )}
           </div>
-          {github1sUrl ? (
-            <iframe
-              src={github1sUrl}
-              title="github1s repository browser"
-              className="flex-1 w-full border-0 bg-brown-900"
-            />
+          {sidebarTab === 'repo' ? (
+            github1sUrl ? (
+              <iframe
+                src={github1sUrl}
+                title="github1s repository browser"
+                className="flex-1 w-full border-0 bg-brown-900"
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-cream-200 text-xs px-4 text-center">
+                No GitHub repo on this submission
+              </div>
+            )
           ) : (
-            <div className="flex-1 flex items-center justify-center text-cream-200 text-xs px-4 text-center">
-              No GitHub repo on this submission
-            </div>
+            <CadFileBrowser cadData={data?.submission.cadFiles ?? null} />
           )}
         </div>
 

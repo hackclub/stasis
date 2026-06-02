@@ -7,6 +7,7 @@ import { sanitize } from "@/lib/sanitize"
 import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { runReviewChecks } from "@/lib/github-checks"
 import { runAiReadmeCheck } from "@/lib/ai-readme-check"
+import { cacheCadFiles } from "@/lib/cad-discovery"
 
 async function cacheGithubChecks(submissionId: string, githubRepo: string | null) {
   try {
@@ -162,6 +163,7 @@ export async function POST(
     // Run the AI README audit AFTER the response is sent. The model call adds
     // multiple seconds — don't make the user wait on it.
     after(() => runAiReadmeCheck(newSubmission.id))
+    after(() => cacheCadFiles(newSubmission.id, project.githubRepo))
 
     await logAudit({
       action: AuditAction.USER_SUBMIT_PROJECT,
@@ -243,6 +245,7 @@ export async function POST(
     // Run the AI README audit AFTER the response is sent. The model call adds
     // multiple seconds — don't make the user wait on it.
     after(() => runAiReadmeCheck(newSubmission.id))
+    after(() => cacheCadFiles(newSubmission.id, project.githubRepo))
 
     await logAudit({
       action: AuditAction.USER_SUBMIT_PROJECT,

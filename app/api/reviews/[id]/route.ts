@@ -156,7 +156,7 @@ export async function GET(
   const latestSubmission = await prisma.projectSubmission.findFirst({
     where: { projectId: project.id, stage: activeStage },
     orderBy: { createdAt: "desc" },
-    select: { id: true, notes: true, createdAt: true, preReviewed: true, githubChecks: true, githubChecksAt: true, aiReadmeVerdict: true, aiReadmeVerdictAt: true, aiReadmeStatus: true },
+    select: { id: true, notes: true, createdAt: true, preReviewed: true, githubChecks: true, githubChecksAt: true, aiReadmeVerdict: true, aiReadmeVerdictAt: true, aiReadmeStatus: true, cadFiles: true, cadFilesAt: true },
   }).catch(() => null)
 
   // Fetch SubmissionReview records for the latest submission (has isAdminReview flag)
@@ -351,6 +351,8 @@ export async function GET(
       aiReadmeVerdict: latestSubmission?.aiReadmeVerdict ?? null,
       aiReadmeVerdictAt: latestSubmission?.aiReadmeVerdictAt ?? null,
       aiReadmeStatus: latestSubmission?.aiReadmeStatus ?? null,
+      cadFiles: latestSubmission?.cadFiles ?? null,
+      cadFilesAt: latestSubmission?.cadFilesAt ?? null,
       project: {
         ...project,
         reviewActions: undefined,

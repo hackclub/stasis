@@ -360,6 +360,8 @@ model ProjectSubmission {
   aiReadmeVerdict   Json?
   aiReadmeVerdictAt DateTime?
   aiReadmeStatus    String?
+  cadFiles          Json?
+  cadFilesAt        DateTime?
   createdAt         DateTime           @default(now())
   reviews           SubmissionReview[]
   claim             ReviewClaim?
