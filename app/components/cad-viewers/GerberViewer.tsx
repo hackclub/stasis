@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
 import { fetchCadFileContent } from '@/lib/cad-fetch';
 
 const GERBER_EXTENSIONS = /\.(gbr|ger|gtl|gbl|gts|gbs|gto|gbo|gtp|gbp|gm1|gm2|gko|drl|xln)$/i;
@@ -49,17 +48,10 @@ async function extractZipTextEntries(buffer: ArrayBuffer): Promise<{ name: strin
 
 interface LayerInfo { type: string | null; side: string | null }
 
-interface HastNode {
-  type: string;
-  tagName?: string;
-  properties?: Record<string, unknown>;
-  children?: HastNode[];
-  value?: string;
-}
-
 interface GerberLayer {
   name: string;
   innerSvg: string;
+  viewBox: ViewBox | null;
   info: LayerInfo | null;
   color: string;
   tone: string;
@@ -94,14 +86,6 @@ function getColor(info: LayerInfo | null, name: string): string {
   return COLOR_BY_TYPE[tone] ?? '#9aa6c1';
 }
 
-function parseViewBox(svg: string): ViewBox | null {
-  const m = svg.match(/\bviewBox="([^"]+)"/i);
-  if (!m) return null;
-  const parts = m[1].trim().split(/\s+/).map(Number);
-  if (parts.length !== 4 || parts.some((v) => !Number.isFinite(v))) return null;
-  return parts as ViewBox;
-}
-
 function unionViewBoxes(vbs: ViewBox[]): ViewBox | null {
   if (!vbs.length) return null;
   let [minX, minY, maxX, maxY] = [vbs[0][0], vbs[0][1], vbs[0][0] + vbs[0][2], vbs[0][1] + vbs[0][3]];
@@ -113,69 +97,16 @@ function unionViewBoxes(vbs: ViewBox[]): ViewBox | null {
   return [minX, minY, maxX - minX, maxY - minY];
 }
 
-
-const HAST_TO_SVG_ATTR: Record<string, string> = {
-  className: 'class',
-  strokeWidth: 'stroke-width',
-  strokeLineCap: 'stroke-linecap',
-  strokeLineJoin: 'stroke-linejoin',
-  fillRule: 'fill-rule',
-  clipRule: 'clip-rule',
-  fillOpacity: 'fill-opacity',
-  strokeOpacity: 'stroke-opacity',
-  strokeDashArray: 'stroke-dasharray',
-  strokeDashOffset: 'stroke-dashoffset',
-  strokeMiterLimit: 'stroke-miterlimit',
-  clipPath: 'clip-path',
-  fontFamily: 'font-family',
-  fontSize: 'font-size',
-  textAnchor: 'text-anchor',
-  xmlnsXLink: 'xmlns:xlink',
-  xlinkHref: 'xlink:href',
-};
-
-function escapeHtml(v: string): string {
-  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function serializeHast(node: HastNode): string {
-  if (node.type === 'text') return escapeHtml(node.value ?? '');
-  if (node.type !== 'element' || !node.tagName) return '';
-  const attrs = Object.entries(node.properties ?? {})
-    .filter(([, v]) => v !== null && v !== undefined && v !== false)
-    .map(([k, v]) => {
-      const attr = HAST_TO_SVG_ATTR[k] ?? k;
-      if (v === true) return attr;
-      const val = Array.isArray(v) ? v.join(' ') : String(v);
-      return `${attr}="${escapeHtml(val)}"`;
-    }).join(' ');
-  const children = (node.children ?? []).map(serializeHast).join('');
-  return attrs ? `<${node.tagName} ${attrs}>${children}</${node.tagName}>` : `<${node.tagName}>${children}</${node.tagName}>`;
-}
-
-function recolorSvgContent(svg: string, color: string): string {
-  let s = svg.replace(/<rect\b[^>]*\bfill="black"[^>]*>\s*<\/rect>/gi, '');
-  s = s.replace(/\bfill="(black|currentColor)"/gi, `fill="${color}"`);
-  s = s.replace(/\bstroke="(black|currentColor)"/gi, `stroke="${color}"`);
-  return s;
-}
-
-function extractSvgInner(svg: string): string {
-  return svg.replace(/^<svg\b[^>]*>/, '').replace(/<\/svg>\s*$/, '');
-}
-
-async function renderGerberToSvg(text: string, id: string): Promise<string> {
-  const { createParser } = await import('@tracespace/parser');
-  const { plot } = await import('@tracespace/plotter');
-  const { render } = await import('@tracespace/renderer');
-  const parser = createParser();
-  parser.feed(text);
-  const tree = parser.results();
-  const imageTree = plot(tree as any);
-  const svgTree = render(imageTree) as unknown as HastNode;
-  if (!svgTree.properties) svgTree.properties = {};
-  svgTree.properties.id = id.replace(/[^a-zA-Z0-9_-]/g, '_');
-  return serializeHast(svgTree);
+async function renderGerberLayer(
+  text: string,
+  idPrefix: string,
+): Promise<{ innerSvg: string; viewBox: ViewBox | null }> {
+  const { parse } = await import('@/lib/gerber/parser');
+  const { compile } = await import('@/lib/gerber/compiler');
+  const { renderToSvgInner } = await import('@/lib/gerber/renderer-svg');
+  const ast = parse(text);
+  const compiled = compile(ast);
+  return renderToSvgInner(compiled, idPrefix);
 }
 
 export default function GerberViewer({
@@ -221,29 +152,22 @@ export default function GerberViewer({
         const viewBoxes: ViewBox[] = [];
         let outlineVB: ViewBox | null = null;
 
-        for (const entry of filesToRender) {
+        for (let idx = 0; idx < filesToRender.length; idx++) {
+          const entry = filesToRender[idx];
           if (cancelled) return;
           try {
-            const svg = await renderGerberToSvg(entry.text, entry.name);
+            const prefix = `l${idx}`;
+            const { innerSvg, viewBox } = await renderGerberLayer(entry.text, prefix);
             const info = (layerMap[entry.name] as LayerInfo | undefined) ?? null;
-            const vb = parseViewBox(svg);
             const color = getColor(info, entry.name);
             const tone = getTone(info, entry.name);
-            const recolored = recolorSvgContent(svg, color);
-            const sanitizedFull = DOMPurify.sanitize(recolored, {
-              USE_PROFILES: { svg: true },
-              ADD_TAGS: ['svg', 'g', 'defs', 'clipPath', 'use'],
-              ADD_ATTR: ['viewBox', 'preserveAspectRatio', 'clip-path', 'clip-rule', 'fill-rule',
-                'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray',
-                'stroke-dashoffset', 'stroke-miterlimit', 'xlink:href'],
-            });
-            const sanitizedInner = extractSvgInner(sanitizedFull);
-            if (vb && sanitizedInner.trim()) {
-              viewBoxes.push(vb);
-              if (!outlineVB && (tone === 'outline' || tone === 'mechanical')) outlineVB = vb;
+
+            if (viewBox && innerSvg.trim()) {
+              viewBoxes.push(viewBox);
+              if (!outlineVB && (tone === 'outline' || tone === 'mechanical')) outlineVB = viewBox;
             }
             rendered.push({
-              name: entry.name, innerSvg: sanitizedInner, info, color, tone,
+              name: entry.name, innerSvg, viewBox, info, color, tone,
               visible: true,
             });
           } catch { /* skip unrenderable */ }
