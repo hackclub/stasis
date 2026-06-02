@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { timingSafeEqual } from "node:crypto"
 
-export function requireIntegrationAuth(request: NextRequest): NextResponse | null {
-  const expected = process.env.INTEGRATION_API_KEY
+export function requireBearerAuth(
+  request: NextRequest,
+  envVar: string
+): NextResponse | null {
+  const expected = process.env[envVar]
   if (!expected) {
     return NextResponse.json(
-      { error: "Integration API not configured" },
+      { error: "API not configured" },
       { status: 503 }
     )
   }
@@ -24,4 +27,8 @@ export function requireIntegrationAuth(request: NextRequest): NextResponse | nul
   }
 
   return null
+}
+
+export function requireIntegrationAuth(request: NextRequest): NextResponse | null {
+  return requireBearerAuth(request, "INTEGRATION_API_KEY")
 }
