@@ -61,7 +61,7 @@ export interface KiCanvasEmbedProps {
 export default function KiCanvasEmbed({
   sources,
   controls = 'full',
-  height = 520,
+  height,
 }: Readonly<KiCanvasEmbedProps>) {
   const [mounted, setMounted] = useState(false);
   const mountedRef = useRef(false);
@@ -77,7 +77,7 @@ export default function KiCanvasEmbed({
     return (
       <div
         className="w-full bg-brown-900 border border-cream-500/10 flex items-center justify-center text-cream-200 text-xs"
-        style={{ height }}
+        style={height ? { height } : { height: '100%' }}
       >
         Loading KiCanvas...
       </div>
@@ -87,7 +87,7 @@ export default function KiCanvasEmbed({
   return (
     <div
       className="w-full bg-brown-900 border border-cream-500/10 overflow-hidden"
-      style={{ height }}
+      style={height ? { height } : { height: '100%' }}
     >
       <kicanvas-embed
         controls={controls}

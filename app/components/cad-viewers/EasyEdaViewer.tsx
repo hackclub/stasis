@@ -70,7 +70,7 @@ function EasyEdaCanvas({ document: doc }: Readonly<{ document: EasyEdaVisualDocu
         style={{ width: '100%', height: '100%', display: 'block' }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
       >
-        <rect x={doc.bounds.minX} y={doc.bounds.minY} width={doc.bounds.width} height={doc.bounds.height} fill="#0f1016" />
+        <rect x={doc.bounds.minX} y={doc.bounds.minY} width={doc.bounds.width} height={doc.bounds.height} fill="#2A2219" />
         {doc.primitives.map((p, i) => renderPrimitive(p, i))}
       </svg>
     </div>
@@ -101,7 +101,7 @@ export default function EasyEdaViewer({
   url,
   fileName,
   fileType,
-  height = 480,
+  height,
 }: Readonly<{ url: string; fileName: string; fileType: string; height?: number }>) {
   const [state, setState] = useState<ViewState>({ status: 'loading' });
   const [selectedSheet, setSelectedSheet] = useState(0);
@@ -191,17 +191,17 @@ export default function EasyEdaViewer({
   }, [url, fileName, fileType]);
 
   if (state.status === 'loading') {
-    return <div className="flex items-center justify-center text-cream-200 text-xs" style={{ height }}>Reading EasyEDA file...</div>;
+    return <div className="flex items-center justify-center text-cream-200 text-xs" style={height ? { height } : { height: '100%' }}>Reading EasyEDA file...</div>;
   }
   if (state.status === 'error') {
-    return <div className="flex items-center justify-center text-red-400 text-xs p-4" style={{ height }}>{state.message}</div>;
+    return <div className="flex items-center justify-center text-red-400 text-xs p-4" style={height ? { height } : { height: '100%' }}>{state.message}</div>;
   }
 
   const sheet = state.sheets[selectedSheet] ?? state.sheets[0];
   const doc = sheet.build();
 
   return (
-    <div className="flex flex-col bg-brown-900 overflow-hidden" style={{ height }}>
+    <div className="flex flex-col bg-brown-900 overflow-hidden" style={height ? { height } : { height: '100%' }}>
       {state.sheets.length > 1 && (
         <div className="flex gap-1 px-2 py-1.5 border-b border-cream-500/10 overflow-x-auto shrink-0">
           {state.sheets.map((s, i) => (

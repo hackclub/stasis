@@ -14,23 +14,7 @@ import { Select } from '@/app/components/Select';
 import { Kbd } from '@/app/components/Kbd';
 import { Tooltip } from '@/app/components/Tooltip';
 
-const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
 const CadFileBrowser = dynamic(() => import('@/app/components/CadFileBrowser'), { ssr: false });
-
-interface KiCadProject {
-  name: string;
-  dir: string;
-  projectFile: string | null;
-  schematics: string[];
-  boards: string[];
-}
-
-interface KiCadFilesResponse {
-  owner: string;
-  repo: string;
-  branch: string;
-  projects: KiCadProject[];
-}
 
 const MDPreview = dynamic(
   () => import('@uiw/react-md-editor').then((mod) => mod.default.Markdown),
@@ -256,8 +240,15 @@ const REVIEW_CACHE_TTL_MS = 60_000; // serve stale-up-to-60s, revalidate after
 
 // Auxiliary caches for slow third-party-backed reads (GitHub, Airtable).
 // Both are idempotent and don't depend on filterQS.
-const KICAD_FILES_CACHE: Map<string, KiCadFilesResponse | null> = new Map();
 const AIRTABLE_CHECK_CACHE: Map<string, boolean> = new Map();
+
+const CHECK_KEY_TO_CAD_TAB: Record<string, true> = {
+  checks_05_3d_file: true,
+  checks_06_3d_source: true,
+  checks_07_firmware_file: true,
+  checks_09_pcb_source: true,
+  checks_10_pcb_fab: true,
+};
 
 // Dedupe claim POSTs per submission id. When the user mashes j/k, repeat
 // mounts of the same id were firing concurrent claim POSTs that hit the
@@ -355,8 +346,6 @@ export default function ReviewDetailPage() {
   const [aiStatus, setAiStatus] = useState<AiReadmeStatusValue | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [kicadFiles, setKicadFiles] = useState<KiCadFilesResponse | null>(null);
-  const [expandedKicad, setExpandedKicad] = useState<Set<number>>(new Set());
 
   // Form state
   const [feedback, setFeedback] = useState('');
@@ -389,8 +378,7 @@ export default function ReviewDetailPage() {
   const [leftWidth, setLeftWidth] = useState(600);
   const [rightWidth, setRightWidth] = useState(420);
   const [resizing, setResizing] = useState(false);
-  const [repoCollapsed, setRepoCollapsed] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<'repo' | 'cad'>('repo');
+  const [sidebarTab, setSidebarTab] = useState<'cad' | 'images' | 'repo' | null>('cad');
   // Workspace height is computed from the workspace's offset to the top of the
   // page so the panes fit in the remaining viewport. Without this the outer
   // page scrolls *in addition* to the panes — a confusing double-scroll.
@@ -443,9 +431,7 @@ export default function ReviewDetailPage() {
   // correct clamped position — no flicker for cached images. Uncached images
   // pick up a follow-up measurement via the `onLoad` handler on the <img>.
   useLayoutEffect(() => {
-    if (!hoverPreview || !popupRef.current) return;
-    const rect = popupRef.current.getBoundingClientRect();
-    setPopupSize({ w: rect.width, h: rect.height });
+    setPopupSize({ w: 0, h: 0 });
   }, [hoverPreview?.url]);
 
   // Track the xl breakpoint via matchMedia. We apply the height constraint
@@ -499,9 +485,10 @@ export default function ReviewDetailPage() {
     const r = Number(localStorage.getItem('review:rightPaneWidth'));
     if (Number.isFinite(l) && l >= 280 && l <= 800) setLeftWidth(l);
     if (Number.isFinite(r) && r >= 280 && r <= 800) setRightWidth(r);
-    if (localStorage.getItem('review:repoCollapsed') === '1') setRepoCollapsed(true);
     const storedTab = localStorage.getItem('review:sidebarTab');
-    if (storedTab === 'repo' || storedTab === 'cad') setSidebarTab(storedTab);
+    if (storedTab === 'repo' || storedTab === 'cad' || storedTab === 'images' || storedTab === 'closed') {
+      setSidebarTab(storedTab === 'closed' ? null : storedTab as any);
+    }
   }, []);
 
   // Start a drag on one of the pane dividers. Handlers are attached to the
@@ -543,7 +530,6 @@ export default function ReviewDetailPage() {
     setData(cachedData);
     setLoading(!cached);
     setInternalNote(cachedData?.reviewerNote ?? '');
-    setKicadFiles(KICAD_FILES_CACHE.get(id) ?? null);
     setAirtableDuplicate(AIRTABLE_CHECK_CACHE.get(id) ?? false);
     if (cachedData?.submission?.githubChecks) {
       setGhChecks(cachedData.submission.githubChecks);
@@ -681,12 +667,6 @@ export default function ReviewDetailPage() {
         lowFetch(`/api/reviews/${targetId}${filterQS}`)
           .then((r) => (r.ok ? r.json() : null))
           .then((d) => { if (d) REVIEW_DATA_CACHE.set(cacheKey, { data: d, at: Date.now() }); })
-          .catch(() => {});
-      }
-      if (!KICAD_FILES_CACHE.has(targetId)) {
-        lowFetch(`/api/reviews/${targetId}/kicad-files`)
-          .then(async (r) => (r.ok ? (r.json() as Promise<KiCadFilesResponse>) : null))
-          .then((d) => KICAD_FILES_CACHE.set(targetId, d))
           .catch(() => {});
       }
       if (!AIRTABLE_CHECK_CACHE.has(targetId)) {
@@ -935,26 +915,11 @@ export default function ReviewDetailPage() {
       .finally(() => setAiLoading(false));
   }, [data?.submission.id]);
 
-  // Fire KiCad-file lookup and claim POST as soon as we have the URL id —
-  // do NOT wait for fetchData() to round-trip first. Each request races
-  // against the others and races against fetchData() so the page becomes
-  // interactive faster.
+  // Fire claim POST as soon as we have the URL id — do NOT wait for
+  // fetchData() to round-trip first so the page becomes interactive faster.
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-
-    if (KICAD_FILES_CACHE.has(id)) {
-      const cached = KICAD_FILES_CACHE.get(id);
-      if (cached) setKicadFiles(cached);
-    } else {
-      fetch(`/api/reviews/${id}/kicad-files`)
-        .then(async (res) => (res.ok ? (res.json() as Promise<KiCadFilesResponse>) : null))
-        .then((d) => {
-          KICAD_FILES_CACHE.set(id, d);
-          if (!cancelled && d) setKicadFiles(d);
-        })
-        .catch(() => {});
-    }
 
     // If we had a pending DELETE for this id (user pressed k after j), cancel
     // it — we're back on the page and want to keep the claim.
@@ -1364,8 +1329,9 @@ export default function ReviewDetailPage() {
     { key: 'Home', description: 'Scroll to top', group: 'In-page', handler: scrollWorkspaceToTop },
     { key: 'End', description: 'Scroll to bottom', group: 'In-page', handler: scrollWorkspaceToBottom },
     { key: 'Shift+H', description: 'Toggle hide admin nav', group: 'In-page', handler: () => setHideChrome((v) => !v) },
-    { key: 'Shift+G', description: 'Sidebar: Repo tab', group: 'In-page', handler: () => { setSidebarTab('repo'); localStorage.setItem('review:sidebarTab', 'repo'); } },
-    { key: 'Shift+C', description: 'Sidebar: CAD tab', group: 'In-page', handler: () => { setSidebarTab('cad'); localStorage.setItem('review:sidebarTab', 'cad'); } },
+    { key: 'Shift+G', description: 'Toggle Repo panel', group: 'In-page', handler: () => { const next = sidebarTab === 'repo' ? null : 'repo'; setSidebarTab(next); localStorage.setItem('review:sidebarTab', next ?? 'closed'); } },
+    { key: 'Shift+C', description: 'Toggle Files panel', group: 'In-page', handler: () => { const next = sidebarTab === 'cad' ? null : 'cad'; setSidebarTab(next); localStorage.setItem('review:sidebarTab', next ?? 'closed'); } },
+    { key: 'Shift+I', description: 'Toggle Images panel', group: 'In-page', handler: () => { const next = sidebarTab === 'images' ? null : 'images'; setSidebarTab(next); localStorage.setItem('review:sidebarTab', next ?? 'closed'); } },
 
     // ─── Focus form fields (Ctrl-gated) ─────────────────────────────
     { key: '$mod+f', description: 'Focus feedback (submitter)', group: 'Focus', handler: () => feedbackRef.current?.focus() },
@@ -1733,103 +1699,145 @@ export default function ReviewDetailPage() {
         className="flex flex-col xl:flex-row items-stretch gap-4 xl:gap-0"
       >
 
-      {/* ── Repo / CAD Sidebar — 2xl+ only ──
-           Tabbed panel: "Repo" shows github1s, "CAD" shows file browser.
-           Collapsible into a thin vertical sidebar; state + width + active
-           tab persisted in localStorage across reviews. */}
-      {repoCollapsed ? (
-        <button
-          onClick={() => { setRepoCollapsed(false); localStorage.setItem('review:repoCollapsed', '0'); }}
-          className="hidden 2xl:flex 2xl:flex-col 2xl:h-full w-10 shrink-0 bg-brown-800 border border-cream-500/20 items-center justify-center cursor-pointer hover:border-orange-500/40 transition-colors group"
-          title="Expand repo panel"
-        >
-          <span
-            className="text-cream-200 text-[10px] uppercase tracking-[0.2em] group-hover:text-cream-50 transition-colors"
-            style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
-          >
-            {sidebarTab === 'repo' ? 'Repo' : 'CAD'}
-          </span>
-        </button>
-      ) : (
-        <>
-        <div
-          className="hidden 2xl:flex 2xl:flex-col 2xl:h-full 2xl:w-[var(--left-w)] bg-brown-800 border border-cream-500/20 min-h-0 shrink-0"
-        >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-cream-500/20 shrink-0">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { setRepoCollapsed(true); localStorage.setItem('review:repoCollapsed', '1'); }}
-                className="text-cream-200 hover:text-cream-50 transition-colors cursor-pointer"
-                title="Collapse repo panel"
+      {/* ── Sidebar — 2xl+ only ──
+           Vertical tab rail on the left edge. Clicking a tab opens the
+           panel; clicking the active tab closes it. When closed, only the
+           rail is visible (same as the old "collapsed" state). */}
+      <div className="hidden 2xl:flex 2xl:h-full shrink-0">
+        {/* Tab rail — always visible */}
+        <div className="flex flex-col w-12 shrink-0 bg-brown-800 outline outline-1 -outline-offset-1 outline-cream-200/15 items-center py-3 gap-2">
+          {([['cad', 'Files'], ['images', 'Images'], ['repo', 'Repo']] as const).map(([tab, label]) => (
+            <button
+              key={tab}
+              onClick={() => {
+                const next = sidebarTab === tab ? null : tab;
+                setSidebarTab(next);
+                localStorage.setItem('review:sidebarTab', next ?? 'closed');
+              }}
+              title={`${sidebarTab === tab ? 'Close' : 'Open'} ${label} panel`}
+              className={`w-10 px-4 py-2 text-[10px] uppercase tracking-widest font-medium transition-[color,background-color,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-orange-500/60 focus-visible:ring-inset ${
+                sidebarTab === tab
+                  ? 'bg-orange-500/15 text-orange-400'
+                  : 'text-cream-300 hover:text-cream-50 hover:bg-brown-700/40'
+              }`}
+              style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+            >
+              {label}
+            </button>
+          ))}
+          {project.githubRepo && (
+            <>
+              <div className="w-4 border-t border-cream-200/10 my-1" />
+              <a
+                href={project.githubRepo}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open on GitHub"
+                className="text-cream-400 hover:text-cream-50 transition-colors focus-visible:ring-2 focus-visible:ring-orange-500/60"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              </button>
-              {(['repo', 'cad'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => { setSidebarTab(tab); localStorage.setItem('review:sidebarTab', tab); }}
-                  className={`text-xs uppercase tracking-wider px-2 py-0.5 border-b-2 transition-colors cursor-pointer ${
-                    sidebarTab === tab
-                      ? 'text-orange-400 border-orange-400'
-                      : 'text-cream-200 border-transparent hover:text-cream-50'
-                  }`}
-                >
-                  {tab === 'repo' ? 'Repo' : 'CAD'}
-                </button>
-              ))}
-            </div>
-            {project.githubRepo && (
-              <div className="flex items-center gap-3">
-                <a
-                  href={project.githubRepo}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-orange-400 hover:text-orange-300 text-xs underline"
-                >
-                  github ↗
-                </a>
-                {sidebarTab === 'repo' && github1sUrl && (
-                  <a
-                    href={github1sUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-orange-400 hover:text-orange-300 text-xs underline"
-                  >
-                    github1s ↗
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-          {sidebarTab === 'repo' ? (
-            github1sUrl ? (
-              <iframe
-                src={github1sUrl}
-                title="github1s repository browser"
-                className="flex-1 w-full border-0 bg-brown-900"
-              />
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-cream-200 text-xs px-4 text-center">
-                No GitHub repo on this submission
-              </div>
-            )
-          ) : (
-            <CadFileBrowser cadData={data?.submission.cadFiles ?? null} />
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+              </a>
+            </>
           )}
         </div>
 
-        {/* divider between github1s and evidence (2xl+) */}
-        <div
-          onMouseDown={beginPaneDrag('left')}
-          role="separator"
-          aria-orientation="vertical"
-          title="Drag to resize"
-          className="hidden 2xl:flex 2xl:self-stretch w-6 shrink-0 cursor-col-resize group items-center justify-center"
-        >
-          <div className="w-px h-full bg-cream-500/15 group-hover:bg-orange-500/60 group-active:bg-orange-500 transition-colors" />
-        </div>
-        </>
-      )}
+        {/* Panel body — only when a tab is active */}
+        {sidebarTab && (
+          <>
+            <div
+              className="flex flex-col h-full w-[var(--left-w)] bg-brown-800 outline outline-1 -outline-offset-1 outline-cream-200/15 min-h-0"
+            >
+              {/* Repo content — stays mounted */}
+              <div className={`flex-1 min-h-0 ${sidebarTab === 'repo' ? 'flex flex-col' : 'hidden'}`}>
+                {github1sUrl ? (
+                  <iframe
+                    src={github1sUrl}
+                    title="github1s repository browser"
+                    className="flex-1 w-full border-0 bg-brown-900"
+                  />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-cream-200 text-xs px-4 text-center">
+                    No GitHub repo on this submission
+                  </div>
+                )}
+              </div>
+              {/* CAD content — stays mounted */}
+              <div className={`flex-1 min-h-0 ${sidebarTab === 'cad' ? 'flex flex-col' : 'hidden'}`}>
+                <CadFileBrowser
+                  cadData={data?.submission.cadFiles ?? null}
+                  onImageHover={(url, e) => {
+                    if (url && e) setHoverPreview({ url, x: e.clientX, y: e.clientY });
+                    else setHoverPreview(null);
+                  }}
+                />
+              </div>
+              {/* Images panel */}
+              <div className={`flex-1 min-h-0 overflow-y-auto ${sidebarTab === 'images' ? 'block' : 'hidden'}`}>
+                {data && (() => {
+                  const project = data.submission.project;
+                  const allImages: Array<{ url: string; label: string; priority: number }> = [];
+                  if (project.coverImage) {
+                    allImages.push({ url: project.coverImage, label: 'Cover image', priority: 0 });
+                  }
+                  if (project.githubRepo) {
+                    const cadData = data.submission.cadFiles as import('@/lib/cad-discovery').CadFilesPayload | null;
+                    if (cadData) {
+                      const readmeUrl = `https://raw.githubusercontent.com/${cadData.owner}/${cadData.repo}/${cadData.branch}/README.md`;
+                      // README images are resolved from cadFiles data — they'll be fetched async
+                    }
+                  }
+                  for (const session of [...project.workSessions].reverse()) {
+                    const mdImgs = session.content ? splitMarkdownImages(session.content).images : [];
+                    const mediaImgs = session.media.filter((m) => m.type === 'IMAGE').map((m) => m.url);
+                    const seen = new Set<string>();
+                    for (const url of [...mediaImgs, ...mdImgs]) {
+                      if (seen.has(url)) continue;
+                      seen.add(url);
+                      allImages.push({ url, label: session.title || `Entry ${session.id.slice(-6)}`, priority: 2 });
+                    }
+                  }
+                  for (const url of project.cartScreenshots) {
+                    allImages.push({ url, label: 'Cart screenshot', priority: 3 });
+                  }
+                  allImages.sort((a, b) => a.priority - b.priority);
+                  if (allImages.length === 0) {
+                    return <div className="flex-1 flex items-center justify-center text-cream-400 text-xs p-4">No images found</div>;
+                  }
+                  return (
+                    <div className="columns-3 gap-1 p-1">
+                      {allImages.map((img, i) => (
+                        <div key={`${img.url}-${i}`} className="mb-1 break-inside-avoid group relative">
+                          <img
+                            src={img.url}
+                            alt={img.label}
+                            loading="lazy"
+                            className="w-full block bg-brown-950"
+                            {...hoverProps(img.url)}
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-brown-900/80 px-1 py-px text-[8px] text-cream-300 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                            {img.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* divider between sidebar panel and evidence (2xl+) */}
+            <div
+              onMouseDown={beginPaneDrag('left')}
+              role="separator"
+              aria-orientation="vertical"
+              title="Drag to resize"
+              className="flex self-stretch w-6 shrink-0 cursor-col-resize group items-center justify-center"
+            >
+              <div className="w-px h-full bg-cream-500/15 group-hover:bg-orange-500/60 group-active:bg-orange-500 transition-colors" />
+            </div>
+          </>
+        )}
+      </div>
 
       <div className="space-y-4 min-w-0 flex-1 xl:h-full xl:overflow-y-auto xl:pr-1">
 
@@ -2056,18 +2064,33 @@ export default function ReviewDetailPage() {
         {ghChecksLoading && !ghChecks ? (
           <p className="text-cream-200 text-sm">Running checks...</p>
         ) : ghChecks ? (
-          <div className="space-y-2">
-            {ghChecks.map((check) => (
-              <div key={check.key} className="flex items-center gap-2 text-sm">
-                <span className={check.passed ? 'text-green-400' : 'text-red-400'}>
-                  {check.passed ? '\u2713' : '\u2717'}
-                </span>
-                <span className="text-cream-50">{check.label}</span>
-                {check.detail && (
-                  <span className="text-cream-200 text-xs">({check.detail})</span>
-                )}
-              </div>
-            ))}
+          <div className="space-y-1.5">
+            {ghChecks.map((check) => {
+              const canOpenCad = CHECK_KEY_TO_CAD_TAB[check.key] && check.passed;
+              const openCad = () => { setSidebarTab('cad'); localStorage.setItem('review:sidebarTab', 'cad'); };
+              return (
+                <div key={check.key} className="flex items-center gap-2 text-sm">
+                  <span className={check.passed ? 'text-green-400' : 'text-red-400'}>
+                    {check.passed ? '\u2713' : '\u2717'}
+                  </span>
+                  {canOpenCad ? (
+                    <button
+                      onClick={openCad}
+                      title="Open in Files panel"
+                      className="inline-flex items-center gap-1.5 text-cream-50 hover:underline cursor-pointer focus-visible:ring-2 focus-visible:ring-orange-500/60"
+                    >
+                      <span>{check.label}</span>
+                      <svg className="text-orange-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </button>
+                  ) : (
+                    <span className="text-cream-50">{check.label}</span>
+                  )}
+                  {check.detail && (
+                    <span className="text-cream-200 text-xs">({check.detail})</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : ghChecksError ? (
           <div className="text-sm">
@@ -2097,88 +2120,6 @@ export default function ReviewDetailPage() {
         />
       </div>
 
-      {/* ── KiCanvas Card ── */}
-      {kicadFiles && kicadFiles.projects.length > 0 && (
-        <div className="bg-brown-800 border border-cream-500/20 p-5">
-          <h2 className="text-cream-50 text-sm uppercase tracking-wider mb-3">
-            KiCad Files{' '}
-            <span className="text-cream-200 normal-case text-xs">
-              (rendered via{' '}
-              <a
-                href="https://kicanvas.org/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-cream-50"
-              >
-                KiCanvas
-              </a>
-              )
-            </span>
-          </h2>
-          <div className="space-y-3">
-            {kicadFiles.projects.map((proj, idx) => {
-              const isOpen = expandedKicad.has(idx);
-              const rawBase = `https://raw.githubusercontent.com/${kicadFiles.owner}/${kicadFiles.repo}/${kicadFiles.branch}`;
-              const paths = [
-                ...(proj.projectFile ? [proj.projectFile] : []),
-                ...proj.schematics,
-                ...proj.boards,
-              ];
-              const sources = paths.map((p) => `${rawBase}/${p}`);
-              const fileCount = proj.schematics.length + proj.boards.length;
-              return (
-                <div key={`${proj.dir}/${proj.name}/${idx}`} className="border border-cream-500/10">
-                  <button
-                    onClick={() => {
-                      setExpandedKicad((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(idx)) next.delete(idx);
-                        else next.add(idx);
-                        return next;
-                      });
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-brown-900/40 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-orange-500 text-xs">{isOpen ? '▼' : '▶'}</span>
-                      <span className="text-cream-50 truncate">
-                        {proj.dir ? `${proj.dir}/` : ''}{proj.name}
-                      </span>
-                      <span className="text-cream-200 text-xs">
-                        ({proj.schematics.length} sch, {proj.boards.length} pcb
-                        {proj.projectFile ? ', project' : ''})
-                      </span>
-                    </div>
-                    <div className="flex gap-2 text-xs text-cream-200">
-                      {proj.schematics.slice(0, 1).map((s) => (
-                        <a
-                          key={s}
-                          href={`https://github.com/${kicadFiles.owner}/${kicadFiles.repo}/blob/${kicadFiles.branch}/${s}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:text-cream-50 underline"
-                        >
-                          view on GitHub
-                        </a>
-                      ))}
-                    </div>
-                  </button>
-                  {isOpen && (
-                    <div className="p-2 border-t border-cream-500/10">
-                      <KiCanvasEmbed sources={sources} controls="full" height={560} />
-                      <p className="text-cream-200 text-[10px] mt-1">
-                        {fileCount} file{fileCount === 1 ? '' : 's'} · branch{' '}
-                        <span className="text-cream-50">{kicadFiles.branch}</span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ── Conflict Warning Card ── */}
       {conflicts.length > 0 && (
@@ -2565,7 +2506,7 @@ export default function ReviewDetailPage() {
                       </div>
                     )}
                     {text && (
-                      <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-100 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!leading-relaxed [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_p]:my-1.5" data-color-mode="light">
+                      <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-100 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!leading-relaxed [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_p]:my-1.5 [&_.wmde-markdown_pre]:!bg-brown-950 [&_.wmde-markdown_pre]:!border-cream-500/10 [&_.wmde-markdown_code]:!bg-brown-950 [&_.wmde-markdown_code]:!text-cream-200" data-color-mode="dark">
                         <MDPreview source={fixMarkdownImages(text)} />
                       </div>
                     )}
@@ -3017,24 +2958,19 @@ export default function ReviewDetailPage() {
           `visibility: hidden` until the first measurement avoids a one-frame
           jump on hover. */}
       {hoverPreview && (() => {
-        const padding = 8;
-        const offset = 16;
         const measured = popupSize.w > 0 && popupSize.h > 0;
         const w = popupSize.w;
         const h = popupSize.h;
-        const leftHalf = hoverPreview.x <= window.innerWidth / 2;
-        const topHalf = hoverPreview.y <= window.innerHeight / 2;
-        let left = leftHalf ? hoverPreview.x + offset : hoverPreview.x - offset - w;
-        let top = topHalf ? hoverPreview.y + offset : hoverPreview.y - offset - h;
-        if (measured) {
-          left = Math.max(padding, Math.min(left, window.innerWidth - w - padding));
-          top = Math.max(padding, Math.min(top, window.innerHeight - h - padding));
-        }
+        const sidebarW = sidebarTab ? leftWidth + 48 + 24 : 48;
+        const availW = window.innerWidth - sidebarW;
+        const availH = window.innerHeight;
+        const left = sidebarW + (availW - w) / 2;
+        const top = (availH - h) / 2;
         return (
           <div
             ref={popupRef}
             className="fixed pointer-events-none z-[200] shadow-2xl"
-            style={{ left, top, visibility: measured ? 'visible' : 'hidden' }}
+            style={{ left: Math.max(sidebarW + 16, left), top: Math.max(16, top), visibility: measured ? 'visible' : 'hidden' }}
           >
             <img
               src={hoverPreview.url}

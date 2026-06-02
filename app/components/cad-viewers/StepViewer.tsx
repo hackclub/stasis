@@ -112,7 +112,7 @@ function buildGroup(result: StepResult): THREE.Group {
 
 export default function StepViewer({
   url,
-  height = 480,
+  height,
 }: Readonly<{ url: string; height?: number }>) {
   const modelRef = useRef<THREE.Group | null>(null);
   const [model, setModel] = useState<THREE.Group | null>(null);
@@ -149,14 +149,14 @@ export default function StepViewer({
 
   if (error) {
     return (
-      <div className="flex items-center justify-center text-red-400 text-xs p-4" style={{ height }}>
+      <div className="flex items-center justify-center text-red-400 text-xs p-4" style={height ? { height } : { height: '100%' }}>
         {error}
       </div>
     );
   }
 
   return (
-    <div className="relative bg-brown-900" style={{ height }}>
+    <div className="relative bg-brown-900" style={height ? { height } : { height: '100%' }}>
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center text-cream-200 text-xs z-10">
           Parsing STEP file (WASM)...
