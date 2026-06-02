@@ -189,25 +189,25 @@ function ReadmePane({ owner, repo, branch, onImageHover }: Readonly<{ owner: str
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !onImageHover) return;
-    const onEnter = (e: MouseEvent) => {
-      const img = (e.target as HTMLElement).closest('img');
+    const onOver = (e: MouseEvent) => {
+      const img = (e.target as HTMLElement).closest('img') as HTMLImageElement | null;
       if (img?.src) onImageHover(img.src, e);
     };
     const onMove = (e: MouseEvent) => {
-      const img = (e.target as HTMLElement).closest('img');
+      const img = (e.target as HTMLElement).closest('img') as HTMLImageElement | null;
       if (img?.src) onImageHover(img.src, e);
     };
-    const onLeave = (e: MouseEvent) => {
+    const onOut = (e: MouseEvent) => {
       const related = e.relatedTarget as HTMLElement | null;
       if (!related?.closest('img')) onImageHover(null);
     };
-    el.addEventListener('mouseenter', onEnter, true);
-    el.addEventListener('mousemove', onMove, true);
-    el.addEventListener('mouseleave', onLeave, true);
+    el.addEventListener('mouseover', onOver);
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseout', onOut);
     return () => {
-      el.removeEventListener('mouseenter', onEnter, true);
-      el.removeEventListener('mousemove', onMove, true);
-      el.removeEventListener('mouseleave', onLeave, true);
+      el.removeEventListener('mouseover', onOver);
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseout', onOut);
     };
   }, [onImageHover]);
   const [md, setMd] = useState<string | null>(null);
@@ -303,7 +303,7 @@ export default function FileBrowser({ cadData, focusKind, onFocusKindConsumed, o
       setSelection({ type: 'file', file });
     } else if (focusKind === 'pcb-fab' && cadData.gerberGroups?.length) {
       setSelection({ type: 'gerber', group: cadData.gerberGroups[0], idx: 0 });
-    } else if (focusKind === 'kicad' && cadData.kicadProjects.length) {
+    } else if ((focusKind === 'kicad' || focusKind === 'pcb-source') && cadData.kicadProjects.length) {
       setSelection({ type: 'kicad', project: cadData.kicadProjects[0], idx: 0 });
     }
     onFocusKindConsumed?.();
