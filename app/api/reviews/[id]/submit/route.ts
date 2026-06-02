@@ -88,13 +88,6 @@ export async function POST(
     )
   }
 
-  if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
-    return NextResponse.json(
-      { error: "Internal justification is required" },
-      { status: 400 }
-    )
-  }
-
   // categoryOverride is admin-only
   if (categoryOverride && !isAdmin) {
     return NextResponse.json(
@@ -187,6 +180,16 @@ export async function POST(
 
   if (!stage) {
     return NextResponse.json({ error: "Project is not in review" }, { status: 400 })
+  }
+
+  // Justification required for second-pass (admin) reviews and first-pass build
+  // reviews, but optional for first-pass design reviews.
+  const justificationRequired = isAdmin || stage === "BUILD"
+  if (justificationRequired && (!reason || typeof reason !== "string" || reason.trim().length === 0)) {
+    return NextResponse.json(
+      { error: "Internal justification is required" },
+      { status: 400 }
+    )
   }
 
   // Always validate that the project is still in review for the determined stage,
