@@ -1028,7 +1028,8 @@ export default function ReviewDetailPage() {
     const effectiveFeedback = rawFeedback || 'Awesome project!';
     const effectiveReason = (overrides?.reason ?? reason).trim();
 
-    if (!effectiveReason) {
+    const justificationRequired = result === 'APPROVED' && (data?.isAdmin || data?.submission.stage === 'BUILD');
+    if (justificationRequired && !effectiveReason) {
       reasonRef.current?.focus();
       return;
     }
