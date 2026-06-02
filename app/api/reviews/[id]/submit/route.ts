@@ -182,9 +182,8 @@ export async function POST(
     return NextResponse.json({ error: "Project is not in review" }, { status: 400 })
   }
 
-  // Justification required for second-pass (admin) reviews and first-pass build
-  // reviews, but optional for first-pass design reviews.
-  const justificationRequired = isAdmin || stage === "BUILD"
+  // Justification only required for approvals: second-pass (admin) or first-pass build.
+  const justificationRequired = result === "APPROVED" && (isAdmin || stage === "BUILD")
   if (justificationRequired && (!reason || typeof reason !== "string" || reason.trim().length === 0)) {
     return NextResponse.json(
       { error: "Internal justification is required" },

@@ -2735,7 +2735,7 @@ export default function ReviewDetailPage() {
             <div className="mb-3">
               <label className="text-cream-200 text-xs uppercase block mb-1">
                 Internal Justification
-                {(isAdmin || submission.stage === 'BUILD') && <span className="text-orange-500 normal-case ml-1">(required)</span>}
+                {(isAdmin || submission.stage === 'BUILD') && <span className="text-orange-500 normal-case ml-1">(required to approve)</span>}
                 {isAdmin && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃R</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
               </label>
               {isAdmin && (
