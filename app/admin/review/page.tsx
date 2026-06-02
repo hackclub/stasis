@@ -151,6 +151,7 @@ export default function ReviewQueuePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [useOldReviewUi, setUseOldReviewUi] = useState(false);
   const [viewAsFirstPass, setViewAsFirstPass] = useState(false);
+  const [guide, setGuide] = useState('');
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -201,6 +202,7 @@ export default function ReviewQueuePage() {
     try {
       const baseParams = new URLSearchParams();
       if (search) baseParams.set('search', search);
+      if (guide) baseParams.set('guide', guide);
       if (prioritizeAttending) baseParams.set('prioritizeAttending', 'true');
       if (region) baseParams.set('region', region);
       if (viewAsFirstPass) baseParams.set('viewAs', 'first-pass');
@@ -222,7 +224,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, prioritizeAttending, region, viewAsFirstPass]);
+  }, [search, guide, prioritizeAttending, region, viewAsFirstPass]);
 
   const loadMore = useCallback(async (tab: ReviewTab) => {
     const current = tab === 'DESIGN' ? designData : buildData;
@@ -230,6 +232,7 @@ export default function ReviewQueuePage() {
     setLoadingMore(true);
     const params = new URLSearchParams();
     if (search) params.set('search', search);
+    if (guide) params.set('guide', guide);
     if (prioritizeAttending) params.set('prioritizeAttending', 'true');
     if (region) params.set('region', region);
     if (viewAsFirstPass) params.set('viewAs', 'first-pass');
@@ -250,7 +253,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [designData, buildData, search, prioritizeAttending, region, viewAsFirstPass]);
+  }, [designData, buildData, search, guide, prioritizeAttending, region, viewAsFirstPass]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -505,11 +508,11 @@ export default function ReviewQueuePage() {
         <div className="flex gap-2 flex-wrap items-center">
           <span className="text-xs text-cream-200 uppercase tracking-wider mr-1">Review:</span>
           <button
-            onClick={() => startFilteredReview(activeTab, '', '', '')}
+            onClick={() => startFilteredReview(activeTab, guide, '', '')}
             disabled={navigating}
             className="px-4 py-1.5 text-xs uppercase tracking-wider border border-orange-500 bg-orange-500 text-white hover:bg-orange-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {navigating ? 'Loading...' : `All ${activeTab === 'DESIGN' ? 'Design' : 'Build'}`}
+            {navigating ? 'Loading...' : `Start ${activeTab === 'DESIGN' ? 'Design' : 'Build'} Review`}
           </button>
 
           <span className="border-l border-cream-500/30 mx-1 hidden sm:inline-block" />
@@ -517,18 +520,24 @@ export default function ReviewQueuePage() {
           {starterProjects.map((sp) => (
             <button
               key={sp.id}
-              onClick={() => startFilteredReview(activeTab, sp.id, '', '')}
-              disabled={navigating}
-              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setGuide(guide === sp.id ? '' : sp.id)}
+              className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
+                guide === sp.id
+                  ? 'border-orange-500 text-orange-400 bg-orange-500/10'
+                  : 'border-cream-500/30 text-cream-100 hover:border-orange-500'
+              }`}
             >
               {sp.name}
               {stats?.guideCounts[sp.id] ? ` (${stats.guideCounts[sp.id]})` : ''}
             </button>
           ))}
           <button
-            onClick={() => startFilteredReview(activeTab, 'custom', '', '')}
-            disabled={navigating}
-            className="px-3 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-100 hover:border-orange-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setGuide(guide === 'custom' ? '' : 'custom')}
+            className={`px-3 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
+              guide === 'custom'
+                ? 'border-orange-500 text-orange-400 bg-orange-500/10'
+                : 'border-cream-500/30 text-cream-100 hover:border-orange-500'
+            }`}
           >
             Custom
             {stats?.guideCounts['custom'] ? ` (${stats.guideCounts['custom']})` : ''}
@@ -763,7 +772,7 @@ export default function ReviewQueuePage() {
                       <td className="px-3 py-3 text-center">
                         <div>
                           <Link
-                            href={`/admin/review/${item.id}${useOldReviewUi ? '/old' : ''}?category=${activeTab}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}${viewAsFirstPass ? '&viewAs=first-pass' : ''}`}
+                            href={`/admin/review/${item.id}${useOldReviewUi ? '/old' : ''}?category=${activeTab}${guide ? `&guide=${guide}` : ''}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}${viewAsFirstPass ? '&viewAs=first-pass' : ''}`}
                             className={`inline-block px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
                               item.claimedByOther
                                 ? 'border-cream-500/20 text-cream-500 cursor-not-allowed'
