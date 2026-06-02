@@ -2,39 +2,17 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar as RechartsBar, LineChart, Line,
+  AreaChart, Area, BarChart, Bar as RBar, LineChart, Line,
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
+  Tooltip as RTooltip, ResponsiveContainer,
 } from 'recharts';
 
-interface TurnaroundStats {
-  avg: number;
-  median: number;
-  p90: number;
-  sampleCount: number;
-}
-
-interface ReviewerRow {
-  id: string;
-  name: string;
-  image: string | null;
-  total: number;
-  firstPass: number;
-  admin: number;
-  approved: number;
-  returned: number;
-  rejected: number;
-  today: number;
-  week: number;
-  month: number;
-  avgTurnaroundHours: number;
-  activeDays: number;
-}
+// --- Types ---
 
 interface ReviewData {
   queue: {
-    design: { pending: number; claimed: number; preReviewed: number };
-    build: { pending: number; claimed: number; preReviewed: number };
+    total: number; design: number; build: number; preReviewed: number;
+    medianWaitDays: number; p90WaitDays: number; maxWaitDays: number;
   };
   periods: {
     today: { submissions: number; reviews: number };
@@ -42,667 +20,629 @@ interface ReviewData {
     thisMonth: { submissions: number; reviews: number };
     allTime: { submissions: number; reviews: number };
   };
-  dailyActivity: { date: string; submissions: number; reviews: number }[];
-  weeklyActivity: { week: string; submissions: number; reviews: number }[];
+  dailyActivity: { date: string; design_subs: number; build_subs: number; design_revs: number; build_revs: number }[];
+  weeklyStats: {
+    week: string; submissions: number; reviews: number;
+    returned: number; admin_reviews: number; return_rate: number; active_reviewers: number;
+  }[];
+  turnaroundTrend: { week: string; designMedian: number; buildMedian: number; designP90: number; buildP90: number }[];
   turnaround: {
-    firstResponse: { design: TurnaroundStats; build: TurnaroundStats };
-    resolution: { design: TurnaroundStats; build: TurnaroundStats };
+    design: { medianHours: number; p90Hours: number; samples: number };
+    build: { medianHours: number; p90Hours: number; samples: number };
   };
-  turnaroundTrend: { week: string; designMedian: number; buildMedian: number }[];
-  outcomes: {
-    design: { approved: number; returned: number; rejected: number };
-    build: { approved: number; returned: number; rejected: number };
-  };
-  reviewers: ReviewerRow[];
-  backlog: {
-    buckets: { bucket: string; count: number }[];
-    oldest: {
-      id: string; projectId: string; projectTitle: string; stage: string;
-      submittedAt: string; ageHours: number; preReviewed: boolean;
-      claimedBy: string | null; claimerName: string | null;
-    }[];
-  };
-  agreement: {
-    matrix: { firstPass: string; admin: string; count: number }[];
-    agreementRate: number;
-    total: number;
-  };
-  resubmissions: {
-    design: { avg: number; distribution: { submissions: number | string; projects: number }[] };
-    build: { avg: number; distribution: { submissions: number | string; projects: number }[] };
-  };
-  activityByDow: { dow: number; submissions: number; reviews: number }[];
-  activityByHour: { hour: number; submissions: number; reviews: number }[];
-  adminOutcomes: {
-    design: { approved: number; returned: number; rejected: number };
-    build: { approved: number; returned: number; rejected: number };
-  };
-  adminTurnaround: { design: TurnaroundStats; build: TurnaroundStats };
+  reviewFreshness: { bucket: string; count: number; median_age: number }[];
+  backlogAge: { stage: string; bucket: string; count: number }[];
+  outcomes: { approved: number; returned: number; rejected: number };
+  resubmissions: { avgRounds: number; distribution: { rounds: string; count: number }[] };
+  reviewers: {
+    id: string; name: string; image: string | null;
+    total: number; firstPass: number; admin: number;
+    approved: number; returned: number; rejected: number;
+    today: number; week: number; month: number; activeDays: number;
+  }[];
+  oldest: {
+    id: string; projectId: string; projectTitle: string; stage: string;
+    submittedAt: string; ageDays: number; preReviewed: boolean;
+  }[];
 }
 
-const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const ORANGE = '#D95D39';
-const GREEN = '#15803d';
-const BLUE = '#3b82f6';
-const PURPLE = '#a855f7';
-const YELLOW = '#ca8a04';
-const RED = '#dc2626';
-const AXIS = { fill: 'rgba(245,243,239,0.5)', fontSize: 11, fontFamily: 'var(--font-mono, monospace)' };
-const GRID = { strokeDasharray: '3 3' as const, stroke: 'rgba(245,243,239,0.06)' };
-const BACKLOG_COLORS = [ORANGE, YELLOW, '#b45309', RED, '#991b1b'];
-const OUTCOME_COLORS = [GREEN, YELLOW, RED];
+// --- Constants ---
 
-type ReviewerSortPeriod = 'today' | 'week' | 'month' | 'total';
+const AMBER = '#f59e0b';
+const TEAL = '#2dd4bf';
+const EMERALD = '#34d399';
+const ROSE = '#fb7185';
+const YELLOW = '#fbbf24';
+const SKY = '#7dd3fc';
+const VIOLET = '#a78bfa';
+const SLATE = '#94a3b8';
+const AXIS_TICK = { fill: 'rgba(245,243,239,0.6)', fontSize: 10, fontFamily: 'var(--font-sans, sans-serif)' };
+const GRID_LINE = { strokeDasharray: '2 4' as const, stroke: 'rgba(245,243,239,0.06)' };
 
-function ChartTooltipContent({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-brown-900 border border-cream-500/20 px-3 py-2 font-mono text-xs">
-      <div className="text-cream-50 mb-1 font-medium">{label}</div>
-      {payload.map((entry: any, i: number) => (
-        <div key={i} className="flex justify-between gap-6">
-          <span style={{ color: entry.color }}>{entry.name}</span>
-          <span className="text-cream-50">{typeof entry.value === 'number' ? entry.value.toLocaleString() : entry.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+type SortPeriod = 'today' | 'week' | 'month' | 'total';
 
-function PieTooltipContent({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0];
-  return (
-    <div className="bg-brown-900 border border-cream-500/20 px-3 py-2 font-mono text-xs">
-      <div className="text-cream-50">{d.name}: <span className="font-medium">{d.value}</span> ({(d.payload.percent * 100).toFixed(1)}%)</div>
-    </div>
-  );
-}
+// --- Small components ---
 
 function Tip({ text }: Readonly<{ text: string }>) {
   return (
-    <span className="relative group ml-1.5 inline-flex align-middle">
-      <span className="text-cream-50/25 text-[10px] cursor-help border border-cream-500/15 w-3.5 h-3.5 inline-flex items-center justify-center leading-none select-none">?</span>
-      <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 bg-brown-900 border border-cream-500/20 text-cream-50/80 text-xs w-56 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-snug">
+    <span className="relative group ml-1 inline-flex align-middle">
+      <span className="text-cream-50/45 text-[9px] cursor-help border border-cream-500/10 w-3 h-3 inline-flex items-center justify-center leading-none select-none">?</span>
+      <span className="absolute bottom-full left-0 mb-1.5 px-2 py-1.5 bg-brown-900 border border-cream-500/20 text-cream-50/70 text-[11px] w-56 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-snug font-normal normal-case tracking-normal">
         {text}
       </span>
     </span>
   );
 }
 
-function StatCard({ label, value, sub, accent, tip }: Readonly<{ label: string; value: string | number; sub?: string; accent?: string; tip?: string }>) {
+function ChartTip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="bg-brown-800 border-2 border-cream-500/20 p-5">
-      <div className="text-cream-50 text-xs uppercase tracking-wider mb-1">
-        {label}{tip && <Tip text={tip} />}
-      </div>
-      <div className={`text-3xl font-mono font-medium ${accent || 'text-orange-500'}`}>{value}</div>
-      {sub && <div className="text-cream-50/60 text-xs mt-1">{sub}</div>}
+    <div className="bg-brown-900/95 border border-cream-500/15 px-3 py-2 text-[11px] font-sans backdrop-blur-sm">
+      <div className="text-cream-50/70 mb-0.5">{label}</div>
+      {payload.map((e: any, i: number) => (
+        <div key={i} className="flex justify-between gap-4">
+          <span style={{ color: e.color }}>{e.name}</span>
+          <span className="text-cream-50">{typeof e.value === 'number' ? e.value.toLocaleString() : e.value}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-function Section({ title, children, className, tip }: Readonly<{ title: string; children: React.ReactNode; className?: string; tip?: string }>) {
+function PieTip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0];
   return (
-    <div className={`bg-brown-800 border-2 border-cream-500/20 p-6 lg:px-10 ${className || ''}`}>
-      <h2 className="text-cream-50 text-lg uppercase tracking-wide mb-4">
-        {title}{tip && <Tip text={tip} />}
-      </h2>
-      {children}
+    <div className="bg-brown-900/95 border border-cream-500/15 px-3 py-1.5 text-[11px] font-sans">
+      <span className="text-cream-50">{d.name}: {d.value} ({(d.payload.percent * 100).toFixed(1)}%)</span>
     </div>
   );
-}
-
-function Bar({ value, max, color = 'bg-orange-500' }: Readonly<{ value: number; max: number; color?: string }>) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div className="h-4 bg-brown-900 border border-cream-500/20 flex-1">
-      <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
-function formatAge(hours: number): string {
-  if (hours < 1) return `${Math.round(hours * 60)}m`;
-  if (hours < 24) return `${Math.round(hours)}h`;
-  if (hours < 168) return `${Math.round(hours / 24 * 10) / 10}d`;
-  return `${Math.round(hours / 168 * 10) / 10}w`;
 }
 
 function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) {
-  if (percent < 0.05) return null;
-  const RADIAN = Math.PI / 180;
+  if (percent < 0.04) return null;
+  const r = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text x={x} y={y} fill="#F5F3EF" textAnchor="middle" dominantBaseline="central" fontSize={11} fontFamily="var(--font-mono, monospace)">
-      {(percent * 100).toFixed(0)}%
-    </text>
+    <text x={cx + radius * Math.cos(-midAngle * r)} y={cy + radius * Math.sin(-midAngle * r)}
+      fill="#F5F3EF" textAnchor="middle" dominantBaseline="central" fontSize={11}
+      fontFamily="var(--font-sans, sans-serif)">{(percent * 100).toFixed(0)}%</text>
   );
 }
+
+function Metric({ label, value, sub, tip, accent }: Readonly<{
+  label: string; value: string | number; sub?: string; tip?: string; accent?: string;
+}>) {
+  return (
+    <div className="min-w-0">
+      <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-0.5 truncate">
+        {label}{tip && <Tip text={tip} />}
+      </div>
+      <div className={`text-2xl font-sans font-medium tabular-nums ${accent || 'text-cream-50'}`}>{value}</div>
+      {sub && <div className="text-cream-50/50 text-[10px] mt-0.5 font-sans">{sub}</div>}
+    </div>
+  );
+}
+
+function SectionLabel({ children, tip }: Readonly<{ children: React.ReactNode; tip?: string }>) {
+  return (
+    <h2 className="text-cream-50/70 text-[11px] uppercase tracking-[0.15em] mb-4 font-medium">
+      {children}{tip && <Tip text={tip} />}
+    </h2>
+  );
+}
+
+function fmtDays(d: number): string {
+  if (d < 1) return `${Math.round(d * 24)}h`;
+  if (d < 2) return `${Math.floor(d)}d ${Math.round((d % 1) * 24)}h`;
+  return `${Math.round(d * 10) / 10}d`;
+}
+
+function fmtHours(h: number): string {
+  if (h < 24) return `${Math.round(h)}h`;
+  const days = Math.floor(h / 24);
+  const hrs = Math.round(h % 24);
+  if (hrs === 0) return `${days}d`;
+  return `${days}d ${hrs}h`;
+}
+
+// --- Main ---
 
 export default function ReviewDataPage() {
   const [data, setData] = useState<ReviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reviewerSort, setReviewerSort] = useState<ReviewerSortPeriod>('week');
+  const [sort, setSort] = useState<SortPeriod>('week');
 
   useEffect(() => {
     fetch('/api/admin/review-data')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to load review data');
-        return res.json();
-      })
-      .then(setData)
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+      .then(r => { if (!r.ok) throw new Error('Failed to load'); return r.json(); })
+      .then(setData).catch(e => setError(e.message)).finally(() => setLoading(false));
   }, []);
 
   const computed = useMemo(() => {
     if (!data) return null;
-    const last7 = data.dailyActivity.slice(-7);
-    const last30 = data.dailyActivity;
-    const avg7dReviews = last7.reduce((s, d) => s + d.reviews, 0) / Math.max(last7.length, 1);
-    const avg30dReviews = last30.reduce((s, d) => s + d.reviews, 0) / Math.max(last30.length, 1);
-    const avg7dSubmissions = last7.reduce((s, d) => s + d.submissions, 0) / Math.max(last7.length, 1);
-    const totalPending = data.queue.design.pending + data.queue.build.pending;
-    const burnDays = avg7dReviews > 0 ? totalPending / avg7dReviews : Infinity;
-    const velocityTrend = avg30dReviews > 0 ? ((avg7dReviews - avg30dReviews) / avg30dReviews) * 100 : 0;
-    return { avg7dReviews, avg30dReviews, avg7dSubmissions, totalPending, burnDays, velocityTrend };
+    const withTotals = data.dailyActivity.map(d => ({
+      ...d,
+      submissions: d.design_subs + d.build_subs,
+      reviews: d.design_revs + d.build_revs,
+    }));
+    const last7 = withTotals.slice(-7);
+    const last30 = withTotals.slice(-30);
+    const avg7r = last7.reduce((s, d) => s + d.reviews, 0) / 7;
+    const avg30r = last30.reduce((s, d) => s + d.reviews, 0) / 30;
+    const avg7s = last7.reduce((s, d) => s + d.submissions, 0) / 7;
+    const net7 = last7.reduce((s, d) => s + d.reviews - d.submissions, 0);
+
+    // Reconstruct queue depth by stage over last 60 days
+    const daily = [...data.dailyActivity].reverse();
+    const queueHistory: { date: string; design: number; build: number; total: number }[] = [];
+    let dq = data.queue.design;
+    let bq = data.queue.build;
+    for (const day of daily) {
+      queueHistory.unshift({ date: day.date, design: dq, build: bq, total: dq + bq });
+      dq = dq + day.design_subs - day.design_revs;
+      bq = bq + day.build_subs - day.build_revs;
+    }
+
+    const burnDays = avg7r > 0 ? data.queue.total / avg7r : Infinity;
+    const outcomeTotal = data.outcomes.approved + data.outcomes.returned + data.outcomes.rejected;
+
+    // Backlog age grouped by stage
+    const AGE_BUCKETS = ['< 1 day', '1-3 days', '3-7 days', '1-2 weeks', '2-4 weeks', '1+ months'];
+    const designAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'DESIGN' && r.bucket === b)?.count ?? 0 }));
+    const buildAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'BUILD' && r.bucket === b)?.count ?? 0 }));
+
+    return { avg7r, avg30r, avg7s, net7, queueHistory, burnDays, outcomeTotal, withTotals, designAge, buildAge };
   }, [data]);
 
   const sortedReviewers = useMemo(() => {
     if (!data) return [];
-    const key = reviewerSort === 'today' ? 'today' : reviewerSort === 'week' ? 'week' : reviewerSort === 'month' ? 'month' : 'total';
-    return [...data.reviewers].sort((a, b) => b[key] - a[key]);
-  }, [data, reviewerSort]);
+    const k = sort === 'today' ? 'today' : sort === 'week' ? 'week' : sort === 'month' ? 'month' : 'total';
+    return [...data.reviewers].sort((a, b) => b[k] - a[k]).filter(r => r[k] > 0);
+  }, [data, sort]);
 
   if (loading) return <div className="flex justify-center py-20"><div className="loader" /></div>;
+  if (error || !data || !computed) return <div className="text-cream-50/60 text-center py-20">{error || 'Failed to load'}</div>;
 
-  if (error || !data || !computed) {
-    return <div className="bg-brown-800 border-2 border-cream-500/20 p-8 text-center"><p className="text-cream-50">{error || 'Failed to load review data'}</p></div>;
-  }
-
-  const adminDesignTotal = data.adminOutcomes.design.approved + data.adminOutcomes.design.returned + data.adminOutcomes.design.rejected;
-  const adminBuildTotal = data.adminOutcomes.build.approved + data.adminOutcomes.build.returned + data.adminOutcomes.build.rejected;
-
-  const designPieData = [
-    { name: 'Approved', value: data.adminOutcomes.design.approved },
-    { name: 'Returned', value: data.adminOutcomes.design.returned },
-    { name: 'Rejected', value: data.adminOutcomes.design.rejected },
+  const last30 = computed.withTotals.slice(-30);
+  const outcomePie = [
+    { name: 'Approved', value: data.outcomes.approved },
+    { name: 'Returned', value: data.outcomes.returned },
+    { name: 'Rejected', value: data.outcomes.rejected },
   ].filter(d => d.value > 0);
-
-  const buildPieData = [
-    { name: 'Approved', value: data.adminOutcomes.build.approved },
-    { name: 'Returned', value: data.adminOutcomes.build.returned },
-    { name: 'Rejected', value: data.adminOutcomes.build.rejected },
-  ].filter(d => d.value > 0);
-
-  const dowData = data.activityByDow.map(d => ({ ...d, name: DOW_LABELS[d.dow] }));
-  const hourData = data.activityByHour.map(h => ({ ...h, name: `${String(h.hour).padStart(2, '0')}:00` }));
-  const dailyData = data.dailyActivity.map(d => ({ ...d, label: d.date.slice(5) }));
-  const weeklyData = data.weeklyActivity.map(w => ({ ...w, label: w.week.slice(5) }));
-  const trendData = data.turnaroundTrend.map(t => ({ ...t, label: t.week.slice(5) }));
+  const outcomeColors = [EMERALD, YELLOW, ROSE];
+  const backlogMax = Math.max(...computed.designAge.map(b => b.count), ...computed.buildAge.map(b => b.count), 1);
+  const freshnessMax = Math.max(...data.reviewFreshness.map(b => b.count), 1);
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-orange-500 text-2xl uppercase tracking-wide">Review Data</h1>
+    <div className="space-y-10 max-w-[1400px] mx-auto">
 
-      {/* Headline Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Queue Depth"
-          value={computed.totalPending}
-          sub={`${data.queue.design.pending} design · ${data.queue.build.pending} build`}
-          tip="Total projects waiting for review across both design and build stages"
-        />
-        <StatCard
-          label="Reviews Today"
-          value={data.periods.today.reviews}
-          sub={`${data.periods.thisWeek.reviews} this week · ${data.periods.thisMonth.reviews} this month`}
-          tip="First-pass reviews completed. Admin decisions tracked separately in outcomes."
-        />
-        <StatCard
-          label="Median Turnaround"
-          value={`${data.turnaround.firstResponse.design.median}h`}
-          sub={`Design ${data.turnaround.firstResponse.design.median}h · Build ${data.turnaround.firstResponse.build.median}h`}
-          tip="50th percentile time from submission to first review. Half of all submissions are reviewed faster than this."
-        />
-        <StatCard
-          label="Queue Burn Rate"
-          value={computed.burnDays === Infinity ? '—' : `${Math.round(computed.burnDays * 10) / 10}d`}
-          sub={`${Math.round(computed.avg7dReviews * 10) / 10} reviews/day (7d avg)`}
-          tip="Days to clear the entire queue at the current 7-day review pace, assuming zero new submissions"
-        />
+      {/* ── Headline metrics ── */}
+      <div>
+        <h1 className="text-cream-50/50 text-xs uppercase tracking-[0.2em] mb-6">Review pipeline</h1>
+        <div className="flex flex-wrap gap-x-10 gap-y-4">
+          <Metric label="In queue" value={data.queue.total}
+            sub={`${data.queue.design} design · ${data.queue.build} build`}
+            tip="Projects currently waiting for a review decision" />
+          <Metric label="Submitted today" value={data.periods.today.submissions}
+            sub={`${data.periods.thisWeek.submissions} this week`} accent="text-amber-400" />
+          <Metric label="Reviewed today" value={data.periods.today.reviews}
+            sub={`${data.periods.thisWeek.reviews} this week`} accent="text-teal-400" />
+          <Metric label="Median wait" value={fmtDays(data.queue.medianWaitDays)}
+            sub={`p90 ${fmtDays(data.queue.p90WaitDays)} · max ${fmtDays(data.queue.maxWaitDays)}`}
+            tip="How long the median pending project has been waiting right now" />
+          <Metric label="7-day net" value={`${computed.net7 >= 0 ? '+' : ''}${computed.net7}`}
+            sub={`${Math.round(computed.avg7s * 10) / 10} in · ${Math.round(computed.avg7r * 10) / 10} out / day`}
+            accent={computed.net7 <= 0 ? 'text-emerald-400' : 'text-rose-400'}
+            tip="Reviews minus submissions over the last 7 days. Negative means the queue is growing." />
+          <Metric label="Time to clear" value={computed.burnDays === Infinity ? '—' : fmtDays(computed.burnDays)}
+            tip="Days to empty the queue at the current 7-day review pace, assuming no new submissions" />
+        </div>
       </div>
 
-      {/* Velocity + Queue Status */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Section title="Review Velocity" tip="How fast reviews are being completed and whether that pace is changing">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-cream-50 text-xs uppercase tracking-wider">7-Day Avg<Tip text="Average reviews per day over the last 7 calendar days" /></div>
-                <div className="text-orange-500 text-xl font-mono">{Math.round(computed.avg7dReviews * 10) / 10}/day</div>
-              </div>
-              <div>
-                <div className="text-cream-50 text-xs uppercase tracking-wider">30-Day Avg</div>
-                <div className="text-orange-500 text-xl font-mono">{Math.round(computed.avg30dReviews * 10) / 10}/day</div>
-              </div>
-            </div>
-            <div>
-              <div className="text-cream-50 text-xs uppercase tracking-wider">Trend<Tip text="Percentage change: positive means the 7-day pace is faster than the 30-day pace (reviews are accelerating)" /></div>
-              <div className={`text-xl font-mono ${computed.velocityTrend >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                {computed.velocityTrend >= 0 ? '+' : ''}{Math.round(computed.velocityTrend)}%
-              </div>
-              <div className="text-cream-50/60 text-xs">7d vs 30d average</div>
-            </div>
-            <div>
-              <div className="text-cream-50 text-xs uppercase tracking-wider">Submission Rate<Tip text="Average new project submissions per day (7-day window). Compare to review rate to see if backlog is growing." /></div>
-              <div className="text-orange-500 text-xl font-mono">{Math.round(computed.avg7dSubmissions * 10) / 10}/day</div>
-            </div>
+      {/* ── Queue over time ── */}
+      <div>
+        <SectionLabel tip="Estimated queue size reconstructed from daily submissions and reviews. Shows whether the backlog is growing or shrinking.">
+          Review queue size
+        </SectionLabel>
+        <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={computed.queueHistory}>
+              <defs>
+                <linearGradient id="designGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={SKY} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={SKY} stopOpacity={0.03} />
+                </linearGradient>
+                <linearGradient id="buildGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={VIOLET} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={VIOLET} stopOpacity={0.03} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid {...GRID_LINE} />
+              <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={d => d.slice(5)} interval={6} />
+              <YAxis tick={AXIS_TICK} width={32} />
+              <RTooltip content={<ChartTip />} />
+              <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={1.5} stackId="queue" dot={false} />
+              <Area type="monotone" dataKey="build" name="Build" stroke={VIOLET} fill="url(#buildGrad)" strokeWidth={1.5} stackId="queue" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: SKY }} />Design</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: VIOLET }} />Build</span>
           </div>
-        </Section>
+        </div>
+      </div>
 
-        <Section title="Queue Status" tip="Current snapshot of pending reviews by stage. Pre-reviewed items have passed first-pass and await admin.">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-cream-50/60 text-xs uppercase tracking-wider">
-                <th className="text-left pb-2">Stage</th>
-                <th className="text-right pb-2">Pending</th>
-                <th className="text-right pb-2">Pre-Reviewed<Tip text="First-pass reviewer approved; awaiting admin decision" /></th>
-                <th className="text-right pb-2">Unreviewed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(['design', 'build'] as const).map(stage => {
-                const q = data.queue[stage];
+      {/* ── Submissions vs Reviews ── */}
+      <div>
+        <SectionLabel tip="Daily volume over the last 30 days. When the orange area exceeds the teal, the queue is growing.">
+          Submissions vs reviews (30 days)
+        </SectionLabel>
+        <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={last30.map(d => ({ ...d, label: d.date.slice(5) }))}>
+              <CartesianGrid {...GRID_LINE} />
+              <XAxis dataKey="label" tick={AXIS_TICK} interval={4} />
+              <YAxis tick={AXIS_TICK} width={28} />
+              <RTooltip content={<ChartTip />} />
+              <Area type="monotone" dataKey="submissions" name="Submitted" stroke={AMBER} fill={AMBER} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+              <Area type="monotone" dataKey="reviews" name="Reviewed" stroke={TEAL} fill={TEAL} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: AMBER }} />Submitted</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: TEAL }} />Reviewed</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Wait times ── */}
+      <div>
+        <SectionLabel>How long are people waiting?</SectionLabel>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Current queue age — split by stage */}
+          <div className="bg-brown-800/50 border border-cream-500/8 p-5">
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-3">
+              Current queue — time waiting<Tip text="Age distribution of pending projects, split by design (blue) and build (purple)" />
+            </div>
+            <div className="space-y-1.5">
+              {computed.designAge.map((b, i) => {
+                const buildCount = computed.buildAge[i]?.count ?? 0;
+                const total = b.count + buildCount;
+                if (total === 0) return null;
                 return (
-                  <tr key={stage} className="border-t border-cream-500/10">
-                    <td className="text-cream-50 py-2 uppercase">{stage}</td>
-                    <td className="text-orange-500 font-mono text-right py-2">{q.pending}</td>
-                    <td className="text-blue-400 font-mono text-right py-2">{q.preReviewed}</td>
-                    <td className="text-cream-50 font-mono text-right py-2">{q.pending - q.preReviewed}</td>
-                  </tr>
+                  <div key={b.bucket} className="flex items-center gap-2 text-[11px]">
+                    <span className="text-cream-50/70 font-sans w-20 shrink-0 text-right">{b.bucket}</span>
+                    <div className="flex-1 h-5 bg-brown-900/60 flex">
+                      <div className="h-full" style={{ width: `${(b.count / backlogMax) * 100}%`, background: SKY }} />
+                      <div className="h-full" style={{ width: `${(buildCount / backlogMax) * 100}%`, background: VIOLET }} />
+                    </div>
+                    <span className="text-cream-50/60 font-sans text-[10px] w-12 text-right">{total}</span>
+                  </div>
                 );
               })}
-              <tr className="border-t-2 border-cream-500/20">
-                <td className="text-cream-50 py-2 font-medium uppercase">Total</td>
-                <td className="text-orange-500 font-mono text-right py-2 font-medium">{computed.totalPending}</td>
-                <td className="text-blue-400 font-mono text-right py-2 font-medium">{data.queue.design.preReviewed + data.queue.build.preReviewed}</td>
-                <td className="text-cream-50 font-mono text-right py-2 font-medium">{computed.totalPending - data.queue.design.preReviewed - data.queue.build.preReviewed}</td>
-              </tr>
-            </tbody>
-          </table>
-        </Section>
-      </div>
+            </div>
+            <div className="flex gap-4 mt-2 text-[10px] text-cream-50/50">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{ background: SKY }} />Design</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{ background: VIOLET }} />Build</span>
+            </div>
+          </div>
 
-      {/* Daily Activity — Area Chart */}
-      <Section title="Daily Activity (Last 30 Days)" tip="Submissions entering the queue vs reviews clearing it. The gap between orange and green shows backlog accumulation.">
-        <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={dailyData}>
-            <CartesianGrid {...GRID} />
-            <XAxis dataKey="label" tick={AXIS} interval={4} />
-            <YAxis tick={AXIS} width={35} />
-            <RechartsTooltip content={<ChartTooltipContent />} />
-            <Area type="monotone" dataKey="submissions" name="Submissions" stroke={ORANGE} fill={ORANGE} fillOpacity={0.25} strokeWidth={2} />
-            <Area type="monotone" dataKey="reviews" name="Reviews" stroke={GREEN} fill={GREEN} fillOpacity={0.25} strokeWidth={2} />
-          </AreaChart>
-        </ResponsiveContainer>
-        <div className="flex gap-4 mt-2 text-xs text-cream-50/60">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 inline-block" style={{ background: ORANGE }} /> Submissions</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 inline-block" style={{ background: GREEN }} /> Reviews</span>
+          {/* Review freshness */}
+          <div className="bg-brown-800/50 border border-cream-500/8 p-5">
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-3">
+              Reviewed items — how old were they?<Tip text="When reviews happened in the last 30 days, how long had those items been waiting? If most reviews are on old items, we're doing FIFO. If mostly new items, we're cherry-picking." />
+            </div>
+            <div className="space-y-1.5">
+              {data.reviewFreshness.map(b => (
+                <div key={b.bucket} className="flex items-center gap-2 text-[11px]">
+                  <span className="text-cream-50/70 font-sans w-20 shrink-0 text-right">{b.bucket}</span>
+                  <div className="flex-1 h-5 bg-brown-900/60 relative">
+                    <div className="h-full absolute left-0 top-0" style={{
+                      width: `${(b.count / freshnessMax) * 100}%`,
+                      background: TEAL,
+                    }} />
+                    <span className="absolute right-1.5 top-0.5 text-cream-50/60 font-sans text-[10px]">{b.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </Section>
 
-      {/* Weekly Activity (Bar) + Turnaround Trend (Line) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Section title="Weekly Activity (12 Weeks)" tip="Side-by-side comparison of submissions vs reviews per week. Bars should be roughly equal for a healthy queue.">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={weeklyData} barGap={2}>
-              <CartesianGrid {...GRID} />
-              <XAxis dataKey="label" tick={AXIS} />
-              <YAxis tick={AXIS} width={35} />
-              <RechartsTooltip content={<ChartTooltipContent />} />
-              <RechartsBar dataKey="submissions" name="Submissions" fill={ORANGE} radius={[1, 1, 0, 0]} />
-              <RechartsBar dataKey="reviews" name="Reviews" fill={GREEN} radius={[1, 1, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Section>
+        {/* Turnaround trend + stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <div className="lg:col-span-2 bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-3">
+              Turnaround trend — median<Tip text="Median days from submission to admin decision, per week by stage. Falling lines = reviews getting faster." />
+            </div>
+            {data.turnaroundTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={150}>
+                <LineChart data={data.turnaroundTrend.map(t => ({ ...t, label: t.week.slice(5) }))}>
+                  <CartesianGrid {...GRID_LINE} />
+                  <XAxis dataKey="label" tick={AXIS_TICK} />
+                  <YAxis tick={AXIS_TICK} width={28} unit="d" />
+                  <RTooltip content={<ChartTip />} />
+                  <Line type="monotone" dataKey="designMedian" name="Design median" stroke={SKY} strokeWidth={2} dot={{ r: 2, fill: SKY }} />
+                  <Line type="monotone" dataKey="buildMedian" name="Build median" stroke={VIOLET} strokeWidth={2} dot={{ r: 2, fill: VIOLET }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : <p className="text-cream-50/50 text-xs">No data</p>}
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-3 mt-4">
+              Turnaround trend — p90<Tip text="90th percentile: 90% of submissions are reviewed within this time. Shows worst-case wait." />
+            </div>
+            {data.turnaroundTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={150}>
+                <LineChart data={data.turnaroundTrend.map(t => ({ ...t, label: t.week.slice(5) }))}>
+                  <CartesianGrid {...GRID_LINE} />
+                  <XAxis dataKey="label" tick={AXIS_TICK} />
+                  <YAxis tick={AXIS_TICK} width={28} unit="d" />
+                  <RTooltip content={<ChartTip />} />
+                  <Line type="monotone" dataKey="designP90" name="Design p90" stroke={SKY} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 2, fill: SKY }} />
+                  <Line type="monotone" dataKey="buildP90" name="Build p90" stroke={VIOLET} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 2, fill: VIOLET }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : null}
+            <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: SKY }} />Design</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: VIOLET }} />Build</span>
+              <span className="text-cream-50/45">solid = median · dashed = p90</span>
+            </div>
+          </div>
 
-        <Section title="Turnaround Trend" tip="Median hours from submission to first review, per week. Falling lines mean reviews are getting faster.">
-          {trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={trendData}>
-                <CartesianGrid {...GRID} />
-                <XAxis dataKey="label" tick={AXIS} />
-                <YAxis tick={AXIS} width={35} unit="h" />
-                <RechartsTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="designMedian" name="Design Median" stroke={BLUE} strokeWidth={2} dot={{ r: 3, fill: BLUE }} />
-                <Line type="monotone" dataKey="buildMedian" name="Build Median" stroke={PURPLE} strokeWidth={2} dot={{ r: 3, fill: PURPLE }} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : <p className="text-cream-50/60 text-sm">No turnaround data yet</p>}
-        </Section>
-      </div>
-
-      {/* Turnaround Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Section title="First Response Time" tip="Time from when a project is submitted to when any reviewer (first-pass or admin) first looks at it">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="bg-brown-800/50 border border-cream-500/8 p-5 space-y-4">
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest">
+              Turnaround by stage<Tip text="Overall median and p90 time from submission to admin decision" />
+            </div>
             {(['design', 'build'] as const).map(stage => {
-              const t = data.turnaround.firstResponse[stage];
+              const t = data.turnaround[stage];
               return (
                 <div key={stage}>
-                  <div className="text-cream-50 text-xs uppercase tracking-wider mb-2">{stage}</div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">Avg</span><span className="text-orange-500 font-mono">{t.avg}h</span></div>
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">Median<Tip text="50th percentile — half are faster, half are slower" /></span><span className="text-orange-500 font-mono">{t.median}h</span></div>
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">P90<Tip text="90th percentile — 90% of submissions are reviewed within this time" /></span><span className="text-orange-500 font-mono">{t.p90}h</span></div>
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">Samples</span><span className="text-cream-50/60 font-mono">{t.sampleCount}</span></div>
+                  <div className="text-cream-50/70 text-[10px] uppercase tracking-wider mb-1" style={{ color: stage === 'design' ? SKY : VIOLET }}>{stage}</div>
+                  <div className="space-y-0.5 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-cream-50/50">median</span>
+                      <span className="text-cream-50 font-sans">{fmtHours(t.medianHours)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-cream-50/50">p90</span>
+                      <span className="text-cream-50 font-sans">{fmtHours(t.p90Hours)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-cream-50/50">samples</span>
+                      <span className="text-cream-50/70 font-sans">{t.samples}</span>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
-        </Section>
+        </div>
+      </div>
 
-        <Section title="Admin Decision Time" tip="Time from the latest submission to the admin's final decision (approve/return/reject). Includes wait for first-pass + admin.">
-          <div className="grid grid-cols-2 gap-6">
-            {(['design', 'build'] as const).map(stage => {
-              const t = data.adminTurnaround[stage];
-              return (
-                <div key={stage}>
-                  <div className="text-cream-50 text-xs uppercase tracking-wider mb-2">{stage}</div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">Avg</span><span className="text-orange-500 font-mono">{t.avg}h</span></div>
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">Median</span><span className="text-orange-500 font-mono">{t.median}h</span></div>
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">P90</span><span className="text-orange-500 font-mono">{t.p90}h</span></div>
-                    <div className="flex justify-between"><span className="text-cream-50/60 text-sm">Samples</span><span className="text-cream-50/60 font-mono">{t.sampleCount}</span></div>
-                  </div>
+      {/* ── Outcomes & Returns ── */}
+      <div>
+        <SectionLabel>What happens when projects get reviewed?</SectionLabel>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Outcome donut */}
+          <div className="bg-brown-800/50 border border-cream-500/8 p-5">
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-2">
+              Admin decisions (all time)
+            </div>
+            {computed.outcomeTotal > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={150}>
+                  <PieChart>
+                    <Pie data={outcomePie} dataKey="value" cx="50%" cy="50%" innerRadius={38} outerRadius={62} labelLine={false} label={PieLabel}>
+                      {outcomePie.map((_, i) => <Cell key={i} fill={outcomeColors[i]} stroke="none" />)}
+                    </Pie>
+                    <RTooltip content={<PieTip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center gap-4 text-[10px] text-cream-50/60 font-sans mt-1">
+                  {outcomePie.map((d, i) => (
+                    <span key={d.name} className="flex items-center gap-1">
+                      <span className="w-2 h-2 inline-block" style={{ background: outcomeColors[i] }} />{d.name} ({d.value})
+                    </span>
+                  ))}
                 </div>
-              );
-            })}
+              </>
+            ) : <p className="text-cream-50/50 text-xs">No data</p>}
           </div>
-        </Section>
-      </div>
 
-      {/* Review Outcomes — Donut Charts + Agreement */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Section title="Design Outcomes" tip="Admin decisions on design submissions. 'Returned' means changes requested — the project stays in the pipeline.">
-          {adminDesignTotal > 0 ? (
-            <div>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={designPieData} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={75} labelLine={false} label={PieLabel}>
-                    {designPieData.map((_, i) => <Cell key={i} fill={OUTCOME_COLORS[i]} stroke="none" />)}
-                  </Pie>
-                  <RechartsTooltip content={<PieTooltipContent />} />
-                </PieChart>
+          {/* Return rate trend */}
+          <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-3">
+              Weekly return rate<Tip text="Percentage of admin decisions that return the project for changes. A falling rate means users are submitting better work." />
+            </div>
+            {data.weeklyStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={150}>
+                <LineChart data={data.weeklyStats.filter(w => w.admin_reviews > 0).map(w => ({ ...w, label: w.week.slice(5) }))}>
+                  <CartesianGrid {...GRID_LINE} />
+                  <XAxis dataKey="label" tick={AXIS_TICK} />
+                  <YAxis tick={AXIS_TICK} width={28} unit="%" domain={[0, 100]} />
+                  <RTooltip content={<ChartTip />} />
+                  <Line type="monotone" dataKey="return_rate" name="Return %" stroke={YELLOW} strokeWidth={2} dot={{ r: 2.5, fill: YELLOW }} />
+                </LineChart>
               </ResponsiveContainer>
-              <div className="flex justify-center gap-4 text-xs text-cream-50/60 mt-1">
-                {designPieData.map((d, i) => (
-                  <span key={d.name} className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 inline-block" style={{ background: OUTCOME_COLORS[i] }} />
-                    {d.name} ({d.value})
-                  </span>
-                ))}
+            ) : <p className="text-cream-50/50 text-xs">No data</p>}
+          </div>
+
+          {/* Resubmissions + active reviewers */}
+          <div className="space-y-6">
+            <div className="bg-brown-800/50 border border-cream-500/8 p-5">
+              <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-2">
+                Review rounds<Tip text="How many times projects are submitted before getting approved. More rounds = more back-and-forth." />
+              </div>
+              <div className="text-cream-50 text-lg font-sans mb-2">{data.resubmissions.avgRounds} avg</div>
+              <div className="space-y-1">
+                {data.resubmissions.distribution.map(d => {
+                  const max = Math.max(...data.resubmissions.distribution.map(x => x.count), 1);
+                  return (
+                    <div key={d.rounds} className="flex items-center gap-2 text-[11px]">
+                      <span className="text-cream-50/60 font-sans w-6 text-right">{d.rounds}×</span>
+                      <div className="flex-1 h-3 bg-brown-900/60">
+                        <div className="h-full" style={{ width: `${(d.count / max) * 100}%`, background: d.rounds === '1' ? EMERALD : SLATE }} />
+                      </div>
+                      <span className="text-cream-50/60 font-sans w-8 text-right">{d.count}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ) : <p className="text-cream-50/60 text-sm">No data</p>}
-        </Section>
 
-        <Section title="Build Outcomes" tip="Admin decisions on build submissions (the final review stage before bits are awarded)">
-          {adminBuildTotal > 0 ? (
-            <div>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={buildPieData} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={75} labelLine={false} label={PieLabel}>
-                    {buildPieData.map((_, i) => <Cell key={i} fill={OUTCOME_COLORS[i]} stroke="none" />)}
-                  </Pie>
-                  <RechartsTooltip content={<PieTooltipContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex justify-center gap-4 text-xs text-cream-50/60 mt-1">
-                {buildPieData.map((d, i) => (
-                  <span key={d.name} className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 inline-block" style={{ background: OUTCOME_COLORS[i] }} />
-                    {d.name} ({d.value})
-                  </span>
-                ))}
+            <div className="bg-brown-800/50 border border-cream-500/8 p-5">
+              <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-2">
+                Active reviewers / week<Tip text="Distinct people who completed at least one admin review that week" />
+              </div>
+              <div className="flex items-end gap-0.5 h-10">
+                {data.weeklyStats.map((w, i) => {
+                  const max = Math.max(...data.weeklyStats.map(x => x.active_reviewers), 1);
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${w.week.slice(5)}: ${w.active_reviewers}`}>
+                      <div style={{ height: `${(w.active_reviewers / max) * 100}%`, background: TEAL, minHeight: w.active_reviewers > 0 ? 2 : 0 }} className="w-full" />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-[9px] text-cream-50/45 font-sans mt-1">
+                <span>{data.weeklyStats[0]?.week.slice(5)}</span>
+                <span>{data.weeklyStats[data.weeklyStats.length - 1]?.week.slice(5)}</span>
               </div>
             </div>
-          ) : <p className="text-cream-50/60 text-sm">No data</p>}
-        </Section>
-
-        <Section title="First-Pass Agreement" tip="How often the admin's decision matches what the first-pass reviewer recommended. Higher = reviewers are well-calibrated.">
-          <div className="text-orange-500 text-2xl font-mono mb-3">{data.agreement.agreementRate}%</div>
-          <div className="text-cream-50/60 text-xs mb-2">{data.agreement.total} paired reviews</div>
-          {data.agreement.matrix.length > 0 && (
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-cream-50/60 uppercase tracking-wider">
-                  <th className="text-left pb-1">First-Pass</th>
-                  <th className="text-left pb-1">Admin</th>
-                  <th className="text-right pb-1">Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.agreement.matrix.map((r, i) => (
-                  <tr key={i} className={`border-t border-cream-500/10 ${r.firstPass === r.admin ? 'text-green-400' : 'text-red-400'}`}>
-                    <td className="py-1">{r.firstPass}</td>
-                    <td className="py-1">{r.admin}</td>
-                    <td className="text-right font-mono py-1">{r.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Section>
+          </div>
+        </div>
       </div>
 
-      {/* Backlog Age — Horizontal Bar */}
-      {data.backlog.buckets.length > 0 && (
-        <Section title="Backlog Age Distribution" tip="How long pending submissions have been waiting. Red items have been in the queue for over a week — these need attention.">
-          <ResponsiveContainer width="100%" height={Math.max(data.backlog.buckets.length * 40, 120)}>
-            <BarChart data={data.backlog.buckets} layout="vertical" barSize={20}>
-              <CartesianGrid {...GRID} horizontal={false} />
-              <XAxis type="number" tick={AXIS} />
-              <YAxis type="category" dataKey="bucket" tick={AXIS} width={80} />
-              <RechartsTooltip content={<ChartTooltipContent />} />
-              <RechartsBar dataKey="count" name="Projects" radius={[0, 2, 2, 0]}>
-                {data.backlog.buckets.map((_, i) => <Cell key={i} fill={BACKLOG_COLORS[Math.min(i, BACKLOG_COLORS.length - 1)]} />)}
-              </RechartsBar>
+      {/* ── Weekly breakdown ── */}
+      <div>
+        <SectionLabel tip="Side-by-side weekly view. Orange = submissions in, teal = reviews out. These should be roughly balanced for a stable queue.">
+          Weekly throughput
+        </SectionLabel>
+        <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={data.weeklyStats.map(w => ({ ...w, label: w.week.slice(5) }))} barGap={1}>
+              <CartesianGrid {...GRID_LINE} />
+              <XAxis dataKey="label" tick={AXIS_TICK} />
+              <YAxis tick={AXIS_TICK} width={28} />
+              <RTooltip content={<ChartTip />} />
+              <RBar dataKey="submissions" name="Submitted" fill={AMBER} radius={[1, 1, 0, 0]} />
+              <RBar dataKey="reviews" name="Reviewed" fill={TEAL} radius={[1, 1, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </Section>
-      )}
+        </div>
+      </div>
 
-      {/* Reviewer Leaderboard */}
-      <Section title="Reviewer Leaderboard" tip="All reviewers ranked by review count in the selected period. Avg Turn = average hours from submission to this reviewer's review.">
-        <div className="flex gap-2 mb-4">
-          {([['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['total', 'All Time']] as const).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setReviewerSort(key)}
-              className={`px-3 py-1 text-xs uppercase tracking-wider border transition-colors cursor-pointer ${
-                reviewerSort === key
-                  ? 'border-orange-500 text-orange-500 bg-orange-500/10'
-                  : 'border-cream-500/20 text-cream-50/60 hover:text-cream-50'
-              }`}
-            >
-              {label}
-            </button>
+      {/* ── Reviewer leaderboard ── */}
+      <div>
+        <SectionLabel tip="All reviewers ranked by review count in the selected period. Combines first-pass and admin reviews.">
+          Reviewers
+        </SectionLabel>
+        <div className="flex gap-1.5 mb-3">
+          {([['today', 'Today'], ['week', 'This week'], ['month', 'This month'], ['total', 'All time']] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setSort(k)}
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider border cursor-pointer transition-colors ${
+                sort === k ? 'border-cream-50/20 text-cream-50 bg-cream-50/5' : 'border-cream-500/8 text-cream-50/50 hover:text-cream-50/70'
+              }`}>{label}</button>
           ))}
         </div>
         {sortedReviewers.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-[11px]">
               <thead>
-                <tr className="text-cream-50/60 text-xs uppercase tracking-wider">
-                  <th className="text-left pb-2 pr-2">#</th>
-                  <th className="text-left pb-2 pr-4">Reviewer</th>
-                  <th className="text-right pb-2 px-2"><span className={reviewerSort === 'today' ? 'text-orange-500' : ''}>Today</span></th>
-                  <th className="text-right pb-2 px-2"><span className={reviewerSort === 'week' ? 'text-orange-500' : ''}>Week</span></th>
-                  <th className="text-right pb-2 px-2"><span className={reviewerSort === 'month' ? 'text-orange-500' : ''}>Month</span></th>
-                  <th className="text-right pb-2 px-2"><span className={reviewerSort === 'total' ? 'text-orange-500' : ''}>Total</span></th>
-                  <th className="text-right pb-2 px-2">1st/Admin<Tip text="First-pass reviews vs admin reviews by this reviewer" /></th>
-                  <th className="text-right pb-2 px-2">Avg Turn<Tip text="Average hours from submission creation to this reviewer completing their review" /></th>
-                  <th className="text-right pb-2 px-2">Approve%<Tip text="Percentage of this reviewer's reviews that result in approval" /></th>
-                  <th className="text-right pb-2 px-2">Days<Tip text="Unique calendar days this reviewer has submitted at least one review" /></th>
+                <tr className="text-cream-50/50 uppercase tracking-wider text-[9px]">
+                  <th className="text-left pb-2 pr-2 w-6">#</th>
+                  <th className="text-left pb-2 pr-4">Name</th>
+                  <th className="text-right pb-2 px-2">{sort === 'today' ? <span className="text-cream-50/60">Today</span> : 'Today'}</th>
+                  <th className="text-right pb-2 px-2">{sort === 'week' ? <span className="text-cream-50/60">Week</span> : 'Week'}</th>
+                  <th className="text-right pb-2 px-2">{sort === 'month' ? <span className="text-cream-50/60">Month</span> : 'Month'}</th>
+                  <th className="text-right pb-2 px-2">{sort === 'total' ? <span className="text-cream-50/60">Total</span> : 'Total'}</th>
+                  <th className="text-right pb-2 px-2">1st / Admin</th>
+                  <th className="text-right pb-2 px-2">Approve%</th>
+                  <th className="text-right pb-2 px-2">Active days</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedReviewers.filter(r => {
-                  const k = reviewerSort === 'today' ? 'today' : reviewerSort === 'week' ? 'week' : reviewerSort === 'month' ? 'month' : 'total';
-                  return r[k] > 0;
-                }).map((r, i) => {
-                  const approvePct = r.total > 0 ? Math.round((r.approved / r.total) * 100) : 0;
+                {sortedReviewers.map((r, i) => {
+                  const pct = r.total > 0 ? Math.round((r.approved / r.total) * 100) : 0;
                   return (
-                    <tr key={r.id} className="border-t border-cream-500/10">
-                      <td className="text-cream-50/60 font-mono py-2 pr-2">{i + 1}</td>
-                      <td className="py-2 pr-4">
+                    <tr key={r.id} className="border-t border-cream-500/5 hover:bg-cream-50/[0.02] transition-colors">
+                      <td className="text-cream-50/45 font-sans py-1.5 pr-2">{i + 1}</td>
+                      <td className="py-1.5 pr-4">
                         <div className="flex items-center gap-2">
-                          {r.image && <img src={r.image} alt="" className="w-5 h-5 border border-cream-500/20" />}
-                          <span className="text-cream-50">{r.name}</span>
+                          {r.image && <img src={r.image} alt="" className="w-4 h-4 border border-cream-500/10" />}
+                          <span className="text-cream-50/70">{r.name}</span>
                         </div>
                       </td>
-                      <td className={`text-right font-mono py-2 px-2 ${reviewerSort === 'today' ? 'text-orange-500' : 'text-cream-50'}`}>{r.today}</td>
-                      <td className={`text-right font-mono py-2 px-2 ${reviewerSort === 'week' ? 'text-orange-500' : 'text-cream-50'}`}>{r.week}</td>
-                      <td className={`text-right font-mono py-2 px-2 ${reviewerSort === 'month' ? 'text-orange-500' : 'text-cream-50'}`}>{r.month}</td>
-                      <td className={`text-right font-mono py-2 px-2 ${reviewerSort === 'total' ? 'text-orange-500' : 'text-cream-50'}`}>{r.total}</td>
-                      <td className="text-cream-50/60 text-right font-mono py-2 px-2">{r.firstPass}/{r.admin}</td>
-                      <td className="text-cream-50 text-right font-mono py-2 px-2">{r.avgTurnaroundHours}h</td>
-                      <td className="text-right font-mono py-2 px-2">
-                        <span className={approvePct >= 70 ? 'text-green-700' : approvePct >= 40 ? 'text-yellow-600' : 'text-red-600'}>{approvePct}%</span>
+                      <td className={`text-right font-sans py-1.5 px-2 ${sort === 'today' ? 'text-cream-50' : 'text-cream-50/60'}`}>{r.today}</td>
+                      <td className={`text-right font-sans py-1.5 px-2 ${sort === 'week' ? 'text-cream-50' : 'text-cream-50/60'}`}>{r.week}</td>
+                      <td className={`text-right font-sans py-1.5 px-2 ${sort === 'month' ? 'text-cream-50' : 'text-cream-50/60'}`}>{r.month}</td>
+                      <td className={`text-right font-sans py-1.5 px-2 ${sort === 'total' ? 'text-cream-50' : 'text-cream-50/60'}`}>{r.total}</td>
+                      <td className="text-cream-50/50 text-right font-sans py-1.5 px-2">{r.firstPass} / {r.admin}</td>
+                      <td className="text-right font-sans py-1.5 px-2">
+                        <span className={pct >= 60 ? 'text-emerald-400/70' : pct >= 30 ? 'text-yellow-400/70' : 'text-rose-400/70'}>{pct}%</span>
                       </td>
-                      <td className="text-cream-50/60 text-right font-mono py-2 px-2">{r.activeDays}</td>
+                      <td className="text-cream-50/50 text-right font-sans py-1.5 px-2">{r.activeDays}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        ) : <p className="text-cream-50/60 text-sm">No reviews yet</p>}
-      </Section>
+        ) : <p className="text-cream-50/50 text-xs">No reviews in this period</p>}
+      </div>
 
-      {/* Oldest Pending */}
-      {data.backlog.oldest.length > 0 && (
-        <Section title="Oldest Pending Submissions" tip="The 10 longest-waiting submissions currently in the queue. Red age = over 1 week, yellow = over 3 days.">
+      {/* ── Oldest pending ── */}
+      {data.oldest.length > 0 && (
+        <div>
+          <SectionLabel tip="The 10 longest-waiting submissions currently in the queue">Oldest pending</SectionLabel>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-[11px]">
               <thead>
-                <tr className="text-cream-50/60 text-xs uppercase tracking-wider">
+                <tr className="text-cream-50/50 uppercase tracking-wider text-[9px]">
                   <th className="text-left pb-2">Project</th>
-                  <th className="text-left pb-2 px-2">Stage</th>
-                  <th className="text-right pb-2 px-2">Age</th>
-                  <th className="text-center pb-2 px-2">Pre-Rev</th>
-                  <th className="text-left pb-2 px-2">Claimed By</th>
+                  <th className="text-left pb-2 px-3">Stage</th>
+                  <th className="text-right pb-2 px-3">Waiting</th>
+                  <th className="text-center pb-2 px-3">Pre-reviewed</th>
                 </tr>
               </thead>
               <tbody>
-                {data.backlog.oldest.map((item, i) => (
-                  <tr key={i} className="border-t border-cream-500/10">
-                    <td className="py-2">
-                      <a href={`/admin/review/${item.id}`} className="text-cream-50 hover:text-orange-500 transition-colors">
-                        {item.projectTitle}
-                      </a>
+                {data.oldest.map((item, i) => (
+                  <tr key={i} className="border-t border-cream-500/5">
+                    <td className="py-1.5">
+                      <a href={`/admin/review/${item.id}`} className="text-cream-50/60 hover:text-cream-50 transition-colors">{item.projectTitle}</a>
                     </td>
-                    <td className={`py-2 px-2 uppercase text-xs ${item.stage === 'DESIGN' ? 'text-blue-400' : 'text-green-400'}`}>{item.stage}</td>
-                    <td className={`text-right font-mono py-2 px-2 ${item.ageHours > 168 ? 'text-red-600' : item.ageHours > 72 ? 'text-yellow-600' : 'text-cream-50'}`}>
-                      {formatAge(item.ageHours)}
+                    <td className={`py-1.5 px-3 uppercase font-sans text-[10px] ${item.stage === 'DESIGN' ? 'text-sky-400/80' : 'text-violet-400/80'}`}>{item.stage}</td>
+                    <td className={`text-right font-sans py-1.5 px-3 ${item.ageDays > 14 ? 'text-rose-400/80' : item.ageDays > 7 ? 'text-amber-400/70' : 'text-cream-50/60'}`}>
+                      {fmtDays(item.ageDays)}
                     </td>
-                    <td className="text-center py-2 px-2">
-                      {item.preReviewed ? <span className="text-blue-400">Yes</span> : <span className="text-cream-50/40">No</span>}
+                    <td className="text-center py-1.5 px-3">
+                      {item.preReviewed ? <span className="text-sky-400/50">yes</span> : <span className="text-cream-50/35">no</span>}
                     </td>
-                    <td className="text-cream-50/60 py-2 px-2">{item.claimerName || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </Section>
+        </div>
       )}
 
-      {/* Period Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {([
-          ['Today', data.periods.today],
-          ['This Week', data.periods.thisWeek],
-          ['This Month', data.periods.thisMonth],
-          ['All Time', data.periods.allTime],
-        ] as const).map(([label, p]) => (
-          <div key={label} className="bg-brown-800 border-2 border-cream-500/20 p-4">
-            <div className="text-cream-50 text-xs uppercase tracking-wider mb-2">{label}</div>
-            <div className="flex justify-between">
-              <div>
-                <div className="text-orange-500 text-lg font-mono">{p.submissions}</div>
-                <div className="text-cream-50/60 text-xs">submissions</div>
-              </div>
-              <div className="text-right">
-                <div className="text-green-700 text-lg font-mono">{p.reviews}</div>
-                <div className="text-cream-50/60 text-xs">reviews</div>
-              </div>
+      {/* ── Period summary ── */}
+      <div className="flex flex-wrap gap-6 text-[11px] text-cream-50/50 font-sans border-t border-cream-500/5 pt-6">
+        {([['Today', data.periods.today], ['This week', data.periods.thisWeek], ['This month', data.periods.thisMonth], ['All time', data.periods.allTime]] as const).map(([label, p]) => (
+          <div key={label}>
+            <span className="text-cream-50/45 uppercase tracking-wider text-[9px]">{label}</span>
+            <div className="mt-0.5">
+              <span style={{ color: AMBER }}>{p.submissions}</span>
+              <span className="text-cream-50/35"> in · </span>
+              <span style={{ color: TEAL }}>{p.reviews}</span>
+              <span className="text-cream-50/35"> out</span>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Activity Patterns — DOW (Bar) + Hour (Area) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Section title="Activity by Day of Week" tip="All-time submissions and reviews grouped by day of week (UTC). Shows which days reviewers are most active.">
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={dowData} barGap={2}>
-              <CartesianGrid {...GRID} />
-              <XAxis dataKey="name" tick={AXIS} />
-              <YAxis tick={AXIS} width={35} />
-              <RechartsTooltip content={<ChartTooltipContent />} />
-              <RechartsBar dataKey="submissions" name="Submissions" fill={ORANGE} radius={[1, 1, 0, 0]} />
-              <RechartsBar dataKey="reviews" name="Reviews" fill={GREEN} radius={[1, 1, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Section>
-
-        <Section title="Activity by Hour (UTC)" tip="When submissions and reviews happen throughout the day. Peaks show when users submit and when reviewers are working.">
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={hourData}>
-              <CartesianGrid {...GRID} />
-              <XAxis dataKey="name" tick={AXIS} interval={3} />
-              <YAxis tick={AXIS} width={35} />
-              <RechartsTooltip content={<ChartTooltipContent />} />
-              <Area type="monotone" dataKey="submissions" name="Submissions" stroke={ORANGE} fill={ORANGE} fillOpacity={0.2} strokeWidth={2} />
-              <Area type="monotone" dataKey="reviews" name="Reviews" stroke={GREEN} fill={GREEN} fillOpacity={0.2} strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Section>
-      </div>
-
-      {/* Resubmission Patterns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {(['design', 'build'] as const).map(stage => {
-          const r = data.resubmissions[stage];
-          const distMax = Math.max(...r.distribution.map(d => d.projects), 1);
-          return (
-            <Section key={stage} title={`${stage === 'design' ? 'Design' : 'Build'} Resubmissions`} tip={`How many times projects are submitted for ${stage} review. Higher counts mean more back-and-forth before approval.`}>
-              <div className="space-y-3">
-                <div>
-                  <div className="text-cream-50 text-xs uppercase tracking-wider">Avg Submissions per Project</div>
-                  <div className="text-orange-500 text-xl font-mono">{r.avg}</div>
-                </div>
-                <div className="space-y-1">
-                  {r.distribution.map(d => (
-                    <div key={String(d.submissions)} className="flex items-center gap-2 text-sm">
-                      <span className="text-cream-50 w-20">{d.submissions === 1 ? '1 (first try)' : `${d.submissions} tries`}</span>
-                      <span className="text-cream-50 font-mono w-10 text-right">{d.projects}</span>
-                      <Bar value={d.projects} max={distMax} color={d.submissions === 1 ? 'bg-green-600' : 'bg-orange-500'} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Section>
-          );
-        })}
       </div>
     </div>
   );
