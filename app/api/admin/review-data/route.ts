@@ -18,6 +18,7 @@ export async function GET() {
     oldestPendingRaw,
     adminOutcomes,
     resubmitStats,
+    queueHistoryRaw,
     reviewerRaw,
     periodCounts,
   ] = await Promise.all([
@@ -236,7 +237,38 @@ export async function GET() {
       FROM sub_counts
     `,
 
-    // 10: Reviewer leaderboard (combined submission_review + project_review_action)
+    // 10: Queue history — computed server-side from full event history, anchored to actual current queue
+    prisma.$queryRaw<{ date: string; design: number; build: number }[]>`
+      WITH all_events AS (
+        SELECT DATE_TRUNC('day', "createdAt") as day, stage::text as stage, 1 as delta FROM project_submission
+        UNION ALL
+        SELECT DATE_TRUNC('day', "createdAt") as day, stage::text as stage, -1 as delta FROM project_review_action
+      ),
+      daily AS (
+        SELECT day,
+          COALESCE(SUM(delta) FILTER (WHERE stage = 'DESIGN'), 0)::int as dd,
+          COALESCE(SUM(delta) FILTER (WHERE stage = 'BUILD'), 0)::int as bd
+        FROM all_events GROUP BY day
+      ),
+      running AS (
+        SELECT day, SUM(dd) OVER (ORDER BY day)::int as dc, SUM(bd) OVER (ORDER BY day)::int as bc FROM daily
+      ),
+      latest AS (SELECT dc, bc FROM running ORDER BY day DESC LIMIT 1),
+      actual AS (
+        SELECT COUNT(*) FILTER (WHERE "designStatus" = 'in_review')::int as da,
+          COUNT(*) FILTER (WHERE "buildStatus" = 'in_review')::int as ba
+        FROM project WHERE "deletedAt" IS NULL
+      ),
+      days AS (SELECT generate_series(DATE_TRUNC('day', NOW() - INTERVAL '89 days'), DATE_TRUNC('day', NOW()), '1 day'::interval) as day)
+      SELECT TO_CHAR(d.day, 'YYYY-MM-DD') as date,
+        (r.dc + a.da - l.dc)::int as design,
+        (r.bc + a.ba - l.bc)::int as build
+      FROM days d CROSS JOIN latest l CROSS JOIN actual a
+      JOIN LATERAL (SELECT dc, bc FROM running WHERE day <= d.day ORDER BY day DESC LIMIT 1) r ON true
+      ORDER BY d.day
+    `,
+
+    // 11: Reviewer leaderboard (combined submission_review + project_review_action)
     prisma.$queryRaw<{
       reviewer_id: string; total: number; first_pass: number; admin: number;
       approved: number; returned: number; rejected: number;
@@ -328,6 +360,7 @@ export async function GET() {
       allTime: { submissions: p.subs_all, decisions: p.decisions_all, firstPass: p.first_pass_all },
     },
     dailyActivity,
+    queueHistory: queueHistoryRaw,
     weeklyStats: weeklyStats.map(w => ({
       ...w, return_rate: Number(w.return_rate), week: w.week,
     })),

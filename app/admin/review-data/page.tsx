@@ -21,6 +21,7 @@ interface ReviewData {
     allTime: { submissions: number; decisions: number; firstPass: number };
   };
   dailyActivity: { date: string; design_subs: number; build_subs: number; design_decisions: number; build_decisions: number }[];
+  queueHistory: { date: string; design: number; build: number }[];
   weeklyStats: {
     week: string; submissions: number; reviews: number;
     returned: number; admin_reviews: number; return_rate: number; active_reviewers: number;
@@ -60,6 +61,7 @@ const AXIS_TICK = { fill: 'rgba(245,243,239,0.6)', fontSize: 10, fontFamily: 'va
 const GRID_LINE = { strokeDasharray: '2 4' as const, stroke: 'rgba(245,243,239,0.06)' };
 
 type SortPeriod = 'today' | 'week' | 'month' | 'total';
+type TimeRange = '7d' | '30d' | '90d' | 'all';
 
 // --- Small components ---
 
@@ -132,6 +134,19 @@ function SectionLabel({ children, tip }: Readonly<{ children: React.ReactNode; t
   );
 }
 
+function RangeControl({ value, onChange }: Readonly<{ value: TimeRange; onChange: (v: TimeRange) => void }>) {
+  return (
+    <div className="flex gap-1">
+      {([['7d', '7d'], ['30d', '30d'], ['90d', '90d'], ['all', 'All']] as const).map(([k, label]) => (
+        <button key={k} onClick={() => onChange(k)}
+          className={`px-2 py-0.5 text-[10px] uppercase tracking-wider border cursor-pointer transition-colors ${
+            value === k ? 'border-cream-50/20 text-cream-50 bg-cream-50/5' : 'border-cream-500/8 text-cream-50/50 hover:text-cream-50/70'
+          }`}>{label}</button>
+      ))}
+    </div>
+  );
+}
+
 function fmtDays(d: number): string {
   if (d < 1) return `${Math.round(d * 24)}h`;
   if (d < 2) return `${Math.floor(d)}d ${Math.round((d % 1) * 24)}h`;
@@ -153,6 +168,7 @@ export default function ReviewDataPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<SortPeriod>('week');
+  const [range, setRange] = useState<TimeRange>('30d');
 
   useEffect(() => {
     fetch('/api/admin/review-data')
@@ -174,21 +190,11 @@ export default function ReviewDataPage() {
     const avg7s = last7.reduce((s, d) => s + d.submissions, 0) / 7;
     const net7 = last7.reduce((s, d) => s + d.decisions - d.submissions, 0);
 
-    // Reconstruct queue depth by stage over last 60 days
-    const daily = [...data.dailyActivity].reverse();
-    const queueHistory: { date: string; design: number; build: number; total: number }[] = [];
-    let dq = data.queue.design;
-    let bq = data.queue.build;
-    for (const day of daily) {
-      queueHistory.unshift({ date: day.date, design: dq, build: bq, total: dq + bq });
-      dq = dq - day.design_subs + day.design_decisions;
-      bq = bq - day.build_subs + day.build_decisions;
-    }
+    const queueHistory = (data.queueHistory ?? []).map(d => ({ ...d, total: d.design + d.build }));
 
     const burnDays = avg7d > 0 ? data.queue.total / avg7d : Infinity;
     const outcomeTotal = data.outcomes.approved + data.outcomes.returned + data.outcomes.rejected;
 
-    // Backlog age grouped by stage
     const AGE_BUCKETS = ['< 1 day', '1-3 days', '3-7 days', '1-2 weeks', '2-4 weeks', '1+ months'];
     const designAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'DESIGN' && r.bucket === b)?.count ?? 0 }));
     const buildAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'BUILD' && r.bucket === b)?.count ?? 0 }));
@@ -205,7 +211,10 @@ export default function ReviewDataPage() {
   if (loading) return <div className="flex justify-center py-20"><div className="loader" /></div>;
   if (error || !data || !computed) return <div className="text-cream-50/60 text-center py-20">{error || 'Failed to load'}</div>;
 
-  const last30 = computed.withTotals.slice(-30);
+  const rangeDays = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : Infinity;
+  const sliceRange = <T,>(arr: T[]) => rangeDays === Infinity ? arr : arr.slice(-rangeDays);
+  const dailySlice = sliceRange(computed.withTotals);
+  const queueSlice = sliceRange(computed.queueHistory);
   const outcomePie = [
     { name: 'Approved', value: data.outcomes.approved },
     { name: 'Returned', value: data.outcomes.returned },
@@ -246,12 +255,15 @@ export default function ReviewDataPage() {
 
       {/* ── Queue over time ── */}
       <div>
-        <SectionLabel tip="Estimated queue size reconstructed from daily submissions and reviews. Shows whether the backlog is growing or shrinking.">
-          Review queue size
-        </SectionLabel>
+        <div className="flex items-center justify-between mb-4">
+          <SectionLabel tip="Queue size computed from full submission and decision history, anchored to the current actual queue. Shows whether the backlog is growing or shrinking.">
+            Review queue size
+          </SectionLabel>
+          <RangeControl value={range} onChange={setRange} />
+        </div>
         <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={computed.queueHistory}>
+            <AreaChart data={queueSlice}>
               <defs>
                 <linearGradient id="designGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={SKY} stopOpacity={0.35} />
@@ -263,7 +275,7 @@ export default function ReviewDataPage() {
                 </linearGradient>
               </defs>
               <CartesianGrid {...GRID_LINE} />
-              <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={d => d.slice(5)} interval={6} />
+              <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={d => d.slice(5)} interval={Math.max(1, Math.floor(queueSlice.length / 10))} />
               <YAxis tick={AXIS_TICK} width={32} />
               <RTooltip content={<ChartTip />} />
               <Area type="monotone" dataKey="total" name="Total" stroke={AMBER} fill="none" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
@@ -280,14 +292,14 @@ export default function ReviewDataPage() {
 
       {/* ── Submissions vs Reviews ── */}
       <div>
-        <SectionLabel tip="Daily volume over the last 30 days. When submissions exceed decisions, the queue is growing. Decisions = admin approve/return/reject actions.">
-          Submissions vs decisions (30 days)
+        <SectionLabel tip="Daily volume. When submissions exceed decisions, the queue is growing. Decisions = admin approve/return/reject actions.">
+          Submissions vs decisions
         </SectionLabel>
         <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={last30.map(d => ({ ...d, label: d.date.slice(5) }))}>
+            <AreaChart data={dailySlice.map(d => ({ ...d, label: d.date.slice(5) }))}>
               <CartesianGrid {...GRID_LINE} />
-              <XAxis dataKey="label" tick={AXIS_TICK} interval={4} />
+              <XAxis dataKey="label" tick={AXIS_TICK} interval={Math.max(1, Math.floor(dailySlice.length / 10))} />
               <YAxis tick={AXIS_TICK} width={28} />
               <RTooltip content={<ChartTip />} />
               <Area type="monotone" dataKey="submissions" name="Submitted" stroke={AMBER} fill={AMBER} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
