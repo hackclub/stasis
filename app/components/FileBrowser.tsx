@@ -185,33 +185,35 @@ function resolveReadmeUrls(md: string, owner: string, repo: string, branch: stri
 
 function ReadmePane({ owner, repo, branch, onImageHover }: Readonly<{ owner: string; repo: string; branch: string; onImageHover?: (url: string | null, e?: MouseEvent) => void }>) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hoverRef = useRef(onImageHover);
+  hoverRef.current = onImageHover;
+  const [md, setMd] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || !onImageHover) return;
-    const onOver = (e: MouseEvent) => {
-      const img = (e.target as HTMLElement).closest('img') as HTMLImageElement | null;
-      if (img?.src) onImageHover(img.src, e);
-    };
+    if (!el) return;
+    let activeImg: HTMLImageElement | null = null;
     const onMove = (e: MouseEvent) => {
-      const img = (e.target as HTMLElement).closest('img') as HTMLImageElement | null;
-      if (img?.src) onImageHover(img.src, e);
+      const img = (e.target as HTMLElement).closest?.('img') as HTMLImageElement | null;
+      if (img?.src) {
+        activeImg = img;
+        hoverRef.current?.(img.src, e);
+      } else if (activeImg) {
+        activeImg = null;
+        hoverRef.current?.(null);
+      }
     };
-    const onOut = (e: MouseEvent) => {
-      const related = e.relatedTarget as HTMLElement | null;
-      if (!related?.closest('img')) onImageHover(null);
+    const onLeave = () => {
+      if (activeImg) { activeImg = null; hoverRef.current?.(null); }
     };
-    el.addEventListener('mouseover', onOver);
     el.addEventListener('mousemove', onMove);
-    el.addEventListener('mouseout', onOut);
+    el.addEventListener('mouseleave', onLeave);
     return () => {
-      el.removeEventListener('mouseover', onOver);
       el.removeEventListener('mousemove', onMove);
-      el.removeEventListener('mouseout', onOut);
+      el.removeEventListener('mouseleave', onLeave);
     };
-  }, [onImageHover]);
-  const [md, setMd] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  }, [md]);
 
   useEffect(() => {
     let cancelled = false;
