@@ -327,7 +327,7 @@ export default function ReviewDetailPage() {
   const [flashSessionId, setFlashSessionId] = useState<string | null>(null);
   // Image preview popup that tracks the cursor while hovering over a TOC
   // thumbnail or a journal entry image.
-  const [hoverPreview, setHoverPreview] = useState<{ url: string; x: number; y: number } | null>(null);
+  const [hoverPreview, setHoverPreview] = useState<{ url: string; label?: string; x: number; y: number } | null>(null);
   // Small text tooltip for the work-log histogram. Different from the image
   // popup so it can be sized and styled for short labels.
   const [histTooltip, setHistTooltip] = useState<{ label: string; x: number; y: number } | null>(null);
@@ -1402,9 +1402,9 @@ export default function ReviewDetailPage() {
 
   // Returns the mouse-handler props for an image thumbnail so hovering shows
   // the full image in a cursor-following popup.
-  const hoverProps = (url: string) => ({
-    onMouseEnter: (e: React.MouseEvent) => setHoverPreview({ url, x: e.clientX, y: e.clientY }),
-    onMouseMove: (e: React.MouseEvent) => setHoverPreview({ url, x: e.clientX, y: e.clientY }),
+  const hoverProps = (url: string, label?: string) => ({
+    onMouseEnter: (e: React.MouseEvent) => setHoverPreview({ url, label, x: e.clientX, y: e.clientY }),
+    onMouseMove: (e: React.MouseEvent) => setHoverPreview({ url, label, x: e.clientX, y: e.clientY }),
     onMouseLeave: () => setHoverPreview(null),
   });
   // Histogram tooltip handlers — same cursor-following pattern as hoverProps
@@ -1789,14 +1789,17 @@ export default function ReviewDetailPage() {
                       // README images are resolved from cadFiles data — they'll be fetched async
                     }
                   }
-                  for (const session of [...project.workSessions].reverse()) {
+                  const sessions = project.workSessions;
+                  for (let si = sessions.length - 1; si >= 0; si--) {
+                    const session = sessions[si];
+                    const entryNum = si + 1;
                     const mdImgs = session.content ? splitMarkdownImages(session.content).images : [];
                     const mediaImgs = session.media.filter((m) => m.type === 'IMAGE').map((m) => m.url);
                     const seen = new Set<string>();
                     for (const url of [...mediaImgs, ...mdImgs]) {
                       if (seen.has(url)) continue;
                       seen.add(url);
-                      allImages.push({ url, label: session.title || `Entry ${session.id.slice(-6)}`, priority: 2 });
+                      allImages.push({ url, label: `#${entryNum} · ${session.title || session.id.slice(-6)}`, priority: 2 });
                     }
                   }
                   for (const url of project.cartScreenshots) {
@@ -1809,15 +1812,15 @@ export default function ReviewDetailPage() {
                   return (
                     <div className="columns-3 gap-1 p-1">
                       {allImages.map((img, i) => (
-                        <div key={`${img.url}-${i}`} className="mb-1 break-inside-avoid group relative">
+                        <div key={`${img.url}-${i}`} className="mb-1 break-inside-avoid">
                           <img
                             src={img.url}
                             alt={img.label}
                             loading="lazy"
                             className="w-full block bg-brown-950"
-                            {...hoverProps(img.url)}
+                            {...hoverProps(img.url, img.label)}
                           />
-                          <div className="absolute bottom-0 left-0 right-0 bg-brown-900/80 px-1 py-px text-[8px] text-cream-300 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-brown-800 border border-cream-500/15 border-t-0 px-1 py-px text-[8px] text-cream-300 truncate">
                             {img.label}
                           </div>
                         </div>
@@ -2990,6 +2993,11 @@ export default function ReviewDetailPage() {
               }}
               className="min-w-[320px] min-h-[240px] max-w-[40vw] max-h-[60vh] object-contain block bg-brown-900"
             />
+            {hoverPreview.label && (
+              <div className="bg-brown-800 border border-cream-500/20 border-t-0 px-2 py-1 text-xs text-cream-200">
+                {hoverPreview.label}
+              </div>
+            )}
           </div>
         );
       })()}
