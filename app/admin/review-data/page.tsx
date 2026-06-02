@@ -15,12 +15,12 @@ interface ReviewData {
     medianWaitDays: number; p90WaitDays: number; maxWaitDays: number;
   };
   periods: {
-    today: { submissions: number; reviews: number };
-    thisWeek: { submissions: number; reviews: number };
-    thisMonth: { submissions: number; reviews: number };
-    allTime: { submissions: number; reviews: number };
+    today: { submissions: number; decisions: number; firstPass: number };
+    thisWeek: { submissions: number; decisions: number; firstPass: number };
+    thisMonth: { submissions: number; decisions: number; firstPass: number };
+    allTime: { submissions: number; decisions: number; firstPass: number };
   };
-  dailyActivity: { date: string; design_subs: number; build_subs: number; design_revs: number; build_revs: number }[];
+  dailyActivity: { date: string; design_subs: number; build_subs: number; design_decisions: number; build_decisions: number }[];
   weeklyStats: {
     week: string; submissions: number; reviews: number;
     returned: number; admin_reviews: number; return_rate: number; active_reviewers: number;
@@ -165,14 +165,14 @@ export default function ReviewDataPage() {
     const withTotals = data.dailyActivity.map(d => ({
       ...d,
       submissions: d.design_subs + d.build_subs,
-      reviews: d.design_revs + d.build_revs,
+      decisions: d.design_decisions + d.build_decisions,
     }));
     const last7 = withTotals.slice(-7);
     const last30 = withTotals.slice(-30);
-    const avg7r = last7.reduce((s, d) => s + d.reviews, 0) / 7;
-    const avg30r = last30.reduce((s, d) => s + d.reviews, 0) / 30;
+    const avg7d = last7.reduce((s, d) => s + d.decisions, 0) / 7;
+    const avg30d = last30.reduce((s, d) => s + d.decisions, 0) / 30;
     const avg7s = last7.reduce((s, d) => s + d.submissions, 0) / 7;
-    const net7 = last7.reduce((s, d) => s + d.reviews - d.submissions, 0);
+    const net7 = last7.reduce((s, d) => s + d.decisions - d.submissions, 0);
 
     // Reconstruct queue depth by stage over last 60 days
     const daily = [...data.dailyActivity].reverse();
@@ -181,11 +181,11 @@ export default function ReviewDataPage() {
     let bq = data.queue.build;
     for (const day of daily) {
       queueHistory.unshift({ date: day.date, design: dq, build: bq, total: dq + bq });
-      dq = dq + day.design_subs - day.design_revs;
-      bq = bq + day.build_subs - day.build_revs;
+      dq = dq - day.design_subs + day.design_decisions;
+      bq = bq - day.build_subs + day.build_decisions;
     }
 
-    const burnDays = avg7r > 0 ? data.queue.total / avg7r : Infinity;
+    const burnDays = avg7d > 0 ? data.queue.total / avg7d : Infinity;
     const outcomeTotal = data.outcomes.approved + data.outcomes.returned + data.outcomes.rejected;
 
     // Backlog age grouped by stage
@@ -193,7 +193,7 @@ export default function ReviewDataPage() {
     const designAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'DESIGN' && r.bucket === b)?.count ?? 0 }));
     const buildAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'BUILD' && r.bucket === b)?.count ?? 0 }));
 
-    return { avg7r, avg30r, avg7s, net7, queueHistory, burnDays, outcomeTotal, withTotals, designAge, buildAge };
+    return { avg7d, avg30d, avg7s, net7, queueHistory, burnDays, outcomeTotal, withTotals, designAge, buildAge };
   }, [data]);
 
   const sortedReviewers = useMemo(() => {
@@ -227,17 +227,20 @@ export default function ReviewDataPage() {
             tip="Projects currently waiting for a review decision" />
           <Metric label="Submitted today" value={data.periods.today.submissions}
             sub={`${data.periods.thisWeek.submissions} this week`} accent="text-amber-400" />
-          <Metric label="Reviewed today" value={data.periods.today.reviews}
-            sub={`${data.periods.thisWeek.reviews} this week`} accent="text-teal-400" />
+          <Metric label="Decisions today" value={data.periods.today.decisions}
+            sub={`${data.periods.thisWeek.decisions} this week · ${data.periods.today.firstPass} first-pass`}
+            tip="Admin decisions (approve/return/reject) that move projects through the pipeline. First-pass = preliminary screening."
+            accent="text-teal-400" />
           <Metric label="Median wait" value={fmtDays(data.queue.medianWaitDays)}
             sub={`p90 ${fmtDays(data.queue.p90WaitDays)} · max ${fmtDays(data.queue.maxWaitDays)}`}
             tip="How long the median pending project has been waiting right now" />
           <Metric label="7-day net" value={`${computed.net7 >= 0 ? '+' : ''}${computed.net7}`}
-            sub={`${Math.round(computed.avg7s * 10) / 10} in · ${Math.round(computed.avg7r * 10) / 10} out / day`}
+            sub={`${Math.round(computed.avg7s * 10) / 10} in · ${Math.round(computed.avg7d * 10) / 10} decided / day`}
             accent={computed.net7 <= 0 ? 'text-emerald-400' : 'text-rose-400'}
             tip="Reviews minus submissions over the last 7 days. Negative means the queue is growing." />
           <Metric label="Time to clear" value={computed.burnDays === Infinity ? '—' : fmtDays(computed.burnDays)}
-            tip="Days to empty the queue at the current 7-day review pace, assuming no new submissions" />
+            sub={`${Math.round(computed.avg7d * 10) / 10} decisions/day`}
+            tip="Days to empty the queue at the current 7-day decision pace, assuming no new submissions" />
         </div>
       </div>
 
@@ -263,8 +266,9 @@ export default function ReviewDataPage() {
               <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={d => d.slice(5)} interval={6} />
               <YAxis tick={AXIS_TICK} width={32} />
               <RTooltip content={<ChartTip />} />
-              <Area type="monotone" dataKey="build" name="Build" stroke={VIOLET} fill="url(#buildGrad)" strokeWidth={1.5} stackId="queue" dot={false} />
-              <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={1.5} stackId="queue" dot={false} />
+              <Area type="monotone" dataKey="total" name="Total" stroke={AMBER} fill="none" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
+              <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="build" name="Build" stroke={VIOLET} fill="url(#buildGrad)" strokeWidth={2} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
@@ -276,8 +280,8 @@ export default function ReviewDataPage() {
 
       {/* ── Submissions vs Reviews ── */}
       <div>
-        <SectionLabel tip="Daily volume over the last 30 days. When the orange area exceeds the teal, the queue is growing.">
-          Submissions vs reviews (30 days)
+        <SectionLabel tip="Daily volume over the last 30 days. When submissions exceed decisions, the queue is growing. Decisions = admin approve/return/reject actions.">
+          Submissions vs decisions (30 days)
         </SectionLabel>
         <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
           <ResponsiveContainer width="100%" height={200}>
@@ -287,12 +291,12 @@ export default function ReviewDataPage() {
               <YAxis tick={AXIS_TICK} width={28} />
               <RTooltip content={<ChartTip />} />
               <Area type="monotone" dataKey="submissions" name="Submitted" stroke={AMBER} fill={AMBER} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
-              <Area type="monotone" dataKey="reviews" name="Reviewed" stroke={TEAL} fill={TEAL} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+              <Area type="monotone" dataKey="decisions" name="Decided" stroke={TEAL} fill={TEAL} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: AMBER }} />Submitted</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: TEAL }} />Reviewed</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: TEAL }} />Decided</span>
           </div>
         </div>
       </div>
@@ -519,7 +523,7 @@ export default function ReviewDataPage() {
 
       {/* ── Weekly breakdown ── */}
       <div>
-        <SectionLabel tip="Side-by-side weekly view. Orange = submissions in, teal = reviews out. These should be roughly balanced for a stable queue.">
+        <SectionLabel tip="Side-by-side weekly view. Orange = submissions in, teal = admin decisions out. These should be roughly balanced for a stable queue.">
           Weekly throughput
         </SectionLabel>
         <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
@@ -530,7 +534,7 @@ export default function ReviewDataPage() {
               <YAxis tick={AXIS_TICK} width={28} />
               <RTooltip content={<ChartTip />} />
               <RBar dataKey="submissions" name="Submitted" fill={AMBER} radius={[1, 1, 0, 0]} />
-              <RBar dataKey="reviews" name="Reviewed" fill={TEAL} radius={[1, 1, 0, 0]} />
+              <RBar dataKey="admin_reviews" name="Decided" fill={TEAL} radius={[1, 1, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -637,9 +641,11 @@ export default function ReviewDataPage() {
             <span className="text-cream-50/45 uppercase tracking-wider text-[9px]">{label}</span>
             <div className="mt-0.5">
               <span style={{ color: AMBER }}>{p.submissions}</span>
-              <span className="text-cream-50/35"> in · </span>
-              <span style={{ color: TEAL }}>{p.reviews}</span>
-              <span className="text-cream-50/35"> out</span>
+              <span className="text-cream-50/35"> submitted · </span>
+              <span style={{ color: TEAL }}>{p.decisions}</span>
+              <span className="text-cream-50/35"> decided · </span>
+              <span className="text-cream-50/60">{p.firstPass}</span>
+              <span className="text-cream-50/35"> first-pass</span>
             </div>
           </div>
         ))}

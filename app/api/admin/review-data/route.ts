@@ -50,7 +50,7 @@ export async function GET() {
 
     // 1: Daily activity by stage (60 days, combined reviews from both tables)
     prisma.$queryRaw<{
-      date: string; design_subs: number; build_subs: number; design_revs: number; build_revs: number;
+      date: string; design_subs: number; build_subs: number; design_decisions: number; build_decisions: number;
     }[]>`
       WITH days AS (
         SELECT generate_series(DATE_TRUNC('day', NOW() - INTERVAL '59 days'), DATE_TRUNC('day', NOW()), '1 day'::interval) AS day
@@ -58,22 +58,16 @@ export async function GET() {
       ds AS (SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::int AS cnt FROM project_submission WHERE "createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND stage = 'DESIGN' GROUP BY 1),
       bs AS (SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::int AS cnt FROM project_submission WHERE "createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND stage = 'BUILD' GROUP BY 1),
       dr AS (
-        SELECT day, SUM(cnt)::int AS cnt FROM (
-          SELECT DATE_TRUNC('day', sr."createdAt") AS day, COUNT(*)::int AS cnt FROM submission_review sr JOIN project_submission ps ON sr."submissionId" = ps.id WHERE sr."createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND sr.invalidated = false AND ps.stage = 'DESIGN' GROUP BY 1
-          UNION ALL
-          SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::int AS cnt FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND stage = 'DESIGN' GROUP BY 1
-        ) c GROUP BY day
+        SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::int AS cnt
+        FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND stage = 'DESIGN' GROUP BY 1
       ),
       br AS (
-        SELECT day, SUM(cnt)::int AS cnt FROM (
-          SELECT DATE_TRUNC('day', sr."createdAt") AS day, COUNT(*)::int AS cnt FROM submission_review sr JOIN project_submission ps ON sr."submissionId" = ps.id WHERE sr."createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND sr.invalidated = false AND ps.stage = 'BUILD' GROUP BY 1
-          UNION ALL
-          SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::int AS cnt FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND stage = 'BUILD' GROUP BY 1
-        ) c GROUP BY day
+        SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*)::int AS cnt
+        FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('day', NOW() - INTERVAL '59 days') AND stage = 'BUILD' GROUP BY 1
       )
       SELECT TO_CHAR(d.day, 'YYYY-MM-DD') as date,
         COALESCE(ds.cnt, 0)::int as design_subs, COALESCE(bs.cnt, 0)::int as build_subs,
-        COALESCE(dr.cnt, 0)::int as design_revs, COALESCE(br.cnt, 0)::int as build_revs
+        COALESCE(dr.cnt, 0)::int as design_decisions, COALESCE(br.cnt, 0)::int as build_decisions
       FROM days d LEFT JOIN ds ON ds.day = d.day LEFT JOIN bs ON bs.day = d.day LEFT JOIN dr ON dr.day = d.day LEFT JOIN br ON br.day = d.day
       ORDER BY d.day
     `,
@@ -271,32 +265,26 @@ export async function GET() {
       FROM all_reviews GROUP BY reviewer_id ORDER BY total DESC
     `,
 
-    // 11: Period counts (combined reviews)
+    // 11: Period counts (split first-pass vs admin decisions)
     prisma.$queryRaw<[{
-      subs_today: number; revs_today: number; subs_week: number; revs_week: number;
-      subs_month: number; revs_month: number; subs_all: number; revs_all: number;
+      subs_today: number; decisions_today: number; first_pass_today: number;
+      subs_week: number; decisions_week: number; first_pass_week: number;
+      subs_month: number; decisions_month: number; first_pass_month: number;
+      subs_all: number; decisions_all: number; first_pass_all: number;
     }]>`
       SELECT
         (SELECT COUNT(*)::int FROM project_submission WHERE "createdAt" >= DATE_TRUNC('day', NOW())) as subs_today,
-        (SELECT COUNT(*)::int FROM (
-          SELECT id FROM submission_review WHERE "createdAt" >= DATE_TRUNC('day', NOW()) AND invalidated = false
-          UNION ALL SELECT id FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('day', NOW())
-        ) x) as revs_today,
+        (SELECT COUNT(*)::int FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('day', NOW())) as decisions_today,
+        (SELECT COUNT(*)::int FROM submission_review WHERE "createdAt" >= DATE_TRUNC('day', NOW()) AND invalidated = false) as first_pass_today,
         (SELECT COUNT(*)::int FROM project_submission WHERE "createdAt" >= DATE_TRUNC('week', NOW())) as subs_week,
-        (SELECT COUNT(*)::int FROM (
-          SELECT id FROM submission_review WHERE "createdAt" >= DATE_TRUNC('week', NOW()) AND invalidated = false
-          UNION ALL SELECT id FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('week', NOW())
-        ) x) as revs_week,
+        (SELECT COUNT(*)::int FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('week', NOW())) as decisions_week,
+        (SELECT COUNT(*)::int FROM submission_review WHERE "createdAt" >= DATE_TRUNC('week', NOW()) AND invalidated = false) as first_pass_week,
         (SELECT COUNT(*)::int FROM project_submission WHERE "createdAt" >= DATE_TRUNC('month', NOW())) as subs_month,
-        (SELECT COUNT(*)::int FROM (
-          SELECT id FROM submission_review WHERE "createdAt" >= DATE_TRUNC('month', NOW()) AND invalidated = false
-          UNION ALL SELECT id FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('month', NOW())
-        ) x) as revs_month,
+        (SELECT COUNT(*)::int FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('month', NOW())) as decisions_month,
+        (SELECT COUNT(*)::int FROM submission_review WHERE "createdAt" >= DATE_TRUNC('month', NOW()) AND invalidated = false) as first_pass_month,
         (SELECT COUNT(*)::int FROM project_submission) as subs_all,
-        (SELECT COUNT(*)::int FROM (
-          SELECT id FROM submission_review WHERE invalidated = false
-          UNION ALL SELECT id FROM project_review_action
-        ) x) as revs_all
+        (SELECT COUNT(*)::int FROM project_review_action) as decisions_all,
+        (SELECT COUNT(*)::int FROM submission_review WHERE invalidated = false) as first_pass_all
     `,
   ])
 
@@ -334,10 +322,10 @@ export async function GET() {
       maxWaitDays: Math.round(q.max_wait_days * 10) / 10,
     },
     periods: {
-      today: { submissions: p.subs_today, reviews: p.revs_today },
-      thisWeek: { submissions: p.subs_week, reviews: p.revs_week },
-      thisMonth: { submissions: p.subs_month, reviews: p.revs_month },
-      allTime: { submissions: p.subs_all, reviews: p.revs_all },
+      today: { submissions: p.subs_today, decisions: p.decisions_today, firstPass: p.first_pass_today },
+      thisWeek: { submissions: p.subs_week, decisions: p.decisions_week, firstPass: p.first_pass_week },
+      thisMonth: { submissions: p.subs_month, decisions: p.decisions_month, firstPass: p.first_pass_month },
+      allTime: { submissions: p.subs_all, decisions: p.decisions_all, firstPass: p.first_pass_all },
     },
     dailyActivity,
     weeklyStats: weeklyStats.map(w => ({
