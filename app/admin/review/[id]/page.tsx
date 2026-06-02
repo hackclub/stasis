@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -236,7 +236,21 @@ function splitMarkdownImages(content: string): { text: string; images: string[] 
   return { text: text.trim(), images };
 }
 
-const REVIEW_CACHE_TTL_MS = 60_000; // serve stale-up-to-60s, revalidate after
+const REVIEW_CACHE_TTL_MS = 180_000; // 3 min — covers typical review duration
+
+const MAX_PREFETCH_DEPTH = 3;
+
+// Warm browser image cache for cover images of upcoming reviews.
+const _prefetchedImages = new Set<string>();
+function prefetchImage(url: string) {
+  if (_prefetchedImages.has(url)) return;
+  _prefetchedImages.add(url);
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.as = 'image';
+  link.href = url;
+  document.head.appendChild(link);
+}
 
 // Auxiliary caches for slow third-party-backed reads (GitHub, Airtable).
 // Both are idempotent and don't depend on filterQS.
@@ -281,6 +295,23 @@ function clearSkippedIds() {
   try { sessionStorage.removeItem(SKIP_STORAGE_KEY); } catch {}
 }
 
+// ─── Hover pub/sub ──────────────────────────────────────────────────
+// Mouse-move hover state lives outside the main component so per-pixel
+// updates don't re-render the 3000+ line parent.  The popup components
+// subscribe independently and manage their own React state.
+
+type HoverPreviewState = { url: string; label?: string; x: number; y: number } | null;
+type HistTooltipState = { label: string; x: number; y: number } | null;
+
+const hoverBus = {
+  _pSubs: new Set<(v: HoverPreviewState) => void>(),
+  _tSubs: new Set<(v: HistTooltipState) => void>(),
+  preview(v: HoverPreviewState) { this._pSubs.forEach(fn => fn(v)); },
+  tooltip(v: HistTooltipState) { this._tSubs.forEach(fn => fn(v)); },
+  onPreview(fn: (v: HoverPreviewState) => void) { this._pSubs.add(fn); return () => { this._pSubs.delete(fn); }; },
+  onTooltip(fn: (v: HistTooltipState) => void) { this._tSubs.add(fn); return () => { this._tSubs.delete(fn); }; },
+};
+
 // ─── Component ───────────────────────────────────────────────────────
 
 export default function ReviewDetailPage() {
@@ -297,8 +328,7 @@ export default function ReviewDetailPage() {
   const filterRegion = searchParams.get('region') || '';
   const viewAs = searchParams.get('viewAs') || '';
 
-  // Build query string for filter-aware navigation
-  const filterQS = (() => {
+  const filterQS = useMemo(() => {
     const qp = new URLSearchParams();
     if (filterCategory) qp.set('category', filterCategory);
     if (filterGuide) qp.set('guide', filterGuide);
@@ -310,7 +340,7 @@ export default function ReviewDetailPage() {
     if (viewAs) qp.set('viewAs', viewAs);
     const s = qp.toString();
     return s ? `?${s}` : '';
-  })();
+  }, [filterCategory, filterGuide, filterNameSearch, filterSort, filterPronouns, filterAttendees, filterRegion, viewAs]);
 
   // Initialize data + loading from cache on first render so we never flash a
   // spinner when the prefetch already populated it.
@@ -325,17 +355,6 @@ export default function ReviewDetailPage() {
   // ID of the journal entry currently flashing after a TOC click — cleared
   // after the highlight animation completes.
   const [flashSessionId, setFlashSessionId] = useState<string | null>(null);
-  // Image preview popup that tracks the cursor while hovering over a TOC
-  // thumbnail or a journal entry image.
-  const [hoverPreview, setHoverPreview] = useState<{ url: string; label?: string; x: number; y: number } | null>(null);
-  // Small text tooltip for the work-log histogram. Different from the image
-  // popup so it can be sized and styled for short labels.
-  const [histTooltip, setHistTooltip] = useState<{ label: string; x: number; y: number } | null>(null);
-  // Measured popup size — used to position the image preview exactly 16px
-  // from the cursor, then clamped to the viewport using the actual rendered
-  // dimensions instead of the worst-case 40vw/60vh.
-  const popupRef = useRef<HTMLDivElement | null>(null);
-  const [popupSize, setPopupSize] = useState({ w: 0, h: 0 });
   const [ghChecks, setGhChecks] = useState<Array<{ key: string; label: string; passed: boolean; detail?: string }> | null>(null);
   const [ghChecksLoading, setGhChecksLoading] = useState(false);
   const [ghChecksError, setGhChecksError] = useState<string | null>(null);
@@ -427,13 +446,6 @@ export default function ReviewDetailPage() {
     localStorage.setItem('review:hideChrome', hideChrome ? '1' : '0');
   }, [hideChrome]);
 
-  // Re-measure the image-preview popup whenever the hovered URL changes.
-  // Runs synchronously before paint so the very first frame already has the
-  // correct clamped position — no flicker for cached images. Uncached images
-  // pick up a follow-up measurement via the `onLoad` handler on the <img>.
-  useLayoutEffect(() => {
-    setPopupSize({ w: 0, h: 0 });
-  }, [hoverPreview?.url]);
 
   // Track the xl breakpoint via matchMedia. We apply the height constraint
   // via inline style only at xl+; below that the page falls back to natural
@@ -644,49 +656,57 @@ export default function ReviewDetailPage() {
       .finally(() => setGhChecksLoading(false));
   }, [id]);
 
-  // Prefetch the next/prev review payloads into the module-level cache so
-  // j/k and post-approve navigation are instant. Browsers don't HTTP-cache
-  // auth-bound JSON, so we cache the parsed payload ourselves.
+  // Prefetch upcoming reviews into the module-level cache so j/k and
+  // post-approve navigation are instant. Chain-prefetches N+1 → N+2 → N+3
+  // since each review takes minutes. N+1 uses normal fetch priority (most
+  // likely target); deeper levels use `priority: 'low'`.
   useEffect(() => {
     if (!data?.navigation) return;
     const { nextId, prevId } = data.navigation;
 
-    function lowFetch(url: string) {
-      try {
-        // priority hint isn't yet in lib.dom.d.ts
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return fetch(url, { priority: 'low' } as any);
-      } catch {
-        return fetch(url);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ric = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 150));
+
+    function chainDeeper(d: ReviewData, depth: number) {
+      if (d.submission?.project?.coverImage) prefetchImage(d.submission.project.coverImage);
+      if (depth < MAX_PREFETCH_DEPTH && d.navigation?.nextId) {
+        ric(() => prime(d.navigation.nextId!, depth + 1));
       }
     }
 
-    function prime(targetId: string) {
+    function prime(targetId: string, depth: number) {
       const cacheKey = `${targetId}${filterQS}`;
       const existing = REVIEW_DATA_CACHE.get(cacheKey);
-      if (!existing || Date.now() - existing.at >= REVIEW_CACHE_TTL_MS) {
-        lowFetch(`/api/reviews/${targetId}${filterQS}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d) => { if (d) REVIEW_DATA_CACHE.set(cacheKey, { data: d, at: Date.now() }); })
-          .catch(() => {});
+      const fresh = existing && Date.now() - existing.at < REVIEW_CACHE_TTL_MS;
+
+      if (fresh) {
+        chainDeeper(existing!.data as ReviewData, depth);
+        return;
       }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const opts: any = depth > 0 ? { priority: 'low' } : {};
+      fetch(`/api/reviews/${targetId}${filterQS}`, opts)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!d) return;
+          REVIEW_DATA_CACHE.set(cacheKey, { data: d, at: Date.now() });
+          chainDeeper(d, depth);
+        })
+        .catch(() => {});
+
       if (!AIRTABLE_CHECK_CACHE.has(targetId)) {
-        lowFetch(`/api/reviews/${targetId}/airtable-check`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fetch(`/api/reviews/${targetId}/airtable-check`, { priority: 'low' } as any)
           .then((r) => (r.ok ? r.json() : null))
           .then((d) => AIRTABLE_CHECK_CACHE.set(targetId, !!d?.found))
           .catch(() => {});
       }
-      // Warm the RSC layout shell too.
       router.prefetch(`/admin/review/${targetId}${filterQS}`);
     }
 
-    if (nextId) prime(nextId);
-
-    if (prevId) {
-      const win = window as Window & { requestIdleCallback?: (cb: () => void) => number };
-      const schedule = win.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200));
-      schedule(() => prime(prevId));
-    }
+    if (nextId) prime(nextId, 0);
+    if (prevId) ric(() => prime(prevId, MAX_PREFETCH_DEPTH));
   }, [data?.navigation, router, filterQS]);
 
 
@@ -1378,6 +1398,41 @@ export default function ReviewDetailPage() {
     [data]
   );
 
+  const sessionSplits = useMemo(() => {
+    const map = new Map<string, { text: string; images: string[] }>();
+    if (!data) return map;
+    for (const session of data.submission.project.workSessions) {
+      if (session.content) map.set(session.id, splitMarkdownImages(session.content));
+    }
+    return map;
+  }, [data]);
+
+  const allSidebarImages = useMemo(() => {
+    if (!data) return [];
+    const p = data.submission.project;
+    const result: Array<{ url: string; label: string; priority: number }> = [];
+    if (p.coverImage) {
+      result.push({ url: p.coverImage, label: 'Cover image', priority: 0 });
+    }
+    for (let si = p.workSessions.length - 1; si >= 0; si--) {
+      const session = p.workSessions[si];
+      const entryNum = si + 1;
+      const mdImgs = sessionSplits.get(session.id)?.images ?? [];
+      const mediaImgs = session.media.filter((m) => m.type === 'IMAGE').map((m) => m.url);
+      const seen = new Set<string>();
+      for (const url of [...mediaImgs, ...mdImgs]) {
+        if (seen.has(url)) continue;
+        seen.add(url);
+        result.push({ url, label: `#${entryNum} · ${session.title || session.id.slice(-6)}`, priority: 2 });
+      }
+    }
+    for (const url of p.cartScreenshots) {
+      result.push({ url, label: 'Cart screenshot', priority: 3 });
+    }
+    result.sort((a, b) => a.priority - b.priority);
+    return result;
+  }, [data, sessionSplits]);
+
   if (loading || !data) {
     return (
       <div className="text-center py-12">
@@ -1406,7 +1461,7 @@ export default function ReviewDetailPage() {
 
   // github1s embeds the repo in a VSCode-like file browser. We only show the
   // column when the project has a github.com URL we can parse to owner/repo.
-  const github1sUrl = (() => {
+  const github1sUrl = useMemo(() => {
     if (!project.githubRepo) return null;
     try {
       const u = new URL(project.githubRepo);
@@ -1417,21 +1472,19 @@ export default function ReviewDetailPage() {
     } catch {
       return null;
     }
-  })();
+  }, [project.githubRepo]);
 
   // Returns the mouse-handler props for an image thumbnail so hovering shows
   // the full image in a cursor-following popup.
   const hoverProps = (url: string, label?: string) => ({
-    onMouseEnter: (e: React.MouseEvent) => setHoverPreview({ url, label, x: e.clientX, y: e.clientY }),
-    onMouseMove: (e: React.MouseEvent) => setHoverPreview({ url, label, x: e.clientX, y: e.clientY }),
-    onMouseLeave: () => setHoverPreview(null),
+    onMouseEnter: (e: React.MouseEvent) => hoverBus.preview({ url, label, x: e.clientX, y: e.clientY }),
+    onMouseMove: (e: React.MouseEvent) => hoverBus.preview({ url, label, x: e.clientX, y: e.clientY }),
+    onMouseLeave: () => hoverBus.preview(null),
   });
-  // Histogram tooltip handlers — same cursor-following pattern as hoverProps
-  // but plain text instead of an image.
   const histHoverProps = (label: string) => ({
-    onMouseEnter: (e: React.MouseEvent) => setHistTooltip({ label, x: e.clientX, y: e.clientY }),
-    onMouseMove: (e: React.MouseEvent) => setHistTooltip({ label, x: e.clientX, y: e.clientY }),
-    onMouseLeave: () => setHistTooltip(null),
+    onMouseEnter: (e: React.MouseEvent) => hoverBus.tooltip({ label, x: e.clientX, y: e.clientY }),
+    onMouseMove: (e: React.MouseEvent) => hoverBus.tooltip({ label, x: e.clientX, y: e.clientY }),
+    onMouseLeave: () => hoverBus.tooltip(null),
   });
 
   // Smooth-scrolls the matching journal article into view and triggers a
@@ -1790,65 +1843,33 @@ export default function ReviewDetailPage() {
                   onFocusKindConsumed={() => setFocusFileKind(null)}
                   onRefresh={refreshFiles}
                   onImageHover={(url, e) => {
-                    if (url && e) setHoverPreview({ url, x: e.clientX, y: e.clientY });
-                    else setHoverPreview(null);
+                    if (url && e) hoverBus.preview({ url, x: e.clientX, y: e.clientY });
+                    else hoverBus.preview(null);
                   }}
                 />
               </div>
               {/* Images panel */}
               <div className={`flex-1 min-h-0 overflow-y-auto ${sidebarTab === 'images' ? 'block' : 'hidden'}`}>
-                {data && (() => {
-                  const project = data.submission.project;
-                  const allImages: Array<{ url: string; label: string; priority: number }> = [];
-                  if (project.coverImage) {
-                    allImages.push({ url: project.coverImage, label: 'Cover image', priority: 0 });
-                  }
-                  if (project.githubRepo) {
-                    const cadData = data.submission.cadFiles as import('@/lib/cad-discovery').CadFilesPayload | null;
-                    if (cadData) {
-                      const readmeUrl = `https://raw.githubusercontent.com/${cadData.owner}/${cadData.repo}/${cadData.branch}/README.md`;
-                      // README images are resolved from cadFiles data — they'll be fetched async
-                    }
-                  }
-                  const sessions = project.workSessions;
-                  for (let si = sessions.length - 1; si >= 0; si--) {
-                    const session = sessions[si];
-                    const entryNum = si + 1;
-                    const mdImgs = session.content ? splitMarkdownImages(session.content).images : [];
-                    const mediaImgs = session.media.filter((m) => m.type === 'IMAGE').map((m) => m.url);
-                    const seen = new Set<string>();
-                    for (const url of [...mediaImgs, ...mdImgs]) {
-                      if (seen.has(url)) continue;
-                      seen.add(url);
-                      allImages.push({ url, label: `#${entryNum} · ${session.title || session.id.slice(-6)}`, priority: 2 });
-                    }
-                  }
-                  for (const url of project.cartScreenshots) {
-                    allImages.push({ url, label: 'Cart screenshot', priority: 3 });
-                  }
-                  allImages.sort((a, b) => a.priority - b.priority);
-                  if (allImages.length === 0) {
-                    return <div className="flex-1 flex items-center justify-center text-cream-400 text-xs p-4">No images found</div>;
-                  }
-                  return (
-                    <div className="columns-3 gap-1 p-1">
-                      {allImages.map((img, i) => (
-                        <div key={`${img.url}-${i}`} className="mb-1 break-inside-avoid">
-                          <img
-                            src={img.url}
-                            alt={img.label}
-                            loading="lazy"
-                            className="w-full block bg-brown-950"
-                            {...hoverProps(img.url, img.label)}
-                          />
-                          <div className="bg-brown-800 border border-cream-500/15 border-t-0 px-1 py-px text-[8px] text-cream-300 truncate">
-                            {img.label}
-                          </div>
+                {allSidebarImages.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-cream-400 text-xs p-4">No images found</div>
+                ) : (
+                  <div className="columns-3 gap-1 p-1">
+                    {allSidebarImages.map((img, i) => (
+                      <div key={`${img.url}-${i}`} className="mb-1 break-inside-avoid">
+                        <img
+                          src={img.url}
+                          alt={img.label}
+                          loading="lazy"
+                          className="w-full block bg-brown-950"
+                          {...hoverProps(img.url, img.label)}
+                        />
+                        <div className="bg-brown-800 border border-cream-500/15 border-t-0 px-1 py-px text-[8px] text-cream-300 truncate">
+                          {img.label}
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2386,7 +2407,7 @@ export default function ReviewDetailPage() {
               const i = project.workSessions.length - 1 - displayI;
               const hours = Math.round(session.hoursClaimed * 100) / 100;
               const isZebra = displayI % 2 === 1;
-              const mdImgs = session.content ? splitMarkdownImages(session.content).images : [];
+              const mdImgs = sessionSplits.get(session.id)?.images ?? [];
               const mediaImgs = session.media.filter((m) => m.type === 'IMAGE').map((m) => m.url);
               const allImgs = Array.from(new Set([...mdImgs, ...mediaImgs]));
               const SHOWN_LIMIT = 6;
@@ -2462,9 +2483,9 @@ export default function ReviewDetailPage() {
           <div className="-mx-5">
             {reversedSessions.map((session, displayI) => {
               const i = project.workSessions.length - 1 - displayI;
-              const { text, images: mdImages } = session.content
-                ? splitMarkdownImages(session.content)
-                : { text: '', images: [] };
+              const splits = sessionSplits.get(session.id);
+              const text = splits?.text ?? '';
+              const mdImages = splits?.images ?? [];
               const mediaImages = session.media.filter((m) => m.type === 'IMAGE');
               const mediaVideos = session.media.filter((m) => m.type !== 'IMAGE');
               // Dedupe — markdown inserts often reference the same URLs that
@@ -2969,59 +2990,8 @@ export default function ReviewDetailPage() {
       </aside>
       </div>
 
-      {/* Cursor-following histogram tooltip. Centered above the cursor; flips
-          to one side near viewport edges so it stays on screen. */}
-      {histTooltip && (
-        <div
-          className="fixed pointer-events-none z-[200] bg-cream-200 text-brown-900 text-xs px-2 py-1 shadow-2xl max-w-[18rem] leading-tight"
-          style={{
-            left: histTooltip.x,
-            top: histTooltip.y,
-            transform: `translate(${histTooltip.x < 120 ? '0%' : histTooltip.x > window.innerWidth - 120 ? '-100%' : '-50%'}, calc(-100% - 12px))`,
-          }}
-        >
-          {histTooltip.label}
-        </div>
-      )}
-
-      {/* Cursor-following image preview popup. Positioned exactly 16px from
-          the cursor using the popup's measured size, then clamped so it stays
-          on-screen. `pointer-events-none` keeps it out of the mouse path;
-          `visibility: hidden` until the first measurement avoids a one-frame
-          jump on hover. */}
-      {hoverPreview && (() => {
-        const measured = popupSize.w > 0 && popupSize.h > 0;
-        const w = popupSize.w;
-        const h = popupSize.h;
-        const sidebarW = sidebarTab ? leftWidth + 48 + 24 : 48;
-        const availW = window.innerWidth - sidebarW;
-        const availH = window.innerHeight;
-        const left = sidebarW + (availW - w) / 2;
-        const top = (availH - h) / 2;
-        return (
-          <div
-            ref={popupRef}
-            className="fixed pointer-events-none z-[200] shadow-2xl"
-            style={{ left: Math.max(sidebarW + 16, left), top: Math.max(16, top), visibility: measured ? 'visible' : 'hidden' }}
-          >
-            <img
-              src={hoverPreview.url}
-              alt=""
-              onLoad={() => {
-                if (!popupRef.current) return;
-                const rect = popupRef.current.getBoundingClientRect();
-                setPopupSize({ w: rect.width, h: rect.height });
-              }}
-              className="min-w-[320px] min-h-[240px] max-w-[40vw] max-h-[60vh] object-contain block bg-brown-900"
-            />
-            {hoverPreview.label && (
-              <div className="bg-brown-800 border border-cream-500/20 border-t-0 px-2 py-1 text-xs text-cream-200">
-                {hoverPreview.label}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      <HistTooltipPopup />
+      <ImageHoverPopup sidebarTab={sidebarTab} leftWidth={leftWidth} />
     </div>
   );
 }
@@ -3407,6 +3377,73 @@ function AiReadmeSection({
       ) : (
         <p className="text-cream-200 text-sm">Could not load AI audit.</p>
       )}
+    </div>
+  );
+}
+
+// ── Hover popups (own state, subscribe to hoverBus — zero parent re-renders) ─
+
+const ImageHoverPopup = memo(function ImageHoverPopup({
+  sidebarTab,
+  leftWidth,
+}: Readonly<{ sidebarTab: string | null; leftWidth: number }>) {
+  const [preview, setPreview] = useState<HoverPreviewState>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
+  const [popupSize, setPopupSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => hoverBus.onPreview(setPreview), []);
+  useLayoutEffect(() => { setPopupSize({ w: 0, h: 0 }); }, [preview?.url]);
+
+  if (!preview) return null;
+
+  const measured = popupSize.w > 0 && popupSize.h > 0;
+  const w = popupSize.w;
+  const h = popupSize.h;
+  const sidebarW = sidebarTab ? leftWidth + 48 + 24 : 48;
+  const availW = window.innerWidth - sidebarW;
+  const availH = window.innerHeight;
+  const left = sidebarW + (availW - w) / 2;
+  const top = (availH - h) / 2;
+
+  return (
+    <div
+      ref={popupRef}
+      className="fixed pointer-events-none z-[200] shadow-2xl"
+      style={{ left: Math.max(sidebarW + 16, left), top: Math.max(16, top), visibility: measured ? 'visible' : 'hidden' }}
+    >
+      <img
+        src={preview.url}
+        alt=""
+        onLoad={() => {
+          if (!popupRef.current) return;
+          const rect = popupRef.current.getBoundingClientRect();
+          setPopupSize({ w: rect.width, h: rect.height });
+        }}
+        className="min-w-[320px] min-h-[240px] max-w-[40vw] max-h-[60vh] object-contain block bg-brown-900"
+      />
+      {preview.label && (
+        <div className="bg-brown-800 border border-cream-500/20 border-t-0 px-2 py-1 text-xs text-cream-200">
+          {preview.label}
+        </div>
+      )}
+    </div>
+  );
+});
+
+function HistTooltipPopup() {
+  const [tooltip, setTooltip] = useState<HistTooltipState>(null);
+  useEffect(() => hoverBus.onTooltip(setTooltip), []);
+  if (!tooltip) return null;
+  return (
+    <div
+      className="fixed pointer-events-none z-[200] bg-cream-200 text-brown-900 text-xs px-2 py-1 shadow-2xl max-w-[18rem] leading-tight"
+      style={{
+        left: tooltip.x,
+        top: tooltip.y,
+        transform: `translate(${tooltip.x < 120 ? '0%' : tooltip.x > window.innerWidth - 120 ? '-100%' : '-50%'}, calc(-100% - 12px))`,
+      }}
+    >
+      {tooltip.label}
     </div>
   );
 }
