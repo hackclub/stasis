@@ -59,7 +59,7 @@ interface HastNode {
 
 interface GerberLayer {
   name: string;
-  svg: string;
+  innerSvg: string;
   info: LayerInfo | null;
   color: string;
   tone: string;
@@ -102,7 +102,7 @@ function parseViewBox(svg: string): ViewBox | null {
   return parts as ViewBox;
 }
 
-function mergeViewBoxes(vbs: ViewBox[]): ViewBox | null {
+function unionViewBoxes(vbs: ViewBox[]): ViewBox | null {
   if (!vbs.length) return null;
   let [minX, minY, maxX, maxY] = [vbs[0][0], vbs[0][1], vbs[0][0] + vbs[0][2], vbs[0][1] + vbs[0][3]];
   for (let i = 1; i < vbs.length; i++) {
@@ -113,19 +113,26 @@ function mergeViewBoxes(vbs: ViewBox[]): ViewBox | null {
   return [minX, minY, maxX - minX, maxY - minY];
 }
 
-function normalizeSvg(svg: string, color: string, merged: ViewBox | null): string {
-  let s = svg.replace(/<rect\b[^>]*\bfill="black"[^>]*>\s*<\/rect>/gi, '');
-  if (merged) {
-    const vb = `${merged[0]} ${merged[1]} ${merged[2]} ${merged[3]}`;
-    s = s.replace(/\bviewBox="[^"]*"/i, `viewBox="${vb}"`);
-  }
-  s = s.replace(/\bwidth="[^"]*"/i, 'width="100%"');
-  s = s.replace(/\bheight="[^"]*"/i, 'height="100%"');
-  if (!/\bpreserveAspectRatio="[^"]*"/i.test(s)) s = s.replace(/<svg\b/i, '<svg preserveAspectRatio="xMidYMid meet"');
-  s = s.replace(/\bfill="(black|currentColor)"/gi, `fill="${color}"`);
-  s = s.replace(/\bstroke="(black|currentColor)"/gi, `stroke="${color}"`);
-  return s;
-}
+
+const HAST_TO_SVG_ATTR: Record<string, string> = {
+  className: 'class',
+  strokeWidth: 'stroke-width',
+  strokeLineCap: 'stroke-linecap',
+  strokeLineJoin: 'stroke-linejoin',
+  fillRule: 'fill-rule',
+  clipRule: 'clip-rule',
+  fillOpacity: 'fill-opacity',
+  strokeOpacity: 'stroke-opacity',
+  strokeDashArray: 'stroke-dasharray',
+  strokeDashOffset: 'stroke-dashoffset',
+  strokeMiterLimit: 'stroke-miterlimit',
+  clipPath: 'clip-path',
+  fontFamily: 'font-family',
+  fontSize: 'font-size',
+  textAnchor: 'text-anchor',
+  xmlnsXLink: 'xmlns:xlink',
+  xlinkHref: 'xlink:href',
+};
 
 function escapeHtml(v: string): string {
   return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -137,13 +144,24 @@ function serializeHast(node: HastNode): string {
   const attrs = Object.entries(node.properties ?? {})
     .filter(([, v]) => v !== null && v !== undefined && v !== false)
     .map(([k, v]) => {
-      const attr = k === 'className' ? 'class' : k;
+      const attr = HAST_TO_SVG_ATTR[k] ?? k;
       if (v === true) return attr;
       const val = Array.isArray(v) ? v.join(' ') : String(v);
       return `${attr}="${escapeHtml(val)}"`;
     }).join(' ');
   const children = (node.children ?? []).map(serializeHast).join('');
   return attrs ? `<${node.tagName} ${attrs}>${children}</${node.tagName}>` : `<${node.tagName}>${children}</${node.tagName}>`;
+}
+
+function recolorSvgContent(svg: string, color: string): string {
+  let s = svg.replace(/<rect\b[^>]*\bfill="black"[^>]*>\s*<\/rect>/gi, '');
+  s = s.replace(/\bfill="(black|currentColor)"/gi, `fill="${color}"`);
+  s = s.replace(/\bstroke="(black|currentColor)"/gi, `stroke="${color}"`);
+  return s;
+}
+
+function extractSvgInner(svg: string): string {
+  return svg.replace(/^<svg\b[^>]*>/, '').replace(/<\/svg>\s*$/, '');
 }
 
 async function renderGerberToSvg(text: string, id: string): Promise<string> {
@@ -168,11 +186,12 @@ export default function GerberViewer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [layers, setLayers] = useState<GerberLayer[]>([]);
+  const [baseVB, setBaseVB] = useState<ViewBox | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const ctrl = new AbortController();
-    setLoading(true); setError(null); setLayers([]);
+    setLoading(true); setError(null); setLayers([]); setBaseVB(null);
 
     (async () => {
       try {
@@ -200,6 +219,7 @@ export default function GerberViewer({
         const layerMap = whatsThatGerber(filesToRender.map((f) => f.name));
         const rendered: GerberLayer[] = [];
         const viewBoxes: ViewBox[] = [];
+        let outlineVB: ViewBox | null = null;
 
         for (const entry of filesToRender) {
           if (cancelled) return;
@@ -207,11 +227,23 @@ export default function GerberViewer({
             const svg = await renderGerberToSvg(entry.text, entry.name);
             const info = (layerMap[entry.name] as LayerInfo | undefined) ?? null;
             const vb = parseViewBox(svg);
-            if (vb) viewBoxes.push(vb);
+            const color = getColor(info, entry.name);
+            const tone = getTone(info, entry.name);
+            const recolored = recolorSvgContent(svg, color);
+            const sanitizedFull = DOMPurify.sanitize(recolored, {
+              USE_PROFILES: { svg: true },
+              ADD_TAGS: ['svg', 'g', 'defs', 'clipPath', 'use'],
+              ADD_ATTR: ['viewBox', 'preserveAspectRatio', 'clip-path', 'clip-rule', 'fill-rule',
+                'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray',
+                'stroke-dashoffset', 'stroke-miterlimit', 'xlink:href'],
+            });
+            const sanitizedInner = extractSvgInner(sanitizedFull);
+            if (vb && sanitizedInner.trim()) {
+              viewBoxes.push(vb);
+              if (!outlineVB && (tone === 'outline' || tone === 'mechanical')) outlineVB = vb;
+            }
             rendered.push({
-              name: entry.name, svg, info,
-              color: getColor(info, entry.name),
-              tone: getTone(info, entry.name),
+              name: entry.name, innerSvg: sanitizedInner, info, color, tone,
               visible: true,
             });
           } catch { /* skip unrenderable */ }
@@ -219,11 +251,9 @@ export default function GerberViewer({
         if (cancelled) return;
         if (!rendered.length) throw new Error('No Gerber layers could be rendered');
 
-        const merged = mergeViewBoxes(viewBoxes);
-        setLayers(rendered.map((l) => ({
-          ...l,
-          svg: DOMPurify.sanitize(normalizeSvg(l.svg, l.color, merged), { USE_PROFILES: { svg: true }, ADD_TAGS: ['svg'], ADD_ATTR: ['viewBox', 'preserveAspectRatio'] }),
-        })));
+        const merged = outlineVB ?? unionViewBoxes(viewBoxes);
+        setBaseVB(merged);
+        setLayers(rendered);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to render');
       } finally {
@@ -240,39 +270,57 @@ export default function GerberViewer({
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const dragRef = useRef<{ startX: number; startY: number; startPan: { x: number; y: number } } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; startPan: { x: number; y: number }; scale: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  const getScale = useCallback(() => {
+    if (!canvasRef.current || !baseVB) return 1;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const vbW = baseVB[2] / zoom, vbH = baseVB[3] / zoom;
+    return Math.min(rect.width / vbW, rect.height / vbH);
+  }, [baseVB, zoom]);
 
   useEffect(() => {
     const el = canvasRef.current;
-    if (!el) return;
+    if (!el || !baseVB) return;
+    const [, , bw, bh] = baseVB;
     const handler = (e: WheelEvent) => {
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       const factor = e.deltaY < 0 ? 1.15 : 0.87;
-      const cx = rect.width / 2, cy = rect.height / 2;
-      const mx = e.clientX - rect.left - cx, my = e.clientY - rect.top - cy;
+      const mx = e.clientX - rect.left - rect.width / 2;
+      const my = e.clientY - rect.top - rect.height / 2;
       setZoom((z) => {
         const nz = Math.min(20, Math.max(0.1, z * factor));
-        const r = 1 - nz / z;
-        setPan((p) => ({ x: p.x + (mx - p.x) * r, y: p.y + (my - p.y) * r }));
+        const baseScale = Math.min(rect.width / bw, rect.height / bh);
+        const oldS = z * baseScale;
+        const newS = nz * baseScale;
+        setPan((p) => ({
+          x: p.x + mx * (1 / newS - 1 / oldS),
+          y: p.y + my * (1 / newS - 1 / oldS),
+        }));
         return nz;
       });
     };
     el.addEventListener('wheel', handler, { passive: false });
     return () => el.removeEventListener('wheel', handler);
-  }, [loading]);
+  }, [loading, baseVB]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = { startX: e.clientX, startY: e.clientY, startPan: { ...pan } };
-  }, [pan]);
+    const scale = getScale();
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startPan: { ...pan }, scale };
+  }, [pan, getScale]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current) return;
-    setPan({ x: dragRef.current.startPan.x + (e.clientX - dragRef.current.startX), y: dragRef.current.startPan.y + (e.clientY - dragRef.current.startY) });
+    const { startX, startY, startPan, scale } = dragRef.current;
+    setPan({
+      x: startPan.x + (e.clientX - startX) / scale,
+      y: startPan.y + (e.clientY - startY) / scale,
+    });
   }, []);
 
   const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
@@ -295,6 +343,16 @@ export default function GerberViewer({
   }
 
   const visible = layers.filter((l) => l.visible);
+
+  let displayVB: string | undefined;
+  if (baseVB) {
+    const [bx, by, bw, bh] = baseVB;
+    const cx = bx + bw / 2 - pan.x;
+    const cy = by + bh / 2 - pan.y;
+    const dw = bw / zoom;
+    const dh = bh / zoom;
+    displayVB = `${cx - dw / 2} ${cy - dh / 2} ${dw} ${dh}`;
+  }
 
   return (
     <div style={height ? { height } : { height: '100%' }} className="flex flex-col bg-brown-900 overflow-hidden">
@@ -331,19 +389,29 @@ export default function GerberViewer({
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <div
-            className="absolute inset-0"
-            style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center' }}
-          >
-            {visible.map((l) => (
-              <div
-                key={l.name}
-                className="absolute inset-0"
-                style={{ opacity: l.tone === 'mask' ? 0.5 : 1 }}
-                dangerouslySetInnerHTML={{ __html: l.svg }}
-              />
-            ))}
-          </div>
+          {displayVB && visible.length > 0 && (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="absolute inset-0 block w-full h-full"
+              viewBox={displayVB}
+              preserveAspectRatio="xMidYMid meet"
+              strokeWidth="0"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fillRule="evenodd"
+              clipRule="evenodd"
+            >
+              {visible.map((l) => (
+                <g
+                  key={l.name}
+                  fill={l.color}
+                  stroke={l.color}
+                  opacity={l.tone === 'mask' ? 0.5 : 1}
+                  dangerouslySetInnerHTML={{ __html: l.innerSvg }}
+                />
+              ))}
+            </svg>
+          )}
           {!visible.length && (
             <div className="absolute inset-0 flex items-center justify-center text-cream-300 text-xs">
               No layers selected

@@ -1008,7 +1008,7 @@ export default function ReviewDetailPage() {
     const effectiveFeedback = rawFeedback || 'Awesome project!';
     const effectiveReason = (overrides?.reason ?? reason).trim();
 
-    if (!isAdmin && !effectiveReason) {
+    if (!effectiveReason) {
       reasonRef.current?.focus();
       return;
     }
@@ -2693,7 +2693,7 @@ export default function ReviewDetailPage() {
             <div className="mb-3">
               <label className="text-cream-200 text-xs uppercase block mb-1">
                 Internal Justification
-                {!isAdmin && <span className="text-orange-500 normal-case ml-1">(required)</span>}
+                <span className="text-orange-500 normal-case ml-1">(required)</span>
                 {isAdmin && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃R</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
               </label>
               {isAdmin && (

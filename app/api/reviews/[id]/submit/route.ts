@@ -88,8 +88,7 @@ export async function POST(
     )
   }
 
-  // Internal justification required for admin (second-pass) approvals only
-  if (result === "APPROVED" && isAdmin && (!reason || typeof reason !== "string" || reason.trim().length === 0)) {
+  if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
     return NextResponse.json(
       { error: "Internal justification is required" },
       { status: 400 }
