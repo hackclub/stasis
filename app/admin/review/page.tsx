@@ -60,6 +60,16 @@ interface ReviewerStat {
   count: number;
 }
 
+interface QueueStats {
+  count: number;
+  preReviewedCount: number;
+  workUnits: number;
+  waitP50Ms: number;
+  waitP95Ms: number;
+  waitMaxMs: number;
+  waitMaxSubmissionId: string | null;
+}
+
 interface Stats {
   pendingCount: number;
   totalPendingWorkUnits: number;
@@ -67,6 +77,9 @@ interface Stats {
   topReviewersAllTime: ReviewerStat[];
   comingToStasis: ReviewerStat[];
   guideCounts: Record<string, number>;
+  designQueue?: QueueStats;
+  buildQueue?: QueueStats;
+  isAdmin?: boolean;
 }
 
 function formatWaitTime(ms: number): string {
@@ -341,27 +354,18 @@ export default function ReviewQueuePage() {
     <>
       <HotkeyOverlay open={hotkeyOverlayOpen} bindings={hotkeys} onClose={() => setHotkeyOverlayOpen(false)} />
       {/* Stats Header */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Pending Count */}
-        <div className="bg-brown-800 border border-cream-500/20 rounded p-4">
-          <p className="text-cream-200 text-xs uppercase tracking-wider mb-1">Pending Submissions</p>
-          <div className="flex items-baseline gap-4">
-            <div>
-              <span className="text-blue-400 text-2xl font-bold">{designCount}</span>
-              <span className="text-cream-200 text-xs ml-1">design</span>
-            </div>
-            <div>
-              <span className="text-green-400 text-2xl font-bold">{buildCount}</span>
-              <span className="text-cream-200 text-xs ml-1">build</span>
-            </div>
-          </div>
-          <p className="text-cream-200 text-xs mt-1">
-            {stats ? `${stats.totalPendingWorkUnits}h total work units` : ''}
-          </p>
-        </div>
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Queue Depth + Wait Times */}
+        <QueueStatsPanel
+          designCount={designCount}
+          buildCount={buildCount}
+          designQueue={stats?.designQueue}
+          buildQueue={stats?.buildQueue}
+          isAdmin={stats?.isAdmin}
+        />
 
         {/* Top Reviewers (tabbed) */}
-        <div className="bg-brown-800 border border-cream-500/20 rounded p-4 md:col-span-2">
+        <div className="bg-brown-800 border border-cream-500/20 p-4">
           <div className="flex items-center gap-4 mb-2">
             <p className="text-cream-200 text-xs uppercase tracking-wider">Top Reviewers</p>
             <div className="flex gap-1">
@@ -789,6 +793,91 @@ export default function ReviewQueuePage() {
         </>
       )}
     </>
+  );
+}
+
+function QueueStatsPanel({ designCount, buildCount, designQueue, buildQueue, isAdmin }: Readonly<{
+  designCount: number;
+  buildCount: number;
+  designQueue?: QueueStats;
+  buildQueue?: QueueStats;
+  isAdmin?: boolean;
+}>) {
+  return (
+    <div className="bg-brown-800 border border-cream-500/20 p-4">
+      <div className="grid grid-cols-2 divide-x divide-cream-500/10">
+        <QueueReadout
+          label="Design"
+          count={designCount}
+          queue={designQueue}
+          isAdmin={isAdmin}
+          color="blue"
+          className="pr-5"
+        />
+        <QueueReadout
+          label="Build"
+          count={buildCount}
+          queue={buildQueue}
+          isAdmin={isAdmin}
+          color="green"
+          className="pl-5"
+        />
+      </div>
+    </div>
+  );
+}
+
+function QueueReadout({ label, count, queue, isAdmin, color, className }: Readonly<{
+  label: string;
+  count: number;
+  queue?: QueueStats;
+  isAdmin?: boolean;
+  color: 'blue' | 'green';
+  className?: string;
+}>) {
+  const countColor = color === 'blue' ? 'text-blue-400' : 'text-green-400';
+  const longestIsLong = queue && queue.waitMaxMs > 7 * 24 * 60 * 60 * 1000;
+  return (
+    <div className={`flex items-start gap-6 ${className ?? ''}`}>
+      {/* Count + metadata */}
+      <div>
+        <p className="text-cream-200 text-[10px] uppercase tracking-wider mb-1">{label}</p>
+        <div className="flex items-center gap-3">
+          <span className={`${countColor} text-3xl font-bold tabular-nums leading-none`}>{count}</span>
+          <div className="flex flex-col">
+            {queue && <span className="text-cream-300 text-xs tabular-nums leading-tight">{queue.workUnits}h queued</span>}
+            {isAdmin && queue && queue.preReviewedCount > 0 && (
+              <span className="text-orange-400 text-xs leading-tight">{queue.preReviewedCount} pre-reviewed</span>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Wait times */}
+      {queue && queue.count > 0 && (
+        <div className="border-l border-cream-500/10 pl-6">
+          <p className="text-cream-200 text-[10px] uppercase tracking-wider mb-1">Wait Time</p>
+          <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0 text-xs">
+            <span className="text-cream-400">P50</span>
+            <span className="text-cream-100 tabular-nums">{formatWaitTime(queue.waitP50Ms)}</span>
+            <span className="text-cream-400">P95</span>
+            <span className="text-cream-100 tabular-nums">{formatWaitTime(queue.waitP95Ms)}</span>
+            <span className="text-cream-400">Max</span>
+            {queue.waitMaxSubmissionId ? (
+              <Link
+                href={`/admin/review/${queue.waitMaxSubmissionId}`}
+                className={`tabular-nums hover:underline ${longestIsLong ? 'text-orange-400' : 'text-cream-100'}`}
+              >
+                {formatWaitTime(queue.waitMaxMs)}
+              </Link>
+            ) : (
+              <span className={`tabular-nums ${longestIsLong ? 'text-orange-400' : 'text-cream-100'}`}>
+                {formatWaitTime(queue.waitMaxMs)}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
