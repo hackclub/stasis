@@ -116,23 +116,22 @@ export async function GET() {
     reviewers.map((r) => [r.id, { id: r.id, name: r.slackDisplayName || r.name, image: r.image }]),
   )
 
-  const weeklyReviews = allReviewActions.filter((r) => new Date(r.createdAt) >= weekAgo)
+  const dayAgo = new Date(now - 24 * 60 * 60 * 1000)
+  const dailyByReviewer = new Map<string, number>()
   const weeklyByReviewer = new Map<string, number>()
+  const weeklyReviews = allReviewActions.filter((r) => new Date(r.createdAt) >= weekAgo)
   for (const r of weeklyReviews) {
-    if (r.reviewerId) weeklyByReviewer.set(r.reviewerId, (weeklyByReviewer.get(r.reviewerId) || 0) + 1)
+    if (r.reviewerId) {
+      weeklyByReviewer.set(r.reviewerId, (weeklyByReviewer.get(r.reviewerId) || 0) + 1)
+      if (new Date(r.createdAt) >= dayAgo) {
+        dailyByReviewer.set(r.reviewerId, (dailyByReviewer.get(r.reviewerId) || 0) + 1)
+      }
+    }
   }
 
   const allTimeByReviewer = new Map<string, number>()
   for (const r of allReviewActions) {
     if (r.reviewerId) allTimeByReviewer.set(r.reviewerId, (allTimeByReviewer.get(r.reviewerId) || 0) + 1)
-  }
-
-  const stasisCutoff = new Date("2026-05-05T17:00:00Z")
-  const stasisByReviewer = new Map<string, number>()
-  for (const r of allReviewActions) {
-    if (r.reviewerId && new Date(r.createdAt) >= stasisCutoff) {
-      stasisByReviewer.set(r.reviewerId, (stasisByReviewer.get(r.reviewerId) || 0) + 1)
-    }
   }
 
   const formatLeaderboard = (map: Map<string, number>) =>
@@ -147,9 +146,9 @@ export async function GET() {
   return NextResponse.json({
     pendingCount,
     totalPendingWorkUnits: Math.round(totalPendingWorkUnits * 10) / 10,
+    topReviewersDaily: formatLeaderboard(dailyByReviewer),
     topReviewersWeekly: formatLeaderboard(weeklyByReviewer),
     topReviewersAllTime: formatLeaderboard(allTimeByReviewer),
-    comingToStasis: formatLeaderboard(stasisByReviewer),
     guideCounts,
     designQueue,
     buildQueue,

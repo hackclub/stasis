@@ -73,9 +73,9 @@ interface QueueStats {
 interface Stats {
   pendingCount: number;
   totalPendingWorkUnits: number;
+  topReviewersDaily: ReviewerStat[];
   topReviewersWeekly: ReviewerStat[];
   topReviewersAllTime: ReviewerStat[];
-  comingToStasis: ReviewerStat[];
   guideCounts: Record<string, number>;
   designQueue?: QueueStats;
   buildQueue?: QueueStats;
@@ -100,34 +100,22 @@ const TIER_COLORS: Record<number, string> = {
 
 type ReviewTab = 'DESIGN' | 'BUILD';
 
-interface RewardEntry {
+interface A1MiniEntry {
   reviewer: { id: string; name: string | null; image: string | null };
-  count: number;
-  tier: 'none' | 'fudge' | 'hoodie';
+  weekCounts: number[];
+  weeklyRafflePoints: number[];
+  totalRafflePoints: number;
+  totalReviews: number;
+  totalBonusBits: number;
 }
 
-interface RewardResponse {
-  start: string;
-  end: string;
-  fudgeThreshold: number;
-  hoodieThreshold: number;
-  entries: RewardEntry[];
+interface A1MiniResponse {
+  weeks: string[];
+  currentWeekIndex: number;
+  entries: A1MiniEntry[];
 }
 
-interface WindbreakerEntry {
-  reviewer: { id: string; name: string | null; image: string | null };
-  count: number;
-  tier: 'none' | 'windbreaker';
-}
-
-interface WindbreakerResponse {
-  start: string;
-  end: string;
-  windbreakerThreshold: number;
-  entries: WindbreakerEntry[];
-}
-
-type StatsTab = 'weekly' | 'allTime' | 'comingToStasis' | 'fudgeHoodie' | 'windbreaker';
+type StatsTab = 'daily' | 'weekly' | 'allTime' | 'a1mini';
 
 export default function ReviewQueuePage() {
   const router = useRouter();
@@ -143,10 +131,8 @@ export default function ReviewQueuePage() {
   const [navigating, setNavigating] = useState(false);
   const [prioritizeAttending, setPrioritizeAttending] = useState(false);
   const [region, setRegion] = useState<'' | 'na' | 'eu'>('');
-  const [rewards, setRewards] = useState<RewardResponse | null>(null);
-  const [rewardsLoading, setRewardsLoading] = useState(false);
-  const [windbreaker, setWindbreaker] = useState<WindbreakerResponse | null>(null);
-  const [windbreakerLoading, setWindbreakerLoading] = useState(false);
+  const [a1mini, setA1mini] = useState<A1MiniResponse | null>(null);
+  const [a1miniLoading, setA1miniLoading] = useState(false);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [useOldReviewUi, setUseOldReviewUi] = useState(false);
@@ -277,27 +263,15 @@ export default function ReviewQueuePage() {
     }
   }, []);
 
-  const fetchRewards = useCallback(async () => {
-    setRewardsLoading(true);
+  const fetchA1Mini = useCallback(async () => {
+    setA1miniLoading(true);
     try {
-      const res = await fetch('/api/reviews/reviewer-rewards');
-      if (res.ok) setRewards(await res.json());
+      const res = await fetch('/api/reviews/a1-mini');
+      if (res.ok) setA1mini(await res.json());
     } catch (err) {
-      console.error('Failed to fetch reviewer rewards:', err);
+      console.error('Failed to fetch A1 Mini stats:', err);
     } finally {
-      setRewardsLoading(false);
-    }
-  }, []);
-
-  const fetchWindbreaker = useCallback(async () => {
-    setWindbreakerLoading(true);
-    try {
-      const res = await fetch('/api/reviews/windbreaker');
-      if (res.ok) setWindbreaker(await res.json());
-    } catch (err) {
-      console.error('Failed to fetch windbreaker stats:', err);
-    } finally {
-      setWindbreakerLoading(false);
+      setA1miniLoading(false);
     }
   }, []);
 
@@ -312,9 +286,8 @@ export default function ReviewQueuePage() {
     return () => { cancelled = true; };
   }, []);
   useEffect(() => {
-    if (statsTab === 'fudgeHoodie') fetchRewards();
-    if (statsTab === 'windbreaker') fetchWindbreaker();
-  }, [statsTab, fetchRewards, fetchWindbreaker]);
+    if (statsTab === 'a1mini') fetchA1Mini();
+  }, [statsTab, fetchA1Mini]);
 
   // Auto-load the next page when the sentinel scrolls into view.
   useEffect(() => {
@@ -386,6 +359,16 @@ export default function ReviewQueuePage() {
             <p className="text-cream-200 text-xs uppercase tracking-wider">Top Reviewers</p>
             <div className="flex gap-1">
               <button
+                onClick={() => setStatsTab('daily')}
+                className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
+                  statsTab === 'daily'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
+                }`}
+              >
+                24 Hours
+              </button>
+              <button
                 onClick={() => setStatsTab('weekly')}
                 className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
                   statsTab === 'weekly'
@@ -393,7 +376,7 @@ export default function ReviewQueuePage() {
                     : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
                 }`}
               >
-                This Week
+                7 Days
               </button>
               <button
                 onClick={() => setStatsTab('allTime')}
@@ -406,44 +389,22 @@ export default function ReviewQueuePage() {
                 All Time
               </button>
               <button
-                onClick={() => setStatsTab('comingToStasis')}
+                onClick={() => setStatsTab('a1mini')}
                 className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
-                  statsTab === 'comingToStasis'
+                  statsTab === 'a1mini'
                     ? 'bg-orange-500 text-white'
                     : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
                 }`}
               >
-                Coming To Stasis (&gt;30)
-              </button>
-              <button
-                onClick={() => setStatsTab('fudgeHoodie')}
-                className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
-                  statsTab === 'fudgeHoodie'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
-                }`}
-              >
-                Fudge & Hoodie
-              </button>
-              <button
-                onClick={() => setStatsTab('windbreaker')}
-                className={`px-2 py-0.5 text-xs uppercase cursor-pointer ${
-                  statsTab === 'windbreaker'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
-                }`}
-              >
-                Windbreaker
+                A1 Mini
               </button>
             </div>
           </div>
-          {statsTab === 'fudgeHoodie' ? (
-            <FudgeHoodieStats rewards={rewards} loading={rewardsLoading} />
-          ) : statsTab === 'windbreaker' ? (
-            <WindbreakerStats stats={windbreaker} loading={windbreakerLoading} />
+          {statsTab === 'a1mini' ? (
+            <A1MiniStats data={a1mini} loading={a1miniLoading} />
           ) : (
           <div className="flex gap-4 flex-wrap">
-            {(statsTab === 'weekly' ? stats?.topReviewersWeekly : statsTab === 'comingToStasis' ? stats?.comingToStasis : stats?.topReviewersAllTime)?.map(
+            {(statsTab === 'daily' ? stats?.topReviewersDaily : statsTab === 'weekly' ? stats?.topReviewersWeekly : stats?.topReviewersAllTime)?.map(
               (s, i) => (
                 <div key={s.reviewer.id} className="flex items-center gap-2">
                   <span className="text-cream-200 text-xs">{i + 1}.</span>
@@ -903,88 +864,65 @@ function QueueReadout({ label, count, queue, isAdmin, color, className }: Readon
   );
 }
 
-function WindbreakerStats({ stats, loading }: Readonly<{ stats: WindbreakerResponse | null; loading: boolean }>) {
-  if (loading && !stats) {
+function A1MiniStats({ data, loading }: Readonly<{ data: A1MiniResponse | null; loading: boolean }>) {
+  if (loading && !data) {
     return <span className="text-cream-200 text-sm">Loading...</span>;
   }
-  if (!stats || stats.entries.length === 0) {
-    return <span className="text-cream-200 text-sm">No reviews in window yet</span>;
+  if (!data || data.entries.length === 0) {
+    return <span className="text-cream-200 text-sm">No reviews yet</span>;
   }
-
-  const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
 
   return (
-    <div>
-      <p className="text-cream-300 text-[11px] mb-2">
-        {fmtDate(stats.start)} → {fmtDate(stats.end)} · Windbreaker: {stats.windbreakerThreshold}+
-      </p>
-      <div className="flex gap-3 gap-y-1 flex-wrap">
-        {stats.entries.map((entry, i) => (
-          <div key={entry.reviewer.id} className="flex items-center gap-2">
-            <span className="text-cream-200 text-xs">{i + 1}.</span>
-            {entry.reviewer.image && (
-              <img src={entry.reviewer.image} alt="" className="w-5 h-5 rounded-full" />
-            )}
-            <Link
-              href={`/admin/users?search=${encodeURIComponent(entry.reviewer.id)}`}
-              className="text-cream-50 text-sm hover:text-orange-400 transition-colors"
-            >
-              {entry.reviewer.name || 'Unknown'}
-            </Link>
-            <span className="text-orange-500 text-sm font-bold">
-              {entry.count}
-              <span className="text-cream-300 font-normal">/{stats.windbreakerThreshold}</span>
-            </span>
-            {entry.tier === 'windbreaker' && (
-              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-orange-500 text-white">Windbreaker</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FudgeHoodieStats({ rewards, loading }: Readonly<{ rewards: RewardResponse | null; loading: boolean }>) {
-  if (loading && !rewards) {
-    return <span className="text-cream-200 text-sm">Loading...</span>;
-  }
-  if (!rewards || rewards.entries.length === 0) {
-    return <span className="text-cream-200 text-sm">No reviews in window yet</span>;
-  }
-
-  const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
-
-  return (
-    <div>
-      <p className="text-cream-300 text-[11px] mb-2">
-        {fmtDate(rewards.start)} → {fmtDate(rewards.end)} · Fudge: {rewards.fudgeThreshold}+ · Hoodie: {rewards.hoodieThreshold}+
-      </p>
-      <div className="flex gap-3 gap-y-1 flex-wrap">
-        {rewards.entries.map((entry, i) => (
-          <div key={entry.reviewer.id} className="flex items-center gap-2">
-            <span className="text-cream-200 text-xs">{i + 1}.</span>
-            {entry.reviewer.image && (
-              <img src={entry.reviewer.image} alt="" className="w-5 h-5 rounded-full" />
-            )}
-            <Link
-              href={`/admin/users?search=${encodeURIComponent(entry.reviewer.id)}`}
-              className="text-cream-50 text-sm hover:text-orange-400 transition-colors"
-            >
-              {entry.reviewer.name || 'Unknown'}
-            </Link>
-            <span className="text-orange-500 text-sm font-bold">{entry.count}</span>
-            {entry.tier === 'hoodie' && (
-              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-orange-500 text-white">Hoodie</span>
-            )}
-            {entry.tier === 'fudge' && (
-              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-orange-400/20 text-orange-300 border border-orange-400/40">Fudge</span>
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-cream-300 text-[11px] uppercase tracking-wider">
+            <th className="text-left py-1 pr-3">Reviewer</th>
+            {data.weeks.map((w, i) => (
+              <th key={i} className={`text-center py-1 px-2 ${i === data.currentWeekIndex ? 'text-orange-400' : ''}`}>
+                {w.replace(/Week \d+ \(/, '').replace(')', '')}
+              </th>
+            ))}
+            <th className="text-center py-1 px-2">Raffle Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.entries.map((entry, i) => (
+            <tr key={entry.reviewer.id} className="border-t border-cream-500/10">
+              <td className="py-1 pr-3">
+                <div className="flex items-center gap-2">
+                  {entry.reviewer.image && (
+                    <img src={entry.reviewer.image} alt="" className="w-5 h-5 rounded-full" />
+                  )}
+                  <Link
+                    href={`/admin/users?search=${encodeURIComponent(entry.reviewer.id)}`}
+                    className="text-cream-50 hover:text-orange-400 transition-colors whitespace-nowrap"
+                  >
+                    {entry.reviewer.name || 'Unknown'}
+                  </Link>
+                </div>
+              </td>
+              {entry.weekCounts.map((count, wi) => (
+                <td key={wi} className={`text-center py-1 px-2 ${wi === data.currentWeekIndex ? 'text-orange-400' : 'text-cream-100'}`}>
+                  {count > 0 ? (
+                    <span>
+                      {count}
+                      {entry.weeklyRafflePoints[wi] > 0 && (
+                        <span className="text-cream-400 text-[11px]"> ({entry.weeklyRafflePoints[wi]}pt)</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-cream-500">–</span>
+                  )}
+                </td>
+              ))}
+              <td className="text-center py-1 px-2 text-orange-500 font-bold">
+                {entry.totalRafflePoints}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
