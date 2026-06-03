@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
+import { useState, useCallback, useEffect, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import dynamic from 'next/dynamic';
 import type { CadFilesPayload, CadFile, CadFileKind, KiCadProject, GerberGroup } from '@/lib/cad-discovery';
 import { rawGitHubUrl, fetchCadFileContent } from '@/lib/cad-fetch';
@@ -26,6 +26,7 @@ const KIND_ORDER: CadFileKind[] = ['kicad', 'easyeda', '3d', '3d-source', 'pcb-s
 const STEP_EXTS = new Set(['.step', '.stp']);
 const VIEWABLE_3D = new Set(['.stl', '.obj', '.3mf', '.gltf', '.glb', '.ply']);
 const CODE_EXTS = new Set(['.ino', '.c', '.cpp', '.h', '.py', '.rs', '.scad']);
+const SPLIT_STORAGE_KEY = 'fileBrowser.splitPct';
 
 type Selection =
   | { type: 'readme' }
@@ -296,6 +297,33 @@ export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKin
 }>) {
   const [selection, setSelection] = useState<Selection | null>({ type: 'readme' });
 
+  const [splitPct, setSplitPct] = useState(() => {
+    if (typeof window === 'undefined') return 40;
+    const stored = localStorage.getItem(SPLIT_STORAGE_KEY);
+    return stored ? Math.min(80, Math.max(15, Number(stored))) : 40;
+  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  const onSplitterPointerDown = useCallback((e: ReactPointerEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const onSplitterPointerMove = useCallback((e: ReactPointerEvent) => {
+    if (!draggingRef.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = Math.min(80, Math.max(15, ((e.clientY - rect.top) / rect.height) * 100));
+    setSplitPct(pct);
+  }, []);
+
+  const onSplitterPointerUp = useCallback(() => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    setSplitPct((p) => { localStorage.setItem(SPLIT_STORAGE_KEY, String(Math.round(p))); return p; });
+  }, []);
+
   const select = useCallback((s: Selection) => {
     setSelection((prev) => prev && selKey(prev) === selKey(s) ? null : s);
   }, []);
@@ -357,9 +385,9 @@ export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKin
   const currentKey = selection ? selKey(selection) : null;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
       {/* ── File inventory ── */}
-      <div className={`shrink-0 overflow-y-auto ${selection ? 'max-h-[40%]' : ''}`}>
+      <div className="shrink-0 overflow-y-auto" style={selection ? { maxHeight: `${splitPct}%` } : undefined}>
         {onRefresh && (
           <div className="flex items-center justify-between px-3 py-1 border-b border-cream-200/10">
             {!cadData && <span className="text-[10px] text-cream-400">Files not indexed</span>}
@@ -449,7 +477,16 @@ export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKin
 
       {/* ── Viewer area ── */}
       {selection ? (
-        <div className="flex-1 flex flex-col min-h-0 border-t border-cream-200/10">
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Drag handle */}
+          <div
+            className="h-1.5 shrink-0 cursor-row-resize border-t border-b border-cream-200/10 bg-brown-900/60 hover:bg-orange-400/20 transition-colors flex items-center justify-center group select-none touch-none"
+            onPointerDown={onSplitterPointerDown}
+            onPointerMove={onSplitterPointerMove}
+            onPointerUp={onSplitterPointerUp}
+          >
+            <div className="w-8 h-px bg-cream-400/30 group-hover:bg-orange-400/50 transition-colors" />
+          </div>
           <div className="flex items-center justify-between px-3 py-1.5 bg-brown-900 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-orange-400 text-[9px] font-medium tracking-widest uppercase tabular-nums shrink-0">{viewerTag(selection)}</span>
