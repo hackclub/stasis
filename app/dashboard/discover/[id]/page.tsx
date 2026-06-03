@@ -87,6 +87,54 @@ function UserAvatar({ image }: { name: string | null; image: string | null }) {
   return <img src={image || '/default_slack.png'} alt="" className="w-6 h-6 flex-shrink-0 border-2 border-orange-500" />;
 }
 
+function TimelineIcon({ type, decision }: { type: PublicTimelineItem['type']; decision?: string }) {
+  const baseClass = "w-8 h-8 flex items-center justify-center flex-shrink-0";
+
+  switch (type) {
+    case 'WORK_SESSION':
+      return (
+        <div className={`${baseClass} bg-blue-500/20 border border-blue-500`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+      );
+    case 'SUBMISSION':
+      return (
+        <div className={`${baseClass} bg-yellow-500/20 border border-yellow-500`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-500">
+            <polyline points="9 11 12 14 22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+      );
+    case 'REVIEW_ACTION':
+      if (decision === 'APPROVED') {
+        return (
+          <div className={`${baseClass} bg-green-500/20 border border-green-500`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <div className={`${baseClass} bg-yellow-500/20 border border-yellow-500`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-600">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
 function PublicTimeline({ items }: Readonly<{ items: PublicTimelineItem[] }>) {
   if (items.length === 0) {
     return (
@@ -101,64 +149,111 @@ function PublicTimeline({ items }: Readonly<{ items: PublicTimelineItem[] }>) {
       <div className="absolute left-4 top-0 bottom-0 w-px bg-cream-400" />
       <div className="space-y-4">
         {items.map((item, idx) => (
-          <div key={`${item.session.id}-${idx}`} className="relative pl-12">
+          <div key={`${item.type}-${item.at}-${idx}`} className="relative pl-12">
             <div className="absolute left-0 top-0">
-              <div className="w-8 h-8 bg-blue-500/20 border border-blue-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
-                </svg>
-              </div>
+              <TimelineIcon
+                type={item.type}
+                decision={item.type === 'REVIEW_ACTION' ? item.decision : undefined}
+              />
             </div>
-            <div className="bg-cream-100 border border-cream-400 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <UserAvatar name={item.user.name} image={item.user.image} />
-                  <span className="text-brown-800 text-sm font-medium">{item.user.name || 'User'}</span>
-                  <span className="text-cream-600 text-sm">added to the journal</span>
-                  <span className={`px-2 py-0.5 text-xs uppercase ${
-                    item.session.stage === "DESIGN"
-                      ? 'bg-purple-100 border border-yellow-500 text-purple-700'
-                      : 'bg-blue-100 border border-blue-500 text-blue-700'
-                  }`}>
-                    {item.session.stage}
-                  </span>
-                  <span className="text-brown-800 text-sm">
-                    {item.session.hoursApproved !== null
-                      ? `${Math.round(item.session.hoursApproved * 100) / 100}/${Math.round(item.session.hoursClaimed * 100) / 100}h approved`
-                      : `${Math.round(item.session.hoursClaimed * 100) / 100}h logged`}
-                  </span>
-                </div>
-                <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
-              </div>
-              {item.session.content && (
-                <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="light">
-                  <MDPreview source={fixMarkdownImages(item.session.content)} />
-                </div>
-              )}
-              {(() => {
-                const extraMedia = item.session.media.filter(m => !item.session.content?.includes(m.url));
-                if (extraMedia.length === 0) return null;
-                return (
-                  <div className="flex flex-col gap-2 mt-3">
-                    {extraMedia.filter(m => m.type === "IMAGE").map((m) => (
-                      <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
-                        <img
-                          src={m.url}
-                          alt="Session media"
-                          className="max-w-full max-h-64 border border-cream-400 hover:border-orange-500 transition-colors"
-                        />
-                      </a>
-                    ))}
-                    {extraMedia.filter(m => m.type === "VIDEO").map((m) => (
-                      <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
-                    ))}
+
+            {item.type === 'WORK_SESSION' && (
+              <div className="bg-cream-100 border border-cream-400 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <UserAvatar name={item.user.name} image={item.user.image} />
+                    <span className="text-brown-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-cream-600 text-sm">added to the journal</span>
+                    <span className={`px-2 py-0.5 text-xs uppercase ${
+                      item.session.stage === "DESIGN"
+                        ? 'bg-purple-100 border border-yellow-500 text-purple-700'
+                        : 'bg-blue-100 border border-blue-500 text-blue-700'
+                    }`}>
+                      {item.session.stage}
+                    </span>
+                    <span className="text-brown-800 text-sm">
+                      {item.session.hoursApproved !== null
+                        ? `${Math.round(item.session.hoursApproved * 100) / 100}/${Math.round(item.session.hoursClaimed * 100) / 100}h approved`
+                        : `${Math.round(item.session.hoursClaimed * 100) / 100}h logged`}
+                    </span>
                   </div>
-                );
-              })()}
-            </div>
+                  <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
+                </div>
+                {item.session.content && (
+                  <div className="wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400 [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_p]:my-1" data-color-mode="light">
+                    <MDPreview source={fixMarkdownImages(item.session.content)} />
+                  </div>
+                )}
+                {(() => {
+                  const extraMedia = item.session.media.filter(m => !item.session.content?.includes(m.url));
+                  if (extraMedia.length === 0) return null;
+                  return (
+                    <div className="flex flex-col gap-2 mt-3">
+                      {extraMedia.filter(m => m.type === "IMAGE").map((m) => (
+                        <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={m.url}
+                            alt="Session media"
+                            className="max-w-full max-h-64 border border-cream-400 hover:border-orange-500 transition-colors"
+                          />
+                        </a>
+                      ))}
+                      {extraMedia.filter(m => m.type === "VIDEO").map((m) => (
+                        <video key={m.id} src={m.url} controls className="max-w-full max-h-64 border border-cream-400" />
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {item.type === 'SUBMISSION' && (
+              <div className="bg-cream-100 border border-yellow-500/50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UserAvatar name={item.user.name} image={item.user.image} />
+                    <span className="text-brown-800 text-sm font-medium">{item.user.name || 'User'}</span>
+                    <span className="text-yellow-500 text-sm">
+                      submitted {item.stage.toLowerCase()} for review
+                    </span>
+                  </div>
+                  <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
+                </div>
+                {item.notes && (
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
+                    <MDPreview source={fixMarkdownImages(item.notes)} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {item.type === 'REVIEW_ACTION' && (
+              <div className={`bg-cream-100 border p-4 ${
+                item.decision === 'APPROVED'
+                  ? 'border-green-600/50'
+                  : 'border-yellow-600/50'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UserAvatar name={item.reviewerName} image={item.reviewerImage} />
+                    <span className="text-brown-800 text-sm font-medium">{item.reviewerName || 'Reviewer'}</span>
+                    <span className={`text-sm ${
+                      item.decision === 'APPROVED' ? 'text-green-600' : 'text-yellow-600'
+                    }`}>
+                      {item.decision === 'APPROVED'
+                        ? `approved ${item.stage.toLowerCase()}`
+                        : `requested changes for ${item.stage.toLowerCase()}`}
+                    </span>
+                  </div>
+                  <span className="text-cream-600 text-xs">{formatRelativeTime(item.at)}</span>
+                </div>
+                {item.comments && (
+                  <div className="mt-2 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-brown-800 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_img]:max-h-64 [&_.wmde-markdown_img]:border [&_.wmde-markdown_img]:border-cream-400" data-color-mode="light">
+                    <MDPreview source={fixMarkdownImages(item.comments)} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
