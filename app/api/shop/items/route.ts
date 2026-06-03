@@ -20,6 +20,7 @@ export async function GET() {
       longDescription: true,
       imageUrl: true,
       price: true,
+      discountPrice: true,
       maxPerUser: true,
     },
   })

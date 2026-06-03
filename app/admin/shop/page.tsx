@@ -9,6 +9,7 @@ interface ShopItem {
   longDescription: string | null;
   imageUrl: string | null;
   price: number;
+  discountPrice: number | null;
   maxPerUser: number;
   active: boolean;
   sortOrder: number;
@@ -28,6 +29,7 @@ export default function AdminShopPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formLongDescription, setFormLongDescription] = useState('');
   const [formPrice, setFormPrice] = useState('');
+  const [formDiscountPrice, setFormDiscountPrice] = useState('');
   const [formSortOrder, setFormSortOrder] = useState('0');
   const [formOnePerUser, setFormOnePerUser] = useState(false);
   const [formImageFile, setFormImageFile] = useState<File | null>(null);
@@ -65,6 +67,7 @@ export default function AdminShopPage() {
     setFormDescription('');
     setFormLongDescription('');
     setFormPrice('');
+    setFormDiscountPrice('');
     setFormSortOrder('0');
     setFormOnePerUser(false);
     setFormImageFile(null);
@@ -80,6 +83,7 @@ export default function AdminShopPage() {
     setFormDescription(item.description);
     setFormLongDescription(item.longDescription ?? '');
     setFormPrice(String(item.price));
+    setFormDiscountPrice(item.discountPrice !== null ? String(item.discountPrice) : '');
     setFormSortOrder(String(item.sortOrder));
     setFormOnePerUser(item.maxPerUser === 1);
     setFormImageUrl(item.imageUrl ?? '');
@@ -121,11 +125,24 @@ export default function AdminShopPage() {
         imageUrl = await uploadImage(formImageFile);
       }
 
+      const discountPrice = formDiscountPrice.trim() ? parseInt(formDiscountPrice, 10) : null;
+      if (discountPrice !== null && (isNaN(discountPrice) || discountPrice <= 0)) {
+        setFormError('Discount price must be a positive integer or empty.');
+        setSubmitting(false);
+        return;
+      }
+      if (discountPrice !== null && discountPrice >= price) {
+        setFormError('Discount price must be less than the original price.');
+        setSubmitting(false);
+        return;
+      }
+
       const body = {
         name: formName.trim(),
         description: formDescription.trim(),
         longDescription: formLongDescription.trim() || null,
         price,
+        discountPrice,
         sortOrder: parseInt(formSortOrder, 10) || 0,
         maxPerUser: formOnePerUser ? 1 : 0,
         imageUrl,
@@ -214,7 +231,7 @@ export default function AdminShopPage() {
                 className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-cream-50 text-xs uppercase block mb-1">Price (bits)</label>
                 <input
@@ -222,6 +239,17 @@ export default function AdminShopPage() {
                   value={formPrice}
                   onChange={(e) => setFormPrice(e.target.value)}
                   placeholder="e.g. 50"
+                  min="1"
+                  className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-cream-50 text-xs uppercase block mb-1">Sale Price <span className="normal-case text-cream-200">(empty = no sale)</span></label>
+                <input
+                  type="number"
+                  value={formDiscountPrice}
+                  onChange={(e) => setFormDiscountPrice(e.target.value)}
+                  placeholder="No discount"
                   min="1"
                   className="w-full bg-brown-900 border border-cream-500/20 text-cream-50 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
                 />
@@ -363,7 +391,14 @@ export default function AdminShopPage() {
                     <p className="text-cream-200 text-xs truncate max-w-xs">{item.description}</p>
                   </td>
                   <td className="text-right px-4 py-3 text-cream-50 font-mono">
-                    {item.price.toLocaleString()}
+                    {item.discountPrice !== null && item.discountPrice < item.price ? (
+                      <>
+                        <span className="text-orange-500">{item.discountPrice.toLocaleString()}</span>
+                        <span className="ml-1 text-cream-200 line-through text-xs">{item.price.toLocaleString()}</span>
+                      </>
+                    ) : (
+                      item.price.toLocaleString()
+                    )}
                     {item.maxPerUser === 1 && (
                       <span className="ml-1 text-xs text-cream-200">(1x)</span>
                     )}

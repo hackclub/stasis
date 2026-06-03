@@ -12,6 +12,7 @@ interface DbShopItem {
   longDescription: string | null;
   imageUrl: string | null;
   price: number;
+  discountPrice: number | null;
   maxPerUser: number;
 }
 
@@ -474,28 +475,46 @@ export default function ShopPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {otherItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-cream-100 border-2 border-cream-400 cursor-pointer hover:border-orange-500 transition-colors"
-                    onClick={() => setDetailItem(item)}
-                  >
-                    <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-200 shop-item-image">
-                      {item.imageUrl ? (
-                        <img src={item.imageUrl} alt="" className="w-full h-full object-contain relative z-[1]" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center relative z-[1]">
-                          <span className="text-cream-500 text-sm uppercase tracking-wider">No image</span>
-                        </div>
-                      )}
+                {otherItems.map((item) => {
+                  const hasDiscount = item.discountPrice !== null && item.discountPrice < item.price;
+                  const discountPercent = hasDiscount
+                    ? Math.round((1 - item.discountPrice! / item.price) * 100)
+                    : 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="bg-cream-100 border-2 border-cream-400 cursor-pointer hover:border-orange-500 transition-colors"
+                      onClick={() => setDetailItem(item)}
+                    >
+                      <div className="aspect-video overflow-hidden border-b border-cream-400 bg-cream-200 shop-item-image relative">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt="" className="w-full h-full object-contain relative z-[1]" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center relative z-[1]">
+                            <span className="text-cream-500 text-sm uppercase tracking-wider">No image</span>
+                          </div>
+                        )}
+                        {hasDiscount && (
+                          <span className="absolute top-2 right-2 z-[2] bg-orange-500 text-cream-100 text-xs font-bold uppercase tracking-wider px-2 py-1">
+                            {discountPercent}% off
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-brown-800 font-medium text-lg mb-1">{item.name}</h3>
+                        <p className="text-brown-800 text-sm mb-2 line-clamp-2">{item.description}</p>
+                        {hasDiscount ? (
+                          <p className="font-bold">
+                            <span className="text-cream-500 line-through">{item.price.toLocaleString()}&nbsp;Bits</span>
+                            <span className="text-orange-400 ml-2">{item.discountPrice!.toLocaleString()}&nbsp;Bits</span>
+                          </p>
+                        ) : (
+                          <p className="text-orange-400 font-bold">{item.price.toLocaleString()}&nbsp;Bits</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-4">
-                      <h3 className="text-brown-800 font-medium text-lg mb-1">{item.name}</h3>
-                      <p className="text-brown-800 text-sm mb-2 line-clamp-2">{item.description}</p>
-                      <p className="text-orange-400 font-bold">{item.price.toLocaleString()}&nbsp;Bits</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -559,7 +578,7 @@ export default function ShopPage() {
         <ShopOrderModal
           item={detailItem}
           bitsBalance={confirmedBits}
-          alreadyOwnedCount={Math.floor((itemTotals[detailItem.id] ?? 0) / detailItem.price)}
+          alreadyOwnedCount={Math.floor((itemTotals[detailItem.id] ?? 0) / (detailItem.discountPrice ?? detailItem.price))}
           onClose={() => {
             setDetailItem(null);
             flushPendingBalance();

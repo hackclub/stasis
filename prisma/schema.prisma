@@ -642,7 +642,8 @@ model ShopItem {
   description     String
   longDescription String?
   imageUrl        String?
-  price           Int // Cost in bits
+  price           Int // Cost in bits (original / full price)
+  discountPrice   Int? // Sale price in bits; null = no discount
   maxPerUser      Int         @default(0) // 0 = unlimited, 1 = one per user
   active          Boolean     @default(true)
   sortOrder       Int         @default(0)

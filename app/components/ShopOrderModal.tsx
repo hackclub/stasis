@@ -11,6 +11,7 @@ interface ShopItem {
   longDescription: string | null;
   imageUrl: string | null;
   price: number;
+  discountPrice: number | null;
   maxPerUser: number;
 }
 
@@ -65,9 +66,12 @@ export default function ShopOrderModal({
   const [phone, setPhone] = useState('');
   const [phoneDirty, setPhoneDirty] = useState(false);
 
+  const effectivePrice = item.discountPrice ?? item.price;
+  const hasDiscount = item.discountPrice !== null && item.discountPrice < item.price;
+
   const showQuantity = item.maxPerUser !== 1;
   const perUserRemaining = item.maxPerUser > 0 ? Math.max(0, item.maxPerUser - alreadyOwnedCount) : Infinity;
-  const affordable = Math.floor(bitsBalance / item.price);
+  const affordable = Math.floor(bitsBalance / effectivePrice);
   const maxQuantity = Math.max(1, Math.min(affordable, perUserRemaining));
   const [quantity, setQuantity] = useState(1);
 
@@ -176,7 +180,7 @@ export default function ShopOrderModal({
     return () => root.removeEventListener('keydown', onTab);
   }, []);
 
-  const totalCost = item.price * quantity;
+  const totalCost = effectivePrice * quantity;
   const balanceAfter = bitsBalance - totalCost;
   const insufficient = balanceAfter < 0;
 
@@ -251,15 +255,22 @@ export default function ShopOrderModal({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-0 max-h-[calc(100vh-2rem)] overflow-y-auto">
           {/* Left column: image + copy */}
           <div className="md:col-span-5 p-6 md:border-r border-cream-400 flex flex-col gap-4 min-w-0">
-            {item.imageUrl ? (
-              <div className="aspect-video bg-cream-200 border border-cream-400 overflow-hidden shop-item-image">
-                <img src={item.imageUrl} alt="" className="w-full h-full object-contain relative z-[1]" />
-              </div>
-            ) : (
-              <div className="aspect-video bg-cream-200 border border-cream-400 flex items-center justify-center shop-item-image">
-                <span className="text-cream-500 text-sm uppercase tracking-wider relative z-[1]">No image</span>
-              </div>
-            )}
+            <div className="relative">
+              {item.imageUrl ? (
+                <div className="aspect-video bg-cream-200 border border-cream-400 overflow-hidden shop-item-image">
+                  <img src={item.imageUrl} alt="" className="w-full h-full object-contain relative z-[1]" />
+                </div>
+              ) : (
+                <div className="aspect-video bg-cream-200 border border-cream-400 flex items-center justify-center shop-item-image">
+                  <span className="text-cream-500 text-sm uppercase tracking-wider relative z-[1]">No image</span>
+                </div>
+              )}
+              {hasDiscount && (
+                <span className="absolute top-2 right-2 z-[2] bg-orange-500 text-cream-100 text-xs font-bold uppercase tracking-wider px-2 py-1">
+                  {Math.round((1 - effectivePrice / item.price) * 100)}% off
+                </span>
+              )}
+            </div>
             <div className="flex-1">
               <h2 className="text-2xl text-brown-800 mb-2">{item.name}</h2>
               <p className="text-brown-800 text-sm whitespace-pre-wrap">{item.description}</p>
@@ -268,7 +279,14 @@ export default function ShopOrderModal({
               )}
             </div>
             <p className="text-orange-500 font-bold text-xl">
-              {item.price.toLocaleString()} Bits{item.maxPerUser === 1 ? '' : ' each'}
+              {hasDiscount ? (
+                <>
+                  {effectivePrice.toLocaleString()} Bits{item.maxPerUser === 1 ? '' : ' each'}
+                  <span className="text-cream-500 line-through font-normal text-base ml-2">{item.price.toLocaleString()}</span>
+                </>
+              ) : (
+                <>{item.price.toLocaleString()} Bits{item.maxPerUser === 1 ? '' : ' each'}</>
+              )}
             </p>
           </div>
 
@@ -373,12 +391,27 @@ export default function ShopOrderModal({
             <div className="bg-cream-200 border border-cream-400 p-4 space-y-1">
               <div className="flex justify-between text-sm text-brown-800">
                 <span>Item price</span>
-                <span className="font-mono">{item.price.toLocaleString()} bits</span>
+                <span className="font-mono">
+                  {hasDiscount ? (
+                    <>
+                      {effectivePrice.toLocaleString()} bits
+                      <span className="text-cream-500 line-through ml-1">{item.price.toLocaleString()}</span>
+                    </>
+                  ) : (
+                    <>{effectivePrice.toLocaleString()} bits</>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between text-sm text-brown-800">
                 <span>Quantity</span>
                 <span className="font-mono">× {quantity}</span>
               </div>
+              {hasDiscount && (
+                <div className="flex justify-between text-sm text-orange-500">
+                  <span>You save</span>
+                  <span className="font-mono">{((item.price - effectivePrice) * quantity).toLocaleString()} bits</span>
+                </div>
+              )}
               <div className="flex justify-between text-base text-brown-800 font-bold border-t border-cream-400 pt-1 mt-1">
                 <span>Total</span>
                 <span className="font-mono">{totalCost.toLocaleString()} bits</span>

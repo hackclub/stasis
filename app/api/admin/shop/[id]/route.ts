@@ -38,6 +38,11 @@ export async function PATCH(
   if (typeof body.active === "boolean") data.active = body.active
   if (typeof body.sortOrder === "number") data.sortOrder = body.sortOrder
   if (typeof body.maxPerUser === "number" && Number.isInteger(body.maxPerUser) && body.maxPerUser >= 0) data.maxPerUser = body.maxPerUser
+  if (body.discountPrice !== undefined) {
+    data.discountPrice = typeof body.discountPrice === "number" && Number.isInteger(body.discountPrice) && body.discountPrice > 0
+      ? body.discountPrice
+      : null
+  }
 
   const updated = await prisma.shopItem.update({ where: { id }, data })
 

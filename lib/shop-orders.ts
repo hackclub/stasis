@@ -66,7 +66,7 @@ export async function placeShopOrder(params: PlaceShopOrderParams): Promise<Plac
 
   const item = await prisma.shopItem.findUnique({
     where: { id: params.shopItemId },
-    select: { id: true, name: true, price: true, maxPerUser: true, active: true, imageUrl: true },
+    select: { id: true, name: true, price: true, discountPrice: true, maxPerUser: true, active: true, imageUrl: true },
   });
   if (!item) throw new ShopOrderError("ITEM_NOT_FOUND");
   if (!item.active) throw new ShopOrderError("ITEM_INACTIVE");
@@ -81,7 +81,8 @@ export async function placeShopOrder(params: PlaceShopOrderParams): Promise<Plac
     throw new ShopOrderError("INVALID_INPUT", "Phone number is required");
   }
 
-  const totalBitsCost = item.price * quantity;
+  const effectivePrice = item.discountPrice ?? item.price;
+  const totalBitsCost = effectivePrice * quantity;
 
   const result = await prisma.$transaction(
     async (tx) => {
@@ -124,7 +125,7 @@ export async function placeShopOrder(params: PlaceShopOrderParams): Promise<Plac
           userId: params.userId,
           shopItemId: item.id,
           quantity,
-          unitBitsCost: item.price,
+          unitBitsCost: effectivePrice,
           totalBitsCost,
           estimatedUsdCents: totalBitsCost * 50,
           status: ShopOrderStatus.PENDING,
@@ -138,16 +139,18 @@ export async function placeShopOrder(params: PlaceShopOrderParams): Promise<Plac
         await tx.currencyTransaction.create({
           data: {
             userId: params.userId,
-            amount: -item.price,
+            amount: -effectivePrice,
             type: CurrencyTransactionType.SHOP_PURCHASE,
             shopItemId: item.id,
             shopOrderId: order.id,
-            note: `Purchased: ${item.name}`,
+            note: item.discountPrice
+              ? `Purchased: ${item.name} (discounted from ${item.price} bits)`
+              : `Purchased: ${item.name}`,
             balanceBefore: currentBalance,
-            balanceAfter: currentBalance - item.price,
+            balanceAfter: currentBalance - effectivePrice,
           },
         });
-        currentBalance -= item.price;
+        currentBalance -= effectivePrice;
       }
 
       await tx.userGoalPrize.deleteMany({
