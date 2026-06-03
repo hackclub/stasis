@@ -40,10 +40,22 @@ export async function POST(
     return NextResponse.json({ error: "Already in that queue" }, { status: 400 })
   }
 
-  await prisma.projectSubmission.update({
-    where: { id },
-    data: { stage: targetStage },
-  })
+  const fromStageKey = submission.stage === "DESIGN" ? "design" : "build"
+  const toStageKey = targetStage === "DESIGN" ? "design" : "build"
+
+  await prisma.$transaction([
+    prisma.projectSubmission.update({
+      where: { id },
+      data: { stage: targetStage },
+    }),
+    prisma.project.update({
+      where: { id: submission.projectId },
+      data: {
+        [`${fromStageKey}Status`]: "draft",
+        [`${toStageKey}Status`]: "in_review",
+      },
+    }),
+  ])
 
   await logAdminAction(
     AuditAction.ADMIN_MOVE_QUEUE,

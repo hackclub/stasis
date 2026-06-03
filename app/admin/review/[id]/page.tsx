@@ -1132,7 +1132,7 @@ export default function ReviewDetailPage() {
     if (!data) return;
     const targetStage = data.submission.stage === 'DESIGN' ? 'BUILD' : 'DESIGN';
     try {
-      const res = await fetch(`/api/reviews/${id}/move`, {
+      const res = await fetch(`/api/reviews/${data.submission.id}/move`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetStage }),
