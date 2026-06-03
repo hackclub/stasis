@@ -11,7 +11,7 @@ const WEEKS: Array<{ start: Date; end: Date; label: string }> = [
   { start: new Date("2026-06-09T04:00:00Z"), end: new Date("2026-06-16T04:00:00Z"), label: "Week 2 (Jun 9–15)" },
   { start: new Date("2026-06-16T04:00:00Z"), end: new Date("2026-06-23T04:00:00Z"), label: "Week 3 (Jun 16–22)" },
   { start: new Date("2026-06-23T04:00:00Z"), end: new Date("2026-06-30T04:00:00Z"), label: "Week 4 (Jun 23–29)" },
-  { start: new Date("2026-06-30T04:00:00Z"), end: new Date("2026-07-04T04:00:00Z"), label: "Week 5 (Jun 30–Jul 3)" },
+  { start: new Date("2026-06-30T04:00:00Z"), end: new Date("2026-07-06T04:00:00Z"), label: "Week 5 (Jun 30–Jul 5)" },
 ]
 
 const EVENT_START = WEEKS[0].start
