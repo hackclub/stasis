@@ -96,19 +96,53 @@ export async function GET() {
     buildQueue.preReviewedCount = 0
   }
 
-  // Reviewer leaderboard stats
+  // Reviewer leaderboard stats — count both finalized PRAs and unfinalized first-pass reviews
   const allReviewActions = await prisma.projectReviewAction.findMany({
     where: { reviewerId: { not: null } },
     select: {
       reviewerId: true,
+      projectId: true,
+      stage: true,
       createdAt: true,
     },
   })
 
-  const reviewerIds = [...new Set(allReviewActions.map((r) => r.reviewerId).filter(Boolean))] as string[]
-  const reviewers = reviewerIds.length > 0
+  const allFirstPassReviews = await prisma.submissionReview.findMany({
+    where: { isAdminReview: false, invalidated: false },
+    select: {
+      reviewerId: true,
+      createdAt: true,
+      submission: { select: { projectId: true, stage: true } },
+    },
+  })
+
+  // Build PRA lookup to deduplicate: don't count a first-pass review if a PRA
+  // already exists for the same project+stage at or after the review time.
+  const prasByProjectStage = new Map<string, Array<{ createdAt: Date }>>()
+  for (const pra of allReviewActions) {
+    const key = `${pra.projectId}:${pra.stage}`
+    const arr = prasByProjectStage.get(key) ?? []
+    arr.push({ createdAt: pra.createdAt })
+    prasByProjectStage.set(key, arr)
+  }
+
+  type ReviewEvent = { reviewerId: string; createdAt: Date }
+  const allEvents: ReviewEvent[] = []
+
+  for (const pra of allReviewActions) {
+    if (pra.reviewerId) allEvents.push({ reviewerId: pra.reviewerId, createdAt: pra.createdAt })
+  }
+  for (const sr of allFirstPassReviews) {
+    const key = `${sr.submission.projectId}:${sr.submission.stage}`
+    const pras = prasByProjectStage.get(key) ?? []
+    const finalized = pras.some((p) => p.createdAt.getTime() >= sr.createdAt.getTime())
+    if (!finalized) allEvents.push({ reviewerId: sr.reviewerId, createdAt: sr.createdAt })
+  }
+
+  const allReviewerIds = [...new Set(allEvents.map((e) => e.reviewerId))]
+  const reviewers = allReviewerIds.length > 0
     ? await prisma.user.findMany({
-        where: { id: { in: reviewerIds } },
+        where: { id: { in: allReviewerIds } },
         select: { id: true, name: true, slackDisplayName: true, image: true },
       })
     : []
@@ -119,19 +153,17 @@ export async function GET() {
   const dayAgo = new Date(now - 24 * 60 * 60 * 1000)
   const dailyByReviewer = new Map<string, number>()
   const weeklyByReviewer = new Map<string, number>()
-  const weeklyReviews = allReviewActions.filter((r) => new Date(r.createdAt) >= weekAgo)
-  for (const r of weeklyReviews) {
-    if (r.reviewerId) {
-      weeklyByReviewer.set(r.reviewerId, (weeklyByReviewer.get(r.reviewerId) || 0) + 1)
-      if (new Date(r.createdAt) >= dayAgo) {
-        dailyByReviewer.set(r.reviewerId, (dailyByReviewer.get(r.reviewerId) || 0) + 1)
+  const allTimeByReviewer = new Map<string, number>()
+
+  for (const e of allEvents) {
+    const t = e.createdAt.getTime()
+    allTimeByReviewer.set(e.reviewerId, (allTimeByReviewer.get(e.reviewerId) || 0) + 1)
+    if (t >= weekAgo.getTime()) {
+      weeklyByReviewer.set(e.reviewerId, (weeklyByReviewer.get(e.reviewerId) || 0) + 1)
+      if (t >= dayAgo.getTime()) {
+        dailyByReviewer.set(e.reviewerId, (dailyByReviewer.get(e.reviewerId) || 0) + 1)
       }
     }
-  }
-
-  const allTimeByReviewer = new Map<string, number>()
-  for (const r of allReviewActions) {
-    if (r.reviewerId) allTimeByReviewer.set(r.reviewerId, (allTimeByReviewer.get(r.reviewerId) || 0) + 1)
   }
 
   const formatLeaderboard = (map: Map<string, number>) =>
