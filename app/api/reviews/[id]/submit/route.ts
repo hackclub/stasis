@@ -218,6 +218,24 @@ export async function POST(
     }
   }
 
+  // Block duplicate first-pass approvals — once a non-admin has pre-reviewed
+  // this submission, the next first-pass reviewer's approval would be
+  // duplicate work (and inflates the first-pass leaderboard). Admins still
+  // pass through; their approval converts the pre-review into final approval.
+  if (result === "APPROVED" && !isAdmin) {
+    const activeSubmission = await prisma.projectSubmission.findFirst({
+      where: { projectId: project.id, stage },
+      orderBy: { createdAt: "desc" },
+      select: { preReviewed: true },
+    })
+    if (activeSubmission?.preReviewed) {
+      return NextResponse.json(
+        { error: "This submission has already been pre-reviewed by another reviewer. Skip it — an admin will handle final approval." },
+        { status: 409 }
+      )
+    }
+  }
+
   const sanitizedFeedback = sanitize(feedback.trim())
   const stageKey = stage.toLowerCase() as "design" | "build"
 
