@@ -1290,6 +1290,10 @@ export default function ReviewDetailPage() {
   // overrides and silently drop the first-pass reviewer's chosen tier/grant.
   function handleApprove() {
     if (!canDecide || !data) return;
+    // Block first-pass reviewers from duplicating an existing pre-review.
+    // Backend rejects too, but stopping the Ctrl+Enter shortcut here avoids
+    // optimistic-navigate-then-error round trips.
+    if (!isAdminUser && data.submission.preReviewed) return;
     if (isAdminUser && data.submission.preReviewed && !modifyingPreReview) {
       const firstPass = data.submission.reviews.find(
         (r) => !r.isAdminReview && r.result === 'APPROVED' && !r.invalidated
@@ -1891,6 +1895,25 @@ export default function ReviewDetailPage() {
       </div>
 
       <div className="space-y-4 min-w-0 flex-1 xl:h-full xl:overflow-y-auto xl:pr-1">
+
+      {!isAdmin && submission.preReviewed && (() => {
+        const firstPassReview = submission.reviews.find((r) => !r.isAdminReview && r.result === 'APPROVED' && !r.invalidated);
+        return (
+          <div className="bg-orange-500/10 border border-orange-500/40 p-4">
+            <p className="text-orange-400 text-xs uppercase font-medium mb-1">Already pre-reviewed</p>
+            <p className="text-cream-50 text-sm">
+              {firstPassReview ? (
+                <>
+                  <span className="text-orange-300">{firstPassReview.reviewerName || 'Another reviewer'}</span> already pre-reviewed this on {new Date(firstPassReview.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.
+                </>
+              ) : (
+                <>This submission has already been pre-reviewed.</>
+              )}
+              {' '}An admin will do the final approval — skip to the next project so you're not duplicating work.
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ── Submission Overview Card ──
            Image on the left as a contained thumbnail (no cropping), info column
@@ -2795,7 +2818,45 @@ export default function ReviewDetailPage() {
               </div>
             )}
 
-            {isAdmin && submission.preReviewed && !modifyingPreReview ? (() => {
+            {!isAdmin && submission.preReviewed ? (
+                <div>
+                  <div className="mb-3 bg-orange-500/10 border border-orange-500/40 px-3 py-1.5">
+                    <p className="text-orange-400 text-xs uppercase">Already pre-reviewed — approve disabled; skip or override below</p>
+                  </div>
+                  <div className="flex gap-3 flex-wrap items-center">
+                    <button
+                      onClick={skipToNext}
+                      disabled={submitting}
+                      title="Skip (Ctrl+S)"
+                      aria-keyshortcuts="Control+S"
+                      className="px-4 py-2 text-sm uppercase tracking-wider bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+                    >
+                      Skip to Next
+                      <span className="ml-2 text-xs opacity-60 hidden sm:inline">⌃S</span>
+                    </button>
+                    <button
+                      onClick={() => submitReview('RETURNED')}
+                      disabled={submitting || project.user.fraudConvicted}
+                      title={project.user.fraudConvicted ? 'Cannot return fraud-convicted users' : 'Override the pre-review and return for edits'}
+                      aria-keyshortcuts="Shift+R"
+                      className="px-4 py-2 text-sm uppercase tracking-wider border border-yellow-500 text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      Return for Edits
+                      <span className="ml-2 text-xs opacity-60 hidden sm:inline">⇧R</span>
+                    </button>
+                    <button
+                      onClick={() => submitReview('REJECTED')}
+                      disabled={submitting}
+                      title="Override the pre-review and reject (Shift+X twice within 5s)"
+                      aria-keyshortcuts="Shift+X Shift+X"
+                      className="px-4 py-2 text-sm uppercase tracking-wider border border-red-600 text-red-400 hover:bg-red-600/10 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      Permanently Reject
+                      <span className="ml-2 text-xs opacity-60 hidden sm:inline">⇧X×2</span>
+                    </button>
+                  </div>
+                </div>
+            ) : isAdmin && submission.preReviewed && !modifyingPreReview ? (() => {
               const firstPassReview = submission.reviews.find((r) => !r.isAdminReview && r.result === 'APPROVED' && !r.invalidated);
               if (!firstPassReview) return null;
               const fpTierInfo = (firstPassReview.tierOverride ?? project.tier) ? getTierById(firstPassReview.tierOverride ?? project.tier!) : null;
@@ -2974,14 +3035,6 @@ export default function ReviewDetailPage() {
           <h2 className="text-cream-50 text-sm uppercase tracking-wider">
             Internal Notes <span className="text-cream-200 normal-case">(about this author, shared across reviewers)</span>
           </h2>
-          <Link
-            href={`/reviews/authors/${project.user.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300 text-xs uppercase tracking-wider whitespace-nowrap transition-colors"
-          >
-            Open standalone →
-          </Link>
         </div>
         <textarea
           ref={internalNoteRef}

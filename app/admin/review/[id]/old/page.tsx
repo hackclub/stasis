@@ -1710,14 +1710,6 @@ export default function ReviewDetailPage() {
           <h2 className="text-cream-50 text-sm uppercase tracking-wider">
             Internal Notes <span className="text-cream-200 normal-case">(about this author, shared across reviewers)</span>
           </h2>
-          <Link
-            href={`/reviews/authors/${project.user.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300 text-xs uppercase tracking-wider whitespace-nowrap transition-colors"
-          >
-            Open standalone →
-          </Link>
         </div>
         <textarea
           ref={internalNoteRef}
