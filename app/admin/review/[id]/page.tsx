@@ -208,10 +208,10 @@ const JUSTIFICATION_SHORTCUTS = [
 ];
 
 const FEEDBACK_SHORTCUTS = [
-  { label: 'Optimize BOM', text: 'The parts list for this project can be cost optimized. Please look into alternative vendors for your parts. Please read this to help: https://blueprint.hackclub.com/resources/parts-sourcing.' },
-  { label: 'Missing PCB source', text: 'This is a PCB project but you seem to be missing some or all of the required PCB files such as .kicad_pcb, .kicad_pro, .kicad_sch, and gerbers. Please read the submission guidelines at https://blueprint.hackclub.com/about/submission-guidelines.' },
-  { label: 'Missing CAD files', text: 'This project has CAD but seems to be missing some or all of the required CAD files such as .step, .f3d, etc. Please read the submission guidelines before you resubmit. https://blueprint.hackclub.com/about/submission-guidelines.' },
-  { label: 'Missing/Bad ReadME', text: 'Please make a more polished ReadME.md on your GitHub. Your ReadMe should include multiple photos of your project, photos of the full assembly such as PCB+Case, and have a good description of your project. Please read the submission guidelines before you resubmit. https://blueprint.hackclub.com/about/submission-guidelines.' },
+  { label: 'Optimize BOM', text: 'The parts list for this project can be cost optimized. Please look into alternative vendors for your parts. Please read this to help: https://stasis.hackclub.com/docs/sourcing-parts.' },
+  { label: 'Missing PCB source', text: 'This is a PCB project but you seem to be missing some or all of the required PCB files such as .kicad_pcb, .kicad_pro, .kicad_sch, and gerbers. Please read the submission guidelines at https://stasis.hackclub.com/docs/submission-guidelines.' },
+  { label: 'Missing CAD files', text: 'This project has CAD but seems to be missing some or all of the required CAD files such as .step, .f3d, etc. Please read the submission guidelines before you resubmit. https://stasis.hackclub.com/docs/submission-guidelines.' },
+  { label: 'Missing/Bad ReadME', text: 'Please make a more polished ReadME.md on your GitHub. Your ReadMe should include multiple photos of your project, photos of the full assembly such as PCB+Case, and have a good description of your project. Please read the submission guidelines before you resubmit. https://stasis.hackclub.com/docs/submission-guidelines.' },
   { label: 'Journal', text: 'Your journal needs to show the step-by-step process you took in making this project. Please break your larger journal entires into multiple smaller ones, show the steps you took, and explain it better.' },
   { label: 'No BOM CSV', text: 'You need a BOM CSV in the root of your project - see https://stasis.hackclub.com/docs/submission-guidelines' },
 ];
@@ -2140,14 +2140,17 @@ export default function ReviewDetailPage() {
         ) : ghChecks ? (
           <div className="space-y-1.5">
             {(() => {
-              const needs3D = project.tags.includes('CAD') || project.tags.includes('THREE_D_PRINT');
               // Firmware-bearing tags. Purely mechanical projects (CAD/3D-print/laser-cut only)
               // don't need firmware files; anything with electronics in the tag list does.
               const FIRMWARE_TAGS = ['PCB', 'ROBOT', 'ARDUINO', 'RASPBERRY_PI', 'IOT', 'WEARABLE', 'AUDIO', 'LED', 'DRONE', 'SENSOR', 'WIRELESS', 'MOTOR', 'DISPLAY', 'KEYBOARD', 'GAME_CONSOLE'];
-              const needsFirmware = project.tags.some((t) => FIRMWARE_TAGS.includes(t));
               const check05 = ghChecks.find((c) => c.key === 'checks_05_3d_file');
               const check06 = ghChecks.find((c) => c.key === 'checks_06_3d_source');
+              const check07 = ghChecks.find((c) => c.key === 'checks_07_firmware_file');
               const eitherPassed = !!(check05?.passed || check06?.passed);
+              // Fall back to actual file presence so the check stays live for projects
+              // whose tags don't match but whose repo clearly has the file type.
+              const needs3D = project.tags.includes('CAD') || project.tags.includes('THREE_D_PRINT') || eitherPassed;
+              const needsFirmware = project.tags.some((t) => FIRMWARE_TAGS.includes(t)) || !!check07?.passed;
               const displayChecks = ghChecks.map((c) => {
                 const is3D = c.key === 'checks_05_3d_file' || c.key === 'checks_06_3d_source';
                 const isFirmware = c.key === 'checks_07_firmware_file';

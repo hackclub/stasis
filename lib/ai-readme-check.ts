@@ -13,7 +13,7 @@ import {
 // Bump when the prompt or schema below changes meaningfully. Reviewers see
 // this on the verdict card so older verdicts are distinguishable from newer
 // ones after a prompt revision.
-export const AI_README_PROMPT_VERSION = "v2";
+export const AI_README_PROMPT_VERSION = "v3";
 export const AI_README_MODEL = "claude-haiku-4-5-20251001";
 
 // Anthropic API ceiling: keep request payload sane regardless of README size.
@@ -70,9 +70,10 @@ function inferProjectTypes(filePaths: string[]): ProjectTypes {
   const hasFirmware = filePaths.some((p) =>
     FIRMWARE_EXTENSIONS.some((ext) => p.endsWith(ext))
   );
-  // Treat anything with firmware-but-no-PCB as likely wired (breadboard/perfboard).
-  // It's a heuristic; the model can also use its own judgment from README content.
-  const hasWiring = hasFirmware && !hasPcb;
+  // Any firmware project plausibly has external wiring worth diagramming —
+  // breadboard/perfboard, or PCB with sensors/buttons/displays hooked up. The
+  // AI can still mark it null when everything is genuinely self-contained.
+  const hasWiring = hasFirmware;
   return { pcb: hasPcb, cad: hasCad, firmware: hasFirmware, hasWiring };
 }
 
@@ -192,7 +193,7 @@ function buildPrompt(args: {
   }
   if (projectTypes.hasWiring) {
     requiredSections.push(
-      "- wiring_diagram: a wiring diagram (this project appears to have non-PCB wiring)"
+      "- wiring_diagram: a wiring diagram for any external connections (sensors, buttons, displays, etc.). Mark as not applicable ONLY if every electrical connection is fully on-PCB with nothing hooked up externally."
     );
   }
   requiredSections.push("- bom_table: a BOM rendered as a Markdown TABLE near the end of the README");
