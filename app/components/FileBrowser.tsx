@@ -181,7 +181,11 @@ function resolveReadmeUrls(md: string, owner: string, repo: string, branch: stri
     .replace(/([^\n])\n(!\[)/g, '$1\n\n$2')
     .replace(/(!\[.*?\]\(.*?\))\n([^\n])/g, '$1\n\n$2')
     .replace(/!\[([^\]]*)\]\((?!https?:\/\/)([^)]+)\)/g, `![$1](${rawBase}/$2)`)
-    .replace(/\[([^\]]*)\]\((?!https?:\/\/)([^)]+)\)/g, `[$1](${ghBase}/$2)`);
+    .replace(/\[([^\]]*)\]\((?!https?:\/\/)([^)]+)\)/g, `[$1](${ghBase}/$2)`)
+    // GitHub renders raw HTML in READMEs. Resolve <img src> / <a href> relative
+    // URLs the same way, or they 404 against the current page origin.
+    .replace(/(<img\b[^>]*\bsrc=)(["'])(?!https?:\/\/|data:|#)([^"']+)\2/gi, `$1$2${rawBase}/$3$2`)
+    .replace(/(<a\b[^>]*\bhref=)(["'])(?!https?:\/\/|mailto:|#)([^"']+)\2/gi, `$1$2${ghBase}/$3$2`);
 }
 
 function ReadmePane({ owner, repo, branch, onImageHover }: Readonly<{ owner: string; repo: string; branch: string; onImageHover?: (url: string | null, e?: MouseEvent) => void }>) {
