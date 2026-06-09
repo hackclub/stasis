@@ -2153,28 +2153,34 @@ export default function ReviewDetailPage() {
           <div className="space-y-1.5">
             {(() => {
               const needs3D = project.tags.includes('CAD') || project.tags.includes('THREE_D_PRINT');
+              // Firmware-bearing tags. Purely mechanical projects (CAD/3D-print/laser-cut only)
+              // don't need firmware files; anything with electronics in the tag list does.
+              const FIRMWARE_TAGS = ['PCB', 'ROBOT', 'ARDUINO', 'RASPBERRY_PI', 'IOT', 'WEARABLE', 'AUDIO', 'LED', 'DRONE', 'SENSOR', 'WIRELESS', 'MOTOR', 'DISPLAY', 'KEYBOARD', 'GAME_CONSOLE'];
+              const needsFirmware = project.tags.some((t) => FIRMWARE_TAGS.includes(t));
               const check05 = ghChecks.find((c) => c.key === 'checks_05_3d_file');
               const check06 = ghChecks.find((c) => c.key === 'checks_06_3d_source');
               const eitherPassed = !!(check05?.passed || check06?.passed);
-              const displayChecks = ghChecks
-                .filter((c) => needs3D || (c.key !== 'checks_05_3d_file' && c.key !== 'checks_06_3d_source'))
-                .map((c) =>
-                  c.key === 'checks_05_3d_file' || c.key === 'checks_06_3d_source'
-                    ? { ...c, passed: eitherPassed }
-                    : c
-                );
+              const displayChecks = ghChecks.map((c) => {
+                const is3D = c.key === 'checks_05_3d_file' || c.key === 'checks_06_3d_source';
+                const isFirmware = c.key === 'checks_07_firmware_file';
+                const applies = (is3D && !needs3D) || (isFirmware && !needsFirmware) ? false : true;
+                const passed = is3D ? eitherPassed : c.passed;
+                return { ...c, passed, applies, actualPassed: c.passed };
+              });
               return displayChecks.map((check) => {
               const fileKind = CHECK_KEY_TO_FILE_KIND[check.key];
-              const canOpenFile = !!fileKind && check.passed;
+              // Allow opening files even when dimmed \u2014 if the file exists, reviewer might still want to peek.
+              const canOpenFile = !!fileKind && check.actualPassed;
               const openFile = () => {
                 setSidebarTab('files');
                 localStorage.setItem('review:sidebarTab', 'files');
                 setFocusFileKind(fileKind!);
               };
+              const dimmed = !check.applies;
               return (
-                <div key={check.key} className="flex items-center gap-2 text-sm">
-                  <span className={check.passed ? 'text-green-400' : 'text-red-400'}>
-                    {check.passed ? '\u2713' : '\u2717'}
+                <div key={check.key} className={`flex items-center gap-2 text-sm ${dimmed ? 'opacity-40' : ''}`}>
+                  <span className={dimmed ? 'text-cream-200' : check.passed ? 'text-green-400' : 'text-red-400'}>
+                    {dimmed ? '\u2013' : check.passed ? '\u2713' : '\u2717'}
                   </span>
                   {canOpenFile ? (
                     <button
@@ -2188,9 +2194,11 @@ export default function ReviewDetailPage() {
                   ) : (
                     <span className="text-cream-50">{check.label}</span>
                   )}
-                  {check.detail && (
+                  {dimmed ? (
+                    <span className="text-cream-200 text-xs">(not required)</span>
+                  ) : check.detail ? (
                     <span className="text-cream-200 text-xs">({check.detail})</span>
-                  )}
+                  ) : null}
                 </div>
               );
             });
@@ -2793,9 +2801,9 @@ export default function ReviewDetailPage() {
               <label className="text-cream-200 text-xs uppercase block mb-1">
                 Internal Justification
                 {(isAdmin || submission.stage === 'BUILD') && <span className="text-orange-500 normal-case ml-1">(required to approve)</span>}
-                {isAdmin && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃R</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
+                {(isAdmin || viewAs === 'first-pass') && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃R</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
               </label>
-              {isAdmin && (
+              {(isAdmin || viewAs === 'first-pass') && (
                 <ChipGroup
                   items={JUSTIFICATION_SHORTCUTS}
                   checkedSet={checkedJustifications}
