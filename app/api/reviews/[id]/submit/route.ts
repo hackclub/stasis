@@ -287,6 +287,7 @@ export async function POST(
               result: "APPROVED",
               isAdminReview: false,
               feedback: sanitizedFeedback,
+              reason: typeof reason === "string" && reason.trim() ? sanitize(reason.trim()) : null,
               workUnitsOverride: workUnitsOverride ?? null,
               tierOverride: tierOverride ?? null,
               grantOverride: explicitGrantOverride,

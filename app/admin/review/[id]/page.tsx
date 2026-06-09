@@ -213,6 +213,7 @@ const FEEDBACK_SHORTCUTS = [
   { label: 'Missing CAD files', text: 'This project has CAD but seems to be missing some or all of the required CAD files such as .step, .f3d, etc. Please read the submission guidelines before you resubmit. https://blueprint.hackclub.com/about/submission-guidelines.' },
   { label: 'Missing/Bad ReadME', text: 'Please make a more polished ReadME.md on your GitHub. Your ReadMe should include multiple photos of your project, photos of the full assembly such as PCB+Case, and have a good description of your project. Please read the submission guidelines before you resubmit. https://blueprint.hackclub.com/about/submission-guidelines.' },
   { label: 'Journal', text: 'Your journal needs to show the step-by-step process you took in making this project. Please break your larger journal entires into multiple smaller ones, show the steps you took, and explain it better.' },
+  { label: 'No BOM CSV', text: 'You need a BOM CSV in the root of your project - see https://stasis.hackclub.com/docs/submission-guidelines' },
 ];
 
 // ─── Module-level review-data cache ──────────────────────────────────
@@ -2825,9 +2826,9 @@ export default function ReviewDetailPage() {
             <div className="mb-3">
               <label className="text-cream-200 text-xs uppercase block mb-1">
                 Feedback for Submitter
-                {isAdmin && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃F</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
+                {(isAdmin || viewAs === 'first-pass') && <span className="text-cream-500 normal-case ml-1.5"><Kbd>⌃F</Kbd> · Tab in, ←→ navigate, Space toggle</span>}
               </label>
-              {isAdmin && (
+              {(isAdmin || viewAs === 'first-pass') && (
                 <ChipGroup
                   items={FEEDBACK_SHORTCUTS}
                   checkedSet={checkedFeedback}
