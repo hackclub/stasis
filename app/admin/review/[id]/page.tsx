@@ -4,7 +4,7 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, mem
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { getTierById, TIERS } from '@/lib/tiers';
+import { getTierById, getTierForHours, TIERS } from '@/lib/tiers';
 import { bomItemTotal } from '@/lib/format';
 import { fixMarkdownImages } from '@/lib/markdown';
 import { useHotkeys, type HotkeyBinding } from '@/lib/hotkeys';
@@ -262,6 +262,7 @@ const CHECK_KEY_TO_FILE_KIND: Record<string, import('@/lib/cad-discovery').CadFi
   checks_07_firmware_file: 'firmware',
   checks_09_pcb_source: 'pcb-source',
   checks_10_pcb_fab: 'pcb-fab',
+  checks_11_bom_csv: 'bom',
 };
 
 // Dedupe claim POSTs per submission id. When the user mashes j/k, repeat
@@ -858,17 +859,6 @@ export default function ReviewDetailPage() {
     return () => clearTimeout(t);
   }, [recentDecision]);
 
-  // Block tab close while a decision is in flight (server is still committing).
-  useEffect(() => {
-    if (!pendingDecision) return;
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      e.preventDefault();
-      e.returnValue = '';
-    }
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [pendingDecision]);
-
   // Seed GH checks from the initial payload — no extra fetch on mount.
   // If the submission has no cached checks, leave the panel empty until
   // the reviewer clicks Refresh (avoids a slow GitHub API call we don't need).
@@ -1147,18 +1137,26 @@ export default function ReviewDetailPage() {
   async function handleMoveQueue() {
     if (!data) return;
     const targetStage = data.submission.stage === 'DESIGN' ? 'BUILD' : 'DESIGN';
+    const originalId = id;
+    const nextId = data.navigation.nextId;
+    setMoveConfirm(false);
+    // Optimistic navigation, matching submitReview: flip the URL immediately
+    // so the reviewer keeps moving, fire the POST in the background.
+    if (nextId) router.push(`/admin/review/${nextId}${filterQS}`);
+    else router.push('/admin/review');
     try {
-      const res = await fetch(`/api/reviews/${data.submission.id}/move`, {
+      const res = await fetch(`/api/reviews/${originalId}/move`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetStage }),
       });
       if (res.ok) {
-        setMoveConfirm(false);
-        await fetchData();
+        // Drop the cache entry so a back-nav refetches and redirects out.
+        REVIEW_DATA_CACHE.delete(`${originalId}${filterQS}`);
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to move queue');
+        let errorMsg = 'Failed to move queue';
+        try { errorMsg = (await res.json()).error || errorMsg; } catch {}
+        alert(errorMsg);
       }
     } catch {
       alert('Failed to move queue');
@@ -2153,7 +2151,19 @@ export default function ReviewDetailPage() {
           <p className="text-cream-200 text-sm">Running checks...</p>
         ) : ghChecks ? (
           <div className="space-y-1.5">
-            {ghChecks.map((check) => {
+            {(() => {
+              const needs3D = project.tags.includes('CAD') || project.tags.includes('THREE_D_PRINT');
+              const check05 = ghChecks.find((c) => c.key === 'checks_05_3d_file');
+              const check06 = ghChecks.find((c) => c.key === 'checks_06_3d_source');
+              const eitherPassed = !!(check05?.passed || check06?.passed);
+              const displayChecks = ghChecks
+                .filter((c) => needs3D || (c.key !== 'checks_05_3d_file' && c.key !== 'checks_06_3d_source'))
+                .map((c) =>
+                  c.key === 'checks_05_3d_file' || c.key === 'checks_06_3d_source'
+                    ? { ...c, passed: eitherPassed }
+                    : c
+                );
+              return displayChecks.map((check) => {
               const fileKind = CHECK_KEY_TO_FILE_KIND[check.key];
               const canOpenFile = !!fileKind && check.passed;
               const openFile = () => {
@@ -2183,7 +2193,8 @@ export default function ReviewDetailPage() {
                   )}
                 </div>
               );
-            })}
+            });
+            })()}
           </div>
         ) : ghChecksError ? (
           <div className="text-sm">
@@ -2213,27 +2224,6 @@ export default function ReviewDetailPage() {
         />
       </div>
 
-
-      {/* ── Conflict Warning Card ── */}
-      {conflicts.length > 0 && (
-        <div className="bg-yellow-500/10 border-2 border-yellow-500/40 p-4">
-          <p className="text-yellow-400 font-medium text-sm uppercase mb-2">
-            Conflict: Author has other active submissions
-          </p>
-          <ul className="space-y-1">
-            {conflicts.map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/admin/review/${c.id}`}
-                  className="text-yellow-400/80 text-sm hover:underline"
-                >
-                  {c.project.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {/* ── Previous Reviews Card ── */}
       {submission.reviews.length > 0 && (
@@ -2692,21 +2682,44 @@ export default function ReviewDetailPage() {
                 <label className="text-cream-200 text-xs uppercase block mb-1">
                   Tier Override <Kbd className="ml-1.5">⌃;</Kbd>
                 </label>
-                <Select
-                  triggerRef={tierOverrideRef}
-                  value={tierOverride}
-                  onChange={setTierOverride}
-                  ariaKeyshortcuts="Control+;"
-                  options={[
-                    { value: '', label: `Current: ${tierInfo?.name || 'None'}` },
-                    ...TIERS.map((t) => ({
-                      value: String(t.id),
-                      label: t.name,
-                      hint: `${t.bits} bits · ${t.minHours}–${t.maxHours === Infinity ? '67+' : t.maxHours}h`,
-                      tone: TIER_TONE[t.id],
-                    })),
-                  ]}
-                />
+                {(() => {
+                  const effectiveHours = workUnitsOverride ? parseFloat(workUnitsOverride) : project.totalWorkUnits
+                  const autoTierId = Number.isFinite(effectiveHours) ? getTierForHours(effectiveHours) : null
+                  const autoTier = autoTierId != null ? getTierById(autoTierId) : null
+                  return (
+                    <Select
+                      triggerRef={tierOverrideRef}
+                      value={tierOverride}
+                      onChange={(v) => {
+                        if (v === 'auto') {
+                          if (autoTierId == null || autoTierId === project.tier) {
+                            setTierOverride('')
+                          } else {
+                            setTierOverride(String(autoTierId))
+                          }
+                        } else {
+                          setTierOverride(v)
+                        }
+                      }}
+                      ariaKeyshortcuts="Control+;"
+                      options={[
+                        { value: '', label: `Current: ${tierInfo?.name || 'None'}` },
+                        ...(autoTier ? [{
+                          value: 'auto',
+                          label: `Auto: ${autoTier.name}`,
+                          hint: `${autoTier.bits} bits · ${autoTier.minHours}–${autoTier.maxHours === Infinity ? '67+' : autoTier.maxHours}h`,
+                          tone: TIER_TONE[autoTier.id],
+                        }] : []),
+                        ...TIERS.map((t) => ({
+                          value: String(t.id),
+                          label: t.name,
+                          hint: `${t.bits} bits · ${t.minHours}–${t.maxHours === Infinity ? '67+' : t.maxHours}h`,
+                          tone: TIER_TONE[t.id],
+                        })),
+                      ]}
+                    />
+                  )
+                })()}
               </div>
               <div>
                 <label className="text-cream-200 text-xs uppercase block mb-1">
