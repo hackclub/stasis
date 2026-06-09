@@ -307,9 +307,18 @@ export async function GET(
     }
   }
 
+  // Match the queue's first-pass filter: first-pass reviewers (incl. admins in
+  // viewAs=first-pass) should never be navigated to a pre-reviewed submission —
+  // that's an admin-only queue, and duplicate first-pass approvals are blocked
+  // at submit anyway.
+  if (!isAdmin) {
+    navWhere.submissions = { none: { preReviewed: true } }
+  }
+
   // Cursor-based next/prev: avoids fetching the entire queue.
-  // Pre-reviewed items always float to top; if any exists *other than* the
+  // For admins: pre-reviewed items float to top; if any exists *other than* the
   // current project, that's the next one. Otherwise use a strict createdAt cursor.
+  // First-pass reviewers skip the pre-reviewed priority entirely.
   const preReviewedWhere = {
     ...navWhere,
     id: { not: project!.id },
@@ -319,11 +328,13 @@ export async function GET(
   }
 
   const [preReviewedNext, cursorNext, cursorPrev] = await Promise.all([
-    prisma.project.findFirst({
-      where: preReviewedWhere,
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    }),
+    isAdmin
+      ? prisma.project.findFirst({
+          where: preReviewedWhere,
+          orderBy: { createdAt: "asc" },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
     prisma.project.findFirst({
       where: { ...navWhere, createdAt: { gt: project!.createdAt } },
       orderBy: { createdAt: "asc" },
