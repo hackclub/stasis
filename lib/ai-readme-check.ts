@@ -13,7 +13,7 @@ import {
 // Bump when the prompt or schema below changes meaningfully. Reviewers see
 // this on the verdict card so older verdicts are distinguishable from newer
 // ones after a prompt revision.
-export const AI_README_PROMPT_VERSION = "v1";
+export const AI_README_PROMPT_VERSION = "v2";
 export const AI_README_MODEL = "claude-haiku-4-5-20251001";
 
 // Anthropic API ceiling: keep request payload sane regardless of README size.
@@ -166,15 +166,27 @@ function buildPrompt(args: {
   truncated: boolean;
   projectTypes: ProjectTypes;
   projectTitle: string;
+  stage: "DESIGN" | "BUILD";
 }): string {
-  const { readme, truncated, projectTypes, projectTitle } = args;
+  const { readme, truncated, projectTypes, projectTitle, stage } = args;
 
   const requiredSections = [
     "- description: short description of what the project is",
     "- motivation: a couple sentences on WHY the author made it",
-    "- project_photos: real PHOTOS of the assembled / in-progress physical project (not just CAD renders)",
-    "- render_3d: a screenshot of the full 3D CAD model with all components",
   ];
+  // DESIGN-stage submissions don't have a physical build yet, so photos are N/A.
+  if (stage === "BUILD") {
+    requiredSections.push(
+      "- project_photos: real PHOTOS of the assembled / in-progress physical project (not just CAD renders)"
+    );
+  }
+  if (projectTypes.pcb && !projectTypes.cad) {
+    requiredSections.push(
+      "- render_3d: a 3D render of the project — for this PCB-only project, a PCB 3D render or PCB layout screenshot is acceptable (no CAD model is required)"
+    );
+  } else if (projectTypes.cad || projectTypes.pcb) {
+    requiredSections.push("- render_3d: a screenshot of the full 3D CAD model with all components");
+  }
   if (projectTypes.pcb) {
     requiredSections.push("- pcb_screenshot: a screenshot of the PCB layout (required, this is a PCB project)");
   }
@@ -186,6 +198,8 @@ function buildPrompt(args: {
   requiredSections.push("- bom_table: a BOM rendered as a Markdown TABLE near the end of the README");
 
   const notApplicable: string[] = [];
+  if (stage !== "BUILD") notApplicable.push("project_photos");
+  if (!projectTypes.cad && !projectTypes.pcb) notApplicable.push("render_3d");
   if (!projectTypes.pcb) notApplicable.push("pcb_screenshot");
   if (!projectTypes.hasWiring) notApplicable.push("wiring_diagram");
 
@@ -311,6 +325,7 @@ async function callAnthropic(prompt: string): Promise<{
 export async function computeAiReadmeVerdict(args: {
   githubRepo: string | null;
   projectTitle: string;
+  stage: "DESIGN" | "BUILD";
 }): Promise<
   | { ok: true; verdict: AiReadmeVerdict }
   | { ok: false; reason: string }
@@ -335,6 +350,7 @@ export async function computeAiReadmeVerdict(args: {
     truncated,
     projectTypes,
     projectTitle: args.projectTitle,
+    stage: args.stage,
   });
 
   const { verdict } = await callAnthropic(prompt);
@@ -364,6 +380,7 @@ export async function runAiReadmeCheck(submissionId: string): Promise<void> {
       },
     });
     if (!submission || submission.project.deletedAt) return;
+    const stage = submission.stage === "DESIGN" ? "DESIGN" : "BUILD";
 
     if (!process.env.ANTHROPIC_API_KEY) {
       await prisma.projectSubmission.update({
@@ -380,6 +397,7 @@ export async function runAiReadmeCheck(submissionId: string): Promise<void> {
     const result = await computeAiReadmeVerdict({
       githubRepo: submission.project.githubRepo,
       projectTitle: submission.project.title,
+      stage,
     });
 
     if (!result.ok) {

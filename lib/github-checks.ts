@@ -27,6 +27,10 @@ export const PCB_SOURCE_EXTENSIONS = ['.kicad_pcb', '.kicad_sch', '.kicad_pro', 
 export const PCB_FAB_EXTENSIONS = ['.gbr', '.gbl', '.gtl', '.gbs', '.gts', '.gbo', '.gto', '.gko', '.drl', '.zip'];
 export const IMAGE_PATTERN = /!\[.*?\]\(.*?\)|<img\s+[^>]*src\s*=|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg/i;
 
+// Lowercased basename containing "bom" and ending in .csv. Strict on purpose —
+// false positives ("parts.csv") would mislead the reviewer.
+export const BOM_PATTERN = /(^|\/)[^/]*bom[^/]*\.csv$/i;
+
 // --- GitHub API helpers ---
 
 export function parseGitHubRepo(url: string): { owner: string; repo: string } | null {
@@ -245,6 +249,7 @@ function reviewerFailChecks(reason: string): CheckResult[] {
     { key: 'checks_07_firmware_file', label: 'Firmware file', passed: false, detail: reason },
     { key: 'checks_09_pcb_source', label: 'PCB source file', passed: false, detail: reason },
     { key: 'checks_10_pcb_fab', label: 'PCB fabrication files', passed: false, detail: reason },
+    { key: 'checks_11_bom_csv', label: 'BOM CSV', passed: false, detail: reason },
   ];
 }
 
@@ -286,6 +291,7 @@ export async function runReviewChecks(githubRepo: string | null): Promise<CheckR
     checks.push({ key: 'checks_07_firmware_file', label: 'Firmware file', passed: false, detail: failDetail });
     checks.push({ key: 'checks_09_pcb_source', label: 'PCB source file', passed: false, detail: failDetail });
     checks.push({ key: 'checks_10_pcb_fab', label: 'PCB fabrication files', passed: false, detail: failDetail });
+    checks.push({ key: 'checks_11_bom_csv', label: 'BOM CSV', passed: false, detail: failDetail });
     return checks;
   }
 
@@ -345,6 +351,14 @@ export async function runReviewChecks(githubRepo: string | null): Promise<CheckR
     label: 'PCB fabrication files',
     passed: foundPcbFab.length > 0,
     detail: foundPcbFab.length > 0 ? `${foundPcbFab.length} file(s)` : 'No Gerber/drill files found',
+  });
+
+  const foundBom = filePaths.filter((p) => BOM_PATTERN.test(p));
+  checks.push({
+    key: 'checks_11_bom_csv',
+    label: 'BOM CSV',
+    passed: foundBom.length > 0,
+    detail: foundBom.length > 0 ? foundBom.slice(0, 3).join(', ') : 'No bom*.csv found in repo',
   });
 
   return checks;

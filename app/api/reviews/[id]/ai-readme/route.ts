@@ -23,6 +23,8 @@ export async function GET(
     let submissionId: string | null = null;
     let githubRepo: string | null = null;
     let projectTitle = "";
+    // Default to BUILD if somehow not found: requiring photos is safer than skipping.
+    let stage: "DESIGN" | "BUILD" = "BUILD";
     let cached: {
       verdict: AiReadmeVerdict | null;
       verdictAt: Date | null;
@@ -48,6 +50,7 @@ export async function GET(
       submissionId = submission.id;
       githubRepo = submission.project.githubRepo;
       projectTitle = submission.project.title;
+      stage = submission.stage === "DESIGN" ? "DESIGN" : "BUILD";
       cached = {
         verdict: (submission.aiReadmeVerdict as AiReadmeVerdict | null) ?? null,
         verdictAt: submission.aiReadmeVerdictAt,
@@ -72,6 +75,7 @@ export async function GET(
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
+          stage: true,
           aiReadmeVerdict: true,
           aiReadmeVerdictAt: true,
           aiReadmeStatus: true,
@@ -79,6 +83,7 @@ export async function GET(
       });
       if (latest) {
         submissionId = latest.id;
+        stage = latest.stage === "DESIGN" ? "DESIGN" : "BUILD";
         cached = {
           verdict: (latest.aiReadmeVerdict as AiReadmeVerdict | null) ?? null,
           verdictAt: latest.aiReadmeVerdictAt,
@@ -129,7 +134,7 @@ export async function GET(
       });
     }
 
-    const result = await computeAiReadmeVerdict({ githubRepo, projectTitle });
+    const result = await computeAiReadmeVerdict({ githubRepo, projectTitle, stage });
     const verdictAt = new Date();
 
     if (!result.ok) {

@@ -7,9 +7,10 @@ import {
   PCB_SOURCE_EXTENSIONS,
   PCB_FAB_EXTENSIONS,
   FIRMWARE_EXTENSIONS,
+  BOM_PATTERN,
 } from '@/lib/github-checks';
 
-export type CadFileKind = 'kicad' | '3d' | '3d-source' | 'pcb-source' | 'pcb-fab' | 'firmware' | 'easyeda';
+export type CadFileKind = 'kicad' | '3d' | '3d-source' | 'pcb-source' | 'pcb-fab' | 'firmware' | 'easyeda' | 'bom';
 
 export interface CadFile {
   path: string;
@@ -45,6 +46,7 @@ const EASYEDA_EXTENSIONS = ['.epro', '.eproproject', '.esch', '.epcb'];
 
 function classifyFile(path: string): { kind: CadFileKind; extension: string } | null {
   const lower = path.toLowerCase();
+  if (BOM_PATTERN.test(lower)) return { kind: 'bom', extension: '.csv' };
   for (const ext of KICAD_EXTENSIONS) {
     if (lower.endsWith(ext)) return { kind: 'kicad', extension: ext };
   }

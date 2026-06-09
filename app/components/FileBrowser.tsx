@@ -15,17 +15,17 @@ const MDPreview = dynamic(() => import('@uiw/react-md-editor').then((mod) => mod
 
 const KIND_LABEL: Record<CadFileKind, string> = {
   'kicad': 'KICAD', 'easyeda': 'EDA', '3d': '3D', '3d-source': 'CAD',
-  'pcb-source': 'PCB', 'pcb-fab': 'GBR', 'firmware': 'FW',
+  'pcb-source': 'PCB', 'pcb-fab': 'GBR', 'firmware': 'FW', 'bom': 'BOM',
 };
 const KIND_COLOR: Record<CadFileKind, string> = {
   'kicad': 'text-green-400', 'easyeda': 'text-blue-400', '3d': 'text-orange-400',
   '3d-source': 'text-yellow-400', 'pcb-source': 'text-green-400', 'pcb-fab': 'text-cyan-400',
-  'firmware': 'text-pink-300',
+  'firmware': 'text-pink-300', 'bom': 'text-purple-300',
 };
-const KIND_ORDER: CadFileKind[] = ['kicad', 'easyeda', '3d', '3d-source', 'pcb-source', 'pcb-fab', 'firmware'];
+const KIND_ORDER: CadFileKind[] = ['kicad', 'easyeda', '3d', '3d-source', 'pcb-source', 'pcb-fab', 'firmware', 'bom'];
 const STEP_EXTS = new Set(['.step', '.stp']);
 const VIEWABLE_3D = new Set(['.stl', '.obj', '.3mf', '.gltf', '.glb', '.ply']);
-const CODE_EXTS = new Set(['.ino', '.c', '.cpp', '.h', '.py', '.rs', '.scad']);
+const CODE_EXTS = new Set(['.ino', '.c', '.cpp', '.h', '.py', '.rs', '.scad', '.csv']);
 const SPLIT_STORAGE_KEY = 'fileBrowser.splitPct';
 
 type Selection =

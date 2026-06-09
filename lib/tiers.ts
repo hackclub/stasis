@@ -102,6 +102,14 @@ export function getTiersSorted(): readonly Tier[] {
   return TIERS
 }
 
+/** Map an hour count to the tier ID it buckets into. Sub-T1 hours bucket to T1; T5 has no upper bound. */
+export function getTierForHours(hours: number): TierId {
+  for (const t of TIERS) {
+    if (hours <= t.maxHours) return t.id
+  }
+  return TIERS[TIERS.length - 1].id
+}
+
 /**
  * Get the fixed bits allocation for a given tier (before BOM deduction).
  */
