@@ -596,6 +596,22 @@ export default function ReviewDetailPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Defensive: if first-pass mode lands on a pre-reviewed submission (stale
+  // prefetched nextId, shared link, queue entry from before a deploy, etc.),
+  // skip to the next non-pre-reviewed project. Server filters cover the happy
+  // path; this catches the rest so first-pass reviewers never sit on an
+  // already-pre-reviewed page.
+  useEffect(() => {
+    if (!data) return;
+    if (data.isAdmin) return;
+    if (!data.submission.preReviewed) return;
+    if (data.navigation.nextId) {
+      router.replace(`/admin/review/${data.navigation.nextId}${filterQS}`);
+    } else {
+      router.replace(`/admin/review${filterQS}`);
+    }
+  }, [data, router, filterQS]);
+
   // Check if project already exists in Airtable Unified DB. Cached because
   // it's idempotent and Airtable API calls are slow (200-500ms typical).
   useEffect(() => {
