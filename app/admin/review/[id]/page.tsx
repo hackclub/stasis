@@ -1339,7 +1339,7 @@ export default function ReviewDetailPage() {
     { key: '$mod+Enter', description: 'Approve / Confirm & Send', group: 'Decision', runInInputs: true, handler: handleApprove },
     { key: 'Shift+R', description: 'Return for edits', group: 'Decision', handler: () => { if (canDecide) submitReview('RETURNED'); } },
     { key: 'Shift+X', description: 'Reject (press twice within 5s)', group: 'Decision', handler: handleReject },
-    { key: 'Shift+M', description: 'Move to opposite queue (admin)', group: 'Decision', handler: () => { if (isAdminUser && !submitting) handleMoveQueue(); } },
+    { key: 'Shift+M', description: 'Move to opposite queue', group: 'Decision', handler: () => { if (!submitting) handleMoveQueue(); } },
 
     // ─── Navigation between submissions (Ctrl-gated) ────────────────
     { key: '$mod+j', description: 'Next submission', group: 'Navigation', handler: () => { if (data?.navigation.nextId) router.push(`/admin/review/${data.navigation.nextId}${filterQS}`); } },
@@ -1725,37 +1725,35 @@ export default function ReviewDetailPage() {
           >
             {hideChrome ? '↓ Show nav' : '↑ Hide nav'}
           </button>
-          {isAdmin && (
-            <div className="relative">
-              <button
-                onClick={() => setMoveConfirm(!moveConfirm)}
-                aria-keyshortcuts="Shift+M"
-                title="Move to opposite queue (Shift+M)"
-                className="px-3 py-1.5 text-xs uppercase tracking-wider border border-orange-500 text-orange-500 hover:bg-orange-500/10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
-              >
-                Move to {submission.stage === 'DESIGN' ? 'Build' : 'Design'} Queue
-              </button>
-              {moveConfirm && (
-                <div className="absolute right-0 top-full mt-1 bg-brown-800 border-2 border-orange-500 p-3 z-10 w-64">
-                  <p className="text-cream-50 text-xs mb-2">Move this submission to the {submission.stage === 'DESIGN' ? 'Build' : 'Design'} queue?</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleMoveQueue}
-                      className="px-2 py-1 text-xs bg-orange-500 text-white hover:bg-orange-600 cursor-pointer"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setMoveConfirm(false)}
-                      className="px-2 py-1 text-xs border border-cream-500/20 text-cream-50 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+          <div className="relative">
+            <button
+              onClick={() => setMoveConfirm(!moveConfirm)}
+              aria-keyshortcuts="Shift+M"
+              title="Move to opposite queue (Shift+M)"
+              className="px-3 py-1.5 text-xs uppercase tracking-wider border border-orange-500 text-orange-500 hover:bg-orange-500/10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
+            >
+              Move to {submission.stage === 'DESIGN' ? 'Build' : 'Design'} Queue
+            </button>
+            {moveConfirm && (
+              <div className="absolute right-0 top-full mt-1 bg-brown-800 border-2 border-orange-500 p-3 z-10 w-64">
+                <p className="text-cream-50 text-xs mb-2">Move this submission to the {submission.stage === 'DESIGN' ? 'Build' : 'Design'} queue?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleMoveQueue}
+                    className="px-2 py-1 text-xs bg-orange-500 text-white hover:bg-orange-600 cursor-pointer"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setMoveConfirm(false)}
+                    className="px-2 py-1 text-xs border border-cream-500/20 text-cream-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
