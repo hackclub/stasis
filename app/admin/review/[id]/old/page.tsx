@@ -1536,7 +1536,10 @@ export default function ReviewDetailPage() {
           <div className="mb-4">
             <div className="flex items-end gap-1 h-24">
               {project.workSessions.map((session) => {
-                const maxH = project.maxWorkUnits || 1;
+                // Scale from the rendered sessions, not project.maxWorkUnits — on
+                // BUILD reviews the stats only cover post-design sessions, but this
+                // chart shows all of them, so a big design session would overflow.
+                const maxH = Math.max(...project.workSessions.map((s) => s.hoursClaimed)) || 1;
                 const heightPct = (session.hoursClaimed / maxH) * 100;
                 return (
                   <div

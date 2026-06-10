@@ -2398,7 +2398,10 @@ export default function ReviewDetailPage() {
              scroll to / flash the matching entry, so this and the TOC below
              are two views of the same navigation. */}
         {project.workSessions.length > 0 && (() => {
-          const maxH = project.maxWorkUnits || 1;
+          // Scale from the rendered sessions, not project.maxWorkUnits — on BUILD
+          // reviews the stats only cover post-design sessions, but this chart
+          // shows all of them, so a big design-stage session would overflow.
+          const maxH = Math.max(...project.workSessions.map((s) => s.hoursClaimed)) || 1;
           return (
             <div className="flex gap-0.5 h-12 mb-3">
               {project.workSessions.map((session) => {
