@@ -75,16 +75,24 @@ export async function GET() {
 
     // 2: Weekly stats (12 weeks — submissions, reviews, return rate, active reviewers)
     prisma.$queryRaw<{
-      week: string; submissions: number; reviews: number;
-      returned: number; admin_reviews: number; return_rate: number; active_reviewers: number;
+      week: string; submissions: number; design_subs: number; build_subs: number; reviews: number;
+      returned: number; admin_reviews: number; design_admin: number; build_admin: number;
+      return_rate: number; active_reviewers: number;
     }[]>`
       WITH weeks AS (
         SELECT generate_series(DATE_TRUNC('week', NOW() - INTERVAL '11 weeks'), DATE_TRUNC('week', NOW()), '1 week'::interval) AS w
       ),
-      ws AS (SELECT DATE_TRUNC('week', "createdAt") AS w, COUNT(*)::int AS cnt FROM project_submission WHERE "createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks') GROUP BY 1),
+      ws AS (
+        SELECT DATE_TRUNC('week', "createdAt") AS w, COUNT(*)::int AS cnt,
+          COUNT(*) FILTER (WHERE stage = 'DESIGN')::int AS design_cnt,
+          COUNT(*) FILTER (WHERE stage = 'BUILD')::int AS build_cnt
+        FROM project_submission WHERE "createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks') GROUP BY 1
+      ),
       wpra AS (
         SELECT DATE_TRUNC('week', "createdAt") AS w,
           COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE stage = 'DESIGN')::int AS design_total,
+          COUNT(*) FILTER (WHERE stage = 'BUILD')::int AS build_total,
           COUNT(*) FILTER (WHERE decision = 'CHANGE_REQUESTED')::int AS returned,
           COUNT(DISTINCT "reviewerId")::int AS active_reviewers
         FROM project_review_action WHERE "createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks') GROUP BY 1
@@ -92,9 +100,13 @@ export async function GET() {
       wsr AS (SELECT DATE_TRUNC('week', "createdAt") AS w, COUNT(*)::int AS cnt FROM submission_review WHERE "createdAt" >= DATE_TRUNC('week', NOW() - INTERVAL '11 weeks') AND invalidated = false GROUP BY 1)
       SELECT TO_CHAR(weeks.w, 'YYYY-MM-DD') as week,
         COALESCE(ws.cnt, 0)::int as submissions,
+        COALESCE(ws.design_cnt, 0)::int as design_subs,
+        COALESCE(ws.build_cnt, 0)::int as build_subs,
         (COALESCE(wpra.total, 0) + COALESCE(wsr.cnt, 0))::int as reviews,
         COALESCE(wpra.returned, 0)::int as returned,
         COALESCE(wpra.total, 0)::int as admin_reviews,
+        COALESCE(wpra.design_total, 0)::int as design_admin,
+        COALESCE(wpra.build_total, 0)::int as build_admin,
         CASE WHEN COALESCE(wpra.total, 0) > 0 THEN ROUND((wpra.returned::float / wpra.total * 100)::numeric, 1)::float ELSE 0 END as return_rate,
         COALESCE(wpra.active_reviewers, 0)::int as active_reviewers
       FROM weeks LEFT JOIN ws ON ws.w = weeks.w LEFT JOIN wpra ON wpra.w = weeks.w LEFT JOIN wsr ON wsr.w = weeks.w

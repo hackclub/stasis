@@ -23,8 +23,9 @@ interface ReviewData {
   dailyActivity: { date: string; design_subs: number; build_subs: number; design_decisions: number; build_decisions: number }[];
   queueHistory: { date: string; design: number; build: number }[];
   weeklyStats: {
-    week: string; submissions: number; reviews: number;
-    returned: number; admin_reviews: number; return_rate: number; active_reviewers: number;
+    week: string; submissions: number; design_subs: number; build_subs: number; reviews: number;
+    returned: number; admin_reviews: number; design_admin: number; build_admin: number;
+    return_rate: number; active_reviewers: number;
   }[];
   turnaroundTrend: { week: string; designMedian: number; buildMedian: number; designP90: number; buildP90: number }[];
   turnaround: {
@@ -62,6 +63,7 @@ const GRID_LINE = { strokeDasharray: '2 4' as const, stroke: 'rgba(245,243,239,0
 
 type SortPeriod = 'today' | 'week' | 'month' | 'total';
 type TimeRange = '7d' | '30d' | '90d' | 'all';
+type StageFilter = 'all' | 'design' | 'build';
 
 // --- Small components ---
 
@@ -91,26 +93,32 @@ function ChartTip({ active, payload, label }: any) {
   );
 }
 
-function QueueTip({ active, payload, label }: any) {
+function QueueTip({ active, payload, label, stage = 'all' }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
-  const delta = d.delta ?? 0;
+  const delta = (stage === 'design' ? d.designDelta : stage === 'build' ? d.buildDelta : d.delta) ?? 0;
   return (
     <div className="bg-brown-900/95 border border-cream-500/15 px-3 py-2 text-[11px] font-sans backdrop-blur-sm">
       <div className="text-cream-50/70 mb-1">{label}</div>
-      <div className="flex justify-between gap-5">
-        <span style={{ color: SKY }}>Design</span>
-        <span className="text-cream-50">{d.design}</span>
-      </div>
-      <div className="flex justify-between gap-5">
-        <span style={{ color: VIOLET }}>Build</span>
-        <span className="text-cream-50">{d.build}</span>
-      </div>
-      <div className="flex justify-between gap-5 border-t border-cream-500/10 mt-1 pt-1">
-        <span className="text-cream-50/70">Total</span>
-        <span className="text-cream-50">{d.total}</span>
-      </div>
+      {stage !== 'build' && (
+        <div className="flex justify-between gap-5">
+          <span style={{ color: SKY }}>Design</span>
+          <span className="text-cream-50">{d.design}</span>
+        </div>
+      )}
+      {stage !== 'design' && (
+        <div className="flex justify-between gap-5">
+          <span style={{ color: VIOLET }}>Build</span>
+          <span className="text-cream-50">{d.build}</span>
+        </div>
+      )}
+      {stage === 'all' && (
+        <div className="flex justify-between gap-5 border-t border-cream-500/10 mt-1 pt-1">
+          <span className="text-cream-50/70">Total</span>
+          <span className="text-cream-50">{d.total}</span>
+        </div>
+      )}
       {delta !== 0 && (
         <div className="flex justify-between gap-5">
           <span className="text-cream-50/50">Change</span>
@@ -177,6 +185,21 @@ function RangeControl({ value, onChange }: Readonly<{ value: TimeRange; onChange
   );
 }
 
+function StageControl({ value, onChange }: Readonly<{ value: StageFilter; onChange: (v: StageFilter) => void }>) {
+  return (
+    <div className="flex gap-1">
+      {([['all', 'All'], ['design', 'Design'], ['build', 'Build']] as const).map(([k, label]) => (
+        <button key={k} onClick={() => onChange(k)}
+          className={`px-2 py-0.5 text-[10px] uppercase tracking-wider border cursor-pointer transition-colors ${
+            value === k
+              ? `border-cream-50/20 bg-cream-50/5 ${k === 'design' ? 'text-sky-300' : k === 'build' ? 'text-violet-300' : 'text-cream-50'}`
+              : 'border-cream-500/8 text-cream-50/50 hover:text-cream-50/70'
+          }`}>{label}</button>
+      ))}
+    </div>
+  );
+}
+
 function fmtDays(d: number): string {
   if (d < 1) return `${Math.round(d * 24)}h`;
   if (d < 2) return `${Math.floor(d)}d ${Math.round((d % 1) * 24)}h`;
@@ -199,6 +222,9 @@ export default function ReviewDataPage() {
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<SortPeriod>('week');
   const [range, setRange] = useState<TimeRange>('30d');
+  const [queueStage, setQueueStage] = useState<StageFilter>('all');
+  const [dailyStage, setDailyStage] = useState<StageFilter>('all');
+  const [weeklyStage, setWeeklyStage] = useState<StageFilter>('all');
 
   useEffect(() => {
     fetch('/api/admin/review-data')
@@ -223,8 +249,13 @@ export default function ReviewDataPage() {
     const rawQueue = data.queueHistory ?? [];
     const queueHistory = rawQueue.map((d, i) => {
       const total = d.design + d.build;
-      const prev = i > 0 ? rawQueue[i - 1].design + rawQueue[i - 1].build : total;
-      return { ...d, total, delta: total - prev };
+      const prev = i > 0 ? rawQueue[i - 1] : d;
+      return {
+        ...d, total,
+        delta: total - (prev.design + prev.build),
+        designDelta: d.design - prev.design,
+        buildDelta: d.build - prev.build,
+      };
     });
 
     const burnDays = avg7d > 0 ? data.queue.total / avg7d : Infinity;
@@ -250,6 +281,10 @@ export default function ReviewDataPage() {
   const sliceRange = <T,>(arr: T[]) => rangeDays === Infinity ? arr : arr.slice(-rangeDays);
   const dailySlice = sliceRange(computed.withTotals);
   const queueSlice = sliceRange(computed.queueHistory);
+  const dailySubsKey = dailyStage === 'all' ? 'submissions' : dailyStage === 'design' ? 'design_subs' : 'build_subs';
+  const dailyDecKey = dailyStage === 'all' ? 'decisions' : dailyStage === 'design' ? 'design_decisions' : 'build_decisions';
+  const weeklySubsKey = weeklyStage === 'all' ? 'submissions' : weeklyStage === 'design' ? 'design_subs' : 'build_subs';
+  const weeklyDecKey = weeklyStage === 'all' ? 'admin_reviews' : weeklyStage === 'design' ? 'design_admin' : 'build_admin';
   const outcomePie = [
     { name: 'Approved', value: data.outcomes.approved },
     { name: 'Returned', value: data.outcomes.returned },
@@ -294,7 +329,10 @@ export default function ReviewDataPage() {
           <SectionLabel tip="Queue size computed from full submission and decision history, anchored to the current actual queue. Shows whether the backlog is growing or shrinking.">
             Review queue size
           </SectionLabel>
-          <RangeControl value={range} onChange={setRange} />
+          <div className="flex items-center gap-3">
+            <StageControl value={queueStage} onChange={setQueueStage} />
+            <RangeControl value={range} onChange={setRange} />
+          </div>
         </div>
         <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
           <ResponsiveContainer width="100%" height={260}>
@@ -312,24 +350,27 @@ export default function ReviewDataPage() {
               <CartesianGrid {...GRID_LINE} />
               <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={d => d.slice(5)} interval={Math.max(1, Math.floor(queueSlice.length / 10))} />
               <YAxis tick={AXIS_TICK} width={32} />
-              <RTooltip content={<QueueTip />} />
-              <Area type="monotone" dataKey="total" name="Total" stroke={AMBER} fill="none" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
-              <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={2} dot={false} />
-              <Area type="monotone" dataKey="build" name="Build" stroke={VIOLET} fill="url(#buildGrad)" strokeWidth={2} dot={false} />
+              <RTooltip content={<QueueTip stage={queueStage} />} />
+              {queueStage === 'all' && <Area type="monotone" dataKey="total" name="Total" stroke={AMBER} fill="none" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />}
+              {queueStage !== 'build' && <Area type="monotone" dataKey="design" name="Design" stroke={SKY} fill="url(#designGrad)" strokeWidth={2} dot={false} />}
+              {queueStage !== 'design' && <Area type="monotone" dataKey="build" name="Build" stroke={VIOLET} fill="url(#buildGrad)" strokeWidth={2} dot={false} />}
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: SKY }} />Design</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: VIOLET }} />Build</span>
+            {queueStage !== 'build' && <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: SKY }} />Design</span>}
+            {queueStage !== 'design' && <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block rounded-full" style={{ background: VIOLET }} />Build</span>}
           </div>
         </div>
       </div>
 
       {/* ── Submissions vs Reviews ── */}
       <div>
-        <SectionLabel tip="Daily volume. When submissions exceed decisions, the queue is growing. Decisions = admin approve/return/reject actions.">
-          Submissions vs decisions
-        </SectionLabel>
+        <div className="flex items-center justify-between mb-4">
+          <SectionLabel tip="Daily volume. When submissions exceed decisions, the queue is growing. Decisions = admin approve/return/reject actions.">
+            Submissions vs decisions
+          </SectionLabel>
+          <StageControl value={dailyStage} onChange={setDailyStage} />
+        </div>
         <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={dailySlice.map(d => ({ ...d, label: d.date.slice(5) }))}>
@@ -337,8 +378,8 @@ export default function ReviewDataPage() {
               <XAxis dataKey="label" tick={AXIS_TICK} interval={Math.max(1, Math.floor(dailySlice.length / 10))} />
               <YAxis tick={AXIS_TICK} width={28} />
               <RTooltip content={<ChartTip />} />
-              <Area type="monotone" dataKey="submissions" name="Submitted" stroke={AMBER} fill={AMBER} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
-              <Area type="monotone" dataKey="decisions" name="Decided" stroke={TEAL} fill={TEAL} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+              <Area type="monotone" dataKey={dailySubsKey} name="Submitted" stroke={AMBER} fill={AMBER} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+              <Area type="monotone" dataKey={dailyDecKey} name="Decided" stroke={TEAL} fill={TEAL} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
@@ -570,9 +611,12 @@ export default function ReviewDataPage() {
 
       {/* ── Weekly breakdown ── */}
       <div>
-        <SectionLabel tip="Side-by-side weekly view. Orange = submissions in, teal = admin decisions out. These should be roughly balanced for a stable queue.">
-          Weekly throughput
-        </SectionLabel>
+        <div className="flex items-center justify-between mb-4">
+          <SectionLabel tip="Side-by-side weekly view. Orange = submissions in, teal = admin decisions out. These should be roughly balanced for a stable queue.">
+            Weekly throughput
+          </SectionLabel>
+          <StageControl value={weeklyStage} onChange={setWeeklyStage} />
+        </div>
         <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={data.weeklyStats.map(w => ({ ...w, label: w.week.slice(5) }))} barGap={1}>
@@ -580,8 +624,8 @@ export default function ReviewDataPage() {
               <XAxis dataKey="label" tick={AXIS_TICK} />
               <YAxis tick={AXIS_TICK} width={28} />
               <RTooltip content={<ChartTip />} />
-              <RBar dataKey="submissions" name="Submitted" fill={AMBER} radius={[1, 1, 0, 0]} />
-              <RBar dataKey="admin_reviews" name="Decided" fill={TEAL} radius={[1, 1, 0, 0]} />
+              <RBar dataKey={weeklySubsKey} name="Submitted" fill={AMBER} radius={[1, 1, 0, 0]} />
+              <RBar dataKey={weeklyDecKey} name="Decided" fill={TEAL} radius={[1, 1, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
