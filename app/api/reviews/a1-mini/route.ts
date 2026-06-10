@@ -37,17 +37,21 @@ export async function GET() {
   const authCheck = await requirePermission(Permission.REVIEW_PROJECTS)
   if (authCheck.error) return authCheck.error
 
+  // Every review action counts for the person who performed it, at the time
+  // they performed it. First-pass reviews (SubmissionReview) and finalizations/
+  // returns (ProjectReviewAction) are distinct actions created by distinct
+  // flows — no single review creates both — so both earn credit and a
+  // pre-reviewed project credits its first-pass and second-pass reviewers
+  // separately. Stamping credit at the actor's own timestamp keeps weekly
+  // counts append-only: a finalization can never move someone else's review
+  // into a different week.
   const firstPassReviews = await prisma.submissionReview.findMany({
     where: {
       isAdminReview: false,
       invalidated: false,
       createdAt: { gte: EVENT_START, lt: EVENT_END },
     },
-    select: {
-      reviewerId: true,
-      createdAt: true,
-      submission: { select: { projectId: true, stage: true } },
-    },
+    select: { reviewerId: true, createdAt: true },
   })
 
   const pras = await prisma.projectReviewAction.findMany({
@@ -55,54 +59,8 @@ export async function GET() {
       reviewerId: { not: null },
       createdAt: { gte: EVENT_START, lt: EVENT_END },
     },
-    select: {
-      id: true,
-      reviewerId: true,
-      projectId: true,
-      stage: true,
-      createdAt: true,
-    },
+    select: { reviewerId: true, createdAt: true },
   })
-
-  // Resolve first-pass reviewer attribution for PRAs (same logic as windbreaker)
-  const projectIds = Array.from(new Set(pras.map((p) => p.projectId)))
-  const submissions = projectIds.length > 0
-    ? await prisma.projectSubmission.findMany({
-        where: { projectId: { in: projectIds } },
-        select: {
-          id: true,
-          projectId: true,
-          stage: true,
-          createdAt: true,
-          reviews: {
-            where: { isAdminReview: false, invalidated: false },
-            select: { reviewerId: true, createdAt: true },
-          },
-        },
-      })
-    : []
-
-  const submissionsByProjectStage = new Map<string, typeof submissions>()
-  for (const s of submissions) {
-    const key = `${s.projectId}:${s.stage}`
-    const arr = submissionsByProjectStage.get(key) ?? []
-    arr.push(s)
-    submissionsByProjectStage.set(key, arr)
-  }
-  for (const arr of submissionsByProjectStage.values()) {
-    arr.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-  }
-
-  function firstPassReviewerFor(pra: (typeof pras)[number]): string | null {
-    const key = `${pra.projectId}:${pra.stage}`
-    const subs = submissionsByProjectStage.get(key) ?? []
-    const sub = subs.find((s) => s.createdAt.getTime() <= pra.createdAt.getTime())
-    if (!sub) return null
-    const fp = sub.reviews
-      .filter((r) => r.createdAt.getTime() <= pra.createdAt.getTime())
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
-    return fp?.reviewerId ?? null
-  }
 
   // Build per-reviewer per-week counts
   // counts[reviewerId][weekIndex] = number
@@ -119,28 +77,11 @@ export async function GET() {
     }
   }
 
-  // Build PRA lookup for dedup
-  const prasByProjectStage = new Map<string, Array<{ createdAt: Date }>>()
-  for (const pra of pras) {
-    const key = `${pra.projectId}:${pra.stage}`
-    const arr = prasByProjectStage.get(key) ?? []
-    arr.push({ createdAt: pra.createdAt })
-    prasByProjectStage.set(key, arr)
-  }
-
-  for (const pra of pras) {
-    const fpReviewerId = firstPassReviewerFor(pra)
-    const attributedId = fpReviewerId ?? pra.reviewerId
-    if (!attributedId) continue
-    addCount(attributedId, pra.createdAt)
-  }
-
   for (const sr of firstPassReviews) {
-    const key = `${sr.submission.projectId}:${sr.submission.stage}`
-    const pralist = prasByProjectStage.get(key) ?? []
-    const finalized = pralist.some((p) => p.createdAt.getTime() >= sr.createdAt.getTime())
-    if (finalized) continue
     addCount(sr.reviewerId, sr.createdAt)
+  }
+  for (const pra of pras) {
+    if (pra.reviewerId) addCount(pra.reviewerId, pra.createdAt)
   }
 
   // Resolve user info

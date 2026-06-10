@@ -96,35 +96,20 @@ export async function GET() {
     buildQueue.preReviewedCount = 0
   }
 
-  // Reviewer leaderboard stats — count both finalized PRAs and unfinalized first-pass reviews
+  // Reviewer leaderboard stats — every review action counts for the person who
+  // performed it, at the time they performed it. First-pass reviews
+  // (SubmissionReview) and finalizations/returns (ProjectReviewAction) are
+  // distinct actions created by distinct flows, so both earn credit and a
+  // pre-reviewed project credits its first- and second-pass reviewers separately.
   const allReviewActions = await prisma.projectReviewAction.findMany({
     where: { reviewerId: { not: null } },
-    select: {
-      reviewerId: true,
-      projectId: true,
-      stage: true,
-      createdAt: true,
-    },
+    select: { reviewerId: true, createdAt: true },
   })
 
   const allFirstPassReviews = await prisma.submissionReview.findMany({
     where: { isAdminReview: false, invalidated: false },
-    select: {
-      reviewerId: true,
-      createdAt: true,
-      submission: { select: { projectId: true, stage: true } },
-    },
+    select: { reviewerId: true, createdAt: true },
   })
-
-  // Build PRA lookup to deduplicate: don't count a first-pass review if a PRA
-  // already exists for the same project+stage at or after the review time.
-  const prasByProjectStage = new Map<string, Array<{ createdAt: Date }>>()
-  for (const pra of allReviewActions) {
-    const key = `${pra.projectId}:${pra.stage}`
-    const arr = prasByProjectStage.get(key) ?? []
-    arr.push({ createdAt: pra.createdAt })
-    prasByProjectStage.set(key, arr)
-  }
 
   type ReviewEvent = { reviewerId: string; createdAt: Date }
   const allEvents: ReviewEvent[] = []
@@ -133,10 +118,7 @@ export async function GET() {
     if (pra.reviewerId) allEvents.push({ reviewerId: pra.reviewerId, createdAt: pra.createdAt })
   }
   for (const sr of allFirstPassReviews) {
-    const key = `${sr.submission.projectId}:${sr.submission.stage}`
-    const pras = prasByProjectStage.get(key) ?? []
-    const finalized = pras.some((p) => p.createdAt.getTime() >= sr.createdAt.getTime())
-    if (!finalized) allEvents.push({ reviewerId: sr.reviewerId, createdAt: sr.createdAt })
+    allEvents.push({ reviewerId: sr.reviewerId, createdAt: sr.createdAt })
   }
 
   const allReviewerIds = [...new Set(allEvents.map((e) => e.reviewerId))]
