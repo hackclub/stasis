@@ -83,7 +83,11 @@ async function main() {
 
   for (let i = 0; i < toUpdate.length; i += 10) {
     const batch = toUpdate.slice(i, i + 10)
-    await table.update(batch.map((u) => ({ id: u.id, fields: { [FIELD]: u.value } })))
+    // Airtable clears a field when the value is null at runtime, but the SDK
+    // types don't model null — cast through unknown to satisfy the type checker.
+    await table.update(
+      batch.map((u) => ({ id: u.id, fields: { [FIELD]: u.value } })) as unknown as Airtable.RecordData<Airtable.FieldSet>[]
+    )
     console.log(`Updated ${Math.min(i + 10, toUpdate.length)}/${toUpdate.length}`)
     await new Promise((r) => setTimeout(r, 250)) // stay under 5 req/s
   }
