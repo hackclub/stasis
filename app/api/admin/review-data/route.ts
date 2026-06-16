@@ -235,10 +235,27 @@ export async function GET() {
       SELECT * FROM latest_subs ORDER BY submitted_at ASC LIMIT 10
     `,
 
-    // 8: Admin outcomes (all-time)
-    prisma.$queryRaw<{ decision: string; count: number }[]>`
-      SELECT decision::text as decision, COUNT(*)::int as count
-      FROM project_review_action GROUP BY decision ORDER BY decision
+    // 8: Admin outcomes, bucketed by period (today / week / month / all)
+    prisma.$queryRaw<[{
+      approved_today: number; returned_today: number; rejected_today: number;
+      approved_week: number; returned_week: number; rejected_week: number;
+      approved_month: number; returned_month: number; rejected_month: number;
+      approved_all: number; returned_all: number; rejected_all: number;
+    }]>`
+      SELECT
+        COUNT(*) FILTER (WHERE decision = 'APPROVED' AND "createdAt" >= DATE_TRUNC('day', NOW()))::int as approved_today,
+        COUNT(*) FILTER (WHERE decision = 'CHANGE_REQUESTED' AND "createdAt" >= DATE_TRUNC('day', NOW()))::int as returned_today,
+        COUNT(*) FILTER (WHERE decision = 'REJECTED' AND "createdAt" >= DATE_TRUNC('day', NOW()))::int as rejected_today,
+        COUNT(*) FILTER (WHERE decision = 'APPROVED' AND "createdAt" >= DATE_TRUNC('week', NOW()))::int as approved_week,
+        COUNT(*) FILTER (WHERE decision = 'CHANGE_REQUESTED' AND "createdAt" >= DATE_TRUNC('week', NOW()))::int as returned_week,
+        COUNT(*) FILTER (WHERE decision = 'REJECTED' AND "createdAt" >= DATE_TRUNC('week', NOW()))::int as rejected_week,
+        COUNT(*) FILTER (WHERE decision = 'APPROVED' AND "createdAt" >= DATE_TRUNC('month', NOW()))::int as approved_month,
+        COUNT(*) FILTER (WHERE decision = 'CHANGE_REQUESTED' AND "createdAt" >= DATE_TRUNC('month', NOW()))::int as returned_month,
+        COUNT(*) FILTER (WHERE decision = 'REJECTED' AND "createdAt" >= DATE_TRUNC('month', NOW()))::int as rejected_month,
+        COUNT(*) FILTER (WHERE decision = 'APPROVED')::int as approved_all,
+        COUNT(*) FILTER (WHERE decision = 'CHANGE_REQUESTED')::int as returned_all,
+        COUNT(*) FILTER (WHERE decision = 'REJECTED')::int as rejected_all
+      FROM project_review_action
     `,
 
     // 9: Resubmission stats (combined design + build)
@@ -381,8 +398,7 @@ export async function GET() {
   const p = periodCounts[0]
   const rs = resubmitStats[0] ?? { avg_rounds: 0, one: 0, two: 0, three: 0, four_plus: 0 }
 
-  const outcomeMap: Record<string, number> = {}
-  for (const r of adminOutcomes) outcomeMap[r.decision] = r.count
+  const o = adminOutcomes[0]
 
   const turnaroundMap: Record<string, { medianHours: number; p90Hours: number; samples: number }> = {}
   for (const r of turnaroundByStage) {
@@ -428,9 +444,10 @@ export async function GET() {
     backlogAge,
     waitDistribution: waitDistRaw.map(r => ({ day: r.day_bin, design: r.design, build: r.build })),
     outcomes: {
-      approved: outcomeMap.APPROVED ?? 0,
-      returned: outcomeMap.CHANGE_REQUESTED ?? 0,
-      rejected: outcomeMap.REJECTED ?? 0,
+      today: { approved: o.approved_today, returned: o.returned_today, rejected: o.rejected_today },
+      week: { approved: o.approved_week, returned: o.returned_week, rejected: o.rejected_week },
+      month: { approved: o.approved_month, returned: o.returned_month, rejected: o.rejected_month },
+      all: { approved: o.approved_all, returned: o.returned_all, rejected: o.rejected_all },
     },
     resubmissions: {
       avgRounds: Math.round(rs.avg_rounds * 10) / 10,

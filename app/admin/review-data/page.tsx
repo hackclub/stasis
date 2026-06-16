@@ -35,7 +35,7 @@ interface ReviewData {
   reviewFreshness: { bucket: string; count: number; median_age: number }[];
   backlogAge: { stage: string; bucket: string; count: number }[];
   waitDistribution: { day: number; design: number; build: number }[];
-  outcomes: { approved: number; returned: number; rejected: number };
+  outcomes: Record<'today' | 'week' | 'month' | 'all', { approved: number; returned: number; rejected: number }>;
   resubmissions: { avgRounds: number; distribution: { rounds: string; count: number }[] };
   reviewers: {
     id: string; name: string; image: string | null;
@@ -223,6 +223,19 @@ function StageControl({ value, onChange }: Readonly<{ value: StageFilter; onChan
   );
 }
 
+function OutcomeControl({ value, onChange }: Readonly<{ value: SortPeriod; onChange: (v: SortPeriod) => void }>) {
+  return (
+    <div className="flex gap-1">
+      {([['today', 'Day'], ['week', 'Week'], ['month', 'Month'], ['total', 'All']] as const).map(([k, label]) => (
+        <button key={k} onClick={() => onChange(k)}
+          className={`px-2 py-0.5 text-[10px] uppercase tracking-wider border cursor-pointer transition-colors ${
+            value === k ? 'border-cream-50/20 text-cream-50 bg-cream-50/5' : 'border-cream-500/8 text-cream-50/50 hover:text-cream-50/70'
+          }`}>{label}</button>
+      ))}
+    </div>
+  );
+}
+
 function fmtDays(d: number): string {
   if (d < 1) return `${Math.round(d * 24)}h`;
   if (d < 2) return `${Math.floor(d)}d ${Math.round((d % 1) * 24)}h`;
@@ -249,6 +262,7 @@ export default function ReviewDataPage() {
   const [dailyStage, setDailyStage] = useState<StageFilter>('all');
   const [weeklyStage, setWeeklyStage] = useState<StageFilter>('all');
   const [distStage, setDistStage] = useState<StageFilter>('all');
+  const [outcomePeriod, setOutcomePeriod] = useState<SortPeriod>('total');
 
   useEffect(() => {
     fetch('/api/admin/review-data')
@@ -283,13 +297,12 @@ export default function ReviewDataPage() {
     });
 
     const burnDays = avg7d > 0 ? data.queue.total / avg7d : Infinity;
-    const outcomeTotal = data.outcomes.approved + data.outcomes.returned + data.outcomes.rejected;
 
     const AGE_BUCKETS = ['< 1 day', '1-3 days', '3-7 days', '1-2 weeks', '2-4 weeks', '1+ months'];
     const designAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'DESIGN' && r.bucket === b)?.count ?? 0 }));
     const buildAge = AGE_BUCKETS.map(b => ({ bucket: b, count: data.backlogAge.find(r => r.stage === 'BUILD' && r.bucket === b)?.count ?? 0 }));
 
-    return { avg7d, avg30d, avg7s, net7, queueHistory, burnDays, outcomeTotal, withTotals, designAge, buildAge };
+    return { avg7d, avg30d, avg7s, net7, queueHistory, burnDays, withTotals, designAge, buildAge };
   }, [data]);
 
   const sortedReviewers = useMemo(() => {
@@ -309,10 +322,13 @@ export default function ReviewDataPage() {
   const dailyDecKey = dailyStage === 'all' ? 'decisions' : dailyStage === 'design' ? 'design_decisions' : 'build_decisions';
   const weeklySubsKey = weeklyStage === 'all' ? 'submissions' : weeklyStage === 'design' ? 'design_subs' : 'build_subs';
   const weeklyDecKey = weeklyStage === 'all' ? 'admin_reviews' : weeklyStage === 'design' ? 'design_admin' : 'build_admin';
+  const outcomeKey = outcomePeriod === 'total' ? 'all' : outcomePeriod;
+  const selectedOutcomes = data.outcomes[outcomeKey];
+  const outcomeTotal = selectedOutcomes.approved + selectedOutcomes.returned + selectedOutcomes.rejected;
   const outcomePie = [
-    { name: 'Approved', value: data.outcomes.approved },
-    { name: 'Returned', value: data.outcomes.returned },
-    { name: 'Rejected', value: data.outcomes.rejected },
+    { name: 'Approved', value: selectedOutcomes.approved },
+    { name: 'Returned', value: selectedOutcomes.returned },
+    { name: 'Rejected', value: selectedOutcomes.rejected },
   ].filter(d => d.value > 0);
   const outcomeColors = [EMERALD, YELLOW, ROSE];
   const backlogMax = Math.max(...computed.designAge.map(b => b.count), ...computed.buildAge.map(b => b.count), 1);
@@ -584,10 +600,13 @@ export default function ReviewDataPage() {
 
           {/* Outcome donut */}
           <div className="bg-brown-800/50 border border-cream-500/8 p-5">
-            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest mb-2">
-              Admin decisions (all time)
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="text-cream-50/60 text-[10px] uppercase tracking-widest">
+                Admin decisions
+              </div>
+              <OutcomeControl value={outcomePeriod} onChange={setOutcomePeriod} />
             </div>
-            {computed.outcomeTotal > 0 ? (
+            {outcomeTotal > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={150}>
                   <PieChart>
