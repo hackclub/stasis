@@ -259,6 +259,10 @@ export async function GET(
   const navNameSearch = _request.nextUrl.searchParams.get("nameSearch") || ""
   const navPronouns = _request.nextUrl.searchParams.get("pronouns") || ""
   const navAttendees = _request.nextUrl.searchParams.get("prioritizeAttending") === "true"
+  const navTiers = (_request.nextUrl.searchParams.get("tiers") || "")
+    .split(",")
+    .map((t) => parseInt(t, 10))
+    .filter((t) => Number.isInteger(t) && t >= 1 && t <= 5)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navWhere: any = { deletedAt: null }
@@ -276,6 +280,9 @@ export async function GET(
     navWhere.starterProjectId = null
   } else if (navGuide) {
     navWhere.starterProjectId = navGuide
+  }
+  if (navTiers.length > 0) {
+    navWhere.tier = { in: navTiers }
   }
   if (navNameSearch) {
     const statusFilter = navWhere.OR

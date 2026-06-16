@@ -24,6 +24,11 @@ export async function GET(request: NextRequest) {
   const pronounsFilter = url.searchParams.get("pronouns") || "" // filter by user pronouns
   const prioritizeAttending = url.searchParams.get("prioritizeAttending") === "true"
   const regionFilter = url.searchParams.get("region") || "" // "na" or "eu"
+  // Multiselect tier filter, e.g. "tiers=1,2" — only show projects in those tiers.
+  const tierFilter = (url.searchParams.get("tiers") || "")
+    .split(",")
+    .map((t) => parseInt(t, 10))
+    .filter((t) => Number.isInteger(t) && t >= 1 && t <= 5)
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"))
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "50")))
   const offset = (page - 1) * limit
@@ -76,6 +81,11 @@ export async function GET(request: NextRequest) {
     projectWhere.starterProjectId = null
   } else if (guide) {
     projectWhere.starterProjectId = guide
+  }
+
+  // Filter by project tier (multiselect)
+  if (tierFilter.length > 0) {
+    projectWhere.tier = { in: tierFilter }
   }
 
   // Survey response (stasisAttendPlanning) takes precedence over eventPreference:

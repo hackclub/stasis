@@ -328,6 +328,7 @@ export default function ReviewDetailPage() {
   const filterPronouns = searchParams.get('pronouns') || '';
   const filterAttendees = searchParams.get('prioritizeAttending') === 'true';
   const filterRegion = searchParams.get('region') || '';
+  const filterTiers = searchParams.get('tiers') || '';
   const viewAs = searchParams.get('viewAs') || (typeof window !== 'undefined' && sessionStorage.getItem('reviewViewAsFirstPass') === '1' ? 'first-pass' : '');
 
   const filterQS = useMemo(() => {
@@ -339,10 +340,11 @@ export default function ReviewDetailPage() {
     if (filterPronouns) qp.set('pronouns', filterPronouns);
     if (filterAttendees) qp.set('prioritizeAttending', 'true');
     if (filterRegion) qp.set('region', filterRegion);
+    if (filterTiers) qp.set('tiers', filterTiers);
     if (viewAs) qp.set('viewAs', viewAs);
     const s = qp.toString();
     return s ? `?${s}` : '';
-  }, [filterCategory, filterGuide, filterNameSearch, filterSort, filterPronouns, filterAttendees, filterRegion, viewAs]);
+  }, [filterCategory, filterGuide, filterNameSearch, filterSort, filterPronouns, filterAttendees, filterRegion, filterTiers, viewAs]);
 
   // Initialize data + loading from cache on first render so we never flash a
   // spinner when the prefetch already populated it.

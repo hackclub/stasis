@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getTierById } from '@/lib/tiers';
+import { getTierById, TIERS } from '@/lib/tiers';
 import { projects as starterProjects } from '@/app/starter-projects/projects';
 import { useHotkeys, type HotkeyBinding } from '@/lib/hotkeys';
 import HotkeyOverlay from '@/app/components/HotkeyOverlay';
@@ -131,6 +131,7 @@ export default function ReviewQueuePage() {
   const [navigating, setNavigating] = useState(false);
   const [prioritizeAttending, setPrioritizeAttending] = useState(false);
   const [region, setRegion] = useState<'' | 'na' | 'eu'>('');
+  const [selectedTiers, setSelectedTiers] = useState<number[]>([]);
   const [a1mini, setA1mini] = useState<A1MiniResponse | null>(null);
   const [a1miniLoading, setA1miniLoading] = useState(false);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
@@ -169,6 +170,7 @@ export default function ReviewQueuePage() {
       if (filterPronouns) params.set('pronouns', filterPronouns);
       if (prioritizeAttending) params.set('prioritizeAttending', 'true');
       if (region) params.set('region', region);
+      if (selectedTiers.length) params.set('tiers', selectedTiers.join(','));
       if (viewAsFirstPass) params.set('viewAs', 'first-pass');
       params.set('limit', '1');
       const res = await fetch(`/api/reviews?${params}`);
@@ -183,6 +185,7 @@ export default function ReviewQueuePage() {
           if (filterPronouns) qp.set('pronouns', filterPronouns);
           if (prioritizeAttending) qp.set('prioritizeAttending', 'true');
           if (region) qp.set('region', region);
+          if (selectedTiers.length) qp.set('tiers', selectedTiers.join(','));
           if (viewAsFirstPass) qp.set('viewAs', 'first-pass');
           router.push(`/admin/review/${items[0].id}${useOldReviewUi ? '/old' : ''}?${qp}`);
           return;
@@ -204,6 +207,7 @@ export default function ReviewQueuePage() {
       if (guide) baseParams.set('guide', guide);
       if (prioritizeAttending) baseParams.set('prioritizeAttending', 'true');
       if (region) baseParams.set('region', region);
+      if (selectedTiers.length) baseParams.set('tiers', selectedTiers.join(','));
       if (viewAsFirstPass) baseParams.set('viewAs', 'first-pass');
       baseParams.set('limit', '50');
 
@@ -223,7 +227,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, guide, prioritizeAttending, region, viewAsFirstPass]);
+  }, [search, guide, prioritizeAttending, region, selectedTiers, viewAsFirstPass]);
 
   const loadMore = useCallback(async (tab: ReviewTab) => {
     const current = tab === 'DESIGN' ? designData : buildData;
@@ -234,6 +238,7 @@ export default function ReviewQueuePage() {
     if (guide) params.set('guide', guide);
     if (prioritizeAttending) params.set('prioritizeAttending', 'true');
     if (region) params.set('region', region);
+    if (selectedTiers.length) params.set('tiers', selectedTiers.join(','));
     if (viewAsFirstPass) params.set('viewAs', 'first-pass');
     params.set('limit', '50');
     params.set('category', tab);
@@ -252,7 +257,7 @@ export default function ReviewQueuePage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [designData, buildData, search, guide, prioritizeAttending, region, viewAsFirstPass]);
+  }, [designData, buildData, search, guide, prioritizeAttending, region, selectedTiers, viewAsFirstPass]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -577,6 +582,40 @@ export default function ReviewQueuePage() {
             <option value="na">North America</option>
             <option value="eu">Europe</option>
           </select>
+
+          <span className="border-l border-cream-500/30 mx-1 hidden sm:inline-block" />
+
+          <span className="text-xs text-cream-200 uppercase tracking-wider">Tier:</span>
+          {TIERS.map((t) => {
+            const active = selectedTiers.includes(t.id);
+            return (
+              <button
+                key={t.id}
+                onClick={() =>
+                  setSelectedTiers((prev) =>
+                    prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id]
+                  )
+                }
+                title={`${t.name} (${t.bits} bits)`}
+                className={`px-2.5 py-1.5 text-xs uppercase tracking-wider border cursor-pointer ${
+                  active
+                    ? 'border-orange-500 text-orange-400 bg-orange-500/10'
+                    : 'border-cream-500/30 text-cream-100 hover:border-orange-500'
+                }`}
+              >
+                T{t.id}
+              </button>
+            );
+          })}
+          {selectedTiers.length > 0 && (
+            <button
+              onClick={() => setSelectedTiers([])}
+              className="px-2.5 py-1.5 text-xs uppercase tracking-wider border border-cream-500/30 text-cream-200 hover:border-orange-500 cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
+
           {data?.isAdmin && !viewAsFirstPass && (
             <button
               onClick={() => setViewAsFirstPass(true)}
@@ -742,7 +781,7 @@ export default function ReviewQueuePage() {
                       <td className="px-3 py-3 text-center">
                         <div>
                           <Link
-                            href={`/admin/review/${item.id}${useOldReviewUi ? '/old' : ''}?category=${activeTab}${guide ? `&guide=${guide}` : ''}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}${viewAsFirstPass ? '&viewAs=first-pass' : ''}`}
+                            href={`/admin/review/${item.id}${useOldReviewUi ? '/old' : ''}?category=${activeTab}${guide ? `&guide=${guide}` : ''}${prioritizeAttending ? '&prioritizeAttending=true' : ''}${region ? `&region=${region}` : ''}${selectedTiers.length ? `&tiers=${selectedTiers.join(',')}` : ''}${viewAsFirstPass ? '&viewAs=first-pass' : ''}`}
                             className={`inline-block px-3 py-1 text-xs uppercase tracking-wider border transition-colors ${
                               item.claimedByOther
                                 ? 'border-cream-500/20 text-cream-500 cursor-not-allowed'
