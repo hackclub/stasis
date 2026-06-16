@@ -4,7 +4,7 @@ import { Prisma } from '@/app/generated/prisma/client';
 // Cross-admin "last sync" history. One row per successful run; the attendance
 // dashboard reads the most-recent row per syncKey to show "last sync N min ago".
 // Keep keys stable — the UI matches them by literal string.
-export type SyncKey = 'attend' | 'slack' | 'loops_categories' | 'replies';
+export type SyncKey = 'attend' | 'slack' | 'loops_categories' | 'replies' | 'review_checkin';
 
 export async function recordSyncRun(
   syncKey: SyncKey,
