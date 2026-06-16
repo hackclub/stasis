@@ -33,7 +33,9 @@ export async function GET() {
           EXTRACT(EPOCH FROM (NOW() - ps."createdAt")) / 86400.0 as age_days
         FROM project_submission ps
         JOIN project p ON p.id = ps."projectId"
+        JOIN "user" u ON u.id = p."userId"
         WHERE p."deletedAt" IS NULL
+          AND u."fraudConvicted" = false
           AND ((ps.stage = 'DESIGN' AND p."designStatus" = 'in_review')
             OR (ps.stage = 'BUILD' AND p."buildStatus" = 'in_review'))
         ORDER BY ps."projectId", ps.stage, ps."createdAt" DESC
@@ -189,7 +191,9 @@ export async function GET() {
           ps.stage::text as stage
         FROM project_submission ps
         JOIN project p ON p.id = ps."projectId"
+        JOIN "user" u ON u.id = p."userId"
         WHERE p."deletedAt" IS NULL
+          AND u."fraudConvicted" = false
           AND ((ps.stage = 'DESIGN' AND p."designStatus" = 'in_review')
             OR (ps.stage = 'BUILD' AND p."buildStatus" = 'in_review'))
         ORDER BY ps."projectId", ps.stage, ps."createdAt" DESC
@@ -220,7 +224,9 @@ export async function GET() {
           ps."preReviewed" as pre_reviewed
         FROM project_submission ps
         JOIN project p ON p.id = ps."projectId"
+        JOIN "user" u ON u.id = p."userId"
         WHERE p."deletedAt" IS NULL
+          AND u."fraudConvicted" = false
           AND ((ps.stage = 'DESIGN' AND p."designStatus" = 'in_review')
             OR (ps.stage = 'BUILD' AND p."buildStatus" = 'in_review'))
         ORDER BY ps."projectId", ps.stage, ps."createdAt" DESC
@@ -267,9 +273,11 @@ export async function GET() {
       ),
       latest AS (SELECT dc, bc FROM running ORDER BY day DESC LIMIT 1),
       actual AS (
-        SELECT COUNT(*) FILTER (WHERE "designStatus" = 'in_review')::int as da,
-          COUNT(*) FILTER (WHERE "buildStatus" = 'in_review')::int as ba
-        FROM project WHERE "deletedAt" IS NULL
+        SELECT COUNT(*) FILTER (WHERE p."designStatus" = 'in_review')::int as da,
+          COUNT(*) FILTER (WHERE p."buildStatus" = 'in_review')::int as ba
+        FROM project p
+        JOIN "user" u ON u.id = p."userId"
+        WHERE p."deletedAt" IS NULL AND u."fraudConvicted" = false
       ),
       days AS (SELECT generate_series(DATE_TRUNC('day', NOW() - INTERVAL '89 days'), DATE_TRUNC('day', NOW()), '1 day'::interval) as day)
       SELECT TO_CHAR(d.day, 'YYYY-MM-DD') as date,
