@@ -87,8 +87,9 @@ export async function syncTravelReimbursementForm(
       const currentShop = (r.get(F_ACTUAL_SHOP) as number | undefined) ?? 0
 
       const desiredNbId = email ? nbByEmail.get(email) ?? null : null
-      const currentLinks = (r.get(F_NB_LINK) as { id: string }[] | undefined) ?? []
-      const currentNbId = currentLinks[0]?.id ?? null
+      // Airtable returns a linked-record field as an array of record ID strings.
+      const currentLinks = (r.get(F_NB_LINK) as string[] | undefined) ?? []
+      const currentNbId = currentLinks[0] ?? null
 
       const fields: Partial<Airtable.FieldSet> = {}
       if (currentShop !== desiredShop) fields[F_ACTUAL_SHOP] = desiredShop
