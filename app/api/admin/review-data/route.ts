@@ -21,6 +21,7 @@ export async function GET() {
     queueHistoryRaw,
     reviewerRaw,
     periodCounts,
+    waitDistRaw,
   ] = await Promise.all([
     // 0: Queue snapshot — pending counts + wait time percentiles
     prisma.$queryRaw<[{
@@ -338,6 +339,32 @@ export async function GET() {
         (SELECT COUNT(*)::int FROM project_review_action) as decisions_all,
         (SELECT COUNT(*)::int FROM submission_review WHERE invalidated = false) as first_pass_all
     `,
+
+    // 12: Wait-time distribution of the current queue — per-day bins (0..29, 30+ overflow), stage-split
+    prisma.$queryRaw<{ day_bin: number; design: number; build: number }[]>`
+      WITH pending AS (
+        SELECT DISTINCT ON (ps."projectId", ps.stage)
+          EXTRACT(EPOCH FROM (NOW() - ps."createdAt")) / 86400.0 as age_days,
+          ps.stage::text as stage
+        FROM project_submission ps
+        JOIN project p ON p.id = ps."projectId"
+        JOIN "user" u ON u.id = p."userId"
+        WHERE p."deletedAt" IS NULL
+          AND u."fraudConvicted" = false
+          AND ((ps.stage = 'DESIGN' AND p."designStatus" = 'in_review')
+            OR (ps.stage = 'BUILD' AND p."buildStatus" = 'in_review'))
+        ORDER BY ps."projectId", ps.stage, ps."createdAt" DESC
+      ),
+      binned AS (
+        SELECT LEAST(FLOOR(age_days), 30)::int as day_bin, stage FROM pending
+      ),
+      bins AS (SELECT generate_series(0, 30) as day_bin)
+      SELECT b.day_bin::int as day_bin,
+        COUNT(*) FILTER (WHERE binned.stage = 'DESIGN')::int as design,
+        COUNT(*) FILTER (WHERE binned.stage = 'BUILD')::int as build
+      FROM bins b LEFT JOIN binned ON binned.day_bin = b.day_bin
+      GROUP BY b.day_bin ORDER BY b.day_bin
+    `,
   ])
 
   // Fetch reviewer user info
@@ -399,6 +426,7 @@ export async function GET() {
     },
     reviewFreshness,
     backlogAge,
+    waitDistribution: waitDistRaw.map(r => ({ day: r.day_bin, design: r.design, build: r.build })),
     outcomes: {
       approved: outcomeMap.APPROVED ?? 0,
       returned: outcomeMap.CHANGE_REQUESTED ?? 0,

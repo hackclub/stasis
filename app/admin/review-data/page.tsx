@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   AreaChart, Area, BarChart, Bar as RBar, LineChart, Line,
-  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
+  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ReferenceLine,
   Tooltip as RTooltip, ResponsiveContainer,
 } from 'recharts';
 
@@ -34,6 +34,7 @@ interface ReviewData {
   };
   reviewFreshness: { bucket: string; count: number; median_age: number }[];
   backlogAge: { stage: string; bucket: string; count: number }[];
+  waitDistribution: { day: number; design: number; build: number }[];
   outcomes: { approved: number; returned: number; rejected: number };
   resubmissions: { avgRounds: number; distribution: { rounds: string; count: number }[] };
   reviewers: {
@@ -125,6 +126,28 @@ function QueueTip({ active, payload, label, stage = 'all' }: any) {
           <span className={delta > 0 ? 'text-rose-400' : 'text-emerald-400'}>{delta > 0 ? '+' : ''}{delta}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function WaitTip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  const range = d.day >= 30 ? '30+ days waiting' : `${d.day}–${d.day + 1} days waiting`;
+  return (
+    <div className="bg-brown-900/95 border border-cream-500/15 px-3 py-2 text-[11px] font-sans backdrop-blur-sm">
+      <div className="text-cream-50/70 mb-1">{range}</div>
+      {payload.map((e: any, i: number) => (
+        <div key={i} className="flex justify-between gap-5">
+          <span style={{ color: e.color }}>{e.name}</span>
+          <span className="text-cream-50">{e.value}</span>
+        </div>
+      ))}
+      <div className="flex justify-between gap-5 border-t border-cream-500/10 mt-1 pt-1">
+        <span className="text-cream-50/70">Total</span>
+        <span className="text-cream-50">{d.count}</span>
+      </div>
     </div>
   );
 }
@@ -225,6 +248,7 @@ export default function ReviewDataPage() {
   const [queueStage, setQueueStage] = useState<StageFilter>('all');
   const [dailyStage, setDailyStage] = useState<StageFilter>('all');
   const [weeklyStage, setWeeklyStage] = useState<StageFilter>('all');
+  const [distStage, setDistStage] = useState<StageFilter>('all');
 
   useEffect(() => {
     fetch('/api/admin/review-data')
@@ -293,6 +317,11 @@ export default function ReviewDataPage() {
   const outcomeColors = [EMERALD, YELLOW, ROSE];
   const backlogMax = Math.max(...computed.designAge.map(b => b.count), ...computed.buildAge.map(b => b.count), 1);
   const freshnessMax = Math.max(...data.reviewFreshness.map(b => b.count), 1);
+  const waitDist = (data.waitDistribution ?? []).map(d => ({
+    ...d, label: d.day >= 30 ? '30+' : String(d.day), count: d.design + d.build,
+  }));
+  const distLabel = (days: number) => String(Math.min(30, Math.floor(days)));
+  const distHasData = waitDist.some(d => d.count > 0);
 
   return (
     <div className="space-y-10 max-w-[1400px] mx-auto">
@@ -392,6 +421,40 @@ export default function ReviewDataPage() {
       {/* ── Wait times ── */}
       <div>
         <SectionLabel>How long are people waiting?</SectionLabel>
+
+        {/* Wait-time distribution histogram — live queue, per-day bins */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-cream-50/60 text-[10px] uppercase tracking-widest">
+              Wait-time distribution<Tip text="Every project currently in the queue, bucketed by how many days it has been waiting (one bar per day). Dashed lines mark the median and p90 of the current queue. The 30+ bar collects everything a month or older." />
+            </div>
+            <StageControl value={distStage} onChange={setDistStage} />
+          </div>
+          <div className="bg-brown-800/50 border border-cream-500/8 p-4 pb-2">
+            {distHasData ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={waitDist} barCategoryGap={2}>
+                  <CartesianGrid {...GRID_LINE} />
+                  <XAxis dataKey="label" tick={AXIS_TICK} interval={0} />
+                  <YAxis tick={AXIS_TICK} width={28} allowDecimals={false} />
+                  <RTooltip content={<WaitTip />} cursor={{ fill: 'rgba(245,243,239,0.04)' }} />
+                  {distStage !== 'build' && <RBar dataKey="design" stackId="w" name="Design" fill={SKY} />}
+                  {distStage !== 'design' && <RBar dataKey="build" stackId="w" name="Build" fill={VIOLET} />}
+                  <ReferenceLine x={distLabel(data.queue.medianWaitDays)} stroke={AMBER} strokeDasharray="3 3"
+                    label={{ value: `med ${fmtDays(data.queue.medianWaitDays)}`, position: 'top', fill: AMBER, fontSize: 9 }} />
+                  <ReferenceLine x={distLabel(data.queue.p90WaitDays)} stroke={ROSE} strokeDasharray="3 3"
+                    label={{ value: `p90 ${fmtDays(data.queue.p90WaitDays)}`, position: 'top', fill: ROSE, fontSize: 9 }} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="text-cream-50/50 text-xs">No projects in queue</p>}
+            <div className="flex gap-5 mt-1 text-[10px] text-cream-50/55 font-sans pl-8">
+              {distStage !== 'build' && <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block" style={{ background: SKY }} />Design</span>}
+              {distStage !== 'design' && <span className="flex items-center gap-1.5"><span className="w-2 h-2 inline-block" style={{ background: VIOLET }} />Build</span>}
+              <span className="text-cream-50/45">x-axis = days waited · {data.queue.total} pending</span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Current queue age — split by stage */}
