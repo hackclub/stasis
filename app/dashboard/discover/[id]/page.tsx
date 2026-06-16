@@ -375,8 +375,8 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
     return (
       <div className="text-center py-12">
         <p className="text-brown-800">Project not found</p>
-        <Link href="/dashboard/discover" className="text-orange-500 hover:text-orange-400 mt-2 inline-block">
-          ← Back to Discover
+        <Link href={session ? "/dashboard/discover" : "/"} className="text-orange-500 hover:text-orange-400 mt-2 inline-block">
+          ← {session ? 'Back to Discover' : 'Back to Home'}
         </Link>
       </div>
     );
@@ -386,13 +386,13 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
     <div>
       {/* Back link */}
       <Link
-        href="/dashboard/discover"
+        href={session ? "/dashboard/discover" : "/"}
         className="inline-flex items-center gap-1 text-brown-800 hover:text-orange-500 text-sm mb-4 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
-        Back to Discover
+        {session ? 'Back to Discover' : 'Back to Home'}
       </Link>
 
       {/* Hidden Banner */}
@@ -430,7 +430,7 @@ export default function DiscoverProjectPage({ params }: { params: Promise<{ id: 
 
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
             {/* Kudos button */}
-            {!project.isOwner && (
+            {session && !project.isOwner && (
               <button
                 onClick={handleKudos}
                 disabled={kudosLoading}

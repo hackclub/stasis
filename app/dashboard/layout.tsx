@@ -120,7 +120,9 @@ export default function DashboardLayout({
     return null;
   }
 
-  if (!session) {
+  const isPublicDiscoverDetail = !session && /^\/dashboard\/discover\/[^/]+$/.test(pathname);
+
+  if (!session && !isPublicDiscoverDetail) {
     return (
       <>
         <div className="relative min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
@@ -151,6 +153,37 @@ export default function DashboardLayout({
     );
   }
 
+  if (isPublicDiscoverDetail) {
+    return (
+      <>
+        <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden">
+          <div className="pl-3 pr-6 py-2 flex items-center justify-between border-b border-cream-400">
+            <div className="flex items-center gap-4">
+              <Link href="/" className="hover:opacity-80 transition-opacity">
+                <img src="/stasis-logo.svg" alt="Stasis" className="h-10 w-auto" />
+              </Link>
+            </div>
+            <button
+              onClick={() =>
+                signIn.oauth2({
+                  providerId: "hca",
+                  callbackURL: pathname,
+                })
+              }
+              className="bg-orange-500 hover:bg-orange-400 px-4 py-1.5 text-sm uppercase tracking-wider text-white font-medium transition-colors cursor-pointer"
+            >
+              Sign In
+            </button>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            {children}
+          </div>
+        </div>
+        <PlatformNoiseOverlay />
+      </>
+    );
+  }
+
   return (
     <>
       <ImpersonationBanner />
@@ -168,11 +201,11 @@ export default function DashboardLayout({
           </div>
           <div className="flex items-center gap-4 sm:gap-6">
             <UserMenu
-              userId={session.user.id}
+              userId={session!.user.id}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              name={(session.user as any).slackDisplayName || session.user.name || session.user.email || ''}
-              email={session.user.email}
-              image={session.user.image}
+              name={(session!.user as any).slackDisplayName || session!.user.name || session!.user.email || ''}
+              email={session!.user.email}
+              image={session!.user.image}
               isAdmin={hasRole(Role.ADMIN)}
               isReviewer={hasRole(Role.REVIEWER)}
               isAuditor={hasRole(Role.AUDITOR)}

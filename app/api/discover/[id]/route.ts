@@ -10,12 +10,7 @@ export async function GET(
 ) {
   const { id } = await params;
   const session = await auth.api.getSession({ headers: await headers() });
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
+  const userId = session?.user?.id ?? null;
 
   const project = await prisma.project.findUnique({
     where: { id },
@@ -40,14 +35,18 @@ export async function GET(
           workSessions: true,
         },
       },
-      kudos: {
-          where: { userId },
-          select: { id: true },
-        },
+      ...(userId
+        ? {
+            kudos: {
+              where: { userId },
+              select: { id: true },
+            },
+          }
+        : {}),
     },
   });
 
-  const roles = await getUserRoles(userId);
+  const roles = userId ? await getUserRoles(userId) : [];
   const isAdmin = hasRole(roles, Role.ADMIN);
 
   if (!project || project.deletedAt || (project.hiddenFromGallery && !isAdmin)) {
@@ -75,8 +74,8 @@ export async function GET(
     badges: project.badges,
     kudosCount: project._count.kudos,
     sessionCount: project._count.workSessions,
-    hasGivenKudos: (project.kudos as { id: string }[]).length > 0,
-    isOwner: userId === project.userId,
+    hasGivenKudos: userId ? (project.kudos as { id: string }[]).length > 0 : false,
+    isOwner: userId ? userId === project.userId : false,
     isAdmin,
   });
 }
