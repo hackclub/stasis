@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import dynamic from 'next/dynamic';
 import type { CadFilesPayload, CadFile, CadFileKind, KiCadProject, GerberGroup } from '@/lib/cad-discovery';
-import { rawGitHubUrl, fetchCadFileContent } from '@/lib/cad-fetch';
+import { rawGitHubUrl } from '@/lib/cad-fetch';
 
 const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
 const ModelViewer = dynamic(() => import('@/app/components/cad-viewers/ModelViewer'), { ssr: false });
@@ -123,9 +123,8 @@ function ActiveViewer({
 }: Readonly<{ selection: Selection; cadData: CadFilesPayload; onImageHover?: (url: string | null, e?: MouseEvent) => void }>) {
   const { owner, repo, branch } = cadData;
 
-  if (selection.type === 'readme') {
-    return <ReadmePane owner={owner} repo={repo} branch={branch} onImageHover={onImageHover} />;
-  }
+  // 'readme' is handled by the parent (FileBrowser) so the README path/content
+  // is fetched once and shared with the inventory row — never reaches here.
 
   if (selection.type === 'kicad') {
     const proj = selection.project;
@@ -174,9 +173,47 @@ function ActiveViewer({
   );
 }
 
-function resolveReadmeUrls(md: string, owner: string, repo: string, branch: string): string {
-  const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}`;
-  const ghBase = `https://github.com/${owner}/${repo}/blob/${branch}`;
+interface ReadmeData { content: string; path: string; dir: string; }
+
+// Resolve a repo's README via the server (GitHub's /readme endpoint), which
+// finds it regardless of casing/extension/location — unlike a raw fetch of a
+// literal `README.md`. Returns null when the repo genuinely has no README.
+function useReadme(owner: string, repo: string, branch: string): { data: ReadmeData | null; loading: boolean } {
+  const [data, setData] = useState<ReadmeData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!owner || !repo) { setData(null); setLoading(false); return; }
+    let cancelled = false;
+    const ctrl = new AbortController();
+    setLoading(true); setData(null);
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/github/readme?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&ref=${encodeURIComponent(branch)}`,
+          { signal: ctrl.signal },
+        );
+        if (!res.ok) throw new Error(`README fetch failed: ${res.status}`);
+        const json = await res.json();
+        if (!cancelled) setData({ content: json.content, path: json.path, dir: json.dir ?? '' });
+      } catch {
+        if (!cancelled) setData(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; ctrl.abort(); };
+  }, [owner, repo, branch]);
+
+  return { data, loading };
+}
+
+function resolveReadmeUrls(md: string, owner: string, repo: string, branch: string, dir: string): string {
+  const suffix = dir ? `/${dir}` : '';
+  const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}${suffix}`;
+  const ghBase = `https://github.com/${owner}/${repo}/blob/${branch}${suffix}`;
   return md
     .replace(/([^\n])\n(!\[)/g, '$1\n\n$2')
     .replace(/(!\[.*?\]\(.*?\))\n([^\n])/g, '$1\n\n$2')
@@ -188,12 +225,14 @@ function resolveReadmeUrls(md: string, owner: string, repo: string, branch: stri
     .replace(/(<a\b[^>]*\bhref=)(["'])(?!https?:\/\/|mailto:|#)([^"']+)\2/gi, `$1$2${ghBase}/$3$2`);
 }
 
-function ReadmePane({ owner, repo, branch, onImageHover }: Readonly<{ owner: string; repo: string; branch: string; onImageHover?: (url: string | null, e?: MouseEvent) => void }>) {
+function ReadmePane({ content, dir, loading, owner, repo, branch, onImageHover }: Readonly<{ content: string | null; dir: string; loading: boolean; owner: string; repo: string; branch: string; onImageHover?: (url: string | null, e?: MouseEvent) => void }>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hoverRef = useRef(onImageHover);
   hoverRef.current = onImageHover;
-  const [md, setMd] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const md = useMemo(
+    () => (content == null ? null : resolveReadmeUrls(content, owner, repo, branch, dir)),
+    [content, dir, owner, repo, branch],
+  );
 
   useEffect(() => {
     const el = containerRef.current;
@@ -219,25 +258,6 @@ function ReadmePane({ owner, repo, branch, onImageHover }: Readonly<{ owner: str
       el.removeEventListener('mouseleave', onLeave);
     };
   }, [md]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const ctrl = new AbortController();
-    setLoading(true); setMd(null);
-
-    (async () => {
-      try {
-        const buf = await fetchCadFileContent(rawGitHubUrl(owner, repo, branch, 'README.md'), ctrl.signal);
-        if (!cancelled) setMd(resolveReadmeUrls(new TextDecoder().decode(buf), owner, repo, branch));
-      } catch {
-        if (!cancelled) setMd(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; ctrl.abort(); };
-  }, [owner, repo, branch]);
 
   if (loading) return <div className="flex-1 flex items-center justify-center text-cream-300 text-xs">Loading README...</div>;
   if (!md) return <div className="flex-1 flex items-center justify-center text-cream-400 text-xs">No README found</div>;
@@ -358,6 +378,9 @@ export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKin
         } catch { return null; }
       })() : null;
 
+  // Called unconditionally (rules of hooks); no-ops when the repo is unresolved.
+  const { data: readme, loading: readmeLoading } = useReadme(repoInfo?.owner ?? '', repoInfo?.repo ?? '', repoInfo?.branch ?? '');
+
   if (!repoInfo) {
     return (
       <div className="flex-1 flex items-center justify-center text-cream-300 text-xs px-4 text-center">
@@ -403,11 +426,12 @@ export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKin
         <InventoryRow
           tag="DOC"
           tagColor="text-cream-200"
-          label="README.md"
+          label={readme ? fName(readme.path) : 'README'}
+          sublabel={readme && fDir(readme.path) ? fDir(readme.path) + '/' : undefined}
           selected={currentKey === 'readme'}
           viewable
           onClick={() => select({ type: 'readme' })}
-          githubUrl={`https://github.com/${owner}/${repo}/blob/${branch}/README.md`}
+          githubUrl={`https://github.com/${owner}/${repo}/blob/${branch}/${readme?.path ?? 'README.md'}`}
         />
         {activeKinds.map((kind, ki) => (
           <div key={kind}>
@@ -494,7 +518,7 @@ export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKin
           <div className="flex items-center justify-between px-3 py-1.5 bg-brown-900 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-orange-400 text-[9px] font-medium tracking-widest uppercase tabular-nums shrink-0">{viewerTag(selection)}</span>
-              <span className="text-cream-50 text-[10px] font-medium truncate">{viewerLabel(selection)}</span>
+              <span className="text-cream-50 text-[10px] font-medium truncate">{selection.type === 'readme' && readme ? fName(readme.path) : viewerLabel(selection)}</span>
             </div>
             <button
               onClick={() => setSelection(null)}
@@ -503,10 +527,10 @@ export default function FileBrowser({ cadData, githubRepo, focusKind, onFocusKin
               Close
             </button>
           </div>
-          {cadData ? (
+          {selection.type === 'readme' ? (
+            <ReadmePane content={readme?.content ?? null} dir={readme?.dir ?? ''} loading={readmeLoading} owner={owner} repo={repo} branch={branch} onImageHover={onImageHover} />
+          ) : cadData ? (
             <ActiveViewer selection={selection} cadData={cadData} onImageHover={onImageHover} />
-          ) : selection.type === 'readme' ? (
-            <ReadmePane owner={owner} repo={repo} branch={branch} onImageHover={onImageHover} />
           ) : (
             <div className="flex-1 flex items-center justify-center text-cream-300 text-xs">
               Index files to preview
