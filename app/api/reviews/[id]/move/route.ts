@@ -44,6 +44,15 @@ export async function POST(
   const fromStageKey = submission.stage === "DESIGN" ? "design" : "build"
   const toStageKey = targetStage === "DESIGN" ? "design" : "build"
 
+  // Moving DESIGN→BUILD means the admin is vouching for the design and skipping
+  // its review. Mark the design "approved" rather than "draft": "draft" lets the
+  // user re-submit a design, spinning up a parallel design review that gets
+  // orphaned in the queue once the build is approved (build approval never
+  // reconciles design status). "approved" also satisfies the build-submit
+  // precondition (designStatus === "approved"). Moving BUILD→DESIGN keeps the
+  // build "draft" — the user can't re-submit build while design is in review.
+  const fromStatus = submission.stage === "DESIGN" ? "approved" : "draft"
+
   await prisma.$transaction([
     prisma.projectSubmission.update({
       where: { id },
@@ -52,7 +61,7 @@ export async function POST(
     prisma.project.update({
       where: { id: submission.projectId },
       data: {
-        [`${fromStageKey}Status`]: "draft",
+        [`${fromStageKey}Status`]: fromStatus,
         [`${toStageKey}Status`]: "in_review",
       },
     }),

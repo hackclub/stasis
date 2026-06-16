@@ -217,6 +217,49 @@ export async function PATCH(
     }
   }
 
+  // Reconcile an orphaned design review: design stuck "in_review" while the build
+  // is already approved. This happens when an admin moves a project DESIGN→BUILD
+  // (older move behavior left design "draft", letting the user re-submit a design)
+  // and the build then gets approved — build approval never touches design status,
+  // so the stale design submission lingers in the review queue forever.
+  // This only flips the status flag (build approval already paid out bits, so
+  // running the normal design-approval bits logic would double-count). It refuses
+  // unless the build is actually approved, so it can't skip design review on a
+  // live project.
+  if (action === "reconcile_design") {
+    if (project.buildStatus !== "approved") {
+      return NextResponse.json(
+        { error: "build_not_approved", message: `Build is not approved (status: ${project.buildStatus}); refusing to mark design approved` },
+        { status: 400 },
+      )
+    }
+    if (project.designStatus === "approved") {
+      return NextResponse.json({ designStatus: "approved", alreadyReconciled: true })
+    }
+    if (project.designStatus !== "in_review") {
+      return NextResponse.json(
+        { error: "design_not_in_review", message: `Design status is "${project.designStatus}", not "in_review"; nothing to reconcile` },
+        { status: 400 },
+      )
+    }
+
+    await prisma.project.update({
+      where: { id },
+      data: {
+        designStatus: "approved",
+        designReviewedAt: new Date(),
+        designReviewedBy: adminId,
+      },
+    })
+
+    await logAdminAction(AuditAction.ADMIN_APPROVE_DESIGN, adminId, adminEmail, "Project", id, {
+      action: "reconcile_design",
+      note: "Marked orphaned design approved (build already approved); no bits awarded",
+    })
+
+    return NextResponse.json({ designStatus: "approved", reconciled: true })
+  }
+
   if (action === "update_grant") {
     const { grantAmount } = body
     if (typeof grantAmount !== "number" || grantAmount < 0) {

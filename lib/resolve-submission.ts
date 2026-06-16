@@ -20,11 +20,6 @@ export async function resolveSubmissionId(id: string): Promise<string | null> {
       id: true,
       designStatus: true,
       buildStatus: true,
-      submissions: {
-        orderBy: { createdAt: "desc" as const },
-        take: 1,
-        select: { id: true, stage: true },
-      },
     },
   })
   if (!project) return null
@@ -35,8 +30,16 @@ export async function resolveSubmissionId(id: string): Promise<string | null> {
 
   if (!activeStage) return null
 
-  // Use existing submission for this stage
-  const existing = project.submissions.find((s) => s.stage === activeStage)
+  // Use the most recent existing submission FOR THE ACTIVE STAGE. Don't grab the
+  // single newest submission and then filter by stage — if the newest happens to
+  // be a different stage (e.g. a BUILD submission while design is back in review),
+  // that filter misses the perfectly-good same-stage submission and we'd spawn a
+  // duplicate below.
+  const existing = await prisma.projectSubmission.findFirst({
+    where: { projectId: project.id, stage: activeStage },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  })
   if (existing) return existing.id
 
   // Auto-create one
