@@ -41,7 +41,7 @@ export interface TravelSyncResult {
   updated: number
   flightStipendAttendees: number
   needBasedRecords: number
-  changes: { email: string; id: string; fields: Record<string, unknown> }[]
+  changes: { email: string; id: string; fields: Partial<Airtable.FieldSet> }[]
 }
 
 /** email (lowercased) -> Need Based Stipends record id. */
@@ -75,7 +75,7 @@ export async function syncTravelReimbursementForm(
   const nbByEmail = await getNeedBasedRecordByEmail(base)
 
   const table = base(TRAVEL_TABLE_ID)
-  const toUpdate: { id: string; email: string; fields: Record<string, unknown> }[] = []
+  const toUpdate: { id: string; email: string; fields: Partial<Airtable.FieldSet> }[] = []
   let scanned = 0
 
   await table.select({ fields: [F_EMAIL, F_ACTUAL_SHOP, F_NB_LINK] }).eachPage((records, next) => {
@@ -90,7 +90,7 @@ export async function syncTravelReimbursementForm(
       const currentLinks = (r.get(F_NB_LINK) as { id: string }[] | undefined) ?? []
       const currentNbId = currentLinks[0]?.id ?? null
 
-      const fields: Record<string, unknown> = {}
+      const fields: Partial<Airtable.FieldSet> = {}
       if (currentShop !== desiredShop) fields[F_ACTUAL_SHOP] = desiredShop
       if (currentNbId !== desiredNbId) fields[F_NB_LINK] = desiredNbId ? [desiredNbId] : []
 

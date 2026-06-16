@@ -125,6 +125,7 @@ function ActiveViewer({
 
   // 'readme' is handled by the parent (FileBrowser) so the README path/content
   // is fetched once and shared with the inventory row — never reaches here.
+  if (selection.type === 'readme') return null;
 
   if (selection.type === 'kicad') {
     const proj = selection.project;
