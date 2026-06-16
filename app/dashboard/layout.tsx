@@ -120,9 +120,9 @@ export default function DashboardLayout({
     return null;
   }
 
-  const isPublicDiscoverDetail = !session && /^\/dashboard\/discover\/[^/]+$/.test(pathname);
+  const isPublicDetail = !session && /^\/dashboard\/(discover|profile)\/[^/]+$/.test(pathname);
 
-  if (!session && !isPublicDiscoverDetail) {
+  if (!session && !isPublicDetail) {
     return (
       <>
         <div className="relative min-h-screen flex items-center justify-center bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono">
@@ -153,7 +153,7 @@ export default function DashboardLayout({
     );
   }
 
-  if (isPublicDiscoverDetail) {
+  if (isPublicDetail) {
     return (
       <>
         <div className="min-h-screen bg-[linear-gradient(#DAD2BF99,#DAD2BF99),url(/noise-smooth.png)] font-mono relative overflow-hidden">
