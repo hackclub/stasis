@@ -23,6 +23,12 @@ interface ActivityDay {
   date: string;
   hours: number;
   sessions: number;
+  projects?: {
+    projectId: string;
+    title: string;
+    hours: number;
+    sessions: number;
+  }[];
 }
 
 interface ProfileData {
@@ -120,8 +126,8 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     return (
       <div className="text-center py-12">
         <p className="text-brown-800">Profile not found</p>
-        <Link href="/dashboard" className="text-orange-500 hover:text-orange-400 mt-2 inline-block">
-          ← Back to Dashboard
+        <Link href={session ? "/dashboard" : "/"} className="text-orange-500 hover:text-orange-400 mt-2 inline-block">
+          ← {session ? 'Back to Dashboard' : 'Back to Home'}
         </Link>
       </div>
     );
@@ -130,13 +136,13 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   return (
     <div>
       <Link
-        href="/dashboard"
+        href={session ? "/dashboard" : "/"}
         className="inline-flex items-center gap-1 text-brown-800 hover:text-orange-500 text-sm mb-4 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
-        Back to Dashboard
+        {session ? 'Back to Dashboard' : 'Back to Home'}
       </Link>
 
       <div className="flex flex-col lg:flex-row gap-10">

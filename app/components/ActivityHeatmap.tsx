@@ -2,10 +2,18 @@
 
 import { useMemo, useState } from 'react';
 
+interface ProjectBreakdown {
+  projectId: string;
+  title: string;
+  hours: number;
+  sessions: number;
+}
+
 interface ActivityDay {
   date: string; // YYYY-MM-DD
   hours: number;
   sessions: number;
+  projects?: ProjectBreakdown[];
 }
 
 interface Props {
@@ -86,6 +94,7 @@ export function ActivityHeatmap({ activity, memberSince }: Props) {
         date: dateStr,
         hours: existing?.hours ?? 0,
         sessions: existing?.sessions ?? 0,
+        projects: existing?.projects ?? [],
         future: isFuture,
       });
 
@@ -242,20 +251,33 @@ export function ActivityHeatmap({ activity, memberSince }: Props) {
       {/* Tooltip */}
       {tooltip?.day && (
         <div
-          className="fixed z-50 pointer-events-none bg-brown-800 text-cream-100 text-xs px-2 py-1 -translate-x-1/2 -translate-y-full"
+          className="fixed z-50 pointer-events-none bg-brown-800 text-cream-100 text-xs px-3 py-2 -translate-x-1/2 -translate-y-full w-max max-w-[18rem]"
           style={{ left: tooltip.x, top: tooltip.y - 6 }}
         >
+          <div className="text-cream-300 uppercase tracking-wide text-[10px]">
+            {formatDate(tooltip.day.date)}
+          </div>
           {tooltip.day.sessions > 0 ? (
             <>
-              <span className="font-bold">{Math.round(tooltip.day.hours * 10) / 10}h</span>
-              {' · '}
-              {tooltip.day.sessions} session{tooltip.day.sessions !== 1 ? 's' : ''}
-              {' · '}
+              <div className="mt-0.5">
+                <span className="font-bold text-orange-400">{Math.round(tooltip.day.hours * 10) / 10}h</span>
+                {' · '}
+                {tooltip.day.sessions} session{tooltip.day.sessions !== 1 ? 's' : ''}
+              </div>
+              {tooltip.day.projects && tooltip.day.projects.length > 0 && (
+                <div className="mt-1.5 pt-1.5 border-t border-brown-600 flex flex-col gap-0.5">
+                  {tooltip.day.projects.map((p) => (
+                    <div key={p.projectId} className="flex items-baseline justify-between gap-3">
+                      <span className="truncate min-w-0">{p.title}</span>
+                      <span className="text-cream-300 whitespace-nowrap">{Math.round(p.hours * 10) / 10}h</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
-            <span>No activity · </span>
+            <div className="mt-0.5 text-cream-400">No activity</div>
           )}
-          {formatDate(tooltip.day.date)}
         </div>
       )}
     </div>

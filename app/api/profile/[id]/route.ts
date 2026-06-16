@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+  // Profiles are public — viewable without an account.
   const { id } = await params
 
   const user = await prisma.user.findUnique({
@@ -53,7 +47,8 @@ export async function GET(
   `
   const pendingBitsAmount = Number(pendingRows[0]?.pending ?? 0)
 
-  // Aggregate work sessions by date for activity heatmap
+  // Aggregate work sessions by date for activity heatmap, with a
+  // per-project breakdown so the UI can show what was worked on each day.
   const workSessions = await prisma.workSession.findMany({
     where: {
       project: { userId: id, deletedAt: null },
@@ -61,21 +56,37 @@ export async function GET(
     select: {
       createdAt: true,
       hoursClaimed: true,
+      projectId: true,
+      project: { select: { title: true } },
     },
   })
 
-  const activityMap = new Map<string, { hours: number; sessions: number }>()
+  type ProjectBreakdown = { projectId: string; title: string; hours: number; sessions: number }
+  type DayAgg = { hours: number; sessions: number; projects: Map<string, ProjectBreakdown> }
+  const activityMap = new Map<string, DayAgg>()
   for (const ws of workSessions) {
     const dateStr = ws.createdAt.toISOString().slice(0, 10)
-    const existing = activityMap.get(dateStr) || { hours: 0, sessions: 0 }
+    const existing = activityMap.get(dateStr) || { hours: 0, sessions: 0, projects: new Map() }
     existing.hours += ws.hoursClaimed
     existing.sessions += 1
+    const proj = existing.projects.get(ws.projectId) || {
+      projectId: ws.projectId,
+      title: ws.project.title,
+      hours: 0,
+      sessions: 0,
+    }
+    proj.hours += ws.hoursClaimed
+    proj.sessions += 1
+    existing.projects.set(ws.projectId, proj)
     activityMap.set(dateStr, existing)
   }
   const activity = Array.from(activityMap.entries()).map(([date, data]) => ({
     date,
     hours: Math.round(data.hours * 100) / 100,
     sessions: data.sessions,
+    projects: Array.from(data.projects.values())
+      .map((p) => ({ ...p, hours: Math.round(p.hours * 100) / 100 }))
+      .sort((a, b) => b.hours - a.hours),
   }))
 
   const projects = await prisma.project.findMany({
