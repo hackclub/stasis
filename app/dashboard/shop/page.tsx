@@ -311,6 +311,14 @@ export default function ShopPage() {
   }
 
   const confirmedBits = bitsBalance - pendingBits;
+  // Headline figure only: never show a negative balance. `confirmedBits` can go
+  // negative for users who bought pending-eligible items (invite/accommodation)
+  // against bits still in review — the offsetting credit is pending, so the
+  // confirmed-only view double-counts the spend. That's an accounting internal,
+  // not real debt (their actual balance is >= 0), so clamp it for display.
+  // NOTE: do not use this for spend gating — getEffectiveBalance still uses the
+  // true confirmedBits below.
+  const spendableBits = Math.max(0, confirmedBits);
   const openSauceItem = SHOP_ITEMS.find(item => item.id === SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
   const flightItem = SHOP_ITEMS.find(item => item.category === 'flight_stipend');
   const hasOpenSauceTicket = purchasedItems.has(SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
@@ -327,8 +335,8 @@ export default function ShopPage() {
       <div className="bg-cream-100 border-2 border-cream-400 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-orange-500 text-lg uppercase tracking-wide">Your Bits Balance</h2>
-            <p className="text-brown-800 text-4xl font-bold">{confirmedBits.toLocaleString()}&nbsp;Bits</p>
+            <h2 className="text-orange-500 text-lg uppercase tracking-wide">Available to Spend</h2>
+            <p className="text-brown-800 text-4xl font-bold">{spendableBits.toLocaleString()}&nbsp;Bits</p>
             {pendingBits > 0 && (
               <p className="text-cream-600 text-sm">{pendingBits.toLocaleString()} bits pending build review</p>
             )}

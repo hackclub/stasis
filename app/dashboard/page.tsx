@@ -265,7 +265,11 @@ export default function ProjectsPage() {
   const pendingBadges = allBadges.filter(b => b.grantedAt === null);
 
   const actualBits = bitsBalance ?? 0;
-  const confirmedBits = actualBits - pendingBits;
+  // Clamp at 0 for display: confirmed bits can be negative when a user spent
+  // pending-eligible items (invite/accommodation) against bits still in review.
+  // That's an accounting artifact, not real debt — never surface it as a
+  // negative number or a negative-width progress segment.
+  const confirmedBits = Math.max(0, actualBits - pendingBits);
 
   // Progress bar calculations
   const isPrizesGoal = goalPreference === 'prizes';
