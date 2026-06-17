@@ -371,7 +371,7 @@ export default function ReviewQueuePage() {
                     : 'bg-brown-900 text-cream-100 hover:bg-cream-500/10'
                 }`}
               >
-                24 Hours
+                Today
               </button>
               <button
                 onClick={() => setStatsTab('weekly')}
