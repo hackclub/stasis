@@ -18,6 +18,18 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  account: {
+    accountLinking: {
+      enabled: true,
+      // Hackatime is a separate identity from HCA, so a user's Hackatime
+      // signup email rarely matches their HCA email. Without this, Better
+      // Auth's link flow bails with "email_doesn't_match" and the account is
+      // never created (the error is swallowed into a /dashboard redirect by
+      // app/api/auth/[...all]/route.ts, so it just looks like a no-op refresh).
+      allowDifferentEmails: true,
+      trustedProviders: ["hca", "hackatime"],
+    },
+  },
   user: {
     additionalFields: {
       slackId: {
