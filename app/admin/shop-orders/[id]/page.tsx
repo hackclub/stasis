@@ -79,6 +79,22 @@ function statusBannerHeadline(status: OrderDetail['status']): string {
   }
 }
 
+// HCA stores country as an ISO 3166-1 alpha-2 code (e.g. "US"). Render the full
+// name when it resolves to a known region, otherwise fall back to the raw value.
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+function countryName(country: string | null): string | null {
+  if (!country) return null;
+  const code = country.trim();
+  if (/^[A-Za-z]{2}$/.test(code)) {
+    try {
+      return regionNames.of(code.toUpperCase()) ?? country;
+    } catch {
+      return country;
+    }
+  }
+  return country;
+}
+
 function formatAddressBlock(a: HcaAddress): string {
   const name = [a.first_name, a.last_name].filter(Boolean).join(' ');
   const lines = [
@@ -86,7 +102,7 @@ function formatAddressBlock(a: HcaAddress): string {
     a.line_1,
     a.line_2,
     [a.city, a.state, a.postal_code].filter(Boolean).join(', '),
-    a.country,
+    countryName(a.country),
     a.phone_number,
   ].filter(Boolean);
   return lines.join('\n');
@@ -278,7 +294,7 @@ export default function ShopOrderDetailPage() {
                 <CopyableField label="City" value={order.address.city} />
                 <CopyableField label="State" value={order.address.state} />
                 <CopyableField label="Postal code" value={order.address.postal_code} toastLabel="Postal code" />
-                <CopyableField label="Country" value={order.address.country} />
+                <CopyableField label="Country" value={countryName(order.address.country)} />
                 <CopyableField label="Phone" value={order.phone} />
               </div>
             ) : (
