@@ -33,6 +33,13 @@ export const BOM_PATTERN = /(^|\/)[^/]*bom[^/]*\.csv$/i;
 
 // --- GitHub API helpers ---
 
+// GitHub usernames/orgs and repo names only ever contain these characters.
+// Enforcing this here is the single chokepoint that stops a crafted repo URL
+// (e.g. `github.com/foo/..%2f..%2fadmin`) from injecting extra path segments or
+// traversal into the gh-proxy URL built by `ghFetch`. Every ghFetch caller
+// resolves its owner/repo through this function, so validating once covers them.
+const GH_SEGMENT = /^[A-Za-z0-9._-]+$/;
+
 export function parseGitHubRepo(url: string): { owner: string; repo: string } | null {
   try {
     const normalized = /^https?:\/\//i.test(url) ? url : `https://${url}`;
@@ -40,7 +47,10 @@ export function parseGitHubRepo(url: string): { owner: string; repo: string } | 
     if (!u.hostname.includes('github.com')) return null;
     const parts = u.pathname.split('/').filter(Boolean);
     if (parts.length < 2) return null;
-    return { owner: parts[0], repo: parts[1].replace(/\.git$/, '') };
+    const owner = parts[0];
+    const repo = parts[1].replace(/\.git$/, '');
+    if (!GH_SEGMENT.test(owner) || !GH_SEGMENT.test(repo)) return null;
+    return { owner, repo };
   } catch {
     return null;
   }

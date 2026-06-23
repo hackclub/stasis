@@ -20,6 +20,13 @@ const { PI, cos, sin, atan2, sqrt, abs, min, max, floor, round } = Math;
 const TAU = 2 * PI;
 const DEG = PI / 180;
 
+// Hostile Gerber files can declare an enormous step-repeat (e.g. %SRX99999Y99999%)
+// whose expansion is xRepeats * yRepeats * blockCommands. Left unbounded this hangs
+// or OOMs the reviewer's browser. Cap both the repeat grid and the total emitted
+// command count so a malicious file degrades to a partial render instead of a DoS.
+const MAX_SR_INSTANCES = 10_000;
+const MAX_TOTAL_COMMANDS = 2_000_000;
+
 // --- Coordinate unpacking ---
 
 function unpackCoord(
@@ -489,7 +496,11 @@ export function compile(ast: AstNode[]): CompilationResult {
     return compiledApertures.get(id);
   }
 
+  let totalEmitted = 0;
+
   function emit(cmd: DrawCmd): void {
+    if (totalEmitted >= MAX_TOTAL_COMMANDS) return;
+    totalEmitted++;
     commands.push(cmd);
     expandBBoxFromCmd(bounds, cmd, compiledApertures);
   }
@@ -585,8 +596,12 @@ export function compile(ast: AstNode[]): CompilationResult {
           const sr = srStack.pop()!;
           const blockCmds = commands;
           commands = sr.commands;
-          for (let xi = 0; xi < sr.xRepeats; xi++) {
-            for (let yi = 0; yi < sr.yRepeats; yi++) {
+          // Clamp the repeat grid so a malicious SR can't blow up expansion.
+          // Non-positive / NaN counts fall back to 1 (a single placement).
+          const xRepeats = max(1, min(sr.xRepeats || 1, MAX_SR_INSTANCES));
+          const yRepeats = max(1, min(sr.yRepeats || 1, floor(MAX_SR_INSTANCES / xRepeats) || 1));
+          for (let xi = 0; xi < xRepeats; xi++) {
+            for (let yi = 0; yi < yRepeats; yi++) {
               const dx = xi * sr.xDelta;
               const dy = yi * sr.yDelta;
               for (const cmd of blockCmds) {

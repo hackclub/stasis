@@ -2,8 +2,25 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import dynamic from 'next/dynamic';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import type { CadFilesPayload, CadFile, CadFileKind, KiCadProject, GerberGroup } from '@/lib/cad-discovery';
 import { rawGitHubUrl } from '@/lib/cad-fetch';
+
+// READMEs come from arbitrary, attacker-controlled GitHub repos and are rendered
+// with raw HTML enabled (rehype-raw is on by default in @uiw/react-md-editor with
+// NO sanitizer). Without this, a malicious README is stored XSS against any
+// reviewer/admin who opens the file browser. rehype-sanitize runs on the parsed
+// hast tree AFTER rehype-raw, so fenced code blocks (which legitimately contain
+// `<script>` etc. as text) are preserved while real injected HTML is stripped.
+// We broaden the default (GitHub) schema only to keep `class`/`className` so
+// syntax highlighting and component styling survive — class names are inert.
+const README_SANITIZE_SCHEMA = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': [...(defaultSchema.attributes?.['*'] ?? []), 'className', 'class'],
+  },
+};
 
 const KiCanvasEmbed = dynamic(() => import('@/app/components/KiCanvasEmbed'), { ssr: false });
 const ModelViewer = dynamic(() => import('@/app/components/cad-viewers/ModelViewer'), { ssr: false });
@@ -269,7 +286,7 @@ function ReadmePane({ content, dir, loading, owner, repo, branch, onImageHover }
       className="flex-1 overflow-y-auto p-4 wmde-markdown-var [&_.wmde-markdown]:!bg-transparent [&_.wmde-markdown]:!text-cream-100 [&_.wmde-markdown]:!text-sm [&_.wmde-markdown]:!leading-relaxed [&_.wmde-markdown]:!font-[inherit] [&_.wmde-markdown_p]:my-1.5 [&_.wmde-markdown_pre]:!bg-brown-950 [&_.wmde-markdown_pre]:!border-cream-200/10 [&_.wmde-markdown_code]:!bg-brown-950 [&_.wmde-markdown_code]:!text-cream-200 [&_.wmde-markdown_img]:!max-w-full [&_.wmde-markdown_img]:!max-h-48 [&_.wmde-markdown_img]:!block [&_.wmde-markdown_img]:my-2 [&_.wmde-markdown_img]:cursor-zoom-in [&_.wmde-markdown_h1]:!text-cream-50 [&_.wmde-markdown_h2]:!text-cream-50 [&_.wmde-markdown_h3]:!text-cream-50 [&_.wmde-markdown_a]:!text-orange-400 [&_.wmde-markdown_a]:hover:!text-orange-300 [&_.wmde-markdown_hr]:!border-cream-200/10 [&_.wmde-markdown_table]:!border-cream-200/10 [&_.wmde-markdown_th]:!bg-brown-900 [&_.wmde-markdown_th]:!text-cream-50 [&_.wmde-markdown_th]:!border-cream-200/10 [&_.wmde-markdown_td]:!border-cream-200/10 [&_.wmde-markdown_td]:!text-cream-200 [&_.wmde-markdown_tr]:!bg-transparent [&_.wmde-markdown_tr]:even:!bg-brown-900/30 [&_.wmde-markdown_blockquote]:!border-cream-200/20 [&_.wmde-markdown_blockquote]:!text-cream-300 [&_.wmde-markdown_li]:!text-cream-100 [&_.wmde-markdown_strong]:!text-cream-50"
       data-color-mode="dark"
     >
-      <MDPreview source={md} />
+      <MDPreview source={md} rehypePlugins={[[rehypeSanitize, README_SANITIZE_SCHEMA]]} />
     </div>
   );
 }

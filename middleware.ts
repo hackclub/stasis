@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// HMR / react-refresh needs 'unsafe-eval' in dev; production never does. WASM
+// (OpenCascade STEP worker, KiCanvas) needs the narrower 'wasm-unsafe-eval'
+// instead, so dropping 'unsafe-eval' in prod removes a full eval gadget without
+// breaking 3D/PCB rendering.
+const isDev = process.env.NODE_ENV !== "production";
+
 const securityHeaders = {
   "Content-Security-Policy": [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://kicanvas.org",
+    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""} https://kicanvas.org`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://avatars.slack-edge.com https://github.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://raw.githubusercontent.com https://*.s3.amazonaws.com https://blueprint.hackclub.com https://cdn.hackclub.com https://user-cdn.hackclub-assets.com https://*.airtableusercontent.com https://www.freeiconspng.com https://hc-cdn.hel1.your-objectstorage.com https://mm.digikey.com https://files.catbox.moe data: blob:",
     "media-src 'self' https://stasis-staging.hackclub-assets.com https://stasis.hackclub-assets.com https://user-cdn.hackclub-assets.com blob:",
