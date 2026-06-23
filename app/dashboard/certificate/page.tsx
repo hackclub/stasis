@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { QUALIFICATION_BITS_THRESHOLD } from '@/lib/tiers';
 
 const certLogos = [
   { src: '/mit-orange.png', alt: 'MIT', href: 'https://www.mit.edu' },
@@ -51,9 +52,16 @@ export default function CertificatePage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/api/projects')
-      .then(res => res.ok ? res.json() : [])
-      .then((projects: ProjectData[]) => {
+    Promise.all([
+      fetch('/api/projects').then(res => res.ok ? res.json() : []),
+      fetch('/api/currency').then(res => res.ok ? res.json() : { bitsEarned: 0 }),
+    ])
+      .then(([projects, currency]: [ProjectData[], { bitsEarned?: number }]) => {
+        // The certificate is earned at the qualification bits threshold — once a
+        // builder clears it, the certificate is theirs no matter how many separate
+        // projects it took, so present the tracker as complete.
+        const qualified = (currency?.bitsEarned ?? 0) >= QUALIFICATION_BITS_THRESHOLD;
+
         const scored = projects
           .map(p => ({ ...p, ...projectToSlot(p) }))
           .sort((a, b) => a.priority - b.priority);
@@ -72,8 +80,15 @@ export default function CertificatePage() {
           else if (p.stage === 'BUILD') designed++;
         }
 
-        setSlots(filled);
-        setProgressText(getProgressText(built, designed));
+        if (qualified) {
+          // Fill every slot (keeping any real project titles) so the grid and
+          // progress bar both read as done.
+          setSlots(filled.map(s => ({ ...s, state: 'built' as SlotState })));
+          setProgressText("You've earned your certificate!");
+        } else {
+          setSlots(filled);
+          setProgressText(getProgressText(built, designed));
+        }
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
