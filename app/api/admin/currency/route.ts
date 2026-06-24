@@ -3,6 +3,9 @@ import prisma from "@/lib/prisma"
 import { requirePermission } from "@/lib/admin-auth"
 import { Permission } from "@/lib/permissions"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
+import { SHOP_ITEM_IDS } from "@/lib/shop"
+
+const VALID_SHOP_ITEM_IDS = Object.values(SHOP_ITEM_IDS) as readonly string[]
 
 /**
  * GET /api/admin/currency
@@ -65,13 +68,18 @@ const ALLOWED_TYPES = [
  *   amount < 0  → defaults to ADMIN_DEDUCTION
  *   type        → optional override; must be ADMIN_GRANT, ADMIN_DEDUCTION, or DESIGN_APPROVED
  *                 (DESIGN_APPROVED with no projectId = pending bits not tied to a project)
+ *   shopItemId  → optional; tags the entry to a shop item so it nets against that
+ *                 item's purchases in downstream rollups. Required for a *real*
+ *                 refund of a shop purchase (e.g. SHOP_REFUND + 'flight-stipend'),
+ *                 otherwise the travel-reimbursement sync still counts the original
+ *                 purchases. Must be a known shop item id.
  */
 export async function POST(request: NextRequest) {
   const authCheck = await requirePermission(Permission.MANAGE_CURRENCY)
   if (authCheck.error) return authCheck.error
 
   const body = await request.json()
-  const { userId: userIdOrEmail, amount, note, type: typeOverride } = body
+  const { userId: userIdOrEmail, amount, note, type: typeOverride, shopItemId } = body
 
   if (typeof userIdOrEmail !== "string" || !userIdOrEmail) {
     return NextResponse.json({ error: "userId or email is required" }, { status: 400 })
@@ -85,6 +93,15 @@ export async function POST(request: NextRequest) {
   if (typeOverride !== undefined && !ALLOWED_TYPES.includes(typeOverride)) {
     return NextResponse.json(
       { error: `type must be one of: ${ALLOWED_TYPES.join(", ")}` },
+      { status: 400 }
+    )
+  }
+  if (
+    shopItemId !== undefined &&
+    (typeof shopItemId !== "string" || !VALID_SHOP_ITEM_IDS.includes(shopItemId))
+  ) {
+    return NextResponse.json(
+      { error: `shopItemId must be one of: ${VALID_SHOP_ITEM_IDS.join(", ")}` },
       { status: 400 }
     )
   }
@@ -113,6 +130,7 @@ export async function POST(request: NextRequest) {
       type,
       note: finalNote,
       createdBy: authCheck.session.user.id,
+      shopItemId,
     })
   })
 

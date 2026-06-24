@@ -10,6 +10,9 @@ interface LedgerEntryParams {
   type: CurrencyTransactionType
   note?: string
   createdBy?: string      // admin user ID; omit for system-generated entries
+  shopItemId?: string     // tag the entry to a shop item (e.g. so a SHOP_REFUND
+                          // nets out against the matching SHOP_PURCHASE rows in
+                          // downstream rollups like the travel-reimbursement sync)
 }
 
 /**
@@ -22,7 +25,7 @@ export async function appendLedgerEntry(
   tx: TxClient,
   params: LedgerEntryParams
 ) {
-  const { userId, projectId, amount, type, note, createdBy } = params
+  const { userId, projectId, amount, type, note, createdBy, shopItemId } = params
 
   const { _sum } = await tx.currencyTransaction.aggregate({
     where: { userId },
@@ -42,6 +45,7 @@ export async function appendLedgerEntry(
       balanceBefore,
       balanceAfter,
       createdBy: createdBy ?? null,
+      shopItemId: shopItemId ?? null,
     },
   })
 }
