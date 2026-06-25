@@ -77,6 +77,7 @@ export default function ProjectsPage() {
 
   const [bitsBalance, setBitsBalance] = useState<number | null>(null);
   const [pendingBits, setPendingBits] = useState<number>(0);
+  const [bitsEarned, setBitsEarned] = useState<number>(0);
   const [goalPreference, setGoalPreference] = useState<GoalPreference>('stasis');
   const [goalPrizes, setGoalPrizes] = useState<GoalPrize[]>([]);
   const [showGoalPicker, setShowGoalPicker] = useState(false);
@@ -100,9 +101,10 @@ export default function ProjectsPage() {
         setProjects(await projectsRes.json());
       }
       if (currencyRes.ok) {
-        const { bitsBalance, pendingBits: pending } = await currencyRes.json();
+        const { bitsBalance, pendingBits: pending, bitsEarned: earned } = await currencyRes.json();
         setBitsBalance(bitsBalance);
         setPendingBits(pending ?? 0);
+        setBitsEarned(earned ?? 0);
       }
       if (goalPrefRes.ok) {
         const { goal, goalPrizes: prizes } = await goalPrefRes.json();
@@ -258,7 +260,6 @@ export default function ProjectsPage() {
   };
 
   const totalHoursClaimed = projects.reduce((acc, p) => acc + p.totalHoursClaimed, 0);
-  const totalHoursApproved = projects.reduce((acc, p) => acc + p.totalHoursApproved, 0);
 
   const allBadges = projects.flatMap(p => p.badges);
   const approvedBadges = allBadges.filter(b => b.grantedAt !== null);
@@ -570,12 +571,12 @@ export default function ProjectsPage() {
       <div data-tutorial="stats" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex gap-4 sm:gap-6">
           <div>
-            <p className="text-brown-800 text-xs uppercase">Hours Logged</p>
-            <p className="text-brown-800 text-xl sm:text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
+            <p className="text-brown-800 text-xs uppercase">Bits Earned</p>
+            <p className="text-orange-500 text-xl sm:text-2xl">{bitsEarned.toLocaleString()}</p>
           </div>
           <div>
-            <p className="text-brown-800 text-xs uppercase">Hours Approved</p>
-            <p className="text-orange-500 text-xl sm:text-2xl">~{totalHoursApproved.toFixed(1)}h</p>
+            <p className="text-brown-800 text-xs uppercase">Hours Logged</p>
+            <p className="text-brown-800 text-xl sm:text-2xl">~{totalHoursClaimed.toFixed(1)}h</p>
           </div>
         </div>
         <Link

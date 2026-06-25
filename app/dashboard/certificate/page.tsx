@@ -28,19 +28,22 @@ interface ProjectData {
   buildStatus: string;
 }
 
-function getProgressText(built: number, designed: number): string | null {
-  if (built >= 3) return "You've earned your certificate!";
-  if (built === 2) return "You've already built 2 projects - just 1 more to go.";
-  if (built === 1 && designed > 0) return `You've already built 1 project and designed ${designed} more - keep going!`;
-  if (built === 1) return "You've already built 1 project - 2 more to go.";
-  if (designed >= 2) return `You've already designed ${designed} projects - finish building them to earn your certificate.`;
-  if (designed === 1) return "You've already designed 1 project, you're on your way.";
-  return null;
+// The certificate is gated on earned bits (≈3 projects), not a raw project count —
+// a builder with 3 low-tier builds can still be short of the threshold, so progress
+// is reported in bits to stay truthful about what's left.
+function getProgressText(bitsEarned: number, built: number): string | null {
+  const remaining = QUALIFICATION_BITS_THRESHOLD - bitsEarned;
+  if (remaining <= 0) return "You've earned your certificate!";
+  const bitsLine = `earned ${bitsEarned} of ${QUALIFICATION_BITS_THRESHOLD} bits - ${remaining} more to go`;
+  if (built > 0) return `You've built ${built} project${built === 1 ? '' : 's'} and ${bitsLine}.`;
+  return `You're on your way - ${bitsLine}.`;
 }
 
 function projectToSlot(p: ProjectData): { state: SlotState; priority: number } {
-  if (p.stage === 'BUILD' && p.buildStatus === 'approved') return { state: 'built', priority: 0 };
-  if (p.stage === 'BUILD') return { state: 'building', priority: 1 };
+  // Key off buildStatus, not stage: a build can be approved while `stage` lags at
+  // DESIGN, which previously made shipped builds render as "Designing".
+  if (p.buildStatus === 'approved') return { state: 'built', priority: 0 };
+  if (p.stage === 'BUILD' || p.buildStatus === 'in_review') return { state: 'building', priority: 1 };
   return { state: 'designing', priority: 2 };
 }
 
@@ -49,6 +52,7 @@ export default function CertificatePage() {
     { state: 'empty' }, { state: 'empty' }, { state: 'empty' },
   ]);
   const [progressText, setProgressText] = useState<string | null>(null);
+  const [bitsEarned, setBitsEarned] = useState(0);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -60,7 +64,9 @@ export default function CertificatePage() {
         // The certificate is earned at the qualification bits threshold — once a
         // builder clears it, the certificate is theirs no matter how many separate
         // projects it took, so present the tracker as complete.
-        const qualified = (currency?.bitsEarned ?? 0) >= QUALIFICATION_BITS_THRESHOLD;
+        const earned = currency?.bitsEarned ?? 0;
+        const qualified = earned >= QUALIFICATION_BITS_THRESHOLD;
+        setBitsEarned(earned);
 
         const scored = projects
           .map(p => ({ ...p, ...projectToSlot(p) }))
@@ -74,11 +80,7 @@ export default function CertificatePage() {
 
         while (filled.length < 3) filled.push({ state: 'empty' });
 
-        let built = 0, designed = 0;
-        for (const p of projects) {
-          if (p.stage === 'BUILD' && p.buildStatus === 'approved') built++;
-          else if (p.stage === 'BUILD') designed++;
-        }
+        const built = projects.filter(p => p.buildStatus === 'approved').length;
 
         if (qualified) {
           // Fill every slot (keeping any real project titles) so the grid and
@@ -87,7 +89,7 @@ export default function CertificatePage() {
           setProgressText("You've earned your certificate!");
         } else {
           setSlots(filled);
-          setProgressText(getProgressText(built, designed));
+          setProgressText(getProgressText(earned, built));
         }
         setLoaded(true);
       })
@@ -228,16 +230,11 @@ export default function CertificatePage() {
             })}
           </div>
 
-          {/* Progress bar — each project worth 33.3%, weighted: designing 20%, building 60%, built 100% */}
+          {/* Progress bar — bits earned toward the certificate threshold */}
           <div className="mt-4 h-[6px] bg-cream-300 overflow-hidden">
             <div
               className="h-full bg-orange-500 transition-all duration-500"
-              style={{ width: `${slots.reduce((sum, s) => {
-                if (s.state === 'built') return sum + 100 / 3;
-                if (s.state === 'building') return sum + 60 / 3;
-                if (s.state === 'designing') return sum + 20 / 3;
-                return sum;
-              }, 0)}%` }}
+              style={{ width: `${Math.min(100, (bitsEarned / QUALIFICATION_BITS_THRESHOLD) * 100)}%` }}
             />
           </div>
         </div>

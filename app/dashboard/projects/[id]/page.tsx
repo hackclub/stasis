@@ -1195,20 +1195,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 {/* Stats */}
                 <div className="mt-4 bg-cream-200/80 border border-cream-300 p-4 w-full md:w-fit">
                   <div className="flex flex-wrap gap-3 md:gap-6 text-sm">
-                    <div>
-                      <span className="text-brown-800">Hours Logged:</span>{' '}
-                      <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
-                    </div>
-                    <div>
-                      <span className="text-brown-800">Hours Approved:</span>{' '}
-                      <span className="text-orange-500">{project.totalHoursApproved.toFixed(1)}h</span>
-                    </div>
                     {project.bitsAwarded != null && (
                       <div>
                         <span className="text-brown-800">Bits Received:</span>{' '}
                         <span className="text-orange-500">{project.bitsAwarded}</span>
                       </div>
                     )}
+                    <div>
+                      <span className="text-brown-800">Hours Logged:</span>{' '}
+                      <span className="text-brown-800">{project.totalHoursClaimed.toFixed(1)}h</span>
+                    </div>
                   </div>
 
                   {/* GitHub Repo */}
