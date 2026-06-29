@@ -9,6 +9,7 @@ import { getTierById, getTierBits, TIERS } from "@/lib/tiers"
 import { appendLedgerEntry, CurrencyTransactionType } from "@/lib/currency"
 import { sendSlackDM } from "@/lib/slack"
 import { syncProjectToAirtable } from "@/lib/airtable"
+import { buildHoursJustification } from "@/lib/justification"
 import { totalBomCost } from "@/lib/format"
 import { logAudit } from "@/lib/audit"
 
@@ -506,105 +507,15 @@ export async function POST(
     // Sync to Airtable on approval
     {
       const isBuildApproval = stageKey === "build"
-      const tierInfo = project!.tier ? getTierById(project!.tier) : null
-      const reviewerName = authCheck.session.user.name || "Unknown"
-      const reviewerEmail = authCheck.session.user.email || "unknown"
-      const dateStr = new Date().toISOString().slice(0, 10)
       const reasonText = typeof reason === "string" && reason.trim() ? reason.trim() : null
-      const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000"
 
-      const sessions = project!.workSessions
-      const relevantSessions = isBuildApproval
-        ? sessions.filter((s) => s.stage === "BUILD")
-        : sessions
-      const journalHours = relevantSessions.reduce((sum, s) => sum + s.hoursClaimed, 0)
-      const journalCount = relevantSessions.length
-
-      // Fetch hackatime hours
-      const hackatimeProjects = await prisma.hackatimeProject.findMany({
-        where: { projectId: project!.id },
+      const hoursJustification = await buildHoursJustification({
+        projectId: project!.id,
+        stage: stage!,
+        reviewerName: authCheck.session.user.name || "Unknown",
+        justification: reasonText,
+        workUnitsOverride: workUnitsOverride ?? null,
       })
-      let hackatimeHours = 0
-      const hackatimeUser = await prisma.user.findUnique({
-        where: { id: project!.userId },
-        select: { hackatimeUserId: true },
-      })
-      if (hackatimeProjects.length > 0 && hackatimeUser?.hackatimeUserId) {
-        const { fetchHackatimeProjectSeconds } = await import("@/lib/hackatime")
-        for (const hp of hackatimeProjects) {
-          if (hp.hoursApproved !== null) {
-            hackatimeHours += hp.hoursApproved
-          } else {
-            const secs = await fetchHackatimeProjectSeconds(hackatimeUser.hackatimeUserId, hp.hackatimeProject)
-            hackatimeHours += secs / 3600
-          }
-        }
-      }
-      hackatimeHours = Math.round(hackatimeHours * 10) / 10
-
-      // Fetch timelapse hours from session timelapses
-      const sessionIds = relevantSessions.map((s) => s.id)
-      const timelapses = sessionIds.length > 0
-        ? await prisma.sessionTimelapse.findMany({
-            where: { workSessionId: { in: sessionIds } },
-            select: { duration: true },
-          })
-        : []
-      const timelapseHours = Math.round(timelapses.reduce((sum, t) => sum + (t.duration ?? 0), 0) / 3600 * 10) / 10
-
-      // Build the hours description parts
-      const hoursParts: string[] = []
-      hoursParts.push(`${journalHours.toFixed(1)} hours across ${journalCount} journal entr${journalCount === 1 ? "y" : "ies"}`)
-      if (hackatimeHours > 0) hoursParts.push(`${hackatimeHours} hours of hackatime`)
-      if (timelapseHours > 0) hoursParts.push(`${timelapseHours} hours of lapse`)
-
-      // Fetch first-pass reviewer name if one exists
-      const latestSubmission = await prisma.projectSubmission.findFirst({
-        where: { projectId: project!.id, stage: stage! },
-        orderBy: { createdAt: "desc" },
-        select: { id: true },
-      })
-      const lines: string[] = []
-
-      lines.push(isBuildApproval ? `**Build Review**` : `**Design Review**`)
-      lines.push("")
-      if (tierInfo) lines.push(`Tier: ${tierInfo.name} (${tierInfo.bits} bits, ${tierInfo.minHours}-${tierInfo.maxHours === Infinity ? "67+" : tierInfo.maxHours}h range)`)
-      lines.push(`This user logged ${hoursParts.join(", ")}.`)
-      if (workUnitsOverride != null && workUnitsOverride !== journalHours) {
-        lines.push(`Reviewer overrode hours to ${workUnitsOverride}h (claimed ${journalHours.toFixed(1)}h → approved ${workUnitsOverride}h)`)
-      }
-      lines.push("")
-
-      lines.push(`Part of the time for this project was tracked via journaling. After making sure the project worked, and was shipped, the second pass reviewer decided the deflation.`)
-      lines.push("")
-
-      // First-pass review
-      if (latestSubmission) {
-        const firstPass = await prisma.submissionReview.findFirst({
-          where: { submissionId: latestSubmission.id, isAdminReview: false, result: "APPROVED" },
-          orderBy: { createdAt: "desc" },
-          select: { reviewerId: true, feedback: true, createdAt: true },
-        })
-        if (firstPass) {
-          const fpUser = await prisma.user.findUnique({
-            where: { id: firstPass.reviewerId },
-            select: { name: true, email: true },
-          })
-          const fpName = fpUser?.name || fpUser?.email || "Unknown"
-          const fpDate = firstPass.createdAt.toISOString().slice(0, 10)
-          lines.push(`--- First-pass review (${fpDate} by ${fpName}) ---`)
-          if (firstPass.feedback) lines.push(firstPass.feedback)
-          lines.push("")
-        }
-      }
-
-      // Second-pass (admin) review
-      lines.push(`--- Second-pass review (${dateStr} by ${reviewerName}) ---`)
-      if (reasonText) lines.push(reasonText)
-      lines.push("")
-      lines.push(`The full journal for this project can be found at ${baseUrl}/dashboard/discover/${project!.id}.`)
-
-      const hoursJustification = lines.join("\n")
 
       const approvedBom = project!.bomItems.filter((b) => b.status === "approved" || b.status === "pending")
       const bomItemsCost = approvedBom.reduce((sum, b) => sum + b.totalCost, 0)
