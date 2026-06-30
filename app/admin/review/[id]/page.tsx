@@ -1164,6 +1164,7 @@ export default function ReviewDetailPage() {
       if (filterPronouns) params.set('pronouns', filterPronouns);
       if (filterAttendees) params.set('prioritizeAttending', 'true');
       if (filterRegion) params.set('region', filterRegion);
+      if (filterTiers) params.set('tiers', filterTiers);
       // Pass viewAs so first-pass admins don't get skipped onto pre-reviewed
       // projects (which are admin-only and shouldn't surface in this flow).
       if (viewAs) params.set('viewAs', viewAs);
