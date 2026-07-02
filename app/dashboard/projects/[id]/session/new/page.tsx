@@ -110,7 +110,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {submissionsClosed ? (
-        <div className="border-2 border-brown-800 bg-cream-200 px-4 py-3">
+        <div className="border-2 border-orange-500 bg-cream-200 px-4 py-3">
           <p className="text-orange-500 text-sm uppercase tracking-widest">Submissions closed</p>
           <p className="text-brown-800 text-sm mt-1">
             Stasis has ended and new journal entries are closed. Work already in review will still be reviewed, and the shop is still open.

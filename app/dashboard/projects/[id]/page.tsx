@@ -2306,7 +2306,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* Actions */}
           {submissionsClosed ? (
-            <div className="border-2 border-brown-800 bg-cream-200 px-4 py-3 mb-8">
+            <div className="border-2 border-orange-500 bg-cream-200 px-4 py-3 mb-8">
               <p className="text-orange-500 text-sm uppercase tracking-widest">Submissions closed</p>
               <p className="text-brown-800 text-sm mt-1">
                 Stasis has ended and new submissions are closed. Work already in review will still be reviewed, and the shop is still open.

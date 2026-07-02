@@ -603,7 +603,7 @@ export default function ProjectsPage() {
 
       {/* Submissions closed notice */}
       {submissionsClosed && (
-        <div className="border-2 border-brown-800 bg-cream-200 px-4 py-3 mb-6">
+        <div className="border-2 border-orange-500 bg-cream-200 px-4 py-3 mb-6">
           <p className="text-orange-500 text-sm uppercase tracking-widest">Submissions closed</p>
           <p className="text-brown-800 text-sm mt-1">
             Stasis has ended and new projects and submissions are closed. Work already in review will still be reviewed, and the shop is still open.
@@ -699,7 +699,7 @@ export default function ProjectsPage() {
                   </div>
 
                   <p className="text-brown-800 text-sm leading-relaxed mb-5">
-                    Pick which goal you want to work toward. You can switch at any time, and if you buy a ticket for one event, you can keep earning bits to qualify for the other one too!
+                    Pick which goal to put your bits toward. You can switch at any time.
                   </p>
 
                   <GoalPicker selectedGoal={pickerSelection} onSelect={setPickerSelection} />

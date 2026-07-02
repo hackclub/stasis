@@ -196,7 +196,7 @@ export default function DashboardLayout({
               <img src="/stasis-logo.svg" alt="Stasis" className="h-10 w-auto" />
             </Link>
             <span className="hidden sm:inline-block bg-orange-500 text-cream-100 px-3 py-1 text-sm font-medium translate-y-1 translate-x-2">
-              Ends June 30th
+              Ended June 30th!
             </span>
           </div>
           <div className="flex items-center gap-4 sm:gap-6">
