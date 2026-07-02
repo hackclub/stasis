@@ -19,6 +19,7 @@ import PreflightChecks from '@/app/components/projects/PreflightChecks';
 import type { PreflightCheck } from '@/app/components/projects/PreflightChecks';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 import { useToast } from '@/app/components/Toast';
+import { useSubmissionsClosed } from '@/lib/hooks/useSubmissionsClosed';
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested";
 
@@ -127,6 +128,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
+  const submissionsClosed = useSubmissionsClosed();
   const skipVerification = process.env.NEXT_PUBLIC_SKIP_YSWS_VERIFICATION_CHECK === 'true';
   const sessionVerified = skipVerification || (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
   const [isVerified, setIsVerified] = useState(sessionVerified);
@@ -1391,7 +1393,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             )}
 
             {/* Quick Actions */}
-            {(project.designStatus !== "in_review" && project.buildStatus !== "in_review") && (
+            {(project.designStatus !== "in_review" && project.buildStatus !== "in_review" && !submissionsClosed) && (
               <div className="mt-6">
                 <div className="flex flex-wrap gap-3">
                   <Link
@@ -1832,7 +1834,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* Bill of Materials */}
           {(() => {
-            const bomEditable = project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested";
+            const bomEditable = !submissionsClosed && (project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested");
             const bomItems = project.bomItems ?? [];
             const starterProject = project.isStarter && project.starterProjectId
               ? STARTER_PROJECTS.find(sp => sp.id === project.starterProjectId)
@@ -2303,6 +2305,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {/* Actions */}
+          {submissionsClosed ? (
+            <div className="border-2 border-brown-800 bg-cream-200 px-4 py-3 mb-8">
+              <p className="text-orange-500 text-sm uppercase tracking-widest">Submissions closed</p>
+              <p className="text-brown-800 text-sm mt-1">
+                Stasis has ended and new submissions are closed. Work already in review will still be reviewed, and the shop is still open.
+              </p>
+            </div>
+          ) : (
           <div className="flex flex-wrap gap-3 mb-8">
             {/* Design Stage: Submit or Unsubmit */}
             {(project.designStatus === "draft" || project.designStatus === "rejected" || project.designStatus === "update_requested") && (
@@ -2402,6 +2412,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </button>
             )}
           </div>
+          )}
 
           {/* Edit BOM Item Modal */}
           {editingBomItem && (

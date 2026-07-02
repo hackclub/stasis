@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SessionForm, type SessionCategory } from '@/app/components/sessions/SessionForm';
+import { useSubmissionsClosed } from '@/lib/hooks/useSubmissionsClosed';
 
 type ProjectStatus = "draft" | "in_review" | "approved" | "rejected" | "update_requested"
 
@@ -22,6 +23,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
+  const submissionsClosed = useSubmissionsClosed();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,14 +109,23 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
         <p className="text-brown-800 text-sm mt-1">Project: {project.title}</p>
       </div>
 
-      <SessionForm
-        onSubmit={handleSubmit}
-        submitLabel="Save Journal Entry"
-        submitting={submitting}
-        error={error}
-        setError={setError}
-        autosaveKey={`session-new-${projectId}`}
-      />
+      {submissionsClosed ? (
+        <div className="border-2 border-brown-800 bg-cream-200 px-4 py-3">
+          <p className="text-orange-500 text-sm uppercase tracking-widest">Submissions closed</p>
+          <p className="text-brown-800 text-sm mt-1">
+            Stasis has ended and new journal entries are closed. Work already in review will still be reviewed, and the shop is still open.
+          </p>
+        </div>
+      ) : (
+        <SessionForm
+          onSubmit={handleSubmit}
+          submitLabel="Save Journal Entry"
+          submitting={submitting}
+          error={error}
+          setError={setError}
+          autosaveKey={`session-new-${projectId}`}
+        />
+      )}
     </div>
   );
 }

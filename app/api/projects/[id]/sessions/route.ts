@@ -8,6 +8,7 @@ import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { getEffectiveDate, validateTimezone } from "@/lib/tamagotchi"
 import { checkAndCreateStreakReward } from "@/lib/tamagotchi-reward"
+import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 const VALID_STAGES: ProjectStage[] = ["DESIGN", "BUILD"]
 
@@ -89,6 +90,10 @@ export async function POST(
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (submissionsClosed()) {
+    return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
 
   const { id: projectId } = await params

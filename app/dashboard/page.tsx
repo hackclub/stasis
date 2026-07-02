@@ -17,6 +17,7 @@ import { RecentJournalEntries } from '../components/RecentJournalEntries';
 import { UpcomingEvents } from '../components/UpcomingEvents';
 import { ProjectTag, BadgeType } from "@/app/generated/prisma/enums"
 import { getGoalThreshold, GOAL_LABELS, type GoalPreference } from "@/lib/tiers"
+import { useSubmissionsClosed } from '@/lib/hooks/useSubmissionsClosed';
 import Link from 'next/link';
 import type { Project } from './types';
 
@@ -54,6 +55,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const submissionsClosed = useSubmissionsClosed();
   const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [blueprintImports, setBlueprintImports] = useState<BlueprintImportItem[]>([]);
@@ -599,8 +601,18 @@ export default function ProjectsPage() {
         </Link>
       </div>
 
+      {/* Submissions closed notice */}
+      {submissionsClosed && (
+        <div className="border-2 border-brown-800 bg-cream-200 px-4 py-3 mb-6">
+          <p className="text-orange-500 text-sm uppercase tracking-widest">Submissions closed</p>
+          <p className="text-brown-800 text-sm mt-1">
+            Stasis has ended and new projects and submissions are closed. Work already in review will still be reviewed, and the shop is still open.
+          </p>
+        </div>
+      )}
+
       {/* Blueprint Imports Section */}
-      {blueprintImports.length > 0 && (
+      {!submissionsClosed && blueprintImports.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -636,7 +648,7 @@ export default function ProjectsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <NewProjectCard onClick={() => setIsModalOpen(true)} />
+          {!submissionsClosed && <NewProjectCard onClick={() => setIsModalOpen(true)} />}
 
           {projects.map((project) => (
             <ProjectCard
@@ -649,7 +661,7 @@ export default function ProjectsPage() {
 
       {!loading && projects.length === 0 && (
         <div className="p-8 text-center">
-          <p className="text-brown-800">No projects yet. Create your first one!</p>
+          <p className="text-brown-800">{submissionsClosed ? 'No projects.' : 'No projects yet. Create your first one!'}</p>
         </div>
       )}
 

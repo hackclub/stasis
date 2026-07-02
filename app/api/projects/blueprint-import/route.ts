@@ -8,6 +8,7 @@ import { isValidUrl, normalizeUrl } from "@/lib/url"
 import { TIERS } from "@/lib/tiers"
 import { MediaType } from "@/app/generated/prisma/enums"
 import { TAMAGOTCHI_EVENT } from "@/lib/tamagotchi"
+import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 const BLUEPRINT_API_URL = process.env.BLUEPRINT_API_URL
 const BLUEPRINT_API_KEY = process.env.BLUEPRINT_API_KEY
@@ -202,6 +203,10 @@ export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (submissionsClosed()) {
+    return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
 
   const body = await request.json()

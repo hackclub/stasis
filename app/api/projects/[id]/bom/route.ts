@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
 import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
+import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 export async function DELETE(
   request: NextRequest,
@@ -87,6 +88,10 @@ export async function POST(
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (submissionsClosed()) {
+    return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
 
   const { id } = await params

@@ -10,6 +10,7 @@ import { VALID_TAGS } from "@/lib/tags"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { TIERS } from "@/lib/tiers"
 import { fetchHackatimeProjectSeconds } from "@/lib/hackatime"
+import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 function validateTags(tags: unknown): ProjectTag[] {
   if (!Array.isArray(tags)) return []
@@ -135,6 +136,10 @@ export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (submissionsClosed()) {
+    return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
 
   const body = await request.json()

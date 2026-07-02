@@ -8,6 +8,7 @@ import { STARTER_PROJECTS } from "@/lib/starter-projects"
 import { runReviewChecks } from "@/lib/github-checks"
 import { runAiReadmeCheck } from "@/lib/ai-readme-check"
 import { cacheCadFiles } from "@/lib/cad-discovery"
+import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 async function cacheGithubChecks(submissionId: string, githubRepo: string | null) {
   try {
@@ -29,6 +30,10 @@ export async function POST(
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (submissionsClosed()) {
+    return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
 
   const { id } = await params
