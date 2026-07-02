@@ -343,9 +343,15 @@ export async function POST(
           data: { status: "approved", reviewedAt: new Date(), reviewedBy: reviewerId },
         })
 
-        // Cancel any existing pending bits before awarding new ones (handles re-approvals)
+        // Cancel any existing pending bits before awarding new ones (handles re-approvals).
+        // Must include DESIGN_APPROVED_REVERSED: an un-approval already deducted the
+        // pending, so counting only DESIGN_APPROVED here would deduct it twice.
         const existingPending = await tx.currencyTransaction.aggregate({
-          where: { userId: project!.userId, projectId: project!.id, type: "DESIGN_APPROVED" },
+          where: {
+            userId: project!.userId,
+            projectId: project!.id,
+            type: { in: ["DESIGN_APPROVED", "DESIGN_APPROVED_REVERSED"] },
+          },
           _sum: { amount: true },
         })
         const pendingToCancel = existingPending._sum.amount ?? 0
