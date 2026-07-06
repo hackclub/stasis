@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { getPendingBits } from "@/lib/currency"
 
 export async function GET(
   _request: NextRequest,
@@ -39,13 +40,7 @@ export async function GET(
     where: { userId: id },
     _sum: { amount: true },
   })
-  // Use raw SQL with text cast to avoid enum validation error if migration hasn't run
-  const pendingRows = await prisma.$queryRaw<{ pending: bigint | null }[]>`
-    SELECT COALESCE(SUM(amount), 0) as pending
-    FROM currency_transaction
-    WHERE "userId" = ${id} AND type::text = 'DESIGN_APPROVED'
-  `
-  const pendingBitsAmount = Number(pendingRows[0]?.pending ?? 0)
+  const pendingBitsAmount = await getPendingBits(prisma, id)
 
   // Aggregate work sessions by date for activity heatmap, with a
   // per-project breakdown so the UI can show what was worked on each day.

@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma"
 import { SHOP_ITEMS, SHOP_ITEM_IDS, REQUIRES_STASIS_INVITE_IDS, PENDING_BITS_ELIGIBLE_IDS } from "@/lib/shop"
 import { Prisma } from "@/app/generated/prisma/client"
 import { runInvitePurchaseSideEffects, type InvitePurchaseResult } from "@/lib/attend"
+import { getPendingBits } from "@/lib/currency"
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -100,13 +101,7 @@ export async function POST(request: NextRequest) {
       ])
 
       const balance = (earned._sum.amount ?? 0) + (deducted._sum.amount ?? 0)
-      // Use raw SQL with text cast to avoid enum validation error if migration hasn't run
-      const pendingRows = await tx.$queryRaw<{ pending: bigint | null }[]>`
-        SELECT COALESCE(SUM(amount), 0) as pending
-        FROM currency_transaction
-        WHERE "userId" = ${userId} AND type::text = 'DESIGN_APPROVED'
-      `
-      const pendingBits = Number(pendingRows[0]?.pending ?? 0)
+      const pendingBits = await getPendingBits(tx, userId)
 
       // Stasis event invite + accommodations can be purchased with pending bits;
       // all other items require confirmed (build-approved) bits only

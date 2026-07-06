@@ -1,5 +1,6 @@
 import { CurrencyTransactionType } from "@/app/generated/prisma/enums"
 import type { Prisma } from "@/app/generated/prisma/client"
+import { PENDING_BITS_ELIGIBLE_IDS } from "@/lib/shop"
 
 type TxClient = Prisma.TransactionClient
 
@@ -48,6 +49,51 @@ export async function appendLedgerEntry(
       shopItemId: shopItemId ?? null,
     },
   })
+}
+
+/**
+ * Pending bits = design-approval bits for projects whose build hasn't been
+ * approved yet, plus the unused part of pending-only credits (event
+ * discounts and similar admin grants written as project-less DESIGN_APPROVED
+ * entries, only usable on pending-eligible items).
+ *
+ * Do NOT compute this by summing every DESIGN_APPROVED entry: no build
+ * approval ever nets out a project-less credit, so a blind sum overcounts
+ * forever and hides real spendable bits once the credit has been spent.
+ * Instead, project pending comes from project state, and each credit counts
+ * only until pending-eligible purchases have consumed it (credits are
+ * attributed to those purchases first, before project pending).
+ *
+ * Credits vs purchase drains: both are project-less DESIGN_APPROVED entries,
+ * but drains always carry the shopItemId they paid for and credits never do.
+ */
+export async function getPendingBits(tx: TxClient, userId: string): Promise<number> {
+  const rows = await tx.$queryRaw<
+    { project_pending: bigint | null; credit: bigint | null; eligible_spend: bigint | null }[]
+  >`
+    SELECT
+      (SELECT COALESCE(SUM(ct.amount), 0)
+         FROM currency_transaction ct
+         JOIN project p ON p.id = ct."projectId"
+        WHERE ct."userId" = ${userId}
+          AND ct.type::text = 'DESIGN_APPROVED'
+          AND p."buildStatus"::text <> 'approved') AS project_pending,
+      (SELECT COALESCE(SUM(ct.amount), 0)
+         FROM currency_transaction ct
+        WHERE ct."userId" = ${userId}
+          AND ct.type::text = 'DESIGN_APPROVED'
+          AND ct."projectId" IS NULL
+          AND ct."shopItemId" IS NULL) AS credit,
+      (SELECT COALESCE(-SUM(ct.amount), 0)
+         FROM currency_transaction ct
+        WHERE ct."userId" = ${userId}
+          AND ct."shopItemId" = ANY(${[...PENDING_BITS_ELIGIBLE_IDS]})
+          AND ct.type::text IN ('SHOP_PURCHASE', 'SHOP_REFUND', 'DESIGN_APPROVED')) AS eligible_spend
+  `
+  const projectPending = Number(rows[0]?.project_pending ?? 0)
+  const credit = Number(rows[0]?.credit ?? 0)
+  const eligibleSpend = Number(rows[0]?.eligible_spend ?? 0)
+  return Math.max(0, projectPending) + Math.max(0, credit - eligibleSpend)
 }
 
 export { CurrencyTransactionType }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { getPendingBits } from "@/lib/currency"
 
 /**
  * GET /api/currency
@@ -11,7 +12,7 @@ import prisma from "@/lib/prisma"
  *   bitsEarned   = confirmed earnings (PROJECT_APPROVED + ADMIN_GRANT + SHOP_REFUND + REVIEWER_PAYMENT)
  *   bitsSpent    = user-facing outflows (SHOP_PURCHASE + ADMIN_DEDUCTION + SHOP_REFUND_REVERSED)
  *   bitsBalance  = sum of all ledger entries (authoritative)
- *   pendingBits  = net DESIGN_APPROVED entries (pending build review)
+ *   pendingBits  = design-approval bits for projects awaiting build approval
  *
  * BOM costs are already deducted before bits are granted, so they don't appear
  * as a separate line item. earned - spent = balance (excluding pending).
@@ -44,12 +45,7 @@ export async function GET() {
     }),
   ])
 
-  const pendingRows = await prisma.$queryRaw<{ pending: bigint | null }[]>`
-    SELECT COALESCE(SUM(amount), 0) as pending
-    FROM currency_transaction
-    WHERE "userId" = ${userId} AND type::text = 'DESIGN_APPROVED'
-  `
-  const pendingBits = Number(pendingRows[0]?.pending ?? 0)
+  const pendingBits = await getPendingBits(prisma, userId)
 
   const bitsEarned = Number(earnedRows[0]?.total ?? 0)
   const bitsSpent = Math.abs(Number(spentRows[0]?.total ?? 0))

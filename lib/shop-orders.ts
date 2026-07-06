@@ -10,6 +10,7 @@ import {
   AuditAction,
 } from "@/app/generated/prisma/enums";
 import { encryptPII, decryptPII } from "@/lib/pii";
+import { getPendingBits } from "@/lib/currency";
 import { fetchHcaIdentity, type HcaAddress } from "@/lib/hca";
 import { sendSlackDM } from "@/lib/slack";
 import { logAdminAction } from "@/lib/audit";
@@ -108,12 +109,7 @@ export async function placeShopOrder(params: PlaceShopOrderParams): Promise<Plac
       });
       const balance = agg._sum.amount ?? 0;
 
-      const pendingRows = await tx.$queryRaw<{ pending: bigint | null }[]>`
-        SELECT COALESCE(SUM(amount), 0) as pending
-        FROM currency_transaction
-        WHERE "userId" = ${params.userId} AND type::text = 'DESIGN_APPROVED'
-      `;
-      const pendingBits = Number(pendingRows[0]?.pending ?? 0);
+      const pendingBits = await getPendingBits(tx, params.userId);
       const effectiveBalance = balance - pendingBits;
 
       if (effectiveBalance < totalBitsCost) {
