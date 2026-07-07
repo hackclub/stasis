@@ -142,7 +142,22 @@ export async function GET(
     0
   ) + firmwareHoursApproved
 
-  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved })
+  // The grant amount locked in at design approval - this is what the bits
+  // ledger actually deducted, which can differ from requestedAmount (legacy
+  // over-cap requests, BOM edits after approval, reviewer overrides).
+  let chargedGrantAmount: number | null = null
+  if (project.designStatus === "approved") {
+    const designAction = await prisma.projectReviewAction.findFirst({
+      where: { projectId: id, stage: "DESIGN", decision: "APPROVED" },
+      orderBy: { createdAt: "desc" },
+      select: { grantAmount: true },
+    })
+    if (designAction?.grantAmount != null) {
+      chargedGrantAmount = Math.round(designAction.grantAmount)
+    }
+  }
+
+  return NextResponse.json({ ...project, totalHoursClaimed, totalHoursApproved, chargedGrantAmount })
 }
 
 export async function PATCH(

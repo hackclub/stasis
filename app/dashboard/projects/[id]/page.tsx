@@ -73,6 +73,7 @@ interface Project {
   bomTax: number | null;
   bomShipping: number | null;
   requestedAmount: number | null;
+  chargedGrantAmount: number | null;
 
   coverImage: string | null;
   githubRepo: string | null;
@@ -1845,7 +1846,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             const tierData = project.tier ? TIERS.find(t => t.id === project.tier) : null;
             const maxSpend = tierData ? Math.floor(tierData.bits * 0.5) : 0;
             const effectiveRequestedAmt = localRequestedAmount ?? project.requestedAmount ?? Math.min(estimatedCost, maxSpend);
-            const bitsSpent = Math.min(Math.ceil(effectiveRequestedAmt), maxSpend);
+            // Once the design is approved the ledger charge is locked in - show
+            // that instead of the capped estimate, since legacy over-cap grants
+            // were charged in full and the two can disagree.
+            const bitsSpent = project.chargedGrantAmount ?? Math.min(Math.ceil(effectiveRequestedAmt), maxSpend);
             const bitsTowardGoal = tierData ? Math.max(0, tierData.bits - bitsSpent) : 0;
 
             return (<>
