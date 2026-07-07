@@ -8,7 +8,7 @@ import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
 import { getEffectiveDate, validateTimezone } from "@/lib/tamagotchi"
 import { checkAndCreateStreakReward } from "@/lib/tamagotchi-reward"
-import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
+import { getSubmissionAccess, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 const VALID_STAGES: ProjectStage[] = ["DESIGN", "BUILD"]
 
@@ -92,11 +92,11 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  if (submissionsClosed()) {
+  const { id: projectId } = await params
+
+  if ((await getSubmissionAccess(session.user.id, projectId)).closed) {
     return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
-
-  const { id: projectId } = await params
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },

@@ -23,7 +23,7 @@ export default function NewSessionPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
-  const submissionsClosed = useSubmissionsClosed();
+  const { closed: submissionsClosed } = useSubmissionsClosed(projectId);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

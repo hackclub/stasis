@@ -166,6 +166,11 @@ export default function AdminLayout({
                 </Link>
               )}
               {hasPermission(Permission.MANAGE_USERS) && (
+                <Link href="/admin/extensions" className={getTabClass('/admin/extensions')}>
+                  Extensions
+                </Link>
+              )}
+              {hasPermission(Permission.MANAGE_USERS) && (
                 <Link href="/admin/slack" className={getTabClass('/admin/slack')}>
                   Slack
                 </Link>

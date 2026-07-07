@@ -128,7 +128,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
-  const submissionsClosed = useSubmissionsClosed();
+  const { closed: submissionsClosed, extensionUntil } = useSubmissionsClosed(projectId);
   const skipVerification = process.env.NEXT_PUBLIC_SKIP_YSWS_VERIFICATION_CHECK === 'true';
   const sessionVerified = skipVerification || (session?.user as Record<string, unknown> | undefined)?.verificationStatus === 'verified';
   const [isVerified, setIsVerified] = useState(sessionVerified);
@@ -2305,6 +2305,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {/* Actions */}
+          {!submissionsClosed && extensionUntil && (
+            <div className="border-2 border-orange-500 bg-cream-200 px-4 py-3 mb-8">
+              <p className="text-orange-500 text-sm uppercase tracking-widest">Extension active</p>
+              <p className="text-brown-800 text-sm mt-1">
+                Stasis has ended, but you have an extension for this project until {new Date(extensionUntil).toLocaleString()}. Submit your work before then.
+              </p>
+            </div>
+          )}
           {submissionsClosed ? (
             <div className="border-2 border-orange-500 bg-cream-200 px-4 py-3 mb-8">
               <p className="text-orange-500 text-sm uppercase tracking-widest">Submissions closed</p>

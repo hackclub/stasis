@@ -139,6 +139,10 @@ model User {
   encryptedAddressCountry String?
   encryptedBirthday       String?
 
+  // Per-user submission deadline extension: while now() < this timestamp, the
+  // SUBMISSIONS_CLOSED gate does not apply to this user (all their projects).
+  submissionExtensionUntil DateTime?
+
   sessions             Session[]
   accounts             Account[]
   projects             Project[]
@@ -298,6 +302,10 @@ model Project {
   tier              Int?
   bitsAwarded       Int? // Set atomically at build approval; null until then
   hiddenFromGallery Boolean      @default(false)
+
+  // Per-project submission deadline extension: while now() < this timestamp,
+  // the SUBMISSIONS_CLOSED gate does not apply to actions on this project.
+  submissionExtensionUntil DateTime?
   deletedAt         DateTime?
   deletedById       String?
   deletedBy         User?        @relation("deletedProjects", fields: [deletedById], references: [id], onDelete: SetNull)
@@ -532,6 +540,8 @@ enum AuditAction {
   ADMIN_REVOKE_STREAK_GRACE_DAY
   ADMIN_BACKFILL_INVITE
   ADMIN_GRANT_INVITE
+  ADMIN_GRANT_EXTENSION
+  ADMIN_REVOKE_EXTENSION
 
   REVIEWER_APPROVE
   REVIEWER_RETURN

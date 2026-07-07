@@ -5,7 +5,7 @@ import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
 import { isValidUrl } from "@/lib/url"
 import { getUserRoles, hasRole, Role } from "@/lib/permissions"
-import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
+import { getSubmissionAccess, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 export async function DELETE(
   request: NextRequest,
@@ -90,11 +90,11 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  if (submissionsClosed()) {
+  const { id } = await params
+
+  if ((await getSubmissionAccess(session.user.id, id)).closed) {
     return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
-
-  const { id } = await params
   const roles = await getUserRoles(session.user.id)
   const isAdmin = hasRole(roles, Role.ADMIN)
 

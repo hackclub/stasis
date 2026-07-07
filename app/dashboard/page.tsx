@@ -55,7 +55,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const submissionsClosed = useSubmissionsClosed();
+  const { closed: submissionsClosed, extensionUntil } = useSubmissionsClosed();
   const [modalError, setModalError] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [blueprintImports, setBlueprintImports] = useState<BlueprintImportItem[]>([]);
@@ -600,6 +600,16 @@ export default function ProjectsPage() {
           </svg>
         </Link>
       </div>
+
+      {/* Extension active notice */}
+      {!submissionsClosed && extensionUntil && (
+        <div className="border-2 border-orange-500 bg-cream-200 px-4 py-3 mb-6">
+          <p className="text-orange-500 text-sm uppercase tracking-widest">Extension active</p>
+          <p className="text-brown-800 text-sm mt-1">
+            Stasis has ended, but you have a submission extension until {new Date(extensionUntil).toLocaleString()}. Submit your work before then.
+          </p>
+        </div>
+      )}
 
       {/* Submissions closed notice */}
       {submissionsClosed && (

@@ -2,17 +2,32 @@
 
 import { useState, useEffect } from 'react';
 
-export function useSubmissionsClosed(): boolean {
-  const [closed, setClosed] = useState(false);
+export interface EventStatus {
+  closed: boolean;
+  // Set when submissions are open for this user/project only because an
+  // admin granted an extension (ISO timestamp of when it expires).
+  extensionUntil: string | null;
+}
+
+export function useSubmissionsClosed(projectId?: string): EventStatus {
+  const [status, setStatus] = useState<EventStatus>({ closed: false, extensionUntil: null });
 
   useEffect(() => {
-    fetch('/api/event-status')
+    const url = projectId
+      ? `/api/event-status?projectId=${encodeURIComponent(projectId)}`
+      : '/api/event-status';
+    fetch(url)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) setClosed(Boolean(data.submissionsClosed));
+        if (data) {
+          setStatus({
+            closed: Boolean(data.submissionsClosed),
+            extensionUntil: data.extensionUntil ?? null,
+          });
+        }
       })
       .catch(() => {});
-  }, []);
+  }, [projectId]);
 
-  return closed;
+  return status;
 }

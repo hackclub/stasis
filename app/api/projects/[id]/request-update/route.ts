@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { sanitize } from "@/lib/sanitize"
-import { submissionsClosed, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
+import { getSubmissionAccess, SUBMISSIONS_CLOSED_MESSAGE } from "@/lib/event"
 
 export async function POST(
   request: NextRequest,
@@ -14,11 +14,11 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  if (submissionsClosed()) {
+  const { id } = await params
+
+  if ((await getSubmissionAccess(session.user.id, id)).closed) {
     return NextResponse.json({ error: SUBMISSIONS_CLOSED_MESSAGE }, { status: 403 })
   }
-
-  const { id } = await params
 
   const project = await prisma.project.findUnique({
     where: { id },
