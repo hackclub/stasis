@@ -80,6 +80,7 @@ function ScrambleText({ children, className }: { children: string; className?: s
 
 export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPreference }: { skipRedirect?: boolean; event?: GoalPreference } = {}) {
   const signupPage = event === 'opensauce' ? 'Open Sauce' : 'Stasis';
+  const concluded = true;
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -123,7 +124,7 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
 
   useEffect(() => {
     if (!PRELAUNCH_MODE) return;
-    
+
     async function fetchCount() {
       try {
         const response = await fetch('/api/prelaunch/count');
@@ -478,35 +479,44 @@ export function HomeContent({ skipRedirect = false, event = 'stasis' as GoalPref
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-row items-center gap-4 w-full md:px-5">
-                    <div className="relative min-w-0 flex-1">
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
-                        className="w-full h-[47px] px-3 bg-[#e9e3d6] border border-brown-800 text-brown-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-orange-500 text-[14px] md:text-[18px]"
-                        placeholder="example@email.com"
-                      />
-                      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]" />
+                  <div className="relative w-full">
+                    <div className={`flex flex-row items-center gap-4 w-full md:px-5${concluded ? ' opacity-25 pointer-events-none select-none' : ''}`} aria-hidden={concluded || undefined}>
+                      <div className="relative min-w-0 flex-1">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (PRELAUNCH_MODE ? handlePrelaunchRSVP() : handleSignUp())}
+                          disabled={concluded}
+                          className="w-full h-[47px] px-3 bg-[#e9e3d6] border border-brown-800 text-brown-800 placeholder:text-[#9c8f88] focus:outline-none focus:border-orange-500 text-[14px] md:text-[18px]"
+                          placeholder="example@email.com"
+                        />
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]" />
+                      </div>
+
+                      <MagneticCorners offset={12} color={concluded ? 'color-mix(in srgb, var(--color-cream-500) 56%, transparent)' : undefined}>
+                        <MagneticCorners mode="border" color={concluded ? '#A89D88' : '#D95D39'} magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
+                          <button
+                            onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
+                            disabled={isSubmitting || concluded}
+                            className={`relative ${concluded ? 'bg-cream-300' : 'bg-orange-500 hover:bg-[#e0643e] active:bg-[#d95d39] disabled:opacity-50'} px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer disabled:cursor-not-allowed transition-colors box-border`}
+                          >
+                            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
+                            <span className={`text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
+                            {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[18px] text-[#4a230f]">...</span>}
+                          </button>
+                        </MagneticCorners>
+                      </MagneticCorners>
                     </div>
 
-                    <MagneticCorners offset={12}>
-                      <MagneticCorners mode="border" color="#D95D39" magnetStrength={0.025} hoverOffsetIncrease={1} hoverColor="#e89161">
-                        <button
-                          onClick={PRELAUNCH_MODE ? handlePrelaunchRSVP : handleSignUp}
-                          disabled={isSubmitting}
-                          className="relative bg-orange-500 hover:bg-[#e0643e] active:bg-[#d95d39] px-4 md:px-8 h-[45px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors box-border"
-                        >
-                          <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px)', backgroundSize: '100% 3px' }} />
-                          <span className={`text-[18px] uppercase tracking-wider text-[#4a230f] whitespace-nowrap ${isSubmitting ? 'invisible' : ''}`}>{PRELAUNCH_MODE ? 'RSVP' : 'Sign Up'}</span>
-                          {isSubmitting && <span className="absolute inset-0 flex items-center justify-center text-[18px] text-[#4a230f]">...</span>}
-                        </button>
-                      </MagneticCorners>
-                    </MagneticCorners>
+                    {concluded && (
+                      <p className="absolute inset-0 z-10 flex items-center justify-center text-[14px] md:text-[16px] text-center leading-snug">
+                        <span className="bg-orange-600 text-cream-50 px-2 py-0.5 whitespace-nowrap">Stasis ran from March to June 2026</span>
+                      </p>
+                    )}
                   </div>
 
-                  <p className="text-[14px] text-cream-400 text-left w-full mt-2 md:mt-0 md:px-5">
+                  <p className={`text-[14px] text-cream-400 text-left w-full mt-2 md:mt-0 md:px-5${concluded ? ' opacity-25 select-none' : ''}`} aria-hidden={concluded || undefined}>
                     For high schoolers aged 13-18.
                   </p>
 
