@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AuditAction" ADD VALUE 'SHOP_ORDER_EDIT_SHIPPING';

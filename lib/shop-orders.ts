@@ -503,6 +503,124 @@ export async function addShopOrderNote(
   return note;
 }
 
+export const EDITABLE_ADDRESS_FIELDS = [
+  "first_name",
+  "last_name",
+  "line_1",
+  "line_2",
+  "city",
+  "state",
+  "postal_code",
+  "country",
+] as const;
+
+export type EditableAddressField = (typeof EDITABLE_ADDRESS_FIELDS)[number];
+
+const EMPTY_ADDRESS: HcaAddress = {
+  id: "admin-edit",
+  first_name: null,
+  last_name: null,
+  line_1: null,
+  line_2: null,
+  city: null,
+  state: null,
+  postal_code: null,
+  country: null,
+  phone_number: null,
+  primary: false,
+};
+
+/**
+ * Admin edit of a ShopOrder's shipping snapshot (address and/or phone).
+ * Provided address fields are merged onto the existing snapshot; null or ""
+ * clears a field. Only PENDING / ON_HOLD orders can be edited. Records an
+ * order note listing which fields changed (values stay encrypted) plus an
+ * audit log entry.
+ */
+export async function editShopOrderShipping(
+  params: AdminActionParams & {
+    address?: Partial<Record<EditableAddressField, string | null>>;
+    phone?: string;
+  }
+): Promise<{ order: ShopOrder; address: HcaAddress | null; phone: string | null }> {
+  const order = await prisma.shopOrder.findUnique({ where: { id: params.orderId } });
+  if (!order) throw new ShopOrderError("NOT_FOUND");
+  if (
+    order.status !== ShopOrderStatus.PENDING &&
+    order.status !== ShopOrderStatus.ON_HOLD
+  ) {
+    throw new ShopOrderError(
+      "INVALID_STATE",
+      `Cannot edit shipping info on an order in state ${order.status}`
+    );
+  }
+
+  const changedFields: string[] = [];
+  const data: { encryptedAddress?: string; encryptedPhone?: string; lastActorId: string } = {
+    lastActorId: params.adminId,
+  };
+
+  if (params.address) {
+    const current = decryptShopOrderAddress(order.encryptedAddress) ?? { ...EMPTY_ADDRESS };
+    for (const field of EDITABLE_ADDRESS_FIELDS) {
+      const raw = params.address[field];
+      if (raw === undefined) continue;
+      const value = raw === null ? null : sanitize(raw).trim() || null;
+      if (value !== current[field]) changedFields.push(field);
+      current[field] = value;
+    }
+    if (!current.line_1 || !current.city || !current.country) {
+      throw new ShopOrderError("INVALID_INPUT", "line_1, city, and country are required");
+    }
+    data.encryptedAddress = encryptPII(JSON.stringify(current));
+  }
+
+  if (params.phone !== undefined) {
+    const phone = sanitize(params.phone).trim();
+    if (!phone) throw new ShopOrderError("INVALID_INPUT", "Phone number cannot be empty");
+    if (phone !== decryptShopOrderPhone(order.encryptedPhone)) changedFields.push("phone");
+    data.encryptedPhone = encryptPII(phone);
+  }
+
+  if (!params.address && params.phone === undefined) {
+    throw new ShopOrderError("INVALID_INPUT", "Provide address and/or phone to edit");
+  }
+
+  const updated = changedFields.length
+    ? await prisma.$transaction(async (tx) => {
+        const result = await tx.shopOrder.update({
+          where: { id: order.id },
+          data,
+        });
+        await tx.shopOrderNote.create({
+          data: {
+            orderId: order.id,
+            authorId: params.adminId,
+            body: `Shipping info edited (${changedFields.join(", ")})`,
+          },
+        });
+        return result;
+      })
+    : order;
+
+  if (changedFields.length) {
+    await logAdminAction(
+      AuditAction.SHOP_ORDER_EDIT_SHIPPING,
+      params.adminId,
+      params.adminEmail ?? undefined,
+      "ShopOrder",
+      order.id,
+      { orderNumber: order.orderNumber, changedFields }
+    );
+  }
+
+  return {
+    order: updated,
+    address: decryptShopOrderAddress(updated.encryptedAddress),
+    phone: decryptShopOrderPhone(updated.encryptedPhone),
+  };
+}
+
 /**
  * Decrypt a ShopOrder's encryptedAddress JSON blob back into an HcaAddress.
  * Returns null if the snapshot is empty (e.g. legacy backfilled rows).
