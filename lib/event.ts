@@ -1,10 +1,13 @@
 import prisma from "@/lib/prisma"
 
-// Event lifecycle flags. SUBMISSIONS_CLOSED is a server-side runtime env var
-// (set in Coolify, takes effect on restart, no rebuild needed) so it must not
-// be NEXT_PUBLIC_ - the client learns it via GET /api/event-status.
+// Event lifecycle flags. Stasis ended 2026-06-30, so submissions are closed
+// by default in code (the SUBMISSIONS_CLOSED env var was never flipped in
+// Coolify and submissions silently stayed open for two weeks). Setting
+// SUBMISSIONS_CLOSED=false re-opens them; per-user/per-project extensions
+// below still override the gate either way. The flag is server-side only
+// (not NEXT_PUBLIC_): the client learns it via GET /api/event-status.
 export function submissionsClosed(): boolean {
-  return process.env.SUBMISSIONS_CLOSED === "true"
+  return process.env.SUBMISSIONS_CLOSED !== "false"
 }
 
 export const SUBMISSIONS_CLOSED_MESSAGE =
