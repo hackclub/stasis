@@ -19,6 +19,9 @@ interface Props {
   item: ShopItem;
   bitsBalance: number;
   alreadyOwnedCount: number;
+  // Global shop gate: browsing stays available, ordering does not.
+  shopClosed?: boolean;
+  shopClosedMessage?: string | null;
   onClose: () => void;
   onPlaced: (orderNumber: number, newBalance: number) => void;
 }
@@ -52,6 +55,8 @@ export default function ShopOrderModal({
   item,
   bitsBalance,
   alreadyOwnedCount,
+  shopClosed = false,
+  shopClosedMessage = null,
   onClose,
   onPlaced,
 }: Readonly<Props>) {
@@ -185,6 +190,7 @@ export default function ShopOrderModal({
   const insufficient = balanceAfter < 0;
 
   const canSubmit =
+    !shopClosed &&
     !submitting &&
     !addressesLoading &&
     !!currentAddress &&
@@ -433,6 +439,12 @@ export default function ShopOrderModal({
               </div>
             )}
 
+            {shopClosed && (
+              <div className="bg-orange-500/15 border border-orange-500/40 px-3 py-2 text-brown-800 text-sm">
+                {shopClosedMessage ?? 'The Stasis shop is closed.'}
+              </div>
+            )}
+
             {submitError && (
               <p className="text-red-600 text-sm uppercase tracking-wide">{submitError}</p>
             )}
@@ -456,7 +468,7 @@ export default function ShopOrderModal({
                 disabled={!canSubmit}
                 className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-cream-100 uppercase tracking-wide text-sm font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {submitting ? 'Placing order…' : 'Place order'}
+                {shopClosed ? 'Shop closed' : submitting ? 'Placing order…' : 'Place order'}
               </button>
             </div>
           </div>

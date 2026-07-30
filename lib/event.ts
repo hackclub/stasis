@@ -11,10 +11,100 @@ export function submissionsClosed(): boolean {
 }
 
 export const SUBMISSIONS_CLOSED_MESSAGE =
-  "Stasis has ended and submissions are closed. Reviews of submitted work and the shop remain open."
+  "Stasis has ended and submissions are closed. Reviews of submitted work are still going out."
 
 export const UNSUBMIT_CLOSED_MESSAGE =
   "Stasis has ended and submissions are closed. Unsubmitting is disabled because you would not be able to resubmit."
+
+// ── Shop lifecycle ───────────────────────────────────────────────────────────
+
+// The shop closes 2026-08-01 at midnight Eastern (04:00 UTC), so the last full
+// day to spend is July 31. Anyone still in the review pipeline keeps shopping
+// past that: a project awaiting review means bits may still be coming, and for
+// SHOP_GRACE_DAYS after their most recent review they can actually spend what
+// they were just awarded. Set SHOP_CLOSES_AT (ISO timestamp) to move the date.
+export const SHOP_CLOSE_DATE = new Date(
+  process.env.SHOP_CLOSES_AT || "2026-08-01T04:00:00.000Z"
+)
+
+// The close date is defined as midnight Eastern, so its human-facing label is
+// always the Eastern calendar date. Formatting the instant in the viewer's own
+// zone would tell anyone west of Eastern the shop closed July 31.
+export const SHOP_TIMEZONE = "America/New_York"
+
+export function formatShopDate(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    timeZone: SHOP_TIMEZONE,
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })
+}
+
+export const SHOP_GRACE_DAYS = 7
+const SHOP_GRACE_MS = SHOP_GRACE_DAYS * 24 * 60 * 60 * 1000
+
+export const SHOP_CLOSED_MESSAGE =
+  "The Stasis shop is closed. It stays open while you have a project awaiting review, and for 7 days after your last review."
+
+export type ShopAccessReason =
+  // Before the close date - open to everyone.
+  | "OPEN"
+  // Closed for everyone else, but this user has work awaiting review.
+  | "PENDING_REVIEW"
+  // Closed for everyone else, but this user was reviewed in the grace window.
+  | "GRACE_PERIOD"
+  | "CLOSED"
+
+export interface ShopAccess {
+  closed: boolean
+  closesAt: Date
+  // Set when the shop is open only because of the post-review grace window:
+  // the moment that window runs out.
+  graceUntil: Date | null
+  reason: ShopAccessReason
+}
+
+// Whether `userId` can still buy things. Ownership/eligibility of individual
+// items is checked by the purchase paths as usual - this is only the global
+// open/closed gate.
+export async function getShopAccess(userId: string): Promise<ShopAccess> {
+  const now = new Date()
+  if (now < SHOP_CLOSE_DATE) {
+    return { closed: false, closesAt: SHOP_CLOSE_DATE, graceUntil: null, reason: "OPEN" }
+  }
+
+  const [awaitingReview, lastReview] = await Promise.all([
+    prisma.project.count({
+      where: {
+        userId,
+        deletedAt: null,
+        OR: [{ designStatus: "in_review" }, { buildStatus: "in_review" }],
+      },
+    }),
+    prisma.project.aggregate({
+      where: { userId, deletedAt: null },
+      _max: { designReviewedAt: true, buildReviewedAt: true },
+    }),
+  ])
+
+  if (awaitingReview > 0) {
+    return { closed: false, closesAt: SHOP_CLOSE_DATE, graceUntil: null, reason: "PENDING_REVIEW" }
+  }
+
+  const reviewedAt = [lastReview._max.designReviewedAt, lastReview._max.buildReviewedAt]
+    .filter((d): d is Date => d != null)
+    .sort((a, b) => b.getTime() - a.getTime())[0]
+
+  if (reviewedAt) {
+    const graceUntil = new Date(reviewedAt.getTime() + SHOP_GRACE_MS)
+    if (graceUntil > now) {
+      return { closed: false, closesAt: SHOP_CLOSE_DATE, graceUntil, reason: "GRACE_PERIOD" }
+    }
+  }
+
+  return { closed: true, closesAt: SHOP_CLOSE_DATE, graceUntil: null, reason: "CLOSED" }
+}
 
 export interface SubmissionAccess {
   closed: boolean

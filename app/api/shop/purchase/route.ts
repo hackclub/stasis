@@ -6,11 +6,17 @@ import { SHOP_ITEMS, SHOP_ITEM_IDS, REQUIRES_STASIS_INVITE_IDS, PENDING_BITS_ELI
 import { Prisma } from "@/app/generated/prisma/client"
 import { runInvitePurchaseSideEffects, type InvitePurchaseResult } from "@/lib/attend"
 import { getPendingBits } from "@/lib/currency"
+import { getShopAccess, SHOP_CLOSED_MESSAGE } from "@/lib/event"
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const shopAccess = await getShopAccess(session.user.id)
+  if (shopAccess.closed) {
+    return NextResponse.json({ error: SHOP_CLOSED_MESSAGE, code: "SHOP_CLOSED" }, { status: 403 })
   }
 
   const body = await request.json()

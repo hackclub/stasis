@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from "@/lib/auth-client";
 import { SHOP_ITEMS, SHOP_ITEM_IDS, PENDING_BITS_ELIGIBLE_IDS } from '@/lib/shop';
 import ShopOrderModal from '@/app/components/ShopOrderModal';
+import { useShopStatus } from '@/lib/hooks/useShopStatus';
 
 interface DbShopItem {
   id: string;
@@ -169,8 +170,17 @@ function PurchaseConfirmModal({
 }
 
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export default function ShopPage() {
   const { data: session } = useSession();
+  const shopStatus = useShopStatus(!!session);
   const [bitsBalance, setBitsBalance] = useState<number>(0);
   const [pendingBits, setPendingBits] = useState<number>(0);
   const [bitsEarned, setBitsEarned] = useState<number>(0);
@@ -319,6 +329,7 @@ export default function ShopPage() {
   // NOTE: do not use this for spend gating — getEffectiveBalance still uses the
   // true confirmedBits below.
   const spendableBits = Math.max(0, confirmedBits);
+  const shopClosed = shopStatus.closed;
   const openSauceItem = SHOP_ITEMS.find(item => item.id === SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
   const flightItem = SHOP_ITEMS.find(item => item.category === 'flight_stipend');
   const hasOpenSauceTicket = purchasedItems.has(SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
@@ -363,12 +374,49 @@ export default function ShopPage() {
         </div>
       </div>
 
+      {/* Shop lifecycle notice */}
+      {!shopStatus.loading && !shopClosed && shopStatus.reason === 'OPEN' && shopStatus.closesAt && (
+        <div className="bg-orange-500 p-4">
+          <p className="text-cream-100 text-sm">
+            The shop closes <span className="font-bold">{shopStatus.closesAtLabel ?? formatDate(shopStatus.closesAt)}</span>. Spend your bits before then!
+          </p>
+        </div>
+      )}
+      {!shopStatus.loading && shopStatus.reason === 'PENDING_REVIEW' && (
+        <div className="bg-orange-500 p-4">
+          <p className="text-cream-100 text-sm">
+            The Stasis shop has closed, but you have an extension while your project is awaiting review.
+          </p>
+        </div>
+      )}
+      {!shopStatus.loading && shopStatus.reason === 'GRACE_PERIOD' && shopStatus.graceUntil && (
+        <div className="bg-orange-500 p-4">
+          <p className="text-cream-100 text-sm">
+            The Stasis shop has closed, but you have an extension until <span className="font-bold">{shopStatus.graceUntilLabel ?? formatDate(shopStatus.graceUntil)}</span>.
+          </p>
+        </div>
+      )}
+
       {error && (
         <div className="bg-cream-100 border-2 border-orange-500 p-4">
           <p className="text-orange-500 text-sm">{error}</p>
         </div>
       )}
 
+      {/* Everything below the balance header dims out once the shop closes -
+          the listing stays visible but inert, under the closed notice. */}
+      <div className="relative">
+        {!shopStatus.loading && shopClosed && shopStatus.closesAt && (
+          <div className="absolute inset-x-0 top-16 z-20 flex justify-center px-4">
+            <div className="bg-orange-500 px-8 py-5 text-center">
+              <p className="text-cream-100 text-lg sm:text-xl uppercase tracking-wide font-bold">
+                The Stasis shop closed on {shopStatus.closesAtLabel ?? formatDate(shopStatus.closesAt)}!
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className={`space-y-8${shopClosed ? ' opacity-30 pointer-events-none select-none' : ''}`}>
       {loading ? (
         <div className="p-8 text-center">
           <p className="text-brown-800">Loading shop...</p>
@@ -613,6 +661,8 @@ export default function ShopPage() {
           )}
         </>
       )}
+        </div>
+      </div>
 
       {confirmModal && (
         <PurchaseConfirmModal
@@ -629,6 +679,8 @@ export default function ShopPage() {
         <ShopOrderModal
           item={detailItem}
           bitsBalance={confirmedBits}
+          shopClosed={shopClosed}
+          shopClosedMessage={shopStatus.message}
           alreadyOwnedCount={Math.floor((itemTotals[detailItem.id] ?? 0) / (detailItem.discountPrice ?? detailItem.price))}
           onClose={() => {
             setDetailItem(null);

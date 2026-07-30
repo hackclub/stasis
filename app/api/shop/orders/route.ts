@@ -3,11 +3,17 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { placeShopOrder, ShopOrderError } from "@/lib/shop-orders";
 import { sanitize } from "@/lib/sanitize";
+import { getShopAccess, SHOP_CLOSED_MESSAGE } from "@/lib/event";
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const shopAccess = await getShopAccess(session.user.id);
+  if (shopAccess.closed) {
+    return NextResponse.json({ error: SHOP_CLOSED_MESSAGE, code: "SHOP_CLOSED" }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({})) as {
