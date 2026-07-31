@@ -59,8 +59,12 @@ export type ShopAccessReason =
 export interface ShopAccess {
   closed: boolean
   closesAt: Date
-  // Set when the shop is open only because of the post-review grace window:
-  // the moment that window runs out.
+  // True when the user has work sitting in the review queue. Their shop access
+  // outlives the close date: it runs until SHOP_GRACE_DAYS after that review.
+  pendingReview: boolean
+  // End of the user's post-review window, when that is still in the future.
+  // Populated before the close date too, so the "closing soon" copy can tell
+  // someone the shop will not actually close for them yet.
   graceUntil: Date | null
   reason: ShopAccessReason
 }
@@ -70,9 +74,6 @@ export interface ShopAccess {
 // open/closed gate.
 export async function getShopAccess(userId: string): Promise<ShopAccess> {
   const now = new Date()
-  if (now < SHOP_CLOSE_DATE) {
-    return { closed: false, closesAt: SHOP_CLOSE_DATE, graceUntil: null, reason: "OPEN" }
-  }
 
   const [awaitingReview, lastReview] = await Promise.all([
     prisma.project.count({
@@ -88,22 +89,22 @@ export async function getShopAccess(userId: string): Promise<ShopAccess> {
     }),
   ])
 
-  if (awaitingReview > 0) {
-    return { closed: false, closesAt: SHOP_CLOSE_DATE, graceUntil: null, reason: "PENDING_REVIEW" }
-  }
+  const pendingReview = awaitingReview > 0
 
   const reviewedAt = [lastReview._max.designReviewedAt, lastReview._max.buildReviewedAt]
     .filter((d): d is Date => d != null)
     .sort((a, b) => b.getTime() - a.getTime())[0]
 
-  if (reviewedAt) {
-    const graceUntil = new Date(reviewedAt.getTime() + SHOP_GRACE_MS)
-    if (graceUntil > now) {
-      return { closed: false, closesAt: SHOP_CLOSE_DATE, graceUntil, reason: "GRACE_PERIOD" }
-    }
-  }
+  const graceEnd = reviewedAt ? new Date(reviewedAt.getTime() + SHOP_GRACE_MS) : null
+  const graceUntil = graceEnd && graceEnd > now ? graceEnd : null
 
-  return { closed: true, closesAt: SHOP_CLOSE_DATE, graceUntil: null, reason: "CLOSED" }
+  const base = { closesAt: SHOP_CLOSE_DATE, pendingReview, graceUntil }
+
+  if (now < SHOP_CLOSE_DATE) return { ...base, closed: false, reason: "OPEN" }
+  if (pendingReview) return { ...base, closed: false, reason: "PENDING_REVIEW" }
+  if (graceUntil) return { ...base, closed: false, reason: "GRACE_PERIOD" }
+
+  return { ...base, closed: true, reason: "CLOSED" }
 }
 
 export interface SubmissionAccess {

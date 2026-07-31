@@ -330,6 +330,13 @@ export default function ShopPage() {
   // true confirmedBits below.
   const spendableBits = Math.max(0, confirmedBits);
   const shopClosed = shopStatus.closed;
+  const closesAtLabel =
+    shopStatus.closesAtLabel ?? (shopStatus.closesAt ? formatDate(shopStatus.closesAt) : '');
+  // A post-review window only matters pre-close if it outlives the close date.
+  const graceOutlastsClose =
+    !!shopStatus.graceUntil &&
+    !!shopStatus.closesAt &&
+    new Date(shopStatus.graceUntil) > new Date(shopStatus.closesAt);
   const openSauceItem = SHOP_ITEMS.find(item => item.id === SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
   const flightItem = SHOP_ITEMS.find(item => item.category === 'flight_stipend');
   const hasOpenSauceTicket = purchasedItems.has(SHOP_ITEM_IDS.OPEN_SAUCE_TICKET);
@@ -375,10 +382,22 @@ export default function ShopPage() {
       </div>
 
       {/* Shop lifecycle notice */}
-      {!shopStatus.loading && !shopClosed && shopStatus.reason === 'OPEN' && shopStatus.closesAt && (
+      {!shopStatus.loading && shopStatus.reason === 'OPEN' && shopStatus.closesAt && (
         <div className="bg-orange-500 p-4">
           <p className="text-cream-100 text-sm">
-            The shop closes <span className="font-bold">{shopStatus.closesAtLabel ?? formatDate(shopStatus.closesAt)}</span>. Spend your bits before then!
+            {shopStatus.pendingReview ? (
+              <>
+                The shop closes <span className="font-bold">{closesAtLabel}</span>, but you have a project awaiting review, so it stays open for you until {shopStatus.graceDays} days after that review comes back.
+              </>
+            ) : graceOutlastsClose ? (
+              <>
+                The shop closes <span className="font-bold">{closesAtLabel}</span>, but your recent review keeps it open for you until <span className="font-bold">{shopStatus.graceUntilLabel ?? formatDate(shopStatus.graceUntil!)}</span>.
+              </>
+            ) : (
+              <>
+                The shop closes <span className="font-bold">{closesAtLabel}</span>. Spend your bits before then!
+              </>
+            )}
           </p>
         </div>
       )}
