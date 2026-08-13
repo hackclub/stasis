@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CERTIFICATE_BITS_THRESHOLD } from '@/lib/tiers';
 
 const DISMISSED_KEY = 'stasis_certificate_popup_dismissed';
 
@@ -21,12 +22,18 @@ interface ProjectData {
 function useProgress() {
   const [built, setBuilt] = useState(0);
   const [designed, setDesigned] = useState(0);
+  const [qualified, setQualified] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/api/projects')
-      .then(res => res.ok ? res.json() : [])
-      .then((projects: ProjectData[]) => {
+    // Qualification comes from /api/certificate so this popup and the
+    // certificate page agree; the project list only drives the "keep going"
+    // copy below the threshold.
+    Promise.all([
+      fetch('/api/projects').then(res => res.ok ? res.json() : []),
+      fetch('/api/certificate').then(res => res.ok ? res.json() : { qualified: false }),
+    ])
+      .then(([projects, cert]: [ProjectData[], { qualified?: boolean }]) => {
         let b = 0, d = 0;
         for (const p of projects) {
           if (p.stage === 'BUILD' && p.buildStatus === 'approved') b++;
@@ -34,16 +41,20 @@ function useProgress() {
         }
         setBuilt(b);
         setDesigned(d);
+        setQualified(cert?.qualified ?? false);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
   }, []);
 
-  return { built, designed, loaded };
+  return { built, designed, qualified, loaded };
 }
 
-function getProgressText(built: number, designed: number): string | null {
-  if (built >= 3) return "You've earned your certificate!";
+function getProgressText(built: number, designed: number, qualified: boolean): string | null {
+  if (qualified) return "You've earned your certificate!";
+  // Builds can outnumber three and still fall short: qualification is bits, and
+  // low-tier builds are worth less. Don't promise the certificate is done.
+  if (built >= 3) return `You've built ${built} projects - keep building to reach ${CERTIFICATE_BITS_THRESHOLD} bits.`;
   if (built === 2) return "You've already built 2 projects - just 1 more to go.";
   if (built === 1 && designed > 0) return `You've already built 1 project and designed ${designed} more - keep going!`;
   if (built === 1) return "You've already built 1 project - 2 more to go.";
@@ -59,7 +70,7 @@ interface CertificatePopupProps {
 export function CertificatePopup({ onDismiss }: Readonly<CertificatePopupProps>) {
   const [shouldShow, setShouldShow] = useState(false);
   const [animated, setAnimated] = useState(false);
-  const { built, designed, loaded } = useProgress();
+  const { built, designed, qualified, loaded } = useProgress();
 
   useEffect(() => {
     if (!localStorage.getItem(DISMISSED_KEY)) {
@@ -153,7 +164,7 @@ export function CertificatePopup({ onDismiss }: Readonly<CertificatePopupProps>)
 
         {/* Progress */}
         {loaded && (() => {
-          const text = getProgressText(built, designed);
+          const text = getProgressText(built, designed, qualified);
           if (!text) return null;
           return (
             <div className="mx-6 mb-5 text-sm text-brown-800/70 text-center">

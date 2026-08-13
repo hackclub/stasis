@@ -96,4 +96,33 @@ export async function getPendingBits(tx: TxClient, userId: string): Promise<numb
   return Math.max(0, projectPending) + Math.max(0, credit - eligibleSpend)
 }
 
+/**
+ * Certificate bits = bits a user actually earned by shipping hardware, i.e. the
+ * net of every ledger entry tied to a project whose build has been approved.
+ *
+ * Deliberately NOT the same as the shop's `bitsEarned`. That figure is derived
+ * as (balance - pending) + spent so that earned - spent always equals the
+ * spendable balance, which means admin bookkeeping counts toward it: a grant
+ * that was later clawed back with an ADMIN_DEDUCTION adds to `spent` and so
+ * still reads as earned. That is correct for a wallet and wrong for a
+ * certificate — the event-invite grant/deduction pairs alone pushed 20 users
+ * with zero approved builds over the threshold.
+ *
+ * Filtering on projectId is sufficient to exclude that bookkeeping: event
+ * grants, invite deductions, shop purchases and reviewer pay are all written as
+ * project-less entries. Every project-linked entry is a real award (or its
+ * reversal) for that build, so summing them needs no type allowlist.
+ */
+export async function getCertificateBits(tx: TxClient, userId: string): Promise<number> {
+  const rows = await tx.$queryRaw<{ total: bigint | null }[]>`
+    SELECT COALESCE(SUM(ct.amount), 0) AS total
+      FROM currency_transaction ct
+      JOIN project p ON p.id = ct."projectId"
+     WHERE ct."userId" = ${userId}
+       AND p."buildStatus"::text = 'approved'
+       AND p."deletedAt" IS NULL
+  `
+  return Math.max(0, Number(rows[0]?.total ?? 0))
+}
+
 export { CurrencyTransactionType }

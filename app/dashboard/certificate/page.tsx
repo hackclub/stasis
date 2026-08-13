@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { QUALIFICATION_BITS_THRESHOLD } from '@/lib/tiers';
+import { CERTIFICATE_BITS_THRESHOLD, certificateProgress } from '@/lib/tiers';
 
 const certLogos = [
   { src: '/mit-orange.png', alt: 'MIT', href: 'https://www.mit.edu' },
@@ -28,13 +28,14 @@ interface ProjectData {
   buildStatus: string;
 }
 
-// The certificate is gated on earned bits (≈3 projects), not a raw project count —
-// a builder with 3 low-tier builds can still be short of the threshold, so progress
-// is reported in bits to stay truthful about what's left.
-function getProgressText(bitsEarned: number, built: number): string | null {
-  const remaining = QUALIFICATION_BITS_THRESHOLD - bitsEarned;
+// The certificate is gated on bits from approved builds (≈3 projects), not a raw
+// project count — a builder with 3 low-tier builds can still be short of the
+// threshold, so progress is reported in bits to stay truthful about what's left.
+// These bits come from /api/certificate, never from the wallet's bitsEarned.
+function getProgressText(certificateBits: number, built: number): string | null {
+  const remaining = CERTIFICATE_BITS_THRESHOLD - certificateBits;
   if (remaining <= 0) return "You've earned your certificate!";
-  const bitsLine = `earned ${bitsEarned} of ${QUALIFICATION_BITS_THRESHOLD} bits - ${remaining} more to go`;
+  const bitsLine = `earned ${certificateBits} of ${CERTIFICATE_BITS_THRESHOLD} bits - ${remaining} more to go`;
   if (built > 0) return `You've built ${built} project${built === 1 ? '' : 's'} and ${bitsLine}.`;
   return `You're on your way - ${bitsLine}.`;
 }
@@ -52,21 +53,21 @@ export default function CertificatePage() {
     { state: 'empty' }, { state: 'empty' }, { state: 'empty' },
   ]);
   const [progressText, setProgressText] = useState<string | null>(null);
-  const [bitsEarned, setBitsEarned] = useState(0);
+  const [certificateBits, setCertificateBits] = useState(0);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/projects').then(res => res.ok ? res.json() : []),
-      fetch('/api/currency').then(res => res.ok ? res.json() : { bitsEarned: 0 }),
+      fetch('/api/certificate').then(res => res.ok ? res.json() : { certificateBits: 0, qualified: false }),
     ])
-      .then(([projects, currency]: [ProjectData[], { bitsEarned?: number }]) => {
-        // The certificate is earned at the qualification bits threshold — once a
-        // builder clears it, the certificate is theirs no matter how many separate
-        // projects it took, so present the tracker as complete.
-        const earned = currency?.bitsEarned ?? 0;
-        const qualified = earned >= QUALIFICATION_BITS_THRESHOLD;
-        setBitsEarned(earned);
+      .then(([projects, cert]: [ProjectData[], { certificateBits?: number; qualified?: boolean }]) => {
+        // The certificate is earned at the bits threshold — once a builder clears
+        // it, the certificate is theirs no matter how many separate projects it
+        // took, so present the tracker as complete.
+        const earned = cert?.certificateBits ?? 0;
+        const qualified = cert?.qualified ?? false;
+        setCertificateBits(earned);
 
         const scored = projects
           .map(p => ({ ...p, ...projectToSlot(p) }))
@@ -234,7 +235,7 @@ export default function CertificatePage() {
           <div className="mt-4 h-[6px] bg-cream-300 overflow-hidden">
             <div
               className="h-full bg-orange-500 transition-all duration-500"
-              style={{ width: `${Math.min(100, (bitsEarned / QUALIFICATION_BITS_THRESHOLD) * 100)}%` }}
+              style={{ width: `${certificateProgress(certificateBits) * 100}%` }}
             />
           </div>
         </div>

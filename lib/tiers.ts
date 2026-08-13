@@ -132,3 +132,19 @@ export function isQualified(totalBitsEarned: number): boolean {
 export function qualificationProgress(totalBitsEarned: number): number {
   return Math.min(1, totalBitsEarned / QUALIFICATION_BITS_THRESHOLD)
 }
+
+// --- Certificate ---
+// The certificate is gated on bits earned from approved builds only, never on
+// the wallet's `bitsEarned` (which folds in admin bookkeeping). Feed these from
+// `getCertificateBits` in lib/currency, or /api/certificate on the client.
+export const CERTIFICATE_BITS_THRESHOLD = QUALIFICATION_BITS_THRESHOLD
+
+/** Check whether a user's build-earned bits meet the certificate threshold. */
+export function isCertificateQualified(certificateBits: number): boolean {
+  return certificateBits >= CERTIFICATE_BITS_THRESHOLD
+}
+
+/** Get certificate progress as a 0–1 fraction. */
+export function certificateProgress(certificateBits: number): number {
+  return Math.min(1, certificateBits / CERTIFICATE_BITS_THRESHOLD)
+}
