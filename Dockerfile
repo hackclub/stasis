@@ -7,8 +7,13 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* ./
+# BuildKit cache mounts persist across builds and are NOT cleared by --no-cache
+# or by Coolify's force rebuild, so a single truncated tarball in the cache fails
+# every subsequent build with "the file appears to be corrupt" until someone
+# prunes it by hand. Retry once against a cleaned cache so a poisoned entry costs
+# one slow build instead of a broken deploy.
 RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
-    yarn --frozen-lockfile
+    yarn --frozen-lockfile || (yarn cache clean && yarn --frozen-lockfile)
 
 # Generate Prisma client
 COPY prisma ./prisma
