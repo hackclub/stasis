@@ -9,7 +9,7 @@ import { PlatformNoiseOverlay } from '../components/PlatformNoiseOverlay';
 const CODE_LENGTH = 6;
 
 type Result =
-  | { state: 'valid'; code: string; name: string; issuedAt: string | null }
+  | { state: 'valid'; code: string; name: string; issuedAt: string | null; hasPdf: boolean }
   | { state: 'invalid'; code: string }
   | { state: 'error'; message: string };
 
@@ -72,7 +72,8 @@ function Verifier() {
       const data = await res.json();
       setResult(
         data.valid
-          ? { state: 'valid', code: data.code, name: data.name, issuedAt: data.issuedAt ?? null }
+          ? { state: 'valid', code: data.code, name: data.name, issuedAt: data.issuedAt ?? null,
+              hasPdf: Boolean(data.hasPdf) }
           : { state: 'invalid', code },
       );
     } catch {
@@ -185,6 +186,15 @@ function Verifier() {
             {result.code}
             {formatIssued(result.issuedAt) && <> &middot; {formatIssued(result.issuedAt)}</>}
           </p>
+          {result.hasPdf && (
+            <a
+              href={`/api/certificate/download?id=${encodeURIComponent(result.code)}`}
+              className="inline-block mt-6 border-2 border-brown-800 text-brown-800 px-6 py-2 text-sm
+                         hover:border-orange-500 hover:text-orange-500 transition-colors"
+            >
+              Download the certificate
+            </a>
+          )}
         </BracketFrame>
       )}
 

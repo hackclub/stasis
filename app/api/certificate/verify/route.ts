@@ -27,6 +27,9 @@ export async function GET(request: NextRequest) {
       code: certificate.code,
       name: certificate.name,
       issuedAt: certificate.issuedAt,
+      // Only whether a file exists; the stored URL is signed and short-lived,
+      // so downloads go through /api/certificate/download instead.
+      hasPdf: Boolean(certificate.pdfUrl),
     })
   } catch {
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { CurrencyTransactionType } from "@/app/generated/prisma/enums"
 import type { Prisma } from "@/app/generated/prisma/client"
 import { PENDING_BITS_ELIGIBLE_IDS } from "@/lib/shop"
+import { getTierBits } from "@/lib/tiers"
 
 type TxClient = Prisma.TransactionClient
 
@@ -97,32 +98,29 @@ export async function getPendingBits(tx: TxClient, userId: string): Promise<numb
 }
 
 /**
- * Certificate bits = bits a user actually earned by shipping hardware, i.e. the
- * net of every ledger entry tied to a project whose build has been approved.
+ * Certificate bits = the tier value of everything a user got a build approved
+ * for. It answers "did they earn these bits by building", not "do they still
+ * have them".
  *
- * Deliberately NOT the same as the shop's `bitsEarned`. That figure is derived
- * as (balance - pending) + spent so that earned - spent always equals the
- * spendable balance, which means admin bookkeeping counts toward it: a grant
- * that was later clawed back with an ADMIN_DEDUCTION adds to `spent` and so
- * still reads as earned. That is correct for a wallet and wrong for a
- * certificate — the event-invite grant/deduction pairs alone pushed 20 users
- * with zero approved builds over the threshold.
+ * Two deductions are deliberately ignored:
  *
- * Filtering on projectId is sufficient to exclude that bookkeeping: event
- * grants, invite deductions, shop purchases and reviewer pay are all written as
- * project-less entries. Every project-linked entry is a real award (or its
- * reversal) for that build, so summing them needs no type allowlist.
+ *  - BOM. Tier bits are granted net of parts spending, so the ledger records
+ *    80 for a Tier 3 build that drew 120 in parts. Charging that against the
+ *    certificate penalises the builder for using the parts budget the tier
+ *    exists to fund — two people ship the same Tier 3 project and the one who
+ *    bought parts is further from a certificate. Tier value is the honest
+ *    measure of what they built, so this reads the tier rather than the grant.
+ *  - Shop spending. Already excluded, since those entries carry no projectId.
+ *
+ * Reviewer pay and admin grants stay out for the same reason they always did:
+ * real earnings, but not earned by building.
  */
 export async function getCertificateBits(tx: TxClient, userId: string): Promise<number> {
-  const rows = await tx.$queryRaw<{ total: bigint | null }[]>`
-    SELECT COALESCE(SUM(ct.amount), 0) AS total
-      FROM currency_transaction ct
-      JOIN project p ON p.id = ct."projectId"
-     WHERE ct."userId" = ${userId}
-       AND p."buildStatus"::text = 'approved'
-       AND p."deletedAt" IS NULL
-  `
-  return Math.max(0, Number(rows[0]?.total ?? 0))
+  const projects = await tx.project.findMany({
+    where: { userId, buildStatus: "approved", deletedAt: null },
+    select: { tier: true },
+  })
+  return projects.reduce((sum, p) => sum + getTierBits(p.tier ?? 0), 0)
 }
 
 export { CurrencyTransactionType }

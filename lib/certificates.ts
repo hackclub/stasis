@@ -12,12 +12,17 @@ import Airtable from 'airtable';
 
 const CERTIFICATES_TABLE = 'Certificates & Emails';
 const CODE_FIELD = 'certificate_id';
+const PDF_FIELD = 'certificate_pdf';
+// Airtable's attachment URLs are signed and expire in a couple of hours, so
+// they are never handed to the browser; they are re-read per download and the
+// bytes are streamed. That also keeps the cache TTL well inside their lifetime.
 const CACHE_TTL_MS = 60_000;
 
 export interface IssuedCertificate {
   code: string;
   name: string;
   issuedAt: string | null;
+  pdfUrl: string | null;
 }
 
 interface Cache {
@@ -54,7 +59,7 @@ async function loadCertificates(): Promise<Map<string, IssuedCertificate>> {
 
   const byCode = new Map<string, IssuedCertificate>();
   const records = await base(CERTIFICATES_TABLE)
-    .select({ fields: [CODE_FIELD, 'first_name', 'last_name'] })
+    .select({ fields: [CODE_FIELD, 'first_name', 'last_name', PDF_FIELD] })
     .all();
 
   for (const record of records) {
@@ -65,10 +70,16 @@ async function loadCertificates(): Promise<Map<string, IssuedCertificate>> {
     const last = (record.get('last_name') as string | undefined)?.trim() ?? '';
     const name = [first, last].filter(Boolean).join(' ');
     if (!name) continue;
+    const attachments = record.get(PDF_FIELD);
+    const pdfUrl = Array.isArray(attachments) && attachments.length > 0
+      ? (attachments[0] as { url?: string }).url ?? null
+      : null;
+
     byCode.set(code, {
       code,
       name,
       issuedAt: record._rawJson?.createdTime ?? null,
+      pdfUrl,
     });
   }
 
