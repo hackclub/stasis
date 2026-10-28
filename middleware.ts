@@ -95,6 +95,18 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Logged-out visitors on Discover (e.g. journal links in review justifications)
+  // get the public gallery instead of the dashboard login wall.
+  const discoverMatch = request.nextUrl.pathname.match(/^\/dashboard\/discover(\/[^/]+)?\/?$/);
+  if (discoverMatch) {
+    const hasSession = request.cookies.has("better-auth.session_token") || request.cookies.has("__Secure-better-auth.session_token");
+    if (!hasSession) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/explore${discoverMatch[1] ?? ""}`;
+      return addSecurityHeaders(NextResponse.redirect(url));
+    }
+  }
+
   // Rewrite starter-project subpaths (e.g. /starter-projects/hermes/flightpath)
   // to their static index.html so Next.js doesn't 404
   const starterProjectMatch = request.nextUrl.pathname.match(
